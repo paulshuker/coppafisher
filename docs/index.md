@@ -54,12 +54,26 @@ python -m pip install .
 Coppafish will not automatically install updates, but you will see a warning at the start of a pipeline if a new online
 version is available.
 
-If you already have the source code downloaded, navigate inside of the `coppafish` directory, then `#!bash git pull` 
-the latest code changes. Then, follow the [install](#install) steps again, excluding the `#!bash git clone` command, 
-while inside your coppafish environment.
-
-If you do not have the source code downloaded anymore, follow all the [install](#install) again while inside your
-coppafish environment.
+To update version, follow all [install](#install) instructions again while inside of your coppafish conda environment.
 
 You can verify your install by running `#!bash pip show coppafish` in the coppafish environment to check you have the 
 latest version.
+
+## Migrating results
+
+If you wish to know what old files should be deleted when migrating from one software version to another, run in the 
+python terminal
+```python
+from coppafish import CompatibilityTracker
+track = CompatibilityTracker()
+track.check(X, Y)
+```
+
+where X is the old coppafish version, Y is the new coppafish version. This works for coppafish versions 0.10.7 and 
+above. For example, to find what files to delete when migrating from 0.10.7 to 1.0.0, run
+```python
+from coppafish import CompatibilityTracker
+track = CompatibilityTracker()
+track.check("0.10.7", "1.0.0")
+```
+

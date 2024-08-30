@@ -1,6 +1,7 @@
+from collections.abc import Callable, Iterable
 import inspect
 import math as maths
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import numpy.typing as npt
