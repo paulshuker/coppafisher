@@ -59,10 +59,10 @@ To update version, follow all [install](#install) instructions again while insid
 You can verify your install by running `#!bash pip show coppafish` in the coppafish environment to check you have the 
 latest version.
 
-## Migrating results
+## Changing software version
 
-If you wish to know what old files should be deleted when migrating from one software version to another, run in the 
-python terminal
+If you wish to know what old output files should be deleted when migrating from one software version to another, run 
+in the python terminal
 ```python
 from coppafish import CompatibilityTracker
 track = CompatibilityTracker()

@@ -1,38 +1,53 @@
-from collections import OrderedDict
-
-
 class CompatibilityTracker:
-    # For each coppafish stage key, the value is the output files associated with it.
-    _stages: OrderedDict[str, tuple[str]] = OrderedDict(
-        [
-            (
-                "extract",
-                (
-                    "'extract' subdirectory in the tiles directory",
-                    "All contents in the output directory, including the notebook",
-                ),
-            ),
-            ("filter", ("'filter' notebook page",)),
-            ("find_spots", ("'find_spots' notebook page",)),
-            ("register", ("'register' notebook page", "'register_debug' notebook page")),
-            ("stitch", ("'stitch' notebook page",)),
-            ("reference_spots", ("'ref_spots' notebook page",)),
-            ("call_spots", ("'call_spots' notebook page",)),
-            (
-                "omp",
-                (
-                    "'omp' notebook page",
-                    "results.zgroup in the output directory",
-                    "omp_last_config.pkl in the output directory",
-                ),
-            ),
-            ("none", tuple()),
-        ]
+    _page_names = (
+        "basic_info",
+        "file_names",
+        "extract",
+        "filter",
+        "filter_debug",
+        "find_spots",
+        "register",
+        "register_debug",
+        "stitch",
+        "ref_spots",
+        "call_spots",
+        "omp",
     )
+    # For each coppafish stage, the value is how to run coppafish, starting again from said stage.
+    _stages: dict[str, tuple[str]] = {
+        "extract": ("Clear the output directory", "Delete the 'extract' subdirectory inside of the 'tiles' directory"),
+        "filter": ("Clear the output directory, including the notebook"),
+        "find_spots": (
+            "Clear the output directory except the notebook.",
+            f"Remove all notebook pages except for {', '.join(_page_names[:5])}",
+        ),
+        "register": (
+            "Clear the output directory except the notebook.",
+            f"Remove all notebook pages except for {', '.join(_page_names[:6])}",
+        ),
+        "stitch": (
+            "Clear the output directory except the notebook.",
+            f"Remove all notebook pages except for {', '.join(_page_names[:8])}",
+        ),
+        "ref_spots": (
+            "Clear the output directory except the notebook.",
+            f"Remove all notebook pages except for {', '.join(_page_names[:9])}",
+        ),
+        "call_spots": (
+            "Clear the output directory except the notebook.",
+            f"Remove all notebook pages except for {', '.join(_page_names[:10])}",
+        ),
+        "omp": (
+            "Clear the output directory except the notebook.",
+            f"Remove all notebook pages except for {', '.join(_page_names[:11])}",
+        ),
+        "none": ("Do nothing",),
+    }
     # For each coppafish version, the earliest stage is given that requires re-running as a result of the changes.
     _version_compatibility: dict[str, str] = {
         "0.10.7": "none",
         "1.0.0": "extract",
+        "1.0.1": "register",
     }
 
     def __init__(self) -> None:
@@ -51,8 +66,9 @@ class CompatibilityTracker:
         if not self.has_version(to_version):
             raise ValueError(f"Could not find version {to_version}, {saved_versions_msg}")
 
-        # Find the earliest stage change from the versions after from_version up to to_version.
+        # Find the earliest stage changed from the versions after from_version up to to_version.
         earliest_stage_index = 999
+        earliest_stage = "none"
         for i in range(
             list(self._version_compatibility.keys()).index(from_version) + 1,
             list(self._version_compatibility.keys()).index(to_version) + 1,
@@ -61,15 +77,22 @@ class CompatibilityTracker:
             stage_index = list(self._stages.keys()).index(stage)
             if stage_index < earliest_stage_index:
                 earliest_stage_index = stage_index
+                earliest_stage = list(self._stages.keys())[earliest_stage_index]
 
         # Find and print the instructions to migrate from the earliest stage.
-        migration_instructions = set()
-        for i in range(earliest_stage_index, len(self._stages)):
-            stage = list(self._stages.values())[i]
-            for instruction in stage:
-                migration_instructions.add(instruction)
-        print(f"Migrating from coppafish {from_version} to {to_version}, delete the following:")
-        [print(f"  - {instruction}") for instruction in migration_instructions]
+        print(f"Migrating from coppafish {from_version} to {to_version}:")
+        self.print_start_from(earliest_stage)
+
+    def print_start_from(self, stage: str) -> None:
+        [print(f"    - {instruction}.") for instruction in self._stages[stage]]
+
+    def print_stage_names(self) -> None:
+        stage_names = []
+        for stage_name in self._stages.keys():
+            if stage_name == "none":
+                continue
+            stage_names.append(stage_name)
+        print(f"Coppafish stages: {', '.join(stage_names)}")
 
     def has_version(self, version: str) -> bool:
         return version in self._version_compatibility

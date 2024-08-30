@@ -4,7 +4,8 @@ from coppafish.utils.version import CompatibilityTracker
 
 def test_CompatibilityTracker() -> None:
     tracker = CompatibilityTracker()
-    tracker.check("0.10.7", "1.0.0")
+    tracker.check("1.0.0", "1.0.1")
+    tracker.print_stage_names()
 
     assert tracker.has_version(
         system.get_software_version()

@@ -90,9 +90,10 @@ Wikipedia article</a> for how gene codes are best selected.
 ### Configuration
 
 There are configuration variables used throughout the coppafish pipeline. Most of these have reasonable default values, 
-but some must be set by the user and you may wish to tweak other values for better performance. Save the config file as 
-something like `config.ini`. The config file should contain, at the minimum:
-``` text
+but some must be set by the user and you may wish to tweak other values for better performance. Save the config text 
+file, like `dataset_name.ini`. The config file should contain, at the minimum:
+
+```text
 [file_names]
 input_dir = path/to/input/data
 output_dir = path/to/output/directory
@@ -116,6 +117,7 @@ dapi_channel = 0
 [stitch]
 expected_overlap = 0.15
 ```
+
 where the `dapi_channel` is the index in the numpy arrays that the dapi channel is stored at. `use_channels` includes 
 the `anchor_channel` in this case because the anchor channel can also be used as a sequencing channel in the sequencing 
 rounds. `dye_names` does not have to be set explicitly if `n_seq_channels == n_dyes`. `expected_overlap` is the 
@@ -129,14 +131,22 @@ differently to the y and x directions because typically a z pixel corresponds to
 
 ## Running
 
-Coppafish can be run with a config file. In the terminal
+Coppafish must be run with a config file. In the terminal
+
 ```console
-python -m coppafish /path/to/config.ini
+python3 -m coppafish /path/to/config.ini
 ```
 
-Or using a python script
+Or programmatically, using a python script
+
 ``` python
 from coppafish import run_pipeline
 
 run_pipeline("/path/to/config.ini")
+```
+
+which can then be run from the terminal
+
+```bash
+python3 coppafish_script_name.py
 ```
