@@ -37,9 +37,6 @@ class Notebook:
         "basic_info": [
             "*basic_info* page contains information that is used at all stages of the pipeline.",
         ],
-        "file_names": [
-            "*file_names* page contains all files that are used throughout the pipeline.",
-        ],
         "extract": [
             "*extract* page contains information related to extraction of raw input files for use in coppafish.",
         ],

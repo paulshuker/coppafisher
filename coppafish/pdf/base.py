@@ -38,6 +38,7 @@ class BuildPDF:
     def __init__(
         self,
         nb: Union[Notebook, str],
+        nbp_file: NotebookPage,
         output_dir: Optional[str] = None,
         auto_open: bool = False,
     ) -> None:
@@ -57,7 +58,7 @@ class BuildPDF:
             nb = Notebook(nb)
         pbar.update()
         if output_dir is None:
-            output_dir = nb.file_names.output_dir
+            output_dir = nbp_file.output_dir
         output_dir = os.path.abspath(output_dir)
         assert os.path.isdir(output_dir), f"output_dir {output_dir} is not a valid directory"
 
@@ -84,7 +85,7 @@ class BuildPDF:
                 mpl.rcParams.update(mpl.rcParamsDefault)
                 # Build a pdf with data from scale, extract, filter, find_spots, register, stitch, OMP
                 pbar.set_postfix_str("Basic info")
-                text_intro_info = self.get_basic_info(nb.basic_info, nb.file_names)
+                text_intro_info = self.get_basic_info(nb.basic_info, nbp_file)
                 fig, axes = self.create_empty_page(1, 1)
                 self.empty_plot_ticks(axes)
                 axes[0, 0].set_title(text_intro_info, fontdict=self.INFO_FONTDICT, y=0.5)
@@ -106,7 +107,7 @@ class BuildPDF:
                     pdf.savefig(fig)
                     plt.close(fig)
                     del fig, axes
-                    file_path = os.path.join(nb.file_names.extract_dir, "hist_counts_values.npz")
+                    file_path = os.path.join(nbp_file.extract_dir, "hist_counts_values.npz")
                     extract_pixel_unique_values, extract_pixel_unique_counts = None, None
                     if os.path.isfile(file_path):
                         results = np.load(file_path)
@@ -402,7 +403,7 @@ class BuildPDF:
 
                 for i in range(10):
                     fig = self.create_omp_gene_counts_fig(
-                        nb.basic_info, nb.file_names, nb.call_spots, nb.omp, score_threshold=i * 0.1
+                        nb.basic_info, nbp_file, nb.call_spots, nb.omp, score_threshold=i * 0.1
                     )
                     pdf.savefig(fig)
                     plt.close(fig)

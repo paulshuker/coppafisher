@@ -61,18 +61,8 @@ tile index is displayed.
 ## PDF Diagnostics
 
 During a pipeline run, multiple .pdf files are created for different sections. These are located in the output 
-directory. They can be manually created from the notebook file by
-```python
-from coppafish import BuildPDF
-
-BuildPDF("path/to/notebook.npz")
-```
-
-specify the directory to save to by
-```python
-BuildPDF("path/to/notebook.npz", "path/to/output/directory")
-```
-if you want the PDFs to be re-created, you must delete the old ones first.
+directory. If you want the PDFs to be created again, delete the old ones first, then 
+[run coppafish](basic_usage.md/#running) again.
 
 ## Viewer2D
 
