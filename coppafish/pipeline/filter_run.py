@@ -59,15 +59,6 @@ def run_filter(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) ->
         dtype=np.float16,
     )
 
-    INVALID_AUTO_THRESH = -1
-    nbp_debug.invalid_auto_thresh = INVALID_AUTO_THRESH
-    auto_thresh = np.full(
-        (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.n_extra_rounds, nbp_basic.n_channels),
-        fill_value=INVALID_AUTO_THRESH,
-        dtype=float,
-    )
-
-    nbp_debug.z_info = int(np.floor(nbp_basic.nz / 2))  # central z-plane to get info from.
     nbp_debug.r_dapi = config["r_dapi"]
 
     if nbp_debug.r_dapi is not None:
@@ -123,15 +114,12 @@ def run_filter(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) ->
                     im_filtered = utils.morphology.top_hat(im_filtered, filter_kernel_dapi)
                 # DAPI images are shifted so all negative pixels are now positive so they can be saved without clipping
                 im_filtered -= im_filtered.min()
-            elif c != nbp_basic.dapi_channel:
-                auto_thresh[t, r, c] = float(config["auto_thresh_multiplier"] * np.median(np.abs(im_filtered)))
             im_filtered = im_filtered.astype(np.float16)
             images[t, r, c] = im_filtered
             del im_filtered
             pbar.update()
 
     nbp.images = images
-    nbp.auto_thresh = auto_thresh
     end_time = time.time()
     nbp_debug.time_taken = end_time - start_time
     log.debug("Filter complete")

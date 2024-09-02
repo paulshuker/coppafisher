@@ -1,9 +1,9 @@
 2024/mm/dd Alpha Update (v0.11.0):
  * PDF Diagnostics: New gene spatial heat map PDFs created at runtime.
  * PDF Diagnostics: New stitch PDF file created at runtime.
- * Viewer: The viewer is more customisable, and users can now toggle whether they want each image shown to be
-    a max intensity projection or not, which is achieved by setting the max_intensity_projection variable in the viewer
-    to True or False.
+ * Viewer: The viewer is more customisable. Users can now toggle whether they want each image shown to be a max 
+    intensity projection or not, which is achieved by setting the max_intensity_projection variable in the viewer to 
+    True or False.
  * Viewer: Viewer is now much faster and less laggy, due to the removal of a transparent copy of the spots, and the 
     removal of spots not in the legend. The spots are also organised into 3 layers (1 for each method) instead of
     the old method of a layer for each symbol, which was slow.
@@ -19,6 +19,7 @@
  * General: Package versions are now logged in the pipeline.log file.
  * General: Incorrect numpy data types have been fixed within the notebook.
  * General: The notebook is now faster at saving, can save zarr arrays/groups, and has better overwrite protection.
+ * General: Security patches for zipp, urllib3, scikit-learn, tornado, requests, and certifi.
  * Extract: Default z_plane_mean_warning 200 -> 125.
  * Extract: Images are now rotated during extract instead of filter. Hence, the config parameter `num_rotations` has 
     been moved from the `filter` section to the `extract` section.

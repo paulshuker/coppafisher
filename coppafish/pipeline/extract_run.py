@@ -1,5 +1,4 @@
 import os
-from typing import Optional, Tuple
 
 import numpy as np
 from tqdm import tqdm
@@ -9,9 +8,7 @@ from ..setup import NotebookPage
 from ..utils import indexing, tiles_io
 
 
-def run_extract(
-    config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage
-) -> Tuple[NotebookPage, NotebookPage, Optional[np.ndarray]]:
+def run_extract(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) -> NotebookPage:
     """
     This reads in images from the raw `nd2` files, filters them and then saves them as zarr array files in the tile
     directory.
@@ -22,11 +19,10 @@ def run_extract(
         nbp_basic (NotebookPage): 'basic_info' notebook page.
 
     Returns:
-        - `NotebookPage[extract]`: page containing `auto_thresh` for use in turning images to point clouds and
-            `hist_values`, `hist_counts` required for normalisation between channels.
+        (NotebookPage) nbp_extract: `extract` notebook page.
 
     Notes:
-        - See `'extract'` sections of `notebook_comments.json` file for description of the variables in each page.
+        - See `'extract'` sections in `coppafish/setup/notebook_page.py` file for description of the variables in each page.
     """
     # initialise notebook pages
     if not nbp_basic.is_3d:

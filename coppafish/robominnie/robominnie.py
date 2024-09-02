@@ -581,10 +581,10 @@ class Robominnie:
         num_rotations = 0
         
         [filter]
-        auto_thresh_multiplier = 2
         wiener_pad_shape = 40, 40, 9
 
         [find_spots]
+        auto_thresh_multiplier = 2
         n_spots_warn_fraction = 0
         n_spots_error_fraction = 1
 
