@@ -24,6 +24,8 @@ class Notebook:
     def get_config_path(self) -> Optional[str]:
         return self._config_path
 
+    # The latest config file path used by coppafish to run the pipeline.
+    # There is no guarantee that the config file is still there when an old notebook is loaded in.
     config_path = property(get_config_path)
 
     _metadata_name = "_metadata.json"
@@ -79,10 +81,10 @@ class Notebook:
         """
         Load the notebook found at the given directory. Or, if the directory does not exist, create the directory.
 
-        notebook_dir (str): the notebook directory to write into/load from.
-        config_path (str, optional): path to the pipeline's config file. Must be given when creating the notebook for
+        - notebook_dir (str): the notebook directory to write into/load from.
+        - config_path (str, optional): path to the pipeline's config file. Must be given when creating the notebook for
             the first time.
-        debugging (bool, optional): do not compare against a config file from disk. This is useful for unit testing
+        - debugging (bool, optional): do not compare against a config file from disk. This is useful for unit testing
             purposes only.
         """
         assert type(notebook_dir) is str

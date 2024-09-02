@@ -367,9 +367,6 @@ class view_spot(ColorPlotBase):
             method: `'anchor'` or `'omp'` or `'prob'`.
                 Which method of gene assignment used i.e. `spot_no` belongs to `ref_spots` or `omp` page of Notebook.
             im_size: Radius of image to be plotted for each channel/round.
-
-        Notes:
-            - Requires access to `nb.file_names.tile_dir`.
         """
         assert method.lower() in ["anchor", "omp", "prob"], "method must be 'anchor', 'omp' or 'prob'"
         plt.style.use("dark_background")
@@ -860,8 +857,9 @@ class ViewScalingAndBGRemoval:
             ax[1, i].set_title("95th Percentile Brightness")
 
         for i, j in np.ndindex(2, 3):
-            ax[i, j].set_xticks([k * n_rounds + n_rounds // 2 for k in range(n_channels_use)],
-                                nb.basic_info.use_channels)
+            ax[i, j].set_xticks(
+                [k * n_rounds + n_rounds // 2 for k in range(n_channels_use)], nb.basic_info.use_channels
+            )
             if i == 0:
                 ax[i, j].set_yticks([])
             # separate channels with a horizontal line
@@ -882,4 +880,3 @@ class ViewScalingAndBGRemoval:
     # self.slider = Slider(self.ax_slider, 'Interpolation Coefficient', 0, 1, valinit=0, orientation='vertical')
     # self.slider.on_changed(lambda val: self.update_hist(int(val)))
     # TODO: Add 2 buttons, one for separating normalisation by channel and one for separating by round and channel
-

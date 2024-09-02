@@ -16,10 +16,6 @@ from ...utils import tiles_io
 from ..raw import add_basic_info_no_save
 
 
-def get_filtered_image(nb: Notebook, t: int, r: int, c: int) -> np.ndarray:
-    raise NotImplementedError(f"This function is outdated")
-
-
 class view_find_spots:
     def __init__(
         self,

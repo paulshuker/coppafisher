@@ -1,25 +1,26 @@
+from typing import Optional
+
 from PyQt5.QtWidgets import QLabel, QLineEdit, QMainWindow, QPushButton, QSlider
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import napari
 import nd2
 import numpy as np
-import skimage
-import torch
-
 from qtpy.QtCore import Qt
 from scipy.ndimage import affine_transform
 from scipy.spatial import KDTree
+import skimage
 from superqt import QRangeSlider
+import torch
 from tqdm import tqdm
+
 from coppafish.find_spots import spot_yxz
-from coppafish.register import preprocessing
-from coppafish.setup import Notebook
+from coppafish.setup import Notebook, file_names
 from coppafish.spot_colours import apply_affine, apply_flow
 
 
 class RegistrationViewer:
-    def __init__(self, nb: Notebook, t: int = None):
+    def __init__(self, nb: Notebook, t: int = None, config_path: Optional[str] = None):
         """
         Viewer for the registration of an experiment.
         - Shows the registered images for the selected tile.
@@ -29,6 +30,7 @@ class RegistrationViewer:
 
         Developer Note: No need to add too many variables to this class. Best to keep them in the napari viewer which
         can be accessed by self.viewer.
+
         Args:
             nb: Notebook object (should contain register and register_debug pages)
             t: tile (if None, the first tile is selected)
@@ -36,7 +38,10 @@ class RegistrationViewer:
         self.nb = nb
         if t is None:
             t = nb.basic_info.use_tiles[0]
+        if config_path is None:
+            config_path = nb.config_path
         self.t = t
+        self.nbp_file = file_names.get_file_names(nb.basic_info, config_path)
         self.viewer = napari.Viewer()
         self.add_images()
         self.format_viewer()
@@ -210,7 +215,7 @@ class RegistrationViewer:
                 rc=[
                     (int(text_buttons.text_box[0].text()), int(text_buttons.text_box[1].text())),
                     (int(text_buttons.text_box[2].text()), int(text_buttons.text_box[3].text())),
-                ]
+                ],
             )
         )
         self.viewer.window.add_dock_widget(text_buttons, area="left", name="overlay")
@@ -262,7 +267,7 @@ class RegistrationViewer:
         # add buttons to view camera correction
         button = ButtonCreator(["fluorescent beads"], [(60, 5)], size=(150, 28))
         button.buttons[0].clicked.connect(lambda: view_camera_correction(self.nb))
-        if self.nb.file_names.fluorescent_bead_path is not None:
+        if self.nbp_file.fluorescent_bead_path is not None:
             self.viewer.window.add_dock_widget(button, area="left", name="camera correction")
 
     # Functions to interact with the viewer
@@ -399,12 +404,14 @@ class ICPPointCloudViewer:
         flow = self.nb.register.flow[self.t, r]
         # apply the flow and affine correction
         base_flow_plus_round_affine = apply_flow(yxz=base_raw, flow=flow)
-        base_flow_plus_round_affine = apply_affine(yxz=torch.asarray(base_flow_plus_round_affine, dtype=torch.float32),
-                                                   affine=torch.asarray(affine_round_correction,
-                                                                        dtype=torch.float32)).numpy()
+        base_flow_plus_round_affine = apply_affine(
+            yxz=torch.asarray(base_flow_plus_round_affine, dtype=torch.float32),
+            affine=torch.asarray(affine_round_correction, dtype=torch.float32),
+        ).numpy()
         # remove out of bounds points
-        in_bounds = (np.all(base_flow_plus_round_affine[:, :2] >= 0, axis=1)
-                     & np.all(base_flow_plus_round_affine[:, :2] < self.nb.basic_info.tile_sz, axis=1))
+        in_bounds = np.all(base_flow_plus_round_affine[:, :2] >= 0, axis=1) & np.all(
+            base_flow_plus_round_affine[:, :2] < self.nb.basic_info.tile_sz, axis=1
+        )
         base_raw = base_raw[in_bounds]
         base_flow_plus_round_affine = base_flow_plus_round_affine[in_bounds]
 
@@ -414,11 +421,14 @@ class ICPPointCloudViewer:
         else:
             icp_correction = self.nb.register_debug.round_correction[self.t, self.r]
         # apply the icp correction
-        base_flow_plus_icp_affine = apply_affine(yxz=torch.asarray(base_flow_plus_round_affine, dtype=torch.float32),
-                                                 affine=torch.asarray(icp_correction, dtype=torch.float32)).numpy()
+        base_flow_plus_icp_affine = apply_affine(
+            yxz=torch.asarray(base_flow_plus_round_affine, dtype=torch.float32),
+            affine=torch.asarray(icp_correction, dtype=torch.float32),
+        ).numpy()
         # remove out of bounds points
-        in_bounds = (np.all(base_flow_plus_icp_affine[:, :2] >= 0, axis=1)
-                     & np.all(base_flow_plus_icp_affine[:, :2] < self.nb.basic_info.tile_sz, axis=1))
+        in_bounds = np.all(base_flow_plus_icp_affine[:, :2] >= 0, axis=1) & np.all(
+            base_flow_plus_icp_affine[:, :2] < self.nb.basic_info.tile_sz, axis=1
+        )
         base_flow_plus_icp_affine = base_flow_plus_icp_affine[in_bounds]
         base_flow_plus_round_affine = base_flow_plus_round_affine[in_bounds]
         base_raw = base_raw[in_bounds]
@@ -626,8 +636,9 @@ def view_optical_flow(nb: Notebook, t: int, r: int):
     names = ["raw", "smooth"]
     flows = [nb.register.flow_raw[t, r], nb.register.flow[t, r]]
     # warp the base image using the flows
-    base_warped = [skimage.transform.warp(base, -f.astype(np.float32) + coords, order=0, preserve_range=True)
-                   for f in flows]
+    base_warped = [
+        skimage.transform.warp(base, -f.astype(np.float32) + coords, order=0, preserve_range=True) for f in flows
+    ]
     print("Base image warped.")
     del coords
     # load the correlation
@@ -642,13 +653,7 @@ def view_optical_flow(nb: Notebook, t: int, r: int):
     for i in range(len(flows)):
         translation = [0, 1.1 * nx * (i + 1), 0]
         viewer.add_image(target, name="target", colormap="green", blending="additive", translate=translation)
-        viewer.add_image(
-            base_warped[i],
-            name=names[i],
-            colormap="red",
-            blending="additive",
-            translate=translation
-        )
+        viewer.add_image(base_warped[i], name=names[i], colormap="red", blending="additive", translate=translation)
     # add flows as images
     for i, j in np.ndindex(len(flows), len(coord_order)):
         translation = [1.1 * ny * (j + 1), 1.1 * nx * (i + 1), 0]
@@ -780,15 +785,20 @@ def view_icp_iters(nb: Notebook, t: int):
     plt.show()
 
 
-def view_camera_correction(nb: Notebook):
+def view_camera_correction(nb: Notebook, config_path: Optional[str] = None):
     """
-    Plots the camera correction for each camera against the anchor camera
+    Plot the camera correction for each camera against the anchor camera.
+
     Args:
-        nb: Notebook (must have register page and a path to fluorescent bead images)
+        - nb: Notebook (must have register page and a path to fluorescent bead images)
+        - config_path (str, optional): path to the config .ini file. Default: use the latest path from the notebook.
     """
+    if config_path is None:
+        config_path = nb.config_path
     # One transform for each camera
     viewer = napari.Viewer()
-    fluorescent_bead_path = nb.file_names.fluorescent_bead_path
+    nbp_file = file_names.get_file_names(nb.basic_info, config_path)
+    fluorescent_bead_path = nbp_file.fluorescent_bead_path
     # open the fluorescent bead images as nd2 files
     with nd2.ND2File(fluorescent_bead_path) as fbim:
         fluorescent_beads = fbim.asarray()
@@ -916,8 +926,10 @@ def view_overlay(nb: Notebook, t: int = None, rc: list = None):
     """
     assert len(rc) > 0, "At least one round and channel should be provided."
     n_im = len(rc)
-    coords = np.array(np.meshgrid(range(nb.basic_info.tile_sz), range(nb.basic_info.tile_sz),
-                                  range(nb.basic_info.nz), indexing="ij"), dtype=np.float32)
+    coords = np.array(
+        np.meshgrid(range(nb.basic_info.tile_sz), range(nb.basic_info.tile_sz), range(nb.basic_info.nz), indexing="ij"),
+        dtype=np.float32,
+    )
     im = np.zeros((n_im, nb.basic_info.tile_sz, nb.basic_info.tile_sz, nb.basic_info.nz), dtype=np.float32)
 
     icp_correction = nb.register.icp_correction
@@ -946,3 +958,4 @@ def view_overlay(nb: Notebook, t: int = None, rc: list = None):
     viewer.dims.axis_labels = ["y", "x", "z"]
     viewer.dims.order = (2, 0, 1)
     napari.run()
+

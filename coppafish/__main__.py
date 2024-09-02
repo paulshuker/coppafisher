@@ -10,6 +10,7 @@ import textwrap
 import numpy as np
 
 from coppafish import Notebook, Viewer, export_to_pciseq, run_pipeline
+from coppafish.setup import file_names
 
 
 def print_usage(message=None):
@@ -42,8 +43,8 @@ if len(sys.argv) >= 4:
     )
 if sys.argv[1] in ["--help", "-h"]:
     print_usage()
-if not os.path.isfile(sys.argv[1]):
-    print_usage(f"Cannot find path {sys.argv[1]}, please specify a valid file")
+if not os.path.exists(sys.argv[1]):
+    print_usage(f"Cannot find path {sys.argv[1]}, please specify a valid path")
 
 if len(sys.argv) == 2:
     run_pipeline(sys.argv[1])
@@ -51,8 +52,8 @@ if len(sys.argv) == 3:
     if not np.isin(sys.argv[2], ["view", "-view", "-plot", "plot", "export", "-export"]):
         print_usage(f"To plot results, second argument should be -view or -export but {sys.argv[2]} given")
     else:
-        nb = Notebook(config_file=sys.argv[1])
+        nb = Notebook(sys.argv[1])
         if np.isin(sys.argv[2], ["export", "-export"]):
-            export_to_pciseq(nb)
+            export_to_pciseq(nb, file_names.get_file_names(nb.basic_info, sys.argv[1]))
         else:
             Viewer(nb)

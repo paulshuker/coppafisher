@@ -94,7 +94,7 @@ def initialize_nb(config_path: str) -> Tuple[Notebook, NotebookPage]:
         nb += nbp_basic
     else:
         log.warn(utils_warnings.NotebookPageWarning("basic_info"))
-    nbp_file = file_names.get_file_names(nb)
+    nbp_file = file_names.get_file_names(nb.basic_info, config_path)
     return nb, nbp_file
 
 

@@ -1,11 +1,13 @@
-import napari
 import numbers
+from typing import List, Optional, Tuple, Union
+
+import napari
 import numpy as np
 from tqdm import tqdm
-from typing import Union, Optional, List, Tuple
-from ..utils import raw, nd2
-from ..setup import Notebook
+
 from ..pipeline.basic_info import set_basic_info
+from ..setup import Notebook, file_names
+from ..utils import nd2, raw
 
 
 def add_basic_info_no_save(nb: Notebook):
@@ -24,7 +26,7 @@ def add_basic_info_no_save(nb: Notebook):
 
 
 def get_raw_images(
-    nb: Notebook, tiles: List[int], rounds: List[int], channels: List[int], use_z: List[int]
+    nb: Notebook, config_path: str, tiles: List[int], rounds: List[int], channels: List[int], use_z: List[int]
 ) -> np.ndarray:
     """
     This loads in raw images for the experiment corresponding to the *Notebook*.
@@ -59,18 +61,19 @@ def get_raw_images(
     nx = ny
     nz = len(use_z)
 
+    nbp_file = file_names.get_file_names(nb.basic_info, config_path)
     raw_images = np.zeros((n_tiles, n_rounds, n_channels, ny, nx, nz), dtype=np.uint16)
     with tqdm(total=n_images) as pbar:
         pbar.set_description(f"Loading in raw data")
         for r in range(n_rounds):
-            round_dask_array, _ = raw.load_dask(nb.file_names, nb.basic_info, r=rounds[r])
+            round_dask_array, _ = raw.load_dask(nbp_file, nb.basic_info, r=rounds[r])
             # TODO: Can get rid of these two for loops, when round_dask_array is always a dask array.
             #  At the moment though, is not dask array when using nd2_reader (On Mac M1).
             for t in range(n_tiles):
                 for c in range(n_channels):
                     pbar.set_postfix({"round": rounds[r], "tile": tiles[t], "channel": channels[c]})
                     (raw_images[t, r, c],) = raw.load_image(
-                        nb.file_names, nb.basic_info, tiles[t], channels[c], round_dask_array, rounds[r], use_z
+                        nbp_file, nb.basic_info, tiles[t], channels[c], round_dask_array, rounds[r], use_z
                     )
                     pbar.update(1)
     return raw_images
@@ -92,6 +95,7 @@ def number_to_list(var_list: List) -> Tuple:
 
 def view_raw(
     nb: Optional[Notebook] = None,
+    config_path: str = None,
     tiles: Union[int, List[int]] = 0,
     rounds: Union[int, List[int]] = 0,
     channels: Optional[Union[int, List[int]]] = None,
@@ -102,7 +106,7 @@ def view_raw(
     Function to view raw data in napari.
     There will upto 4 scrollbars for each image to change tile, round, channel and z-plane.
 
-    !!! warning "Requires access to `nb.file_names.input_dir`"
+    !!! warning "Requires access to `input_dir` given in the config file"
 
     Args:
         nb: *Notebook* for experiment. If no *Notebook* exists, pass `config_file` instead.
@@ -125,6 +129,7 @@ def view_raw(
     """
     if nb is None:
         nb = Notebook(config_file=config_file)
+
     add_basic_info_no_save(nb)  # deal with case where there is no notebook yet
     if channels is None:
         channels = np.arange(nb.basic_info.n_channels)
@@ -132,7 +137,7 @@ def view_raw(
         use_z = nb.basic_info.use_z
     tiles, rounds, channels, use_z = number_to_list([tiles, rounds, channels, use_z])
 
-    raw_images = get_raw_images(nb, tiles, rounds, channels, use_z)
+    raw_images = get_raw_images(nb, config_path, tiles, rounds, channels, use_z)
     viewer = napari.Viewer()
     viewer.add_image(np.moveaxis(raw_images, -1, 3), name="Raw Images")
 
@@ -149,7 +154,11 @@ def view_raw(
 
 
 def view_tile_layout(
-    nb: Notebook, num_rotations: int = 0, tiles: Optional[Union[int, List[int]]] = None, channel: int = 0
+    nb: Notebook,
+    config_path=None,
+    num_rotations: int = 0,
+    tiles: Optional[Union[int, List[int]]] = None,
+    channel: int = 0,
 ):
     """
     Function to view the tile layout in napari. Images will be middle z plane from nd2 files in the anchor round.
@@ -162,12 +171,15 @@ def view_tile_layout(
         channel: Which channel to view.
     """
     assert channel in nb.basic_info.use_channels or channel == nb.basic_info.dapi_channel, f"Invalid channel: {channel}"
+    if config_path is None:
+        config_path = nb.config_path
 
     if tiles is None:
         tiles = nb.basic_info.use_tiles
 
     raw_images = get_raw_images(
         nb,
+        config_path,
         tiles=tiles,
         rounds=[nb.basic_info.anchor_round],
         channels=[channel],

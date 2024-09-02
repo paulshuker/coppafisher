@@ -1,61 +1,63 @@
 2024/mm/dd Alpha Update (v0.11.0):
- * OMP: OMP is now truly orthogonal. Before, the new gene was weighted using only the residual pixel colour. Now, all 
-    genes are re-weighted using the full pixel colour and a new gene is found using the latest residual colour.
- * Viewer refactor: The viewer is more customisable, and users can now toggle whether they want each image shown to be
-    a max intensity projection or not, which is achieved by setting the max_intensity_projection variable in the viewer
-    to True or False.
- * Presequence support is completely removed from the pipeline.
  * PDF Diagnostics: New gene spatial heat map PDFs created at runtime.
  * PDF Diagnostics: New stitch PDF file created at runtime.
- * All output variables are now stored within the notebook except for extract images.
+ * Viewer: The viewer is more customisable, and users can now toggle whether they want each image shown to be
+    a max intensity projection or not, which is achieved by setting the max_intensity_projection variable in the viewer
+    to True or False.
+ * Viewer: Viewer is now much faster and less laggy, due to the removal of a transparent copy of the spots, and the 
+    removal of spots not in the legend. The spots are also organised into 3 layers (1 for each method) instead of
+    the old method of a layer for each symbol, which was slow.
+ * Viewer: The viewer now has a new feature where the user can adjust the size of the spots in the viewer.
+ * Viewer: The viewer now has a new feature where the user can adjust the downsample_yx factor of the images in the 
+    viewer. For NPY files, a downsample of 4 is recommended as it greatly speeds up the loading of the viewer (30
+    seconds -> 5 seconds), and the images are still of high enough quality to see the nuclei.
+ * Viewer: Napari has been updated to version 0.4.19, removing some Qt warnings.
+ * General: Presequence support is removed.
+ * General: All output variables are now stored within the notebook except for extract images.
+ * General: Users can easily move output directory and tiles directory mid-pipeline.
+ * General: The notebook can be moved location without breaking diagnostics.
+ * General: Package versions are now logged in the pipeline.log file.
+ * General: Incorrect numpy data types have been fixed within the notebook.
+ * General: The notebook is now faster at saving, can save zarr arrays/groups, and has better overwrite protection.
+ * Extract: Default z_plane_mean_warning 200 -> 125.
+ * Extract: Images are now rotated during extract instead of filter. Hence, the config parameter `num_rotations` has 
+    been moved from the `filter` section to the `extract` section.
  * Filter: Filtered images are now saved as float16 instead of uint16.
  * Filter: Filtered images are not scaled anymore.
  * Filter: Images are now saved in the 'filter' notebook page.
  * Filter: The PSF used for image filtering is not computed anymore. It is given as an input. There is a default PSF 
     located at coppafish/setup/default_psf.npz.
- * Extract: Images are now rotated during extract instead of filter. Hence, the config parameter `num_rotations` has 
-    been moved from the `filter` section to the `extract` section.
+ * Filter: Removed legacy filter options: difference of Hanning and image smoothing.
+ * Filter: Warning issues when a filtered image contains adjacent pixels at the maximum possible integer value.
+ * Register: Moved bg_scale from filter page -> register page.
+ * Channel Register: An index error in channel registration, leading to the wrong channel corrections being applied, 
+    has been fixed.
+ * Channel Register: now done more thoroughly, with the bead images being shift corrected with a phase correlation
+    before any registration begins. This is to make the job of ICP easier.
+ * Channel Register: The fluorescent bead images are now isodata thresholded before circle detection, to make the
+    circle detection more robust. The impact of this has been that the circle centres are much more accurate and closer
+    to the true centre of the bead.
+ * Stitch: The stitching section has been refactored to be more robust and faster. Stitching time has gone from 15 
+    minutes to 5 minutes for a 3x4 tile dataset.
+ * Stitch: The stitching section now works on dapi images for each tile instead of point clouds. The shifts between 
+    tiles are now computed with a phase correlation instead of point clouds exhaustively searching for the best shift.
+ * Stitch: The shifts computed are now given a score, which is the squared pearson correlation of the shifted image 
+    and the reference image in the overlapping region. This score is then used in the computation of the final shifts,
+    where we deal with the fact that our problem is overspecified. The scoring is used as a weight and the results are
+    much better than before.
+ * Stitch: The stitching diagnostics have been replaced with 2 new viewers, one for viewing the image as a 
+    checkerboard patten in green and red, with overlapping regions in yellow, and the other for viewing the shifts
+    computed for each tile.
+ * Call spots: bad_trc now works with the new colour normalisation factor computation fix.
+ * OMP: OMP is now truly orthogonal. Before, the new gene was weighted using only the residual pixel colour. Now, all 
+    genes are re-weighted using the full pixel colour and a new gene is found using the latest residual colour.
  * OMP: After each tile, OMP saves the progress and can continue where it left off if OMP is not completed fully.
  * OMP: Pixel colours are not background fitted before being run through OMP. OMP stops iterating on a pixel if a 
     background gene is assigned.
  * OMP: Better OMP mean spot computation.
- * The notebook has been refactored. It is now faster at saving, can save zarr arrays/groups, and has write protections.
  * OMP: Less memory intensive by saving each tile's results separately. Also, the results are compressed to disk.
  * OMP: New OMP subplots for the Viewer. Pressing "Shift + k" will bring up all subplot shortcuts.
- * Call spots: bad_trc now works with the new colour normalisation factor computation fix.
- * Extract: Default z_plane_mean_warning 200 -> 125.
- * Register: Moved bg_scale from filter page -> register page.
- * Viewer refactor: Viewer is now much faster and less laggy, due to the removal of a transparent copy of the spots, and
-    the removal of spots not in the legend. The spots are also organised into 3 layers (1 for each method) instead of
-    the old method of a layer for each symbol, which was slow.
- * Viewer refactor: The viewer now has a new feature where the user can adjust the size of the spots in the viewer.
- * Viewer refactor: The viewer now has a new feature where the user can adjust the downsample_yx factor of the images in
-    the viewer. For NPY files, a downsample of 4 is recommended as it greatly speeds up the loading of the viewer (30
-    seconds -> 5 seconds), and the images are still of high enough quality to see the nuclei.
- * Viewer refactor: Napari is now at the latest version: 0.4.19, which removes previous Qt warnings.
- * Channel Registration: An index error in channel registration, leading to the wrong channel corrections being applied,
-    has been fixed.
- * Channel Registration: now done more thoroughly, with the bead images being shift corrected with a phase correlation
-    before any registration begins. This is to make the job of ICP easier.
- * Channel Registration: The fluorescent bead images are now isodata thresholded before circle detection, to make the
-    circle detection more robust. The impact of this has been that the circle centres are much more accurate and closer
-    to the true centre of the bead.
- * Stitching: The stitching section has been refactored to be more robust and faster. Stitching time has gone from
-    15 minutes to 5 minutes for a 3x4 tile dataset.
- * Stitching: The stitching section now works on dapi images for each tile instead of point clouds. The shifts between
-    tiles are now computed with a phase correlation instead of point clouds exhaustively searching for the best shift.
- * Stitching: The shifts computed are now given a score, which is the squared pearson correlation of the shifted image
-    and the reference image in the overlapping region. This score is then used in the computation of the final shifts,
-    where we deal with the fact that our problem is overspecified. The scoring is used as a weight and the results are
-    much better than before.
- * Stitching: The stitching diagnostics have been replaced with 2 new viewers, one for viewing the image as a
-    checkerboard patten in green and red, with overlapping regions in yellow, and the other for viewing the shifts
-    computed for each tile.
  * OMP: Scores now saved as float16, not int16.
- * Filter: Removed legacy filter options: difference of Hanning and image smoothing.
- * Filter: Warning issues when a filtered image contains adjacent pixels at the maximum possible integer value.
- * Logging: Package versions are now logged in the pipeline.log file.
- * Incorrect numpy data types have been fixed within the notebook.
 
 
 2024/05/15 Alpha Update (v0.10.6):
