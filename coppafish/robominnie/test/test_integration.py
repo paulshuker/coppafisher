@@ -3,8 +3,7 @@ import warnings
 
 import pytest
 
-from coppafish import Notebook, Viewer
-from coppafish.plot.register.diagnostics import RegistrationViewer
+from coppafish import Notebook, Viewer, RegistrationViewer
 from coppafish.robominnie.robominnie import Robominnie
 
 
