@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from typing import Tuple, Optional, List, Union
+from typing import Tuple, Optional, List
 
 
 def get_tilepos(xy_pos: np.ndarray, tile_sz: int, expected_overlap: float) -> Tuple[np.ndarray, np.ndarray]:
@@ -51,13 +51,15 @@ def get_tilepos(xy_pos: np.ndarray, tile_sz: int, expected_overlap: float) -> Tu
     # [2,2], [2,1], [2,0], [1,2], [1,1], [1,0], [0,2], [0,1], [0,0]
     # so we need to sort first by x and then by y
     tilepos_yx_npy = tilepos_yx_npy[tilepos_yx_npy[:, 1].argsort()]
-    tilepos_yx_npy = tilepos_yx_npy[tilepos_yx_npy[:, 0].argsort(kind='mergesort')]
+    tilepos_yx_npy = tilepos_yx_npy[tilepos_yx_npy[:, 0].argsort(kind="mergesort")]
     tilepos_yx_npy = tilepos_yx_npy[::-1]
 
     return tilepos_yx_nd2, tilepos_yx_npy
 
 
-def get_tile_name(tile_directory: str, file_base: List[str], suffix: str, r: int, t: int, c: Optional[int] = None) -> str:
+def get_tile_name(
+    tile_directory: str, file_base: List[str], suffix: str, r: int, t: int, c: Optional[int] = None
+) -> str:
     """
     Finds the full path to tile, `t`, of particular round, `r`, and channel, `c`, in `tile_directory`.
 
@@ -74,14 +76,21 @@ def get_tile_name(tile_directory: str, file_base: List[str], suffix: str, r: int
         Full path of tile file.
     """
     if c is None:
-        tile_name = os.path.join(tile_directory, '{}_t{}{}'.format(file_base[r], t, suffix))
+        tile_name = os.path.join(tile_directory, "{}_t{}{}".format(file_base[r], t, suffix))
     else:
-        tile_name = os.path.join(tile_directory, '{}_t{}c{}{}'.format(file_base[r], t, c, suffix))
+        tile_name = os.path.join(tile_directory, "{}_t{}c{}{}".format(file_base[r], t, c, suffix))
     return tile_name
 
 
-def get_tile_file_names(tile_directory_filter: str, tile_directory_extract: str, file_base: List[str], n_tiles: int, 
-                        suffix: str, n_channels: int = 0, jobs: bool = False) -> Tuple[np.ndarray, np.ndarray]:
+def get_tile_file_names(
+    tile_directory_filter: str,
+    tile_directory_extract: str,
+    file_base: List[str],
+    n_tiles: int,
+    suffix: str,
+    n_channels: int = 0,
+    jobs: bool = False,
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Gets array of all tile file paths which will be saved in tile directory.
 
@@ -91,14 +100,14 @@ def get_tile_file_names(tile_directory_filter: str, tile_directory_extract: str,
         file_base (`(n_rounds) list[str]`): `file_base[r]` is identifier for round `r`.
         n_tiles (int): number of tiles in data set.
         suffix (str): file name suffix. For example, for numpy file saves, will be `'.npy'`.
-        n_channels (int, optional): total number of imaging channels if using 3D. `0` if using 2D pipeline as all 
+        n_channels (int, optional): total number of imaging channels if using 3D. `0` if using 2D pipeline as all
             channels saved in same file.
-        jobs (bool, optional): set True if file were acquired using JOBs (i.e. tiles are split by laser). Default: 
+        jobs (bool, optional): set True if file were acquired using JOBs (i.e. tiles are split by laser). Default:
             false.
 
     Returns:
         - `(n_tiles x n_rounds (x n_channels)) ndarray[str]`. filtered image file paths such that:
-        
+
             * If 2D so `n_channels = 0`, `tile_files[t, r]` is the full path to npy file containing all channels of
                 tile `t`, round `r`.
             * If 3D so `n_channels > 0`, `tile_files[t, r]` is the full path to npy file containing all z-planes of
@@ -123,14 +132,7 @@ def get_tile_file_names(tile_directory_filter: str, tile_directory_extract: str,
                 for t in range(n_tiles):
                     for c in range(n_channels):
                         tile_files_filter[t, r, c] = get_tile_name(tile_directory_filter, file_base, suffix, r, t, c)
-                        tile_files_extract[t, r, c] = get_tile_name(
-                            tile_directory_extract, 
-                            file_base, 
-                            suffix, 
-                            r, 
-                            t, 
-                            c
-                        )
+                        tile_files_extract[t, r, c] = get_tile_name(tile_directory_extract, file_base, suffix, r, t, c)
     else:
         n_lasers = 7  # TODO: should have the option to pass n_lasers as an argument for better generalisation
         n_rounds = len(file_base)
@@ -140,14 +142,16 @@ def get_tile_file_names(tile_directory_filter: str, tile_directory_extract: str,
         for r in range(n_rounds):
 
             for t in range(n_tiles):
-                raw_tile_files = file_base[r][t * n_lasers: (t + 1) * n_lasers]
+                raw_tile_files = file_base[r][t * n_lasers : (t + 1) * n_lasers]
 
                 for c in range(n_channels):
-                    f_index = int(np.floor(c/4))
-                    t_name = os.path.join(tile_directory_filter, '{}_t{}c{}{}'.format(raw_tile_files[f_index], t, c, suffix))
+                    f_index = int(np.floor(c / 4))
+                    t_name = os.path.join(
+                        tile_directory_filter, "{}_t{}c{}{}".format(raw_tile_files[f_index], t, c, suffix)
+                    )
                     t_name_unfiltered = os.path.join(
-                        tile_directory_extract, 
-                        '{}_t{}c{}{}'.format(raw_tile_files[f_index], t, c, suffix), 
+                        tile_directory_extract,
+                        "{}_t{}c{}{}".format(raw_tile_files[f_index], t, c, suffix),
                     )
                     tile_files_filter[t, r, c] = t_name
                     tile_files_extract[t, r, c] = t_name_unfiltered
