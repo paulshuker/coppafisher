@@ -2,6 +2,7 @@ from . import call_spots, extract, find_spots, omp, pipeline, setup, spot_colour
 from .pipeline.run import run_pipeline
 from .setup.notebook import Notebook
 from .setup.notebook_page import NotebookPage
+from .utils.version import CompatibilityTracker
 from .utils.pciseq import export_to_pciseq
 from ._version import __version__
 from . import plot

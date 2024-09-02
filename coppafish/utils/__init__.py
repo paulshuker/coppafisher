@@ -1,1 +1,1 @@
-from . import base, warnings
+from .base import reed_solomon_codes

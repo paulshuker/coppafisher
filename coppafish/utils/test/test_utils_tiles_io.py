@@ -1,7 +1,6 @@
 import os
 import numpy as np
 
-from coppafish import NotebookPage
 from coppafish.utils import tiles_io
 
 
