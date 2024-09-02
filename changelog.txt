@@ -30,6 +30,7 @@
     located at coppafish/setup/default_psf.npz.
  * Filter: Removed legacy filter options: difference of Hanning and image smoothing.
  * Filter: Warning issues when a filtered image contains adjacent pixels at the maximum possible integer value.
+ * Find spots: Automatic spot intensity threshold (nb.find_spots.auto_thresh) is now computed in find_spots, not filter.
  * Register: Moved bg_scale from filter page -> register page.
  * Channel Register: An index error in channel registration, leading to the wrong channel corrections being applied, 
     has been fixed.
