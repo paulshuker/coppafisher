@@ -41,7 +41,7 @@ def get_tile_indices(folder: str) -> List:
 def metadata_sanity_check(metadata: dict, round_folder_path: str) -> List:
     """
     Checks whether information in `metadata` matches what we can determine by reading in raw data.
-    This is only called when `nb.file_names.raw_extension == '.npy'`.
+    This is only called when `nbp_file.raw_extension == '.npy'`.
 
     Args:
         metadata: Dictionary containing -

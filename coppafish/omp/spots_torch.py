@@ -4,7 +4,7 @@ import numpy as np
 import scipy
 import torch
 
-from ..utils.morphology import filter
+from ..utils import base as utils_base
 
 
 def is_duplicate_spot(yxz_global_positions: torch.Tensor, tile_number: int, tile_centres: torch.Tensor) -> torch.Tensor:
@@ -81,7 +81,7 @@ def compute_mean_spot(
     assert all([type(spot_shape[i]) is int for i in range(3)])
     assert (torch.asarray(spot_shape) % 2 != 0).all(), "spot_shape must be only odd numbers"
 
-    spot_shifts = np.array(filter.get_shifts_from_kernel(np.ones(spot_shape)))
+    spot_shifts = np.array(utils_base.get_shifts_from_kernel(np.ones(spot_shape)))
     spot_shifts = torch.asarray(spot_shifts).int()
     n_shifts = spot_shifts.size(1)
     # (3, n_shifts)

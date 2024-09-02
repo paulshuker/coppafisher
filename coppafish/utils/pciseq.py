@@ -28,7 +28,9 @@ def get_thresholds_page(nb: Notebook) -> NotebookPage:
     return nbp
 
 
-def export_to_pciseq(nb: Notebook, method="omp", intensity_thresh: float = 0, score_thresh: float = 0):
+def export_to_pciseq(
+    nb: Notebook, nbp_file: NotebookPage, method="omp", intensity_thresh: float = 0, score_thresh: float = 0
+):
     """
     This saves .csv files containing plotting information for pciseq-
 
@@ -44,10 +46,11 @@ def export_to_pciseq(nb: Notebook, method="omp", intensity_thresh: float = 0, sc
     both pages.
 
     Args:
-        nb: Notebook for the experiment containing at least the *ref_spots* page.
-        method: `'ref'` or `'omp'` or `'anchor'` or 'prob'. Default: `'omp'`.
-        intensity_thresh: Intensity threshold for spots included.
-        score_thresh: Score threshold for spots included.
+        - nb (Notebook): Notebook for the experiment containing at least the *ref_spots* page.
+        - nbp_file (NotebookPage): `file_names` notebook page.
+        - method (str, optional): `'ref'` or `'omp'` or `'anchor'` or 'prob'. Default: `'omp'`.
+        - intensity_thresh (float, optional): Intensity threshold for spots included. Default: 0.
+        - score_thresh (float, optional): Score threshold for spots included. Default: 0.
 
     """
     if method.lower() != "omp" and method.lower() != "ref" and method.lower() != "anchor" and method.lower() != "prob":
@@ -59,9 +62,9 @@ def export_to_pciseq(nb: Notebook, method="omp", intensity_thresh: float = 0, sc
     elif method.lower() == "prob":
         index = 2
     if not nb.has_page(page_name):
-        log.error(ValueError(f"Notebook does not contain {page_name} page."))
-    if os.path.isfile(nb.file_names.pciseq[index]):
-        log.error(FileExistsError(f"File already exists: {nb.file_names.pciseq[index]}"))
+        raise ValueError(f"Notebook does not contain {page_name} page.")
+    if os.path.isfile(nbp_file.pciseq[index]):
+        raise FileExistsError(f"File already exists: {nbp_file.pciseq[index]}")
     qual_ok = qual_check.quality_threshold(nb, method, intensity_thresh, score_thresh)
 
     # get coordinates in stitched image
@@ -78,5 +81,5 @@ def export_to_pciseq(nb: Notebook, method="omp", intensity_thresh: float = 0, sc
     global_spot_yxz = global_spot_yxz[qual_ok]
     df_to_export = pd.DataFrame(data=global_spot_yxz, index=spot_gene, columns=["y", "x", "z_stack"])
     df_to_export["Gene"] = df_to_export.index
-    df_to_export.to_csv(nb.file_names.pciseq[index], index=False)
-    print(f"pciSeq file saved for method = {method}: " + nb.file_names.pciseq[index])
+    df_to_export.to_csv(nbp_file.pciseq[index], index=False)
+    print(f"pciSeq file saved for method = {method}: " + nbp_file.pciseq[index])

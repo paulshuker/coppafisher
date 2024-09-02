@@ -61,18 +61,8 @@ tile index is displayed.
 ## PDF Diagnostics
 
 During a pipeline run, multiple .pdf files are created for different sections. These are located in the output 
-directory. They can be manually created from the notebook file by
-```python
-from coppafish import BuildPDF
-
-BuildPDF("path/to/notebook.npz")
-```
-
-specify the directory to save to by
-```python
-BuildPDF("path/to/notebook.npz", "path/to/output/directory")
-```
-if you want the PDFs to be re-created, you must delete the old ones first.
+directory. If you want the PDFs to be created again, delete the old ones first, then 
+[run coppafish](basic_usage.md/#running) again.
 
 ## Viewer2D
 
@@ -90,7 +80,7 @@ The viewer is updated by typing commands in the terminal. To find out the availa
 
 ### Raw images
 
-Raw images for particular tiles, round, and channels can be viewed with access to `nb.file_names.input_dir`:
+Raw images for particular tiles, round, and channels can be viewed with access to `input_dir` given in the config file:
 
 ```python
 from coppafish import Notebook, plot
@@ -109,7 +99,7 @@ Extracted images are identical to raw images, these are viewed by
 from coppafish import Notebook, plot
 
 nb = Notebook("/path/to/notebook.npz")
-plot.view_extracted_images(nb, tiles, rounds, channels)
+plot.view_extracted_images(nb, "/path/to/config.ini", tiles, rounds, channels)
 ```
 
 where `tiles`, `rounds`, and `channels` are lists of integers specifying which images to view. Set these to `None` if 

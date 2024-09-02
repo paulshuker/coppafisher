@@ -263,7 +263,7 @@ class NotebookPage:
             ],
             "images": [
                 "zarray",
-                "`(n_tiles x (n_rounds + n_extra_rounds) x n_channels)` zarray float16. "
+                "`(n_tiles x (n_rounds + n_extra_rounds) x n_channels x tile_sz x tile_sz x len(use_z))` zarray float16. "
                 + "All raw images after filtering (deblurring) is applied.",
             ],
         },

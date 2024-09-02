@@ -1,4 +1,5 @@
 import os
+from typing import Tuple
 
 from . import basic_info
 from . import extract_run
@@ -12,52 +13,41 @@ from . import omp_torch
 from .. import log, setup
 from ..find_spots import check_spots
 from ..pdf.base import BuildPDF
-from ..setup import Notebook, file_names
+from ..setup import Notebook, NotebookPage, file_names
 from ..utils import system as utils_system
 from ..utils import warnings as utils_warnings
 
 
 def run_pipeline(config_file: str) -> Notebook:
     """
-    Bridge function to run every step of the pipeline.
+    Run every step of the pipeline.
 
     Args:
-        config_file: Path to config file.
+        - config_file (str): path to config file.
 
     Returns:
         Notebook: notebook containing all information gathered during the pipeline.
     """
-    nb = initialize_nb(config_file)
-    log.error_catch(run_tile_indep_pipeline, nb)
-    log.error_catch(run_stitch, nb)
-    log.error_catch(run_reference_spots, nb)
-    log.error_catch(BuildPDF, nb)
-    log.error_catch(run_omp, nb)
-    log.error_catch(BuildPDF, nb, auto_open=True)
+    # TODO: We do not need so many functions for running the pipeline.
+    nb, nbp_file = initialize_nb(config_file)
+    log.error_catch(run_extract, nb, nbp_file)
+    log.error_catch(BuildPDF, nb, nbp_file)
+    log.error_catch(run_filter, nb, nbp_file)
+    log.error_catch(BuildPDF, nb, nbp_file)
+    log.error_catch(run_find_spots, nb)
+    log.error_catch(run_register, nb, nbp_file)
+    log.error_catch(BuildPDF, nb, nbp_file)
+    log.error_catch(check_spots.check_n_spots, nb)
+    log.error_catch(run_stitch, nb, nbp_file)
+    log.error_catch(run_reference_spots, nb, nbp_file)
+    log.error_catch(BuildPDF, nb, nbp_file)
+    log.error_catch(run_omp, nb, nbp_file)
+    log.error_catch(BuildPDF, nb, nbp_file, auto_open=True)
     log.info(f"Pipeline complete", force_email=True)
     return nb
 
 
-def run_tile_indep_pipeline(nb: Notebook) -> None:
-    """
-    Run tile-independent pipeline processes.
-
-    Args:
-        nb (Notebook): notebook containing 'basic_info' and 'file_names' pages.
-        run_tile_by_tile (bool, optional): run each tile on a separate notebook through 'find_spots' and 'register',
-            then merge them together. Default: true if PC has >110GB of available memory. False otherwise.
-    """
-    run_extract(nb)
-    BuildPDF(nb)
-    run_filter(nb)
-    BuildPDF(nb)
-    run_find_spots(nb)
-    run_register(nb)
-    BuildPDF(nb)
-    check_spots.check_n_spots(nb)
-
-
-def initialize_nb(config_path: str) -> Notebook:
+def initialize_nb(config_path: str) -> Tuple[Notebook, NotebookPage]:
     """
     Creates a `Notebook` and adds `basic_info` page before saving.
     `file_names` page will be added automatically as soon as `basic_info` page is added.
@@ -67,7 +57,8 @@ def initialize_nb(config_path: str) -> Notebook:
         config_file: Path to config file.
 
     Returns:
-        `Notebook` containing `file_names` and `basic_info` pages.
+        - `Notebook` containing `basic_info` page.
+        - `file_names` notebook page.
     """
     config = setup.config.get_config(config_path)
     config_file = config["file_names"]
@@ -103,15 +94,11 @@ def initialize_nb(config_path: str) -> Notebook:
         nb += nbp_basic
     else:
         log.warn(utils_warnings.NotebookPageWarning("basic_info"))
-    if not nb.has_page("file_names"):
-        nbp_file = file_names.get_file_names(nb)
-        nb += nbp_file
-    else:
-        log.warn(utils_warnings.NotebookPageWarning("file_names"))
-    return nb
+    nbp_file = file_names.get_file_names(nb.basic_info, config_path)
+    return nb, nbp_file
 
 
-def run_extract(nb: Notebook) -> None:
+def run_extract(nb: Notebook, nbp_file: NotebookPage) -> None:
     """
     This runs the `extract_and_filter` step of the pipeline to produce the tiff files in the tile directory.
 
@@ -120,7 +107,8 @@ def run_extract(nb: Notebook) -> None:
     If `Notebook` already contains these pages, it will just be returned.
 
     Args:
-        nb: `Notebook` containing `file_names`, `basic_info` and `scale` pages.
+        - nb (Notebook): notebook containing `basic_info` and `scale` pages.
+        - nbp_file (NotebookPage): `file_names` page.
 
     Returns:
         `(n_rounds x n_channels x nz x ny x nx) ndarray[uint16]` or None: all extracted images if running on a single
@@ -128,22 +116,23 @@ def run_extract(nb: Notebook) -> None:
     """
     if not nb.has_page("extract"):
         config = setup.config.get_config(nb.config_path)
-        nbp = extract_run.run_extract(config["extract"], nb.file_names, nb.basic_info)
+        nbp = extract_run.run_extract(config["extract"], nbp_file, nb.basic_info)
         nb += nbp
     else:
         log.warn(utils_warnings.NotebookPageWarning("extract"))
 
 
-def run_filter(nb: Notebook) -> None:
+def run_filter(nb: Notebook, nbp_file: NotebookPage) -> None:
     """
     Run `filter` step of the pipeline to produce filtered images in the tile directory.
 
     Args:
-        nb (Notebook): `Notebook` containing `file_names`, `basic_info`, `scale` and `extract` pages.
+        - nb (Notebook): `Notebook` containing `basic_info`, `scale` and `extract` pages.
+        - nbp_file (NotebookPage): `file_names` notebook page.
     """
     if not nb.has_page("filter"):
         config = setup.config.get_config(nb.config_path)
-        nbp, nbp_debug = filter_run.run_filter(config["filter"], nb.file_names, nb.basic_info)
+        nbp, nbp_debug = filter_run.run_filter(config["filter"], nbp_file, nb.basic_info)
         nb += nbp
         nb += nbp_debug
     else:
@@ -159,7 +148,7 @@ def run_find_spots(nb: Notebook) -> Notebook:
     If `Notebook` already contains this page, it will just be returned.
 
     Args:
-        nb: `Notebook` containing `extract` page.
+        - nb (Notebook): `Notebook` containing `extract` page.
 
     Returns:
         NoteBook containing 'find_spots' page.
@@ -178,7 +167,7 @@ def run_find_spots(nb: Notebook) -> Notebook:
     return nb
 
 
-def run_stitch(nb: Notebook) -> None:
+def run_stitch(nb: Notebook, nbp_file: NotebookPage) -> None:
     """
     This runs the `stitch` step of the pipeline to produce origin of each tile
     such that a global coordinate system can be built. Also saves stitched DAPI and reference channel images.
@@ -189,17 +178,18 @@ def run_stitch(nb: Notebook) -> None:
     If stitched images already exist, they won't be created again.
 
     Args:
-        nb: `Notebook` containing `find_spots` page.
+        - nb (Notebook): `Notebook` containing `find_spots` page.
+        - nbp_file (NotebookPage): `file_names` notebook page.
     """
     config = setup.config.get_config(nb.config_path)
     if not nb.has_page("stitch"):
-        nbp = stitch.stitch(config["stitch"], nb.basic_info, nb.file_names, nb.filter)
+        nbp = stitch.stitch(config["stitch"], nb.basic_info, nbp_file, nb.filter)
         nb += nbp
     else:
         log.warn(utils_warnings.NotebookPageWarning("stitch"))
 
 
-def run_register(nb: Notebook) -> None:
+def run_register(nb: Notebook, nbp_file: NotebookPage) -> None:
     """
     This runs the `register_initial` step of the pipeline to find shift between ref round/channel to each imaging round
     for each tile. It then runs the `register` step of the pipeline which uses this as a starting point to get
@@ -210,14 +200,15 @@ def run_register(nb: Notebook) -> None:
     If `Notebook` already contains these pages, it will just be returned.
 
     Args:
-        nb: `Notebook` containing `extract` page.
+        - (Notebook) nb: notebook containing `extract` page.
+        - (NotebookPage) nbp_file: `file_names` notebook page.
     """
     config = setup.config.get_config(nb.config_path)
     # if not all(nb.has_page(["register", "register_debug"])):
     if not nb.has_page("register"):
         nbp, nbp_debug = register.register(
             nb.basic_info,
-            nb.file_names,
+            nbp_file,
             nb.filter,
             nb.find_spots,
             config["register"],
@@ -230,7 +221,7 @@ def run_register(nb: Notebook) -> None:
         log.warn(utils_warnings.NotebookPageWarning("register_debug"))
 
 
-def run_reference_spots(nb: Notebook) -> None:
+def run_reference_spots(nb: Notebook, nbp_file: NotebookPage) -> None:
     """
     This runs the `reference_spots` step of the pipeline to get the intensity of each spot on the reference
     round/channel in each imaging round/channel. The `call_spots` step of the pipeline is then run to produce the
@@ -241,7 +232,8 @@ def run_reference_spots(nb: Notebook) -> None:
     If `Notebook` already contains these pages, it will just be returned.
 
     Args:
-        nb: `Notebook` containing `stitch` and `register` pages.
+        - nb: `Notebook` containing `stitch` and `register` pages.
+        - nbp_file (NotebookPage): `file_names` notebook page.
     """
     if not nb.has_page("ref_spots"):
         nbp_ref_spots = get_reference_spots.get_reference_spots(
@@ -259,7 +251,7 @@ def run_reference_spots(nb: Notebook) -> None:
         nbp_call_spots = call_reference_spots.call_reference_spots(
             config=config["call_spots"],
             nbp_ref_spots=nb.ref_spots,
-            nbp_file=nb.file_names,
+            nbp_file=nbp_file,
             nbp_basic=nb.basic_info,
         )
         nb += nbp_call_spots
@@ -267,7 +259,7 @@ def run_reference_spots(nb: Notebook) -> None:
         log.warn(utils_warnings.NotebookPageWarning("call_spots"))
 
 
-def run_omp(nb: Notebook) -> None:
+def run_omp(nb: Notebook, nbp_file: NotebookPage) -> None:
     """
     This runs the orthogonal matching pursuit section of the pipeline as an alternate method to determine location of
     spots and their gene identity.
@@ -277,14 +269,15 @@ def run_omp(nb: Notebook) -> None:
     `omp` page is added to the Notebook before saving.
 
     Args:
-        nb: `Notebook` containing `call_spots` page.
+        - (Notebook) nb: `Notebook` containing `call_spots` page.
+        - (NotebookPage) nbp_file: `file_names` notebook page.
     """
     if not nb.has_page("omp"):
         config = setup.config.get_config(nb.config_path)
         # Use tile with most spots on to find spot shape in omp
         nbp = omp_torch.run_omp(
             config["omp"],
-            nb.file_names,
+            nbp_file,
             nb.basic_info,
             nb.extract,
             nb.filter,

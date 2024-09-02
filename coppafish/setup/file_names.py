@@ -4,12 +4,11 @@ import os
 from .. import log
 from .. import setup
 from .. import utils
-from ..setup import Notebook
 from ..setup import NotebookPage
 from .tile_details import get_tile_file_names
 
 
-def get_file_names(nb: Notebook):
+def get_file_names(nbp_basic_info: NotebookPage, config_path: str):
     """
     Function to set add `file_names` page to notebook. It requires notebook to be able to access a
     config file containing a `file_names` section and also the notebook to contain a `basic_info` page.
@@ -19,9 +18,10 @@ def get_file_names(nb: Notebook):
         config file changed.
 
     Args:
-        nb: *Notebook* containing at least the `basic_info` page.
+        - nbp_basic_info (NotebookPage): `basic_info` notebook page.
+        - config_path (str): file path to the config.
     """
-    config = setup.config.get_config(nb.config_path)["file_names"]
+    config = setup.config.get_config(config_path)["file_names"]
     nbp = NotebookPage("file_names", {"file_names": config})
     # Copy some variables that are in config to page.
     nbp.input_dir = config["input_dir"]
@@ -94,9 +94,9 @@ def get_file_names(nb: Notebook):
             "",
             nbp.extract_dir,
             round_files,
-            nb.basic_info.n_tiles,
+            nbp_basic_info.n_tiles,
             ".zarr",
-            nb.basic_info.n_channels,
+            nbp_basic_info.n_channels,
             jobs=True,
         )
     else:
@@ -104,9 +104,9 @@ def get_file_names(nb: Notebook):
             "",
             nbp.extract_dir,
             round_files,
-            nb.basic_info.n_tiles,
+            nbp_basic_info.n_tiles,
             ".zarr",
-            nb.basic_info.n_channels,
+            nbp_basic_info.n_channels,
         )
     nbp.tile_unfiltered = utils.base.deep_convert(tile_names_unfiltered.tolist())
 

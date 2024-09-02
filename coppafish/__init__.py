@@ -9,4 +9,3 @@ from . import plot
 from .plot import Viewer
 from .plot.viewer2d.base import Viewer2D
 from .plot.register.diagnostics import RegistrationViewer
-from .pdf.base import BuildPDF

@@ -1,26 +1,29 @@
-import napari
 import itertools
-from typing import Optional, List
+from typing import List, Optional
+
+import napari
 
 from .. import log
+from ..setup import Notebook, file_names
 from ..utils import tiles_io
-from ..setup import Notebook
 
 
 def view_extracted_images(
     nb: Notebook,
+    config_path: str,
     tiles: Optional[List[int]] = None,
     rounds: Optional[List[int]] = None,
     channels: Optional[List[int]] = None,
 ) -> None:
     """
-    View the extracted images located at `nb.file_names.tile_unfiltered_dir`.
+    View the unfiltered, extracted images.
 
     Args:
-        nb (Notebook): notebook.
-        tiles (Optional[List[int]], optional): tiles to view. Default: all tiles.
-        rounds (Optional[List[int]], optional): rounds to view. Default: all rounds.
-        channels (Optional[List[int]], optional): channels to view. Default: all channels.
+        - nb (Notebook): notebook.
+        - config_path (str): file path to the config file.
+        - tiles (Optional[List[int]], optional): tiles to view. Default: all tiles.
+        - rounds (Optional[List[int]], optional): rounds to view. Default: all rounds.
+        - channels (Optional[List[int]], optional): channels to view. Default: all channels.
     """
     assert nb.has_page("extract"), "Extract must be run first"
 
@@ -31,10 +34,12 @@ def view_extracted_images(
     if channels is None:
         channels = nb.basic_info.use_channels.copy()
 
+    nbp_file = file_names.get_file_names(nb.basic_info, config_path)
+
     viewer = napari.Viewer(title="Coppafish extracted images")
 
     for t, r, c in itertools.product(tiles, rounds, channels):
-        file_path = nb.file_names.tile_unfiltered[t][r][c]
+        file_path = nbp_file.tile_unfiltered[t][r][c]
         if not tiles_io.image_exists(file_path):
             log.warn(f"Image at {file_path} not found, skipping")
             continue

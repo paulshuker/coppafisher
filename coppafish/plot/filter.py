@@ -2,6 +2,7 @@ import itertools
 from typing import List, Optional
 
 import napari
+import numpy as np
 
 from ..setup import Notebook
 
@@ -13,13 +14,13 @@ def view_filtered_images(
     channels: Optional[List[int]] = None,
 ) -> None:
     """
-    View the filtered images located at `nb.file_names.tile_dir`.
+    View the filtered images.
 
     Args:
-        nb (Notebook): notebook.
-        tiles (Optional[List[int]], optional): tiles to view. Default: all tiles.
-        rounds (Optional[List[int]], optional): rounds to view. Default: all rounds.
-        channels (Optional[List[int]], optional): channels to view. Default: all channels.
+        - nb (Notebook): notebook.
+        - tiles (Optional[List[int]], optional): tiles to view. Default: all tiles.
+        - rounds (Optional[List[int]], optional): rounds to view. Default: all rounds.
+        - channels (Optional[List[int]], optional): channels to view. Default: all channels.
     """
     assert nb.has_page("filter"), "Filter must be run first"
 
@@ -33,7 +34,9 @@ def view_filtered_images(
     viewer = napari.Viewer(title="Coppafish filtered images")
 
     for t, r, c in itertools.product(tiles, rounds, channels):
-        image_trc = nb.filter.images[t, r, c]
-        viewer.add_image(image_trc, name=f"{t=}, {r=}, {c=}")
+        image_trc: np.ndarray = nb.filter.images[t, r, c].astype(np.float32)
+        # y, x, z -> z, y, x.
+        image_trc = image_trc.swapaxes(1, 2).swapaxes(0, 1)
+        viewer.add_image(image_trc, name=f"Filtered {t=}, {r=}, {c=}")
 
     napari.run()

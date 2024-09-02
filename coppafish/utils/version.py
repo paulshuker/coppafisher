@@ -47,7 +47,6 @@ class CompatibilityTracker:
     _version_compatibility: dict[str, str] = {
         "0.10.7": "none",
         "1.0.0": "extract",
-        "1.0.1": "register",
     }
 
     def __init__(self) -> None:
