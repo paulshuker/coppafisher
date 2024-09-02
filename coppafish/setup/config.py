@@ -84,12 +84,12 @@ _options = {
     "filter": {
         "force_cpu": "bool",
         "r_dapi": "maybe_int",
-        "auto_thresh_multiplier": "number",
         "deconvolve": "bool",
         "wiener_constant": "number",
         "wiener_pad_shape": "tuple_int",
     },
     "find_spots": {
+        "auto_thresh_multiplier": "number",
         "radius_xy": "int",
         "radius_z": "int",
         "max_spots_2d": "int",
