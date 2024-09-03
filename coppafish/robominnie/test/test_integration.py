@@ -86,5 +86,5 @@ def get_config_path() -> str:
 
 
 if __name__ == "__main__":
-    # test_integration_small_two_tile()
+    test_integration_small_two_tile()
     test_viewers()
