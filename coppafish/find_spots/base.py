@@ -7,78 +7,6 @@ import torch
 from .. import log
 
 
-def spot_yxz(local_yxz: np.ndarray, tile: int, round: int, channel: int, spot_no: np.ndarray) -> np.ndarray:
-    """
-    Function which gets yxz positions of spots on a particular ```tile```, ```round```, ```
-    channel``` from ```local_yxz``` in find_spots notebook page. Initially this just cropped spot_details array
-    with 7 columns and n_spots rows. Now spot_details is just an n_spots * 3 column array and tile, round and channel
-    are computed from number of spots on each t,r,c
-
-    Args:
-        local_yxz: ```int16 [n_spots x 3]```.
-            ```local_yxz[s]``` is ```[tile, round, channel, isolated, y, x, z]``` of spot ```s```.
-        tile: Tile of desired spots.
-        round: Round of desired spots.
-        channel: Channel of desired spots.
-        spot_no: num_tile * num_rounds * num_channels array containing num_spots on each [t,r,c]
-
-    Returns:
-        - ```spot_yxz``` - ```int16 [n_trc_spots x 3]```.
-            yxz coordinates of spots on chosen ```tile```, ```round``` and ```channel```.
-
-    """
-    #     Function which gets yxz positions of spots on a particular ```tile```, ```round```,
-    #     ```channel``` from ```local_yxz``` in find_spots notebook page.
-
-    # spots are read in by looping over rounds, channels, then tiles we need to sum up to but not including the number
-    # of spots in all rounds before r, then sum round r with all tiles up to (but not incl) tile t, then sum round r,
-    # tile t and all channels up to (but not including) channel c. This gives number of spots found before [t,r,c] ie:
-    # start index. To get end_index, just add number of spots on [t,r,c]
-
-    start_index = (
-        np.sum(spot_no[:tile, :, :]) + np.sum(spot_no[tile, :round, :]) + np.sum(spot_no[tile, round, :channel])
-    )
-    end_index = start_index + spot_no[tile, round, channel]
-
-    use = range(start_index, end_index)
-
-    return local_yxz[use]
-
-
-def spot_isolated(
-    isolated_spots: np.ndarray, tile: int, ref_round: int, ref_channel: int, spot_no: np.ndarray
-) -> np.ndarray:
-    """
-    Exactly same rational as spot_yxz but now return isolated status of spots in t,r,c
-
-    Args:
-        isolated_spots: ```int16 [n_ref_spots x 3]```.
-            ```isolated_spots[s]``` is ```true ``` if spot ```s``` is isolated, ```false``` o/w.
-        tile: Tile of desired spots.
-
-        spot_no: num_tile * num_rounds * num_channels array containing num_spots on each [t,r,c]
-
-    Returns:
-        - ```isolated_spots``` - ```bool [n_ref_spots on this channel * 1]```.
-            Isolated status of each reference spot on this tile.
-
-    """
-    #     Function which gets yxz positions of spots on a particular ```tile```, ```round```,
-    #     ```channel``` from ```spot_details``` in find_spots notebook page.
-
-    # spots are read in by looping over rounds, channels, then tiles we need to sum up to but not including the number
-    # of spots in all rounds before r, then sum round r with all tiles up to (but not incl) tile t, then sum round r,
-    # tile t and all channels up to (but not including) channel c. This gives number of spots found before [t,r,c] ie:
-    # start index. To get end_index, just add number of spots on [t,r,c]
-
-    start_index = np.sum(spot_no[:tile, ref_round, ref_channel])
-    end_index = start_index + spot_no[tile, ref_round, ref_channel]
-
-    use = range(start_index, end_index)
-
-    return isolated_spots[use]
-
-
 def get_isolated_spots(
     yxz_positions: Union[torch.Tensor, np.ndarray],
     distance_threshold_yx: Union[float, int],
@@ -153,32 +81,6 @@ def check_neighbour_intensity(image: np.ndarray, spot_yxz: np.ndarray, thresh: f
             mod_spot_yx[:, j] = np.clip(mod_spot_yx[:, j], 0, image.shape[j] - 1)
         keep[:, i] = image[tuple([mod_spot_yx[:, j] for j in range(image.ndim)])] > thresh
     return keep.min(axis=1)
-
-
-def load_spot_info(n_tiles: int, n_rounds: int, n_extra_rounds: int, n_channels: int) -> dict:
-    """
-    Loads spot info from given `file_path`. If the path does not exist, returns dict with empty lists.
-
-    Args:
-        - n_tiles (int): number of tiles.
-        - n_rounds (int): number of rounds.
-        - n_extra_rounds (int): number of extra rounds.
-        - n_channels (int): number of channels.
-
-    Returns:
-        spot_info: Dictionary with following 4 keys:
-        * spot_yxz: [n_spots x 3] int array of yxz positions of spots
-        * spot_no: [n_tiles x n_rounds x n_channels] int array of number of spots in each tile, round, channel
-        * isolated: [n_anchor_spots] bool array indicating whether each anchor spot is isolated
-        * completed: [n_tiles x n_rounds x n_channels] bool array indicating whether spot finding has been completed
-    """
-    spot_info = {
-        "spot_yxz": np.zeros((0, 3), dtype=np.int16),
-        "spot_no": np.zeros((n_tiles, n_rounds + n_extra_rounds, n_channels), dtype=np.uint32),
-        "isolated": np.zeros((0), dtype=bool),
-        "completed": np.zeros((n_tiles, n_rounds + n_extra_rounds, n_channels), dtype=bool),
-    }
-    return spot_info
 
 
 def filter_intense_spots(

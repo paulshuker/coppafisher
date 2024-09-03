@@ -10,7 +10,7 @@ import torch
 
 
 class SystemConstants:
-    VERSION_URL = "https://github.com/reillytilbury/coppafish/raw/HEAD/coppafish/_version.py"
+    VERSION_URL = "https://github.com/paulshuker/coppafish/raw/HEAD/coppafish/_version.py"
     # The character(s) that encapsulate the software version tag in _version.py, in this case it is quotation marks.
     VERSION_ENCAPSULATE = '"'
 

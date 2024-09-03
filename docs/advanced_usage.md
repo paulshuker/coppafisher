@@ -32,6 +32,24 @@ start /b python -m C:\path\to\config.ini
 Try to keep the command prompt open to watch the progress. Do not log out or shutdown the PC while the process is 
 still running.
 
+## Delete notebook page
+
+To remove a notebook page, in the python terminal
+
+```python
+from coppafish import Notebook
+nb = Notebook("/path/to/notebook")
+nb.delete_page("page_name")
+```
+
+For example, to remove the omp page
+
+```python
+from coppafish import Notebook
+nb = Notebook("/path/to/notebook")
+nb.delete_page("omp")
+```
+
 ## Email notification
 
 To be emailed when the pipeline crashes or finishes, under section `[notifications]` in the config, add the variable 
@@ -74,7 +92,7 @@ bad_trc = (t1, r1, c1), (t2, r2, c2), ...
 ```
 
 under the `basic_info` section. Each set of brackets represents one image to ignore. This allows for meaningful 
-results to still be salvaged.
+results to be salvaged from a tile.
 
 ## Generate gene codes
 

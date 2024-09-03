@@ -15,31 +15,34 @@ class CompatibilityTracker:
     )
     # For each coppafish stage, the value is how to run coppafish, starting again from said stage.
     _stages: dict[str, tuple[str]] = {
-        "extract": ("Clear the output directory", "Delete the 'extract' subdirectory inside of the 'tiles' directory"),
+        "extract": (
+            "Clear the output directory, including the notebook",
+            "Delete the 'extract' subdirectory inside of the 'tiles' directory",
+        ),
         "filter": ("Clear the output directory, including the notebook"),
         "find_spots": (
             "Clear the output directory except the notebook.",
-            f"Remove all notebook pages except for {', '.join(_page_names[:5])}",
+            f"Remove notebook pages {', '.join(_page_names[5:])}",
         ),
         "register": (
             "Clear the output directory except the notebook.",
-            f"Remove all notebook pages except for {', '.join(_page_names[:6])}",
+            f"Remove notebook pages {', '.join(_page_names[6:])}",
         ),
         "stitch": (
             "Clear the output directory except the notebook.",
-            f"Remove all notebook pages except for {', '.join(_page_names[:8])}",
+            f"Remove notebook pages {', '.join(_page_names[8:])}",
         ),
         "ref_spots": (
             "Clear the output directory except the notebook.",
-            f"Remove all notebook pages except for {', '.join(_page_names[:9])}",
+            f"Remove notebook pages {', '.join(_page_names[9:])}",
         ),
         "call_spots": (
             "Clear the output directory except the notebook.",
-            f"Remove all notebook pages except for {', '.join(_page_names[:10])}",
+            f"Remove notebook pages {', '.join(_page_names[10:])}",
         ),
         "omp": (
             "Clear the output directory except the notebook.",
-            f"Remove all notebook pages except for {', '.join(_page_names[:11])}",
+            f"Remove notebook pages {', '.join(_page_names[11:])}",
         ),
         "none": ("Do nothing",),
     }
@@ -81,6 +84,7 @@ class CompatibilityTracker:
         # Find and print the instructions to migrate from the earliest stage.
         print(f"Migrating from coppafish {from_version} to {to_version}:")
         self.print_start_from(earliest_stage)
+        print(f"To find how to remove notebook pages, see Usage -> Advanced Usage in the online documentation")
 
     def print_start_from(self, stage: str) -> None:
         [print(f"    - {instruction}.") for instruction in self._stages[stage]]

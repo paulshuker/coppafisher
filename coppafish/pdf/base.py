@@ -206,29 +206,23 @@ class BuildPDF:
                     plt.close(fig)
 
                 # Plot a z plane for each tile anchor round/channel with the detected spots shown as points.
-                cmap = mpl.cm.magma
+                cmap = mpl.cm.PiYG
                 for t in nb.basic_info.use_tiles:
                     fig, axes = self.create_empty_page(1, 1)
                     ax: plt.Axes = axes[0, 0]
-                    fig.suptitle(f"Tile {t} anchor round/channel. Threshold: ")
+                    anchor_r, anchor_c = nb.basic_info.anchor_round, nb.basic_info.anchor_channel
+                    threshold = nb.find_spots.auto_thresh[t, anchor_r, anchor_c].item()
                     z = nb.basic_info.use_z[len(nb.basic_info.use_z) // 2]
-                    anchor_plane = nb.filter.images[
-                        t, nb.basic_info.anchor_round, nb.basic_info.anchor_channel, :, :, z
-                    ]
-                    norm = mpl.colors.Normalize(vmin=anchor_plane.min(), vmax=anchor_plane.max())
-                    im = ax.imshow(anchor_plane, cmap=cmap, norm=norm)
+                    fig.suptitle(f"Tile {t} anchor round/channel {z=}. Threshold: {'{:.2f}'.format(threshold)}")
+                    t_anchor_plane = nb.filter.images[t, anchor_r, anchor_c, :, :, z]
+                    norm = mpl.colors.Normalize(vmin=-t_anchor_plane.max(), vmax=t_anchor_plane.max())
+                    im = ax.imshow(t_anchor_plane, cmap=cmap, norm=norm)
                     ax.set_xticks([])
                     ax.set_yticks([])
-                    spots_yxz = find_spots_base.spot_yxz(
-                        nb.find_spots.spot_yxz,
-                        t,
-                        nb.basic_info.anchor_round,
-                        nb.basic_info.anchor_channel,
-                        nb.find_spots.spot_no,
-                    )
+                    spots_yxz = nb.find_spots.spot_yxz[f"t{t}r{anchor_r}c{anchor_c}"][:]
                     spots_yxz = spots_yxz[spots_yxz[:, 2] == z]
                     if spots_yxz.size > 0:
-                        ax.scatter(spots_yxz[1], spots_yxz[0], edgecolors="black", linewidths=1.0)
+                        ax.scatter(spots_yxz[:, 1], spots_yxz[:, 0], marker="x", edgecolors="black", linewidths=1.0)
                     fig.tight_layout()
                     cbar = ax.figure.colorbar(im, ax=ax, label="Image intensity")
                     pdf.savefig(fig)

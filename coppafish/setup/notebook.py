@@ -142,6 +142,23 @@ class Notebook:
         except AttributeError:
             return False
 
+    def delete_page(self, page_name: str) -> None:
+        """
+        Delete a notebook page from disk and memory.
+
+        Args:
+            - page_name (str): page name to delete.
+
+        Notes:
+            - This function is helpful for users when they have finished version compatibility checks using the
+            CompatibilityTracker and now wish to delete incompatible notebook pages.
+        """
+        assert type(page_name) is str
+        assert self.has_page(page_name), f"Page name {page_name} not found"
+        page_name_directory = self._get_page_directory(page_name)
+        shutil.rmtree(page_name_directory)
+        self.__delattr__(page_name)
+
     def resave(self) -> None:
         """
         Delete the notebook on disk and re-save every page using the instance in memory.

@@ -1,5 +1,5 @@
 site_name: Coppafish Documentation
-repo_url: https://github.com/reillytilbury/coppafish
+repo_url: https://github.com/paulshuker/coppafish
 
 theme:
   name: material
@@ -35,14 +35,15 @@ theme:
 nav:
   - Getting started: index.md
   - Usage:
-      - Basic Usage: basic_usage.md
-      - Advanced Usage: advanced_usage.md
+    - Basic Usage: basic_usage.md
+    - Advanced Usage: advanced_usage.md
   - Overview: overview.md
   - Method:
-      - Stitch: stitch.md
-      - Registration: register.md
-      - Call Spots: call_spots.md
-      - OMP: omp.md
+    - Stitch: stitch.md
+    - Registration: register.md
+    - Call Spots: call_spots.md
+    - OMP: omp.md
+  - Diagnostics: diagnostics.md
   - Troubleshoot: troubleshoot.md
   - Glossary: glossary.md
   - Contributing: contributing.md

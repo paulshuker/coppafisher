@@ -34,7 +34,8 @@ def run_pipeline(config_file: str) -> Notebook:
     log.error_catch(BuildPDF, nb, nbp_file)
     log.error_catch(run_filter, nb, nbp_file)
     log.error_catch(BuildPDF, nb, nbp_file)
-    log.error_catch(run_find_spots, nb)
+    log.error_catch(run_find_spots, nb, nbp_file)
+    log.error_catch(BuildPDF, nb, nbp_file)
     log.error_catch(run_register, nb, nbp_file)
     log.error_catch(BuildPDF, nb, nbp_file)
     log.error_catch(check_spots.check_n_spots, nb)
@@ -139,7 +140,7 @@ def run_filter(nb: Notebook, nbp_file: NotebookPage) -> None:
         log.warn(utils_warnings.NotebookPageWarning("filter"))
 
 
-def run_find_spots(nb: Notebook) -> Notebook:
+def run_find_spots(nb: Notebook, nbp_file: NotebookPage) -> Notebook:
     """
     This runs the `find_spots` step of the pipeline to produce point cloud from each tiff file in the tile directory.
 
@@ -149,15 +150,17 @@ def run_find_spots(nb: Notebook) -> Notebook:
 
     Args:
         - nb (Notebook): `Notebook` containing `extract` page.
+        - nbp_file (NotebookPage): `file_names` notebook page.
 
     Returns:
-        NoteBook containing 'find_spots' page.
+        (Notebook) nb: notebook containing 'find_spots' page.
     """
     if not nb.has_page("find_spots"):
         config = setup.config.get_config(nb.config_path)
         nbp = find_spots.find_spots(
             config["find_spots"],
             nb.basic_info,
+            nbp_file,
             nb.filter,
         )
         nb += nbp
