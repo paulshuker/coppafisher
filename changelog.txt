@@ -1,4 +1,4 @@
-2024/mm/dd Alpha Update (v0.11.0):
+2024/mm/dd Major Update (v1.0.0):
  * PDF Diagnostics: New gene spatial heat map PDFs created at runtime.
  * PDF Diagnostics: New stitch PDF file created at runtime.
  * Viewer: The viewer is more customisable. Users can now toggle whether they want each image shown to be a max 

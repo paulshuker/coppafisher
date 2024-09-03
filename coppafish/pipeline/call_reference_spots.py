@@ -1,7 +1,8 @@
-import itertools
 import importlib.resources as importlib_resources
-import numpy as np
+import itertools
 from typing import Tuple
+
+import numpy as np
 
 from .. import log
 from ..call_spots.base import bayes_mean, compute_bleed_matrix
