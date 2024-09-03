@@ -19,7 +19,7 @@ from coppafish.spot_colours import apply_affine, apply_flow
 
 
 class RegistrationViewer:
-    def __init__(self, nb: Notebook, t: int = None, config_path: Optional[str] = None):
+    def __init__(self, nb: Notebook,config_path: Optional[str] = None, t: Optional[int] = None ):
         """
         Viewer for the registration of an experiment.
         - Shows the registered images for the selected tile.
@@ -31,8 +31,9 @@ class RegistrationViewer:
         can be accessed by self.viewer.
 
         Args:
-            nb: Notebook object (should contain register and register_debug pages)
-            t: tile (if None, the first tile is selected)
+            - nb: Notebook object (should contain register and register_debug pages)
+            - config_path (str, optional): file path to the config file. Default: try get the file path from the notebook.
+            - t (int, optional): tile (if None, the first tile is selected)
         """
         self.nb = nb
         if t is None:

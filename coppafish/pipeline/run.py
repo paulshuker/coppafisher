@@ -15,6 +15,7 @@ from ..find_spots import check_spots
 from ..pdf.base import BuildPDF
 from ..setup import Notebook, NotebookPage, file_names
 from ..utils import system as utils_system
+from ..utils import version as utils_version
 from ..utils import warnings as utils_warnings
 
 
@@ -51,8 +52,8 @@ def run_pipeline(config_file: str) -> Notebook:
 def initialize_nb(config_path: str) -> Tuple[Notebook, NotebookPage]:
     """
     Creates a `Notebook` and adds `basic_info` page before saving.
-    `file_names` page will be added automatically as soon as `basic_info` page is added.
-    If `Notebook` already exists and contains these pages, it will just be returned.
+    If `Notebook` already exists with `basic_info`, it will be returned.
+    An error is raised if an existing notebook is not compatible with the current coppafish version.
 
     Args:
         config_file: Path to config file.
@@ -76,15 +77,15 @@ def initialize_nb(config_path: str) -> Tuple[Notebook, NotebookPage]:
         config_notify["sender_email_password"],
     )
     log.info(
-        f" COPPAFISH v{utils_system.get_software_version()} ".center(utils_system.current_terminal_size_xy(-33)[0], "=")
+        f" COPPAFISH v{utils_system.get_software_version()} ".center(utils_system.get_terminal_size_xy(-33)[0], "=")
     )
     log.base.log_package_versions()
 
-    if utils_system.get_software_version() not in nb.get_unqiue_versions():
-        log.warn(
-            f"You are running on v{utils_system.get_software_version()}, but the notebook contains "
-            + f"data from versions {', '.join(set(nb.get_all_variable_instances(nb._SOFTWARE_VERSION)))}.",
-        )
+    # Check the notebook for backwards incompatibilities caused by old data.
+    compatible_tracker = utils_version.CompatibilityTracker()
+    if not compatible_tracker.notebook_is_compatible(nb):
+        raise ValueError(f"The notebook contains incompatible data. Please see the log above for advice")
+
     online_version = utils_system.get_remote_software_version()
     if online_version != utils_system.get_software_version():
         log.warn(
@@ -93,8 +94,6 @@ def initialize_nb(config_path: str) -> Tuple[Notebook, NotebookPage]:
     if not nb.has_page("basic_info"):
         nbp_basic = basic_info.set_basic_info_new(config)
         nb += nbp_basic
-    else:
-        log.warn(utils_warnings.NotebookPageWarning("basic_info"))
     nbp_file = file_names.get_file_names(nb.basic_info, config_path)
     return nb, nbp_file
 

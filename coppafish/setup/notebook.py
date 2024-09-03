@@ -185,15 +185,18 @@ class Notebook:
         end_time = time.time()
         print(f"Notebook re-saved in {end_time - start_time:.2f}s")
 
-    def get_unqiue_versions(self) -> Tuple[str]:
+    def get_all_versions(self) -> dict[str, str]:
         """
-        Get the unique software versions found inside of the notebook and pages.
+        Get every page's software version.
+
+        Returns:
+            (dict[str, str]) all_versions: each key is a page name, the value is its software version.
         """
-        unique_versions = set()
-        unique_versions.add(self._version)
-        for page in self._get_added_pages():
-            unique_versions.add(page.version)
-        return tuple(unique_versions)
+        all_versions = {}
+        for page_name in self._get_added_page_names():
+            page: NotebookPage = self.__getattribute__(page_name)
+            all_versions[page_name] = page.version
+        return all_versions
 
     def __setattr__(self, name: str, value: Any, /) -> None:
         """

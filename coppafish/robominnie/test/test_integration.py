@@ -70,7 +70,7 @@ def test_viewers() -> None:
     gene_colours_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), ".integration_dir/gene_colours.csv")
     notebook = Notebook(notebook_path)
     Viewer(notebook, gene_marker_file=gene_colours_path)
-    RegistrationViewer(notebook)
+    RegistrationViewer(notebook, get_config_path())
 
 
 def get_output_dir() -> str:
@@ -81,6 +81,10 @@ def get_notebook_path() -> str:
     return os.path.join(os.path.dirname(os.path.realpath(__file__)), ".integration_dir/output_coppafish/notebook")
 
 
+def get_config_path() -> str:
+    return os.path.join(os.path.dirname(os.path.realpath(__file__)), ".integration_dir/robominnie.ini")
+
+
 if __name__ == "__main__":
-    test_integration_small_two_tile()
+    # test_integration_small_two_tile()
     test_viewers()

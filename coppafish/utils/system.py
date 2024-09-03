@@ -101,7 +101,7 @@ def get_core_count() -> int:
     return int(n_threads)
 
 
-def current_terminal_size_xy(x_offset: int = 0, y_offset: int = 0) -> Tuple[int, int]:
+def get_terminal_size_xy(x_offset: int = 0, y_offset: int = 0) -> Tuple[int, int]:
     """
     Get the current terminal size in x and y direction, clamped at >= 1 in both directions. Falls back to a default of
     `(80, 20)` if cannot be found.
