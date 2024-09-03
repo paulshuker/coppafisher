@@ -13,6 +13,7 @@ from tqdm import tqdm
 from typing_extensions import Self
 
 from .. import log
+from ..find_spots import base as find_spots_base
 from ..omp import base as omp_base
 from ..setup import Notebook, NotebookPage
 
@@ -84,7 +85,7 @@ class BuildPDF:
             with PdfPages(os.path.join(output_dir, "_basic_info.pdf")) as pdf:
                 mpl.rcParams.update(mpl.rcParamsDefault)
                 # Build a pdf with data from scale, extract, filter, find_spots, register, stitch, OMP
-                pbar.set_postfix_str("Basic info")
+                pbar.set_postfix_str("basic info")
                 text_intro_info = self.get_basic_info(nb.basic_info, nbp_file)
                 fig, axes = self.create_empty_page(1, 1)
                 self.empty_plot_ticks(axes)
@@ -96,7 +97,7 @@ class BuildPDF:
         if not os.path.isfile(os.path.join(output_dir, "_extract.pdf")) and nb.has_page("extract"):
             with PdfPages(os.path.join(output_dir, "_extract.pdf")) as pdf:
                 # Extract section
-                pbar.set_postfix_str("Extract")
+                pbar.set_postfix_str("extract")
                 if nb.has_page("extract"):
                     fig, axes = self.create_empty_page(1, 1)
                     text_extract_info = ""
@@ -134,7 +135,7 @@ class BuildPDF:
         if not os.path.isfile(os.path.join(output_dir, "_filter.pdf")) and nb.has_page("filter"):
             with PdfPages(os.path.join(output_dir, "_filter.pdf")) as pdf:
                 # Filter section
-                pbar.set_postfix_str("Filter")
+                pbar.set_postfix_str("filter")
                 if nb.has_page("filter") or nb.has_page("extract"):
                     fig, axes = self.create_empty_page(1, 1)
                     text_filter_info = ""
@@ -151,67 +152,93 @@ class BuildPDF:
 
         if not os.path.isfile(os.path.join(output_dir, "_find_spots.pdf")) and nb.has_page("find_spots"):
             with PdfPages(os.path.join(output_dir, "_find_spots.pdf")) as pdf:
-                pbar.set_postfix_str("Find spots")
-                if nb.has_page("find_spots"):
+                pbar.set_postfix_str("find spots")
+                fig, axes = self.create_empty_page(1, 1)
+                text_find_spots_info = ""
+                text_find_spots_info += self.get_find_spots_info(nb.find_spots)
+                axes[0, 0].set_title(text_find_spots_info, fontdict=self.INFO_FONTDICT, y=0.5)
+                self.empty_plot_ticks(axes[0, 0])
+                pdf.savefig(fig)
+                plt.close(fig)
+
+                minimum_spot_count = nb.find_spots.spot_no[nb.find_spots.spot_no != 0].min()
+                maximum_spot_count = nb.find_spots.spot_no.max()
+                for t in nb.basic_info.use_tiles:
                     fig, axes = self.create_empty_page(1, 1)
-                    text_find_spots_info = ""
-                    text_find_spots_info += self.get_find_spots_info(nb.find_spots)
-                    axes[0, 0].set_title(text_find_spots_info, fontdict=self.INFO_FONTDICT, y=0.5)
-                    self.empty_plot_ticks(axes[0, 0])
+                    fig.suptitle(f"Find spot counts, tile {t}")
+                    ax: plt.Axes = axes[0, 0]
+                    channels_to_index = {c: i for i, c in enumerate(self.use_channels_all)}
+                    X = np.zeros(
+                        (nb.basic_info.n_rounds + nb.basic_info.n_extra_rounds, len(channels_to_index)),
+                        dtype=np.int32,
+                    )
+                    ticks_channels = np.arange(X.shape[1])
+                    ticks_channels_labels = ["" for _ in range(ticks_channels.size)]
+                    ticks_rounds = np.arange(X.shape[0])
+                    ticks_rounds_labels = ["" for _ in range(ticks_rounds.size)]
+                    for r in self.use_rounds_all:
+                        if nb.basic_info.use_anchor and r == nb.basic_info.anchor_round:
+                            use_channels = [
+                                c for c in [nb.basic_info.dapi_channel, nb.basic_info.anchor_channel] if c is not None
+                            ]
+                        else:
+                            use_channels = list(nb.basic_info.use_channels)
+                        for c in use_channels:
+                            X[r, channels_to_index[c]] = nb.find_spots.spot_no[t, r, c]
+                            ticks_channels_labels[channels_to_index[c]] = f"{c}"
+                            if nb.basic_info.dapi_channel is not None and c == nb.basic_info.dapi_channel:
+                                ticks_channels_labels[channels_to_index[c]] = f"dapi"
+                            if nb.basic_info.anchor_channel is not None and c == nb.basic_info.anchor_channel:
+                                ticks_channels_labels[channels_to_index[c]] = f"anchor"
+                            ticks_rounds_labels[r] = f"{r if r != nb.basic_info.anchor_round else 'anchor'}"
+                    im = ax.imshow(X, cmap="viridis", norm="log", vmin=minimum_spot_count, vmax=maximum_spot_count)
+                    ax.set_xlabel("Channels")
+                    ax.set_xticks(ticks_channels)
+                    ax.set_xticklabels(ticks_channels_labels)
+                    ax.set_yticks(ticks_rounds)
+                    ax.set_yticklabels(ticks_rounds_labels)
+                    ax.set_ylabel("Rounds")
+                    # Create colour bar
+                    cbar = ax.figure.colorbar(im, ax=ax)
+                    cbar.ax.set_ylabel("Spot count", rotation=-90, va="bottom")
+                    fig.tight_layout()
                     pdf.savefig(fig)
                     plt.close(fig)
 
-                    minimum_spot_count = nb.find_spots.spot_no[nb.find_spots.spot_no != 0].min()
-                    maximum_spot_count = nb.find_spots.spot_no.max()
-                    for t in nb.basic_info.use_tiles:
-                        fig, axes = self.create_empty_page(1, 1)
-                        fig.suptitle(f"Find spot counts, tile {t}")
-                        ax: plt.Axes = axes[0, 0]
-                        channels_to_index = {c: i for i, c in enumerate(self.use_channels_all)}
-                        X = np.zeros(
-                            (nb.basic_info.n_rounds + nb.basic_info.n_extra_rounds, len(channels_to_index)),
-                            dtype=np.int32,
-                        )
-                        ticks_channels = np.arange(X.shape[1])
-                        ticks_channels_labels = ["" for _ in range(ticks_channels.size)]
-                        ticks_rounds = np.arange(X.shape[0])
-                        ticks_rounds_labels = ["" for _ in range(ticks_rounds.size)]
-                        for r in self.use_rounds_all:
-                            if nb.basic_info.use_anchor and r == nb.basic_info.anchor_round:
-                                use_channels = [
-                                    c
-                                    for c in [nb.basic_info.dapi_channel, nb.basic_info.anchor_channel]
-                                    if c is not None
-                                ]
-                            else:
-                                use_channels = list(nb.basic_info.use_channels)
-                            for c in use_channels:
-                                X[r, channels_to_index[c]] = nb.find_spots.spot_no[t, r, c]
-                                ticks_channels_labels[channels_to_index[c]] = f"{c}"
-                                if nb.basic_info.dapi_channel is not None and c == nb.basic_info.dapi_channel:
-                                    ticks_channels_labels[channels_to_index[c]] = f"dapi"
-                                if nb.basic_info.anchor_channel is not None and c == nb.basic_info.anchor_channel:
-                                    ticks_channels_labels[channels_to_index[c]] = f"anchor"
-                                ticks_rounds_labels[r] = f"{r if r != nb.basic_info.anchor_round else 'anchor'}"
-                        im = ax.imshow(X, cmap="viridis", norm="log", vmin=minimum_spot_count, vmax=maximum_spot_count)
-                        ax.set_xlabel("Channels")
-                        ax.set_xticks(ticks_channels)
-                        ax.set_xticklabels(ticks_channels_labels)
-                        ax.set_yticks(ticks_rounds)
-                        ax.set_yticklabels(ticks_rounds_labels)
-                        ax.set_ylabel("Rounds")
-                        # Create colour bar
-                        cbar = ax.figure.colorbar(im, ax=ax)
-                        cbar.ax.set_ylabel("Spot count", rotation=-90, va="bottom")
-                        fig.tight_layout()
-                        pdf.savefig(fig)
-                        plt.close(fig)
+                # Plot a z plane for each tile anchor round/channel with the detected spots shown as points.
+                cmap = mpl.cm.magma
+                for t in nb.basic_info.use_tiles:
+                    fig, axes = self.create_empty_page(1, 1)
+                    ax: plt.Axes = axes[0, 0]
+                    fig.suptitle(f"Tile {t} anchor round/channel. Threshold: ")
+                    z = nb.basic_info.use_z[len(nb.basic_info.use_z) // 2]
+                    anchor_plane = nb.filter.images[
+                        t, nb.basic_info.anchor_round, nb.basic_info.anchor_channel, :, :, z
+                    ]
+                    norm = mpl.colors.Normalize(vmin=anchor_plane.min(), vmax=anchor_plane.max())
+                    im = ax.imshow(anchor_plane, cmap=cmap, norm=norm)
+                    ax.set_xticks([])
+                    ax.set_yticks([])
+                    spots_yxz = find_spots_base.spot_yxz(
+                        nb.find_spots.spot_yxz,
+                        t,
+                        nb.basic_info.anchor_round,
+                        nb.basic_info.anchor_channel,
+                        nb.find_spots.spot_no,
+                    )
+                    spots_yxz = spots_yxz[spots_yxz[:, 2] == z]
+                    if spots_yxz.size > 0:
+                        ax.scatter(spots_yxz[1], spots_yxz[0], edgecolors="black", linewidths=1.0)
+                    fig.tight_layout()
+                    cbar = ax.figure.colorbar(im, ax=ax, label="Image intensity")
+                    pdf.savefig(fig)
+                    plt.close(fig)
         pbar.update()
 
-        pbar.set_postfix_str("Register")
+        pbar.set_postfix_str("register")
         pbar.update()
 
-        pbar.set_postfix_str("Stitch")
+        pbar.set_postfix_str("stitch")
         stitch_filepath = os.path.join(output_dir, "_stitch.pdf")
         if nb.has_page("stitch") and not os.path.isfile(stitch_filepath):
             with PdfPages(stitch_filepath) as pdf:
@@ -297,7 +324,7 @@ class BuildPDF:
                 del dapi_image
         pbar.update()
 
-        pbar.set_postfix_str("Call spots")
+        pbar.set_postfix_str("call spots")
         ref_spots_filepath = os.path.join(output_dir, "_call_spots.pdf")
         if not os.path.isfile(ref_spots_filepath) and nb.has_page("ref_spots") and nb.has_page("call_spots"):
             with PdfPages(ref_spots_filepath) as pdf:
@@ -421,7 +448,7 @@ class BuildPDF:
             plt.close(fig)
         pbar.update()
 
-        pbar.set_postfix_str("Call Spots Heatmaps")
+        pbar.set_postfix_str("call spots heatmaps")
         anchor_heatmap_path = os.path.join(output_dir, "_heat_maps_anchor.pdf")
         prob_heatmap_path = os.path.join(output_dir, "_heat_maps_prob.pdf")
         file_missing = not os.path.isfile(anchor_heatmap_path) or not os.path.isfile(prob_heatmap_path)
@@ -448,7 +475,7 @@ class BuildPDF:
                 )
         pbar.update()
 
-        pbar.set_postfix_str("Omp Heatmaps")
+        pbar.set_postfix_str("omp heatmaps")
         omp_heatmap_path = os.path.join(output_dir, "_heat_maps_omp.pdf")
         if nb.has_page("omp") and not os.path.isfile(omp_heatmap_path):
             gene_names = nb.call_spots.gene_names
