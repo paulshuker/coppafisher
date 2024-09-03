@@ -255,16 +255,10 @@ class NotebookPage:
             ],
         },
         "filter": {
-            "auto_thresh": [
-                "ndarray[float]",
-                "Numpy int array `[n_tiles x (n_rounds + n_extra_rounds) x n_channels]`"
-                + "`auto_thresh[t, r, c]` is the threshold spot intensity for tile $t$, round $r$, channel $c$"
-                + "used for spot detection in the `find_spots` step of the pipeline.",
-            ],
             "images": [
                 "zarray",
                 "`(n_tiles x (n_rounds + n_extra_rounds) x n_channels x tile_sz x tile_sz x len(use_z))` zarray float16. "
-                + "All raw images after filtering (deblurring) is applied.",
+                + "All microscope images after filtering (deblurring) is applied.",
             ],
         },
         "filter_debug": {
@@ -281,21 +275,18 @@ class NotebookPage:
                 + "Average shape of spot from individual raw spot images normalised so max is 1 and min is 0."
                 + "`None` if not applying the Wiener deconvolution.",
             ],
-            "z_info": [
-                "int",
-                "z plane in *npy* file from which `auto_thresh` and `hist_counts` were calculated. By default, this is "
-                + "the mid plane.",
-            ],
-            "invalid_auto_thresh": [
-                "int",
-                "Any `filter.auto_thresh` value set to this is invalid.",
-            ],
             "time_taken": [
                 "float",
                 "Time taken to run through the filter section, in seconds.",
             ],
         },
         "find_spots": {
+            "auto_thresh": [
+                "ndarray[float]",
+                "`(n_tiles x (n_rounds + n_extra_rounds) x n_channels) ndarray`"
+                + "`auto_thresh[t, r, c]` is the intensity threshold for tile $t$, round $r$, channel $c$ "
+                + "used for spot detection.",
+            ],
             "spot_no": [
                 "ndarray[int32]",
                 "Numpy array [n_tiles x (n_rounds + n_extra_rounds) x n_channels]"

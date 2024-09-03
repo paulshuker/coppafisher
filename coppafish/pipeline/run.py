@@ -159,7 +159,6 @@ def run_find_spots(nb: Notebook) -> Notebook:
             config["find_spots"],
             nb.basic_info,
             nb.filter,
-            nb.filter.auto_thresh,
         )
         nb += nbp
     else:
