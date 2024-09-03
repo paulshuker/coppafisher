@@ -141,7 +141,7 @@ class CompatibilityTracker:
 
     def print_stage_names(self) -> None:
         stage_names = []
-        for stage_name in self._stages.keys():
+        for stage_name in self._stages:
             if stage_name == "none":
                 continue
             stage_names.append(stage_name)
