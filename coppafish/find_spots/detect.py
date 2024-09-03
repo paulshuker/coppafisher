@@ -26,7 +26,7 @@ def detect_spots(
             than radius_xy. Default: not given.
 
     Returns:
-        - `(n_spots x 3) tensor[int or float]` maxima_yxz: y, x, and z coordinate positions of local maxima.
+        - `(n_spots x 3) tensor[int32]` maxima_yxz: y, x, and z coordinate positions of local maxima.
         - `(n_spots) tensor[image.dtype]` maxima_intensity: maxima_intensity[i] is the image intensity at maxima_yxz[i].
     """
     assert type(image) is torch.Tensor

@@ -16,11 +16,11 @@ setup(
     long_description_content_type="text/markdown",
     author="Josh Duffield",
     author_email="jduffield65@gmail.com",
-    maintainer="Reilly Tilbury, Paul Shuker",
-    maintainer_email="reillytilbury@gmail.com, paul.shuker@outlook.com",
+    maintainer="Paul Shuker",
+    maintainer_email="paul.shuker@outlook.com",
     license="MIT",
     python_requires=">3.8, <3.11",
-    url="https://reillytilbury.github.io/coppafish/",
+    url="https://paulshuker.github.io/coppafish/",
     packages=packages,
     install_requires=[
         "dask",
@@ -66,5 +66,6 @@ setup(
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Operating System :: Unix",
+        "Operating System :: Windows",
     ],
 )

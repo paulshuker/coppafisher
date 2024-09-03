@@ -21,7 +21,7 @@ All images are filtered to help minimise scattering of light (bright points will
 name "Point Spread Function") and emphasise spots. A given point spread function is used to Wiener deconvolve the 
 images.
 
-After filtering is applied, the images are scaled by a computed scale factor and then saved in `uint16` format again.
+After filtering is applied, the images are saved to the notebook as `float16`.
 
 ## Find spots
 
@@ -30,7 +30,7 @@ detecting local maxima in image intensity around the rough spot size (specified 
 `radius_z` in the `find_spots` section). If two local maxima are the same value and in the same spot region, then one
 is chosen at random. Warnings and errors are raised if there are too few spots detected in a round/channel, these can
 be customised, see `find_spots` section in the
-<a href="https://github.com/reillytilbury/coppafish/blob/alpha/coppafish/setup/settings.default.ini" target="_blank">
+<a href="https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/setup/settings.default.ini" target="_blank">
 config</a> default file for variable names.
 
 ## Register
@@ -45,32 +45,26 @@ Orthogonal Matching Pursuit (OMP) is the most sophisticated gene calling method 
 overlapping genes to be detected. It is an iterative,
 <a href="https://en.wikipedia.org/wiki/Greedy_algorithm" target="_blank">greedy algorithm</a> that runs on individual
 pixels of the images. At each OMP iteration, a new gene is assigned to the pixel. OMP is also self-correcting.
-"Orthogonal" refers to how OMP will re-compute its gene contributions after every iteration by least squares.
-Background genes[^1] are considered valid genes in OMP. The iterations stop if:
+"Orthogonal" refers to how OMP will re-compute its gene contributions (their coefficients) after every iteration by 
+least squares. Background genes[^1] are considered valid genes in OMP. The iterations stop if:
 
 * `max_genes` in the `omp` config section is reached.
 * assigning the next best gene to the pixel does not have a dot product score above `dp_thresh` in the `omp` config.
 The dot product score is a dot product of the residual pixel intensity in every sequencing round/channel (known as its
 colour) with the normalised bled codes (see [call spots](#call-spots)).
 
-Sometimes, when a gene is chosen by OMP, a very strong residual pixel intensity can be produced when the selected gene
-is subtracted from the pixel colour. To protect against this, `weight_coef_fit` can be set to true and weighting
-parameter `alpha` ($\alpha$) can be set in the `omp` config. When $\alpha>0$, round/channel pixel intensities largely
-contributed to by previous genes are fitted with less importance in the next iteration(s). In other words, $\alpha$
-will try soften any large outlier pixel intensities.
-
 <!-- TODO: Should expand more on the OMP gene scoring here -->
-After a pixel map of gene coefficients is found through OMP on many image pixels, spots are detected as local
-coefficient maxima (similar to [find spots](#find-spots)). Spots are scored by a weighted average around a small local
-region of the spot where the spot is expressed most strongly. The coefficients are weighted with the mean spot
-intensity normalised to have a maximum of 1. The mean spot is computed on tile `nb.basic_info.use_tiles[0]` by taking
-the average of many well-isolated spots. The scoring is controlled by config parameters `shape_sign_thresh`. Low scores 
-are deleted by OMP when they are below the `score_threshold`.
+Every coefficient pixel is scored by a weighted average around a small local region of the spot where the spot is 
+expressed most strongly. The coefficients are weighted with the mean spot intensity normalised to have a maximum of 1. 
+The mean spot is computed on tile `nb.basic_info.use_tiles[0]` by taking the average of many well-isolated spots. The 
+scoring is controlled by config parameters `shape_isolation_distance_yx`, `shape_isolation_distance_z`, 
+`shape_coefficient_threshold` and `shape_sign_thresh`. Low scores are deleted by OMP when they are below the 
+`score_threshold`.
 
-Since OMP is sensitive to the many steps before, it can be difficult to optimise. This is why [call spots](#call-spots)
-is part of the gene calling pipeline, known for its simpler and more intuitive method. A good sanity check is to see if
-OMP and call spots have similar gene reads. But, you should expect to see more gene calls made by OMP compared to call
-spots.
+Since OMP is sensitive to the many steps before, it can be difficult to optimise. This is partly why 
+[call spots](#call-spots) is part of the gene calling pipeline, known for its simpler and more intuitive method. A good 
+sanity check is to see if OMP and call spots have similar gene reads. But, you should expect more gene calls made by 
+OMP.
 
 ## Runtime
 

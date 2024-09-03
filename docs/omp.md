@@ -1,7 +1,7 @@
 # Orthogonal Matching Pursuit (OMP)
 
 OMP is coppafish's current best gene assignment algorithm. OMP runs independently, except requiring 
-[register](method.md#register) for image-alignment and [call spots](method.md#call-spots) for dataset-accurate 
+[register](overview.md#register) for image-alignment and [call spots](overview.md#call-spots) for dataset-accurate 
 representation of each gene's unique barcode: its bled code ($\mathbf{B}_{grc}$). OMP does not explicitly differentiate 
 between sequencing rounds and channels.
 

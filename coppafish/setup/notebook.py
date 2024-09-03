@@ -142,6 +142,23 @@ class Notebook:
         except AttributeError:
             return False
 
+    def delete_page(self, page_name: str) -> None:
+        """
+        Delete a notebook page from disk and memory.
+
+        Args:
+            - page_name (str): page name to delete.
+
+        Notes:
+            - This function is helpful for users when they have finished version compatibility checks using the
+            CompatibilityTracker and now wish to delete incompatible notebook pages.
+        """
+        assert type(page_name) is str
+        assert self.has_page(page_name), f"Page name {page_name} not found"
+        page_name_directory = self._get_page_directory(page_name)
+        shutil.rmtree(page_name_directory)
+        self.__delattr__(page_name)
+
     def resave(self) -> None:
         """
         Delete the notebook on disk and re-save every page using the instance in memory.
@@ -168,15 +185,18 @@ class Notebook:
         end_time = time.time()
         print(f"Notebook re-saved in {end_time - start_time:.2f}s")
 
-    def get_unqiue_versions(self) -> Tuple[str]:
+    def get_all_versions(self) -> dict[str, str]:
         """
-        Get the unique software versions found inside of the notebook and pages.
+        Get every page's software version.
+
+        Returns:
+            (dict[str, str]) all_versions: each key is a page name, the value is its software version.
         """
-        unique_versions = set()
-        unique_versions.add(self._version)
-        for page in self._get_added_pages():
-            unique_versions.add(page.version)
-        return tuple(unique_versions)
+        all_versions = {}
+        for page_name in self._get_added_page_names():
+            page: NotebookPage = self.__getattribute__(page_name)
+            all_versions[page_name] = page.version
+        return all_versions
 
     def __setattr__(self, name: str, value: Any, /) -> None:
         """

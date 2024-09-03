@@ -282,7 +282,7 @@ class NotebookPage:
         },
         "find_spots": {
             "auto_thresh": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "`(n_tiles x (n_rounds + n_extra_rounds) x n_channels) ndarray`"
                 + "`auto_thresh[t, r, c]` is the intensity threshold for tile $t$, round $r$, channel $c$ "
                 + "used for spot detection.",
@@ -293,17 +293,19 @@ class NotebookPage:
                 + "`spot_no[t, r, c]` is the number of spots found on tile $t$, round $r$, channel $c$",
             ],
             "spot_yxz": [
-                "ndarray[int16]",
-                "Numpy array [n_total_spots x 3]"
-                + "`spot_yxz[i,:]` is `[y, x, z]` for spot $i$"
-                + "$y$, $x$ gives the local tile coordinates in yx-pixels. "
-                + "$z$ gives local tile coordinate in z-pixels (0 if *2D*)",
+                "zgroup",
+                "A zarr group containing all spot detection positions relative to their tile's bottom left corner. For "
+                + "each tile/round/channel combination, a `(n_trc_spots x 3) zarray[int16]` is stored. Each "
+                + "tile/round/channel index is uniquely saved. For example, tile 0, round 1, channel 2 is labelled "
+                + "t0r1c2 so it can be gathered as ndarray[int1e] by nb.find_spots.spot_yxz['t0r1c2'][:]",
             ],
-            "isolated_spots": [
-                "ndarray[bool]",
-                "Boolean Array [n_anchor_spots x 1]"
-                + "isolated spots[s] returns a 1 if anchor spot s is isolated and 0 o/w",
-            ],
+            # "spot_yxz": [
+            #     "ndarray[int16]",
+            #     "Numpy array [n_total_spots x 3]"
+            #     + "`spot_yxz[i,:]` is `[y, x, z]` for spot $i$"
+            #     + "$y$, $x$ gives the local tile coordinates in yx-pixels. "
+            #     + "$z$ gives local tile coordinate in z-pixels (0 if *2D*)",
+            # ],
         },
         "stitch": {
             "tile_origin": [
@@ -430,11 +432,6 @@ class NotebookPage:
                 "Numpy array [n_spots x 3]. "
                 + "`local_yxz[s]` are the $yxz$ coordinates of spot $s$ found on `tile[s]`, `ref_round`, `ref_channel`."
                 + "To get `global_yxz`, add `nb.stitch.tile_origin[tile[s]]`.",
-            ],
-            "isolated": [
-                "ndarray[bool]",
-                "Numpy boolean array [n_spots]. "
-                + "`True` for spots that are well isolated i.e. surroundings have low intensity so no nearby spots.",
             ],
             "tile": [
                 "ndarray[int16]",
