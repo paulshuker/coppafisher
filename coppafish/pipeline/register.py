@@ -6,7 +6,7 @@ import numpy as np
 from tqdm import tqdm
 import zarr
 
-from .. import find_spots, log
+from .. import log
 from ..register import preprocessing
 from ..register import base as register_base
 from ..spot_colours import base as spot_colours_base
@@ -181,15 +181,13 @@ def register(
                 round_correction[t, r][:3, :3] = np.eye(3)
                 continue
             # load in reference spots
-            ref_spots_tr_ref = find_spots.spot_yxz(
-                nbp_find_spots.spot_yxz, t, nbp_basic.anchor_round, nbp_basic.anchor_channel, nbp_find_spots.spot_no
-            )
+            ref_spots_tr_ref = nbp_find_spots.spot_yxz[f"t{t}r{nbp_basic.anchor_round}c{nbp_basic.anchor_channel}"][:]
             # load in optical flow
             flow_tr = nbp.flow[t, r]
             # apply the flow to the reference spots to put anchor spots in the target frame
             ref_spots_tr_ref = spot_colours_base.apply_flow(flow=flow_tr, yxz=ref_spots_tr_ref)
             # load in target spots
-            ref_spots_tr = find_spots.spot_yxz(nbp_find_spots.spot_yxz, t, r, c_ref, nbp_find_spots.spot_no)
+            ref_spots_tr = nbp_find_spots.spot_yxz[f"t{t}r{r}c{c_ref}"][:]
             round_correction[t, r], n_matches_round[t, r], mse_round[t, r], converged_round[t, r] = register_base.icp(
                 yxz_base=ref_spots_tr_ref,
                 yxz_target=ref_spots_tr,
@@ -205,7 +203,7 @@ def register(
         for c in use_channels:
             im_spots_tc = np.zeros((0, 3))
             for r in use_rounds:
-                im_spots_trc = find_spots.spot_yxz(nbp_find_spots.spot_yxz, t, r, c, nbp_find_spots.spot_no)
+                im_spots_trc = nbp_find_spots.spot_yxz[f"t{t}r{r}c{c}"][:]
                 # pad the spots with 1s to make them n_points x 4
                 im_spots_trc = np.pad(im_spots_trc, ((0, 0), (0, 1)), constant_values=1)
                 # put the spots from round r frame into the anchor frame. this is done in 2 steps:

@@ -7,6 +7,7 @@ import numpy as np
 import zarr
 
 from coppafish import utils
+from coppafish.utils import system
 from coppafish.setup.notebook import Notebook
 from coppafish.setup.notebook_page import NotebookPage
 
@@ -19,6 +20,7 @@ def test_notebook_creation() -> None:
         shutil.rmtree(nb_path)
     config_path = os.path.abspath("dslkhgdsjlgh")
     nb = Notebook(nb_path, config_path)
+    assert len(nb.get_all_versions()) == 0
 
     assert nb.has_page("debug") == False
     assert nb.config_path == config_path
@@ -173,6 +175,8 @@ def test_notebook_creation() -> None:
     nb > "debug"
     nb_page > "o"
 
+    assert len(nb.get_all_versions()) == 1
+    assert nb.get_all_versions()["debug"] == system.get_software_version()
     _check_variables(nb)
     del nb_page
     nb.resave()

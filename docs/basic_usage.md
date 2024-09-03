@@ -83,9 +83,9 @@ gene_3 3012301
 the names (`gene_0`, `gene_1`, ...) can be changed. Do not assign any genes a constant gene code, e.g. `0000000`. To 
 learn how the codes can be generated, see [advanced usage](advanced_usage.md#). For details on how the codes are 
 generated, see `reed_solomon_codes` in 
-[`coppafish/utils/base.py`](https://github.com/reillytilbury/coppafish/blob/alpha/coppafish/utils/base.py). See the 
-<a href="https://github.com/reillytilbury/coppafish/blob/alpha/coppafish/setup/settings.default.ini" target="_blank">
-Wikipedia article</a> for how gene codes are best selected.
+[`coppafish/utils/base.py`](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/utils/base.py). See the 
+[Wikipedia article](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction) for how gene codes are best 
+selected.
 
 ### Configuration
 
@@ -97,7 +97,7 @@ file, like `dataset_name.ini`. The config file should contain, at the minimum:
 [file_names]
 input_dir = path/to/input/data
 output_dir = path/to/output/directory
-tile_dir = path/to/tile/output
+tile_dir = path/to/tile/directory
 round = 0, 1, 2, 3, 4, 5, 6 ; Go up to the number of sequencing rounds used
 anchor = anchor
 raw_extension = .npy
@@ -121,13 +121,14 @@ expected_overlap = 0.15
 where the `dapi_channel` is the index in the numpy arrays that the dapi channel is stored at. `use_channels` includes 
 the `anchor_channel` in this case because the anchor channel can also be used as a sequencing channel in the sequencing 
 rounds. `dye_names` does not have to be set explicitly if `n_seq_channels == n_dyes`. `expected_overlap` is the 
-fraction of the tile in x (y) dimension that is overlapping between adjacent tiles, typically `0.1-0.15`. More details 
-about every config variable can be found at 
-<a href="https://github.com/reillytilbury/coppafish/blob/alpha/coppafish/setup/settings.default.ini" target="_blank">
-`coppafish/setup/settings.default.ini`</a> in the source code. `use_z` contains all selected z planes, they should all 
-be adjacent planes. It is recommended to use microscopic images where the middle z plane is roughly the brightest for 
-best performance; this can be configured by changing the selected z planes in `use_z`. The z direction can be treated 
-differently to the y and x directions because typically a z pixel corresponds to a larger, real distance.
+fraction of the tile in x (y) dimension that is overlapping between adjacent tiles, typically `0.1-0.15`. `use_z` 
+contains all selected z planes, they should all be adjacent planes. It is recommended to use microscopic images where 
+the middle z plane is roughly the brightest for best performance; this can be configured by changing the selected z 
+planes in `use_z`. The z direction can be treated differently to the y and x directions because typically a z pixel 
+corresponds to a larger, real distance. `tile_dir` is the tile directory, where extract images are saved to. 
+`output_dir` is where the notebook and PDF diagnostics are saved. More details about every config variable can be found 
+at <a href="https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/setup/settings.default.ini" target="_blank">
+`coppafish/setup/settings.default.ini`</a> in the source code. 
 
 ## Running
 

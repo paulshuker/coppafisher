@@ -1,7 +1,9 @@
+Diagnostics specific to the methods are found in the Method tab above.
+
 ## Viewer
 
 The Viewer is coppafish's flagship way of viewing final results. It is a fast, three-dimensional view of gene reads 
-found by coppafish using <a href="https://github.com/napari/napari" target="_blank">napari</a>.
+found by coppafish. The view is powered by <a href="https://github.com/napari/napari" target="_blank">napari</a>.
 
 ### Opening
 
@@ -22,8 +24,8 @@ nb = Notebook("path/to/notebook.npz")
 Viewer(nb, gene_marker_file="path/to/custom/gene_marker_file.csv")
 ```
 
-see <a href="https://github.com/reillytilbury/coppafish/raw/HEAD/coppafish/plot/results_viewer/gene_color.csv" target="_blank">
-here</a> for the default .csv file for gene markers.
+see [here](https://github.com/paulshuker/coppafish/raw/HEAD/coppafish/plot/results_viewer/gene_color.csv) for the 
+default .csv file for gene markers.
 
 ### Description
 

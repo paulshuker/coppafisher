@@ -38,10 +38,11 @@ conda activate coppafish
 
 Our latest coppafish release can be cloned locally
 ``` bash
-git clone --depth 1 https://github.com/reillytilbury/coppafish
+git clone --depth 1 https://github.com/paulshuker/coppafish
 ```
 
-install package dependencies and coppafish by
+then install package dependencies and coppafish by
+
 ``` bash
 cd coppafish
 python -m pip install --upgrade pip

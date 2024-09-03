@@ -14,13 +14,12 @@ from superqt import QRangeSlider
 import torch
 from tqdm import tqdm
 
-from coppafish.find_spots import spot_yxz
 from coppafish.setup import Notebook, file_names
 from coppafish.spot_colours import apply_affine, apply_flow
 
 
 class RegistrationViewer:
-    def __init__(self, nb: Notebook, t: int = None, config_path: Optional[str] = None):
+    def __init__(self, nb: Notebook,config_path: Optional[str] = None, t: Optional[int] = None ):
         """
         Viewer for the registration of an experiment.
         - Shows the registered images for the selected tile.
@@ -32,8 +31,9 @@ class RegistrationViewer:
         can be accessed by self.viewer.
 
         Args:
-            nb: Notebook object (should contain register and register_debug pages)
-            t: tile (if None, the first tile is selected)
+            - nb: Notebook object (should contain register and register_debug pages)
+            - config_path (str, optional): file path to the config file. Default: try get the file path from the notebook.
+            - t (int, optional): tile (if None, the first tile is selected)
         """
         self.nb = nb
         if t is None:
@@ -342,7 +342,7 @@ class TextButtonCreator(QMainWindow):
 
 
 class ICPPointCloudViewer:
-    def __init__(self, nb: Notebook, t: int, r: int = None, c: int = None):
+    def __init__(self, nb: Notebook, t: int, r: Optional[int] = None, c: Optional[int] = None):
         """
         Visualize the point cloud registration results for the selected tile and round.
         Args:
@@ -388,9 +388,7 @@ class ICPPointCloudViewer:
         self.points = []
         # Step 1: Get the points
         # get anchor points
-        base_raw = spot_yxz(
-            self.nb.find_spots.spot_yxz, self.t, self.anchor_round, self.anchor_channel, self.nb.find_spots.spot_no
-        )
+        base_raw = self.nb.find_spots.spot_yxz[f"t{self.t}r{self.anchor_round}c{self.anchor_channel}"][:]
 
         # get base points after applying the flow and the affine round correction
         if self.r is None:
@@ -440,7 +438,7 @@ class ICPPointCloudViewer:
         if self.c is None:
             r = self.r
             c = self.anchor_channel
-        target = spot_yxz(self.nb.find_spots.spot_yxz, self.t, r, c, self.nb.find_spots.spot_no)
+        target = self.nb.find_spots.spot_yxz[f"t{self.t}r{r}c{c}"][:]
         self.points.append(base_raw)
         self.points.append(base_flow_plus_round_affine)
         self.points.append(base_flow_plus_icp_affine)
@@ -958,4 +956,3 @@ def view_overlay(nb: Notebook, t: int = None, rc: list = None):
     viewer.dims.axis_labels = ["y", "x", "z"]
     viewer.dims.order = (2, 0, 1)
     napari.run()
-

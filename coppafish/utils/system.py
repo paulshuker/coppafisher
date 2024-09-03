@@ -10,7 +10,7 @@ import torch
 
 
 class SystemConstants:
-    VERSION_URL = "https://github.com/reillytilbury/coppafish/raw/HEAD/coppafish/_version.py"
+    VERSION_URL = "https://github.com/paulshuker/coppafish/raw/HEAD/coppafish/_version.py"
     # The character(s) that encapsulate the software version tag in _version.py, in this case it is quotation marks.
     VERSION_ENCAPSULATE = '"'
 
@@ -101,7 +101,7 @@ def get_core_count() -> int:
     return int(n_threads)
 
 
-def current_terminal_size_xy(x_offset: int = 0, y_offset: int = 0) -> Tuple[int, int]:
+def get_terminal_size_xy(x_offset: int = 0, y_offset: int = 0) -> Tuple[int, int]:
     """
     Get the current terminal size in x and y direction, clamped at >= 1 in both directions. Falls back to a default of
     `(80, 20)` if cannot be found.
