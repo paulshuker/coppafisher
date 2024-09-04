@@ -12,9 +12,8 @@
     viewer. For NPY files, a downsample of 4 is recommended as it greatly speeds up the loading of the viewer (30
     seconds -> 5 seconds), and the images are still of high enough quality to see the nuclei.
  * Viewer: Napari has been updated to version 0.4.19, removing some Qt warnings.
- * General: From this version onwards, coppafish will automatically crash when incompatible notebook versions are 
-    attempted to be combined. A suggested course of action will be given. The user no longer needs to keep track of 
-    data incompatibility.
+ * General: From this version onwards, coppafish will automatically detect incompatible notebook versions. A suggested 
+    course of action is given if a problem is found.
  * General: Presequence support is removed.
  * General: All output variables are now stored within the notebook except for extract images.
  * General: Users can move output directory and tiles directory mid-pipeline.
