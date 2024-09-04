@@ -228,7 +228,7 @@ class BuildPDF:
                     spots_yxz = nb.find_spots.spot_yxz[f"t{t}r{anchor_r}c{anchor_c}"][:]
                     spots_yxz = spots_yxz[spots_yxz[:, 2] == z]
                     if spots_yxz.size > 0:
-                        ax.scatter(spots_yxz[:, 1], spots_yxz[:, 0], marker="x", edgecolors="black", linewidths=1.0)
+                        ax.scatter(spots_yxz[:, 1], spots_yxz[:, 0], marker="x", linewidths=1.0)
                     fig.tight_layout()
                     pdf.savefig(fig)
                     plt.close(fig)

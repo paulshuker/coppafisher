@@ -1,6 +1,14 @@
 2024/mm/dd Major Update (v1.0.0):
- * PDF Diagnostics: New gene spatial heat map PDFs created at runtime.
- * PDF Diagnostics: New stitch PDF file created at runtime.
+ * General: From this version onwards, coppafish will automatically detect incompatible notebook versions. A suggested 
+    course of action is given if a problem is found.
+ * General: Presequence support is removed.
+ * General: All output variables are now stored within the notebook except for extract images.
+ * General: Users can move output directory and tiles directory mid-pipeline.
+ * General: The notebook can be moved location without breaking diagnostics.
+ * General: Package versions are now logged in the pipeline.log file.
+ * General: Incorrect numpy data types have been fixed within the notebook.
+ * General: The notebook is now faster at saving, can save zarr arrays/groups, and has better overwrite protection.
+ * General: Security patches for zipp, urllib3, scikit-learn, tornado, requests, and certifi.
  * Viewer: The viewer is more customisable. Users can now toggle whether they want each image shown to be a max 
     intensity projection or not, which is achieved by setting the max_intensity_projection variable in the viewer to 
     True or False.
@@ -12,16 +20,8 @@
     viewer. For NPY files, a downsample of 4 is recommended as it greatly speeds up the loading of the viewer (30
     seconds -> 5 seconds), and the images are still of high enough quality to see the nuclei.
  * Viewer: Napari has been updated to version 0.4.19, removing some Qt warnings.
- * General: From this version onwards, coppafish will automatically detect incompatible notebook versions. A suggested 
-    course of action is given if a problem is found.
- * General: Presequence support is removed.
- * General: All output variables are now stored within the notebook except for extract images.
- * General: Users can move output directory and tiles directory mid-pipeline.
- * General: The notebook can be moved location without breaking diagnostics.
- * General: Package versions are now logged in the pipeline.log file.
- * General: Incorrect numpy data types have been fixed within the notebook.
- * General: The notebook is now faster at saving, can save zarr arrays/groups, and has better overwrite protection.
- * General: Security patches for zipp, urllib3, scikit-learn, tornado, requests, and certifi.
+ * PDF Diagnostics: New gene spatial heat map PDFs created at runtime.
+ * PDF Diagnostics: New stitch PDF created at runtime.
  * Extract: Default z_plane_mean_warning 200 -> 125.
  * Extract: Images are now rotated during extract instead of filter. Hence, the config parameter `num_rotations` has 
     been moved from the `filter` section to the `extract` section.

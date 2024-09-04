@@ -109,7 +109,7 @@ def compute_bleed_matrix(
     """
     assert len(spot_colours) == len(gene_no), "Spot colours and gene_no must have the same length."
     n_spots, n_rounds, n_channels_use = spot_colours.shape
-    bleed_matrix = np.zeros((n_dyes, n_channels_use))
+    bleed_matrix = np.zeros((n_dyes, n_channels_use), np.float32)
 
     # loop over all dyes, find the spots which are meant to be dye d in round r, and compute the SVD
     for d in range(n_dyes):
