@@ -450,31 +450,31 @@ class NotebookPage:
                 "Numpy string array [n_genes]" + "Names of all genes in the code book provided.",
             ],
             "gene_codes": [
-                "ndarray[int]",
+                "ndarray[int32]",
                 "Numpy integer array [n_genes x n_rounds]"
                 + "`gene_codes[g, r]` indicates the dye that should be present for gene $g$ in round $r$.",
             ],
             "colour_norm_factor": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float array [n_tiles x n_rounds x n_channels_use]"
                 + "Normalisation factor for each tile, round, channel. This is multiplied by colours to equalise "
                 "intensities across tiles, rounds and channels and to make the intensities of each dye as close as "
                 "possible to pre-specified target values.",
             ],
             "initial_scale": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float array [n_tiles x n_rounds x n_channels_use]"
                 + "Initial scaling factor for each tile, round, channel. This is multiplied by colours to equalise "
                 "intensities across tiles, rounds and channels.",
             ],
             "rc_scale": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float array [n_rounds x n_channels_use]"
                 + "colour norm factor is a product of 2 scales. The first is the target scale which is the scale "
                 + "that maximises similarity between tile independent free bled codes and the target values",
             ],
             "tile_scale": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float array [n_tiles x n_rounds x n_channels_use]"
                 + "colour norm factor is a product of 2 scales. The second is the homogeneous scale which is the "
                 + "scale that maximises similarity between tile dependent free bled codes and the target bled codes. "
@@ -482,7 +482,7 @@ class NotebookPage:
                 "(ie: we homogenise these codes).",
             ],
             "free_bled_codes": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float array [n_genes x n_tiles x n_rounds x n_channels_use]"
                 + "free_bled_codes[g, t] is approximately the mean of all spots assigned to gene g in tile t with high "
                 "probability. It is not quite the mean because we have a prior that the channel vector for each "
@@ -490,7 +490,7 @@ class NotebookPage:
                 "taken into account.",
             ],
             "free_bled_codes_tile_independent": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float array [n_genes x n_rounds x n_channels_use]"
                 + "Tile independent free bled codes. free_bled_codes_tile_independent[g] is approximately the mean "
                 "of all spots assigned to gene g in all tiles with high probability. It is not quite the mean because"
@@ -498,19 +498,19 @@ class NotebookPage:
                 "the expected dye code for that gene in that round, so this is taken into account.",
             ],
             "bled_codes": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float array [n_genes x n_rounds x n_channels_use]"
                 + "bled_codes[g, r, c] = target_scale[r, c] * free_bled_codes_tile_independent[g, r, c], "
                 "meaning that these codes are scaled versions of the tile independent free bled codes that are "
                 "scaled to make the intensities of each dye as close as possible to pre-specified target values.",
             ],
             "bleed_matrix_raw": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float array [n_dyes x n_channels_use]"
                 + "These are the dye codes obtained from an image of each dye alone, outside of any tissue.",
             ],
             "bleed_matrix_initial": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float array [n_dyes x n_channels_use]"
                 + "bleed_matrix_initial[d] is a vector of length n_channels_use that gives the expected intensity of "
                 "dye d in each channel. This initial guess is obtained from a SVD of spots which belong to dye d "
@@ -518,7 +518,7 @@ class NotebookPage:
                 " used to calculate it.",
             ],
             "bleed_matrix": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float array [n_dyes x n_channels_use]"
                 + "bleed_matrix[d] is a vector of length n_channels_use that gives the expected intensity of dye d in "
                 "each channel. This is the final bleed matrix and is obtained by computing the probabilities of "
@@ -529,21 +529,21 @@ class NotebookPage:
                 "Numpy array [n_spots]. Gene number assigned to each spot. `None` if not assigned.",
             ],
             "dot_product_gene_score": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float array [n_spots]. `score[s]' is the highest gene coef of spot s.",
             ],
             "gene_probabilities": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float array [n_spots x n_genes]. `gene_probabilities[s, g]` is the probability that spot $s$ "
                 + "belongs to gene $g$.",
             ],
             "gene_probabilities_initial": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float array [n_spots x n_genes]. `gene_probabilities_initial[s, g]` is the probability that spot"
                 + " $s$ belongs to gene $g$ after only initial scaling compared against the raw bleed matrix.",
             ],
             "intensity": [
-                "ndarray[float]",
+                "ndarray[float32]",
                 "Numpy float32 array [n_spots]. "
                 + "$\\chi_s = \\underset{r}{\\mathrm{median}}(\\max_c\\zeta_{s_{rc}})$"
                 + "where $\\pmb{\\zeta}_s=$ `colors[s, r]*colour_norm_factor[r]`.",

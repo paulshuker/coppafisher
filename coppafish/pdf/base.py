@@ -1,6 +1,6 @@
 import os
 import textwrap
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 import webbrowser
 
 import matplotlib as mpl
@@ -13,7 +13,6 @@ from tqdm import tqdm
 from typing_extensions import Self
 
 from .. import log
-from ..find_spots import base as find_spots_base
 from ..omp import base as omp_base
 from ..setup import Notebook, NotebookPage
 
@@ -213,18 +212,24 @@ class BuildPDF:
                     anchor_r, anchor_c = nb.basic_info.anchor_round, nb.basic_info.anchor_channel
                     threshold = nb.find_spots.auto_thresh[t, anchor_r, anchor_c].item()
                     z = nb.basic_info.use_z[len(nb.basic_info.use_z) // 2]
-                    fig.suptitle(f"Tile {t} anchor round/channel {z=}. Threshold: {'{:.2f}'.format(threshold)}")
+                    fig.suptitle(f"Tile {t} anchor round/channel {z=}")
                     t_anchor_plane = nb.filter.images[t, anchor_r, anchor_c, :, :, z]
                     norm = mpl.colors.Normalize(vmin=-t_anchor_plane.max(), vmax=t_anchor_plane.max())
                     im = ax.imshow(t_anchor_plane, cmap=cmap, norm=norm)
                     ax.set_xticks([])
                     ax.set_yticks([])
+                    cbar = ax.figure.colorbar(im, ax=ax, label="Image intensity")
+                    # Save the figure without spot detections first, then with after.
+                    pdf.savefig(fig)
+                    fig.suptitle(
+                        f"Tile {t} anchor round/channel {z=} with spot detections. "
+                        + f"Threshold: {'{:.2f}'.format(threshold)}"
+                    )
                     spots_yxz = nb.find_spots.spot_yxz[f"t{t}r{anchor_r}c{anchor_c}"][:]
                     spots_yxz = spots_yxz[spots_yxz[:, 2] == z]
                     if spots_yxz.size > 0:
-                        ax.scatter(spots_yxz[:, 1], spots_yxz[:, 0], marker="x", edgecolors="black", linewidths=1.0)
+                        ax.scatter(spots_yxz[:, 1], spots_yxz[:, 0], marker="x", linewidths=1.0)
                     fig.tight_layout()
-                    cbar = ax.figure.colorbar(im, ax=ax, label="Image intensity")
                     pdf.savefig(fig)
                     plt.close(fig)
         pbar.update()
@@ -936,7 +941,7 @@ class BuildPDF:
         local_yxz: np.ndarray,
         score_threshold: float = 0,
         title: Optional[str] = None,
-        use_z: Optional[List[int]] = None,
+        use_z: Optional[list[int]] = None,
     ) -> plt.Figure:
         """
         Histograms of positions x, y, and z.
@@ -1003,6 +1008,7 @@ class BuildPDF:
         assert global_yxzs.shape[0] == gene_numbers.shape[0] == scores.shape[0]
         assert np.logical_and(gene_numbers >= 0, gene_numbers < gene_names.size).all()
 
+        global_minimums_yxz = global_yxzs.min(0)
         global_maximums_yxz = global_yxzs.max(0)
         bin_counts = np.ceil(global_maximums_yxz / self.HEATMAP_BIN_SIZE)[:2].astype(int).tolist()
         hist_range = ((0, bin_counts[0] * self.HEATMAP_BIN_SIZE), (0, bin_counts[1] * self.HEATMAP_BIN_SIZE))
@@ -1021,8 +1027,12 @@ class BuildPDF:
             axes[0, 0].set_ylabel("")
             axes[0, 0].set_xticks([])
             axes[0, 0].set_yticks([])
-            axes[0, 0].set_xlim(-0.5, global_maximums_yxz[1] / self.HEATMAP_BIN_SIZE)
-            axes[0, 0].set_ylim(-0.5, global_maximums_yxz[0] / self.HEATMAP_BIN_SIZE)
+            axes[0, 0].set_xlim(
+                -0.5 + global_minimums_yxz[1] / self.HEATMAP_BIN_SIZE, global_maximums_yxz[1] / self.HEATMAP_BIN_SIZE
+            )
+            axes[0, 0].set_ylim(
+                -0.5 + global_minimums_yxz[0] / self.HEATMAP_BIN_SIZE, global_maximums_yxz[0] / self.HEATMAP_BIN_SIZE
+            )
             fig.colorbar(im, ax=axes[0, 0], label="Spot count", ticks=[n for n in range(max_count + 1)])
             fig.suptitle(f"Gene {g}: {gene_name}, score >= {score_threshold}")
             fig.tight_layout()

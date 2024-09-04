@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from .. import log, utils
 from ..setup import NotebookPage
-from ..utils import indexing, tiles_io
+from ..utils import indexing, tiles_io, system
 
 
 def run_extract(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) -> NotebookPage:
@@ -37,6 +37,16 @@ def run_extract(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) -
 
     if not os.path.isdir(nbp_file.extract_dir):
         os.mkdir(nbp_file.extract_dir)
+    # Save the earliest used coppafish version to extract inside of the extract directory.
+    version_path = os.path.join(nbp_file.extract_dir, ".version")
+    if os.path.isfile(version_path):
+        with open(version_path, "r") as file:
+            extract_version = file.readline()
+        if extract_version != system.get_software_version():
+            log.info(f"Using pre-existing extract results from version {extract_version}")
+    else:
+        with open(version_path, "w") as file:
+            file.write(system.get_software_version())
 
     indices = indexing.create(
         nbp_basic,
