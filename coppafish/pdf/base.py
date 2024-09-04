@@ -13,7 +13,6 @@ from tqdm import tqdm
 from typing_extensions import Self
 
 from .. import log
-from ..find_spots import base as find_spots_base
 from ..omp import base as omp_base
 from ..setup import Notebook, NotebookPage
 
