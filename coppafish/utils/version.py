@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 from ..setup import Notebook
 from . import system
 from .. import log
@@ -21,11 +23,13 @@ class CompatibilityTracker:
     # For each coppafish version, this is the earliest stage that requires re-running as a result of the changes is
     # given relative to the version before.
     # !This must be appended to for each future version release.
-    _version_compatibility: dict[str, str] = {
-        "0.10.6": "extract",
-        "0.10.7": "filter",
-        "1.0.0": "initialisation",
-    }
+    _version_compatibility: OrderedDict[str, str] = OrderedDict(
+        (
+            ("0.10.6", "extract"),
+            ("0.10.7", "filter"),
+            ("1.0.0", "initialisation"),
+        )
+    )
     # Each pipeline stage, this is slightly different to each coppafish page.
     _stages: list[str] = [
         "initialisation",
@@ -122,6 +126,8 @@ class CompatibilityTracker:
         current_version = system.get_software_version()
         for page_name, page_version in nb.get_all_versions().items():
             _, page_stage_index = self._get_stage_with_page_name(page_name)
+            if page_version not in self._version_compatibility:
+                raise ValueError(f"Notebook page {page_name} has unknown software version: {page_version}")
             # For a page and its version, if the earliest stage page that must be removed from the notebook for current
             # compatibility is equal to or earlier than this page, then the notebook is invalid.
             earliest_stage, earliest_stage_index = self._get_earliest_stage_between(page_version, current_version)
@@ -131,10 +137,10 @@ class CompatibilityTracker:
                     f"The existing notebook contains backwards incompatibility on page {page_name} at version "
                     + f"{page_version} compared to current version {system.get_software_version()}."
                 )
-                log.warn(f"The recommended course of action is:")
+                log.warn(f"The suggested course of action is:")
                 self.print_start_from(earliest_stage)
                 return False
-        return True
+        return self._check_notebook_for_downgrade(nb)
 
     def print_start_from(self, stage: str) -> None:
         [log.info(f"    - {instruction}.") for instruction in self._stage_instructions[self._stages.index(stage)]]
@@ -149,6 +155,32 @@ class CompatibilityTracker:
 
     def has_version(self, version: str) -> bool:
         return version in self._version_compatibility
+
+    def _check_notebook_for_downgrade(self, nb: Notebook) -> bool:
+        """
+        Check the given notebook for a version drop when going through the stages, which should be impossible. We do
+        not support users reverting back versions of the software and continuing a pipeline run as this has
+        unpredictable consequences.
+
+        Args:
+            - nb (Notebook): the notebook to check. Does not have to contain all pages.
+
+        Returns:
+            (bool) valid: true if the software version did not downgrade.
+        """
+        current_version = system.get_software_version()
+        current_version_index = list(self._version_compatibility.keys()).index(current_version)
+        for page_name, page_version in nb.get_all_versions().items():
+            page_version_index = list(self._version_compatibility.keys()).index(page_version)
+            if page_version_index > current_version_index:
+                log.warn(
+                    f"Notebook contains page {page_name} run on version {page_version} which is higher than the "
+                    + f"current coppafish version ({current_version})."
+                )
+                log.warn(f"The suggested course of action is:")
+                log.warn(f"    - Update coppafish version to >= {page_version} before re-running.")
+                return False
+        return True
 
     def _get_earliest_stage_between(self, from_version_exclusive: str, to_version_inclusive: str) -> tuple[str, int]:
         index_start = list(self._version_compatibility.keys()).index(from_version_exclusive) + 1
