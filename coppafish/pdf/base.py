@@ -1,6 +1,6 @@
 import os
 import textwrap
-from typing import List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 import webbrowser
 
 import matplotlib as mpl
@@ -941,7 +941,7 @@ class BuildPDF:
         local_yxz: np.ndarray,
         score_threshold: float = 0,
         title: Optional[str] = None,
-        use_z: Optional[List[int]] = None,
+        use_z: Optional[list[int]] = None,
     ) -> plt.Figure:
         """
         Histograms of positions x, y, and z.
