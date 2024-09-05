@@ -1,9 +1,13 @@
-from typing import List, Tuple, Union
+import math as maths
+from typing import List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 from tqdm import tqdm
 import zarr
+
+from ..setup import NotebookPage
+from ..utils import system
 
 
 def apply_flow(
@@ -12,10 +16,10 @@ def apply_flow(
     top_left: Union[np.ndarray, torch.Tensor] = np.array([0, 0, 0]),
 ) -> Union[np.ndarray, torch.Tensor]:
     """
-    Apply a flow to a set of points. Note that this is applying forward warping, meaning that
-        new_points = points + flow.
-    The flow we pass in may be cropped, so if this is the case, to sample the points correctly, we need to
-        make the points relative to the top left corner of the cropped image.
+    Apply a flow to a set of points. Note that this is applying forward warping, meaning that new_points = points +
+    flow. The flow we pass in may be cropped, so if this is the case, to sample the points correctly, we need to make
+    the points relative to the top left corner of the cropped image.
+
     Args:
         yxz: integer points to apply the warp to. (n_points x 3 in yxz coords) (UNSHIFTED)
         flow: flow to apply to the points. (3 x cube_size_y x cube_size_x x cube_size_z) (SHIFTED)
@@ -82,6 +86,46 @@ def remove_background(spot_colours: np.ndarray) -> Tuple[np.ndarray, np.ndarray]
     return spot_colours, background_noise
 
 
+def get_spot_colours_safe(
+    nbp_basic: NotebookPage, yxz_base: Optional[Union[np.ndarray, torch.Tensor]] = None, *args, **kwargs
+) -> np.ndarray:
+    """
+    Calls the function get_spot_colours found below, but it is called multiple times to avoid memory crashes.
+
+    Args:
+        - nbp_basic (NotebookPage): `basic_info` notebook page.
+        - yxz_base (`(n_spots x 3) ndarray or tensor`, optional): pixel positions. Default: entire tile.
+        - args (tuple): get_spot_colours positional arguments.
+        - kwargs (dict[str, any]): get_spot_colours keyword arguments.
+
+    Returns:
+        `(n_spots x n_rounds x n_channels) ndarray[output_dtype]' spot_colours: spot colours.
+    """
+    if yxz_base is None:
+        yxz_base = np.meshgrid(
+            np.linspace(0, nbp_basic.tile_sz - 1, nbp_basic.tile_sz),
+            np.linspace(0, nbp_basic.tile_sz - 1, nbp_basic.tile_sz),
+            nbp_basic.use_z,
+            indexing="ij",
+        )
+        yxz_base = np.array(yxz_base, np.int16).T.reshape((-1, 3))
+    assert type(yxz_base) is np.ndarray or type(yxz_base) is torch.Tensor
+    assert yxz_base.shape[1] == 3
+
+    n_pixels = yxz_base.shape[0]
+    n_max_pixels = 15_000 * system.get_available_memory() / (len(nbp_basic.use_rounds) * len(nbp_basic.use_channels))
+    n_max_pixels = maths.floor(n_max_pixels)
+    results = None
+    for i in range(maths.ceil(n_pixels / n_max_pixels)):
+        index_min, index_max = i * n_max_pixels, min((i + 1) * n_max_pixels, n_pixels)
+        i_results = get_spot_colours(yxz_base=yxz_base[index_min:index_max], *args, **kwargs)
+        if results is None:
+            results = i_results
+        else:
+            results = np.append(results, i_results, axis=0)
+    return results
+
+
 def get_spot_colours(
     image: Union[np.ndarray, zarr.Array],
     flow: Union[np.ndarray, zarr.Array],
@@ -117,7 +161,7 @@ def get_spot_colours(
         - use_channels: 'List[int]' channels to run on.
 
     Returns:
-        spot_colours: 'output_dtype [n_spots x n_rounds x n_channels]' spot colours.
+        `(n_spots x n_rounds x n_channels) ndarray[output_dtype]' spot_colours: spot colours.
     """
     # Deal with default values.
     if use_channels is None:
@@ -127,8 +171,12 @@ def get_spot_colours(
     if type(yxz_base) is np.ndarray:
         yxz_base = torch.tensor(yxz_base, dtype=torch.float32)
     n_tiles, n_rounds, n_channels = image.shape[0], flow.shape[1], image.shape[2]
-    assert affine_correction.shape[1:] == (n_rounds, n_channels, 4, 3), \
-        f"Expected shape {(n_tiles, n_rounds, n_channels, 4, 3)}, got {affine_correction.shape}"
+    assert affine_correction.shape[1:] == (
+        n_rounds,
+        n_channels,
+        4,
+        3,
+    ), f"Expected shape {(n_tiles, n_rounds, n_channels, 4, 3)}, got {affine_correction.shape}"
 
     # initialize variables
     n_spots, n_use_rounds, n_use_channels = yxz_base.shape[0], flow.shape[1], len(use_channels)
@@ -197,7 +245,7 @@ def get_spot_colours(
             grid=zxy_round_r[:, :, None, None, :],
             mode="bilinear",
             align_corners=True,
-            padding_mode="border"
+            padding_mode="border",
         )
 
         # grid_sample gives output as [N, M, D', H', W'] as defined above.

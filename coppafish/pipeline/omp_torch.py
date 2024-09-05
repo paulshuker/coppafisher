@@ -113,7 +113,8 @@ def run_omp(
             index_min = j * batch_size
             index_max = (j + 1) * batch_size
             index_max = min(index_max, np.prod(tile_shape))
-            batch_spot_colours = spot_colours.base.get_spot_colours(
+            batch_spot_colours = spot_colours.base.get_spot_colours_safe(
+                nbp_basic,
                 image=nbp_filter.images,
                 tile=t,
                 flow=nbp_register.flow,
@@ -126,6 +127,10 @@ def run_omp(
             batch_spot_colours[torch.isnan(batch_spot_colours)] = 0.0
             colour_image[index_min:index_max, :, :] = batch_spot_colours
             del batch_spot_colours
+
+        # TEMPORARY:
+        np.savez_compressed(os.path.join(nbp_file.output_dir, f"tile_{t}_colour_image.npz"), colour_image)
+
         log.debug(f"Loading tile {t} colours complete")
 
         # STEP 2: Compute OMP coefficients on the entire tile.
@@ -159,6 +164,12 @@ def run_omp(
             isolated_yxz = torch.zeros((0, 3)).int()
             isolated_gene_no = torch.zeros(0).int()
             for g in range(n_genes):
+                # TEMPORARY CODE: save coefficient image to see what is going wrong.
+                np.savez_compressed(
+                    os.path.join(nbp_file.output_dir, f"{g}_coef_image.npz"),
+                    coefficients[:, [g]].toarray().reshape(tile_shape),
+                )
+
                 g_coef_image = torch.asarray(coefficients[:, [g]].toarray()).reshape(tile_shape).float()
                 if torch.allclose(g_coef_image, torch.zeros(1).float()):
                     log.warn(f"All tile {t} OMP coefficients for gene {nbp_call_spots.gene_names[g]} are zero")
@@ -299,7 +310,8 @@ def run_omp(
             dtype=np.float16,
             chunks=(n_chunk_max, 1, 1),
         )
-        t_spots_colours_temp = spot_colours.base.get_spot_colours(
+        t_spots_colours_temp = spot_colours.base.get_spot_colours_safe(
+            nbp_basic,
             image=nbp_filter.images,
             tile=t,
             flow=nbp_register.flow,
