@@ -56,11 +56,6 @@ def get_file_names(nbp_basic_info: NotebookPage, config_path: str):
     nbp.raw_metadata = config["raw_metadata"]
     nbp.initial_bleed_matrix = config["initial_bleed_matrix"]
 
-    if nbp.initial_bleed_matrix is not None:
-        assert os.path.isfile(
-            nbp.initial_bleed_matrix
-        ), f"Initial bleed matrix located at {nbp.initial_bleed_matrix} does not exist"
-
     if config["dye_camera_laser"] is None:
         # Default information is project
         config["dye_camera_laser"] = str(

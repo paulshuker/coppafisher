@@ -3,7 +3,99 @@ import scipy
 import skimage
 import torch
 
+from coppafish.spot_colours import base as spot_colours_base
 from coppafish.spot_colours.base import get_spot_colours
+
+
+def test_convert_coords_to_torch_grid() -> None:
+    # Test this function by grid sampling an image for all its pixel positions, so no interpolation should be done and
+    # the same image should be given back.
+    rng = np.random.RandomState(0)
+    image_shape = 4, 5, 6
+    image = rng.rand(*image_shape)
+    yxz_coords = np.meshgrid(
+        np.linspace(0, image_shape[0] - 1, image_shape[0]),
+        np.linspace(0, image_shape[1] - 1, image_shape[1]),
+        np.linspace(0, image_shape[2] - 1, image_shape[2]),
+        indexing="ij",
+    )
+    # NOTE: Order 'F' reshaping must be used in numpy reshape method as this is the same as pytorch's reshape method.
+    yxz_coords = np.array(yxz_coords).T.reshape((-1, 3), order="F")
+    yxz_coords = torch.tensor(yxz_coords)
+    yxz_grid_coords = spot_colours_base.convert_coords_to_torch_grid(yxz_coords, image_shape)
+    assert type(yxz_grid_coords) is torch.Tensor
+    assert yxz_grid_coords.shape == (np.prod(image_shape).item(), 3)
+    yxz_grid_coords = yxz_grid_coords.reshape(image_shape + (3,))[None]
+    image = torch.tensor(image).float()
+    # Input has shape (1, 1, 4, 5, 6).
+    # Grid has shape (1, 4, 5, 6, 3).
+    # Result has shape (1, 1, 4, 5, 6).
+    grid_image = torch.nn.functional.grid_sample(image[None, None], yxz_grid_coords, align_corners=True)
+    grid_image = grid_image[0, 0]
+    assert grid_image.shape == image_shape
+    assert torch.allclose(grid_image, image)
+
+
+def test_apply_flow_new() -> None:
+    # Check that a simple +1, +2, and -3 shift in each direction works.
+    yxz = np.zeros((2, 3), dtype=np.int16)
+    yxz[1] = [3, 5, 6]
+    n_tiles, n_rounds = 1, 3
+    tile = 0
+    round = 1
+    image_shape = (4, 5, 6)
+    flow = np.zeros((n_tiles, n_rounds, 3) + image_shape)
+    flow[tile, round, 0] = +1
+    flow[tile, round, 1] = +2
+    flow[tile, round, 2] = -3
+    yxz_expected = yxz.copy()
+    yxz_expected[0] = 1, 2, -3
+    yxz_expected[1] = 4, 7, 3
+    yxz_expected = torch.tensor(yxz_expected).float()
+    yxz_flow = spot_colours_base.apply_flow_new(yxz, flow, tile, round)
+    assert type(yxz_flow) is torch.Tensor
+    assert yxz_flow.shape == (2, 3)
+    assert torch.allclose(yxz_flow, yxz_expected)
+    yxz = torch.tensor(yxz)
+    yxz_flow = spot_colours_base.apply_flow_new(yxz, flow, tile, round)
+    assert type(yxz_flow) is torch.Tensor
+    assert yxz_flow.shape == (2, 3)
+    assert torch.allclose(yxz_flow, yxz_expected)
+
+
+def test_get_spot_colours_new() -> None:
+    # Make sure that when the transforms are all identity the image is returned unchanged.
+    rng = np.random.RandomState(0)
+    n_tiles = 2
+    n_rounds = 3
+    n_channels = 4
+    tile_shape = (5, 6, 7)
+    image_shape = (n_tiles, n_rounds, n_channels) + tile_shape
+    image = rng.rand(*image_shape).astype(np.float32)
+    yxz = np.meshgrid(
+        np.linspace(0, tile_shape[0] - 1, tile_shape[0]),
+        np.linspace(0, tile_shape[1] - 1, tile_shape[1]),
+        np.linspace(0, tile_shape[2] - 1, tile_shape[2]),
+        indexing="ij",
+    )
+    yxz = np.array(yxz).T.reshape((-1, 3), order="F")
+    flow = np.zeros((n_tiles, n_rounds, 3) + tile_shape)
+    affine = np.zeros((n_tiles, n_rounds, n_channels, 4, 3))
+    affine[:, :, :, :3] = np.eye(3)
+    tile = 0
+    output_dtype = np.float32
+    colours = spot_colours_base.get_spot_colours_new(yxz, image, flow, affine, tile, output_dtype=output_dtype)
+    assert type(colours) is np.ndarray
+    assert colours.shape == (np.prod(tile_shape), n_rounds, n_channels)
+    colours = colours.swapaxes(0, 1).swapaxes(1, 2).reshape((n_rounds, n_channels) + tile_shape, order="F")
+    # TODO: Broken as usual
+    assert np.allclose(colours, image[tile])
+
+
+if __name__ == "__main__":
+    test_convert_coords_to_torch_grid()
+    test_apply_flow_new()
+    test_get_spot_colours_new()
 
 
 def test_get_spot_colours():
@@ -32,8 +124,9 @@ def test_get_spot_colours():
     flow = np.zeros((n_rounds, 3, *tile_shape))
 
     # 0. check that grabbing a single spot works
-    spot_colours = get_spot_colours(image=images_aligned[None], flow=flow[None],
-                                    affine_correction=affine[None], yxz_base=np.zeros((1, 3)), tile=0)
+    spot_colours = get_spot_colours(
+        image=images_aligned[None], flow=flow[None], affine_correction=affine[None], yxz_base=np.zeros((1, 3)), tile=0
+    )
     assert spot_colours.shape == (1, n_rounds, n_channels)
     assert np.allclose(spot_colours, images_aligned[None, :, :, 0, 0, 0])
 
