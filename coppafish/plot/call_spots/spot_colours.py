@@ -405,13 +405,14 @@ class view_spot(ColorPlotBase):
         im_diameter = [2 * im_size + 1, 2 * im_size + 1]
 
         # get spot colours for each round and channel
-        spot_colours = spot_colours_base.get_spot_colours(
+        spot_colours = spot_colours_base.get_spot_colours_new(
             image=nb.filter.images,
             flow=nb.register.flow,
-            affine_correction=nb.register.icp_correction,
+            affine=nb.register.icp_correction,
             tile=tile,
+            use_rounds=nb.basic_info.use_rounds,
             use_channels=nb.basic_info.use_channels,
-            yxz_base=im_yxz,
+            yxz=im_yxz,
         )
         # n_pixels x n_rounds x n_channels -> n_pixels x n_channels x n_rounds
         spot_colours = spot_colours.transpose(0, 2, 1)

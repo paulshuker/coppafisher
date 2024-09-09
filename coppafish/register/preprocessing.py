@@ -73,8 +73,9 @@ def split_image(im: np.ndarray, n_subvols_yx: int, overlap: float = 0.25) -> Tup
     # check that the image divides evenly into subvolumes with the given overlap
     im_size_yx, im_size_z = im.shape[0], im.shape[2]
     subvol_size_yx = im_size_yx / (n_subvols_yx * (1 - overlap) + overlap)
-    assert np.isclose(np.round(subvol_size_yx), subvol_size_yx), ("Update the parameters so that the image divides "
-                                                                  "evenly into subvolumes")
+    assert np.isclose(np.round(subvol_size_yx), subvol_size_yx), (
+        "Update the parameters so that the image divides " "evenly into subvolumes"
+    )
     subvol_size_yx = np.round(subvol_size_yx).astype(int)
 
     # define im_split and positions
@@ -97,8 +98,9 @@ def split_image(im: np.ndarray, n_subvols_yx: int, overlap: float = 0.25) -> Tup
     return im_split, positions
 
 
-def merge_subvols(im_split: np.ndarray, positions: np.ndarray, overlap: float,
-                  output_shape: Union[list, tuple]) -> np.ndarray:
+def merge_subvols(
+    im_split: np.ndarray, positions: np.ndarray, overlap: float, output_shape: Union[list, tuple]
+) -> np.ndarray:
     """
     Function to merge subvolumes back into a single image. In cases of overlap, the subvolume with closest centre to the
     pixel will be used.
@@ -194,11 +196,7 @@ def generate_reg_images(
         nbp_register_debug: unfinished `register_debug` notebook page.
     """
     # initialise index variables
-    use_tiles, use_rounds, use_channels = (
-        list(nbp_basic.use_tiles),
-        list(nbp_basic.use_rounds),
-        list(nbp_basic.use_channels),
-    )
+    use_tiles, use_rounds, use_channels = nbp_basic.use_tiles, nbp_basic.use_rounds, nbp_basic.use_channels
     anchor_round, anchor_channel, dapi_channel = (
         nbp_basic.anchor_round,
         nbp_basic.anchor_channel,
@@ -251,7 +249,7 @@ def generate_reg_images(
     anchor_round_active_channels = [dapi_channel, anchor_channel]
     for t, c in tqdm(product(use_tiles, anchor_round_active_channels), desc="Anchor Images", total=len(use_tiles) * 2):
         im = nbp_filter.images[
-            t, anchor_round, c, yxz_min[0]: yxz_max[0], yxz_min[1]: yxz_max[1], yxz_min[2]: yxz_max[2]
+            t, anchor_round, c, yxz_min[0] : yxz_max[0], yxz_min[1] : yxz_max[1], yxz_min[2] : yxz_max[2]
         ]
         im = fill_to_uint8(im)
         sub_index = 0 if c == dapi_channel else 1
@@ -263,22 +261,26 @@ def generate_reg_images(
     for t in tqdm(use_tiles, desc="Round Images", total=len(use_tiles)):
         affine = np.zeros((n_tiles, n_rounds, n_channels, 4, 3))
         affine[:, :, :, :3, :3] = np.eye(3)
-        im_t_flow = spot_colours.base.get_spot_colours(
+        im_t_flow = spot_colours.base.get_spot_colours_new_safe(
+            nbp_basic,
             image=nbp_filter.images,
             flow=nbp_register.flow,
-            affine_correction=affine,
-            yxz_base=yxz_coords,
+            affine=affine,
+            yxz=yxz_coords,
+            use_rounds=use_rounds,
             use_channels=[dapi_channel],
             tile=t,
         ).reshape(image_shape + (len(use_rounds), 1))
         im_t_flow = np.transpose(im_t_flow, (3, 4, 0, 1, 2))
 
         icp_correction[t, :, dapi_channel] = icp_correction[t, :, anchor_channel]
-        im_t_flow_icp = spot_colours.base.get_spot_colours(
+        im_t_flow_icp = spot_colours.base.get_spot_colours_new_safe(
+            nbp_basic,
             image=nbp_filter.images,
             flow=nbp_register.flow,
-            affine_correction=icp_correction,
-            yxz_base=yxz_coords,
+            affine=icp_correction,
+            yxz=yxz_coords,
+            use_rounds=use_rounds,
             use_channels=[dapi_channel],
             tile=t,
         ).reshape(image_shape + (len(use_rounds), 1))
@@ -287,7 +289,7 @@ def generate_reg_images(
         # concatenate the images for each round and save
         for r in use_rounds:
             im_tr = nbp_filter.images[
-                t, r, dapi_channel, yxz_min[0]: yxz_max[0], yxz_min[1]: yxz_max[1], yxz_min[2]: yxz_max[2]
+                t, r, dapi_channel, yxz_min[0] : yxz_max[0], yxz_min[1] : yxz_max[1], yxz_min[2] : yxz_max[2]
             ]
             im_tr_concat = np.concatenate([im_tr[None], im_t_flow[r], im_t_flow_icp[r]], axis=0)
             im_tr_concat = fill_to_uint8(im_tr_concat)
@@ -300,29 +302,45 @@ def generate_reg_images(
         affine = nbp_register_debug.channel_transform_initial
         affine = np.repeat(affine[None], n_rounds, axis=0)
         affine = np.repeat(affine[None], n_tiles, axis=0)
-        im_t_flow = spot_colours.base.get_spot_colours(
+        im_t_flow = spot_colours.base.get_spot_colours_new_safe(
+            nbp_basic,
             image=nbp_filter.images,
             flow=nbp_register.flow,
-            affine_correction=affine,
-            yxz_base=yxz_coords,
+            affine=affine,
+            yxz=yxz_coords,
+            use_rounds=use_rounds,
             use_channels=use_channels,
             tile=t,
-        ).reshape(image_shape + (len(use_rounds), len(use_channels),))
+        ).reshape(
+            image_shape
+            + (
+                len(use_rounds),
+                len(use_channels),
+            )
+        )
         im_t_flow = np.transpose(im_t_flow, (3, 4, 0, 1, 2))[r_mid][None]
-        im_t_flow_icp = spot_colours.base.get_spot_colours(
+        im_t_flow_icp = spot_colours.base.get_spot_colours_new_safe(
+            nbp_basic,
             image=nbp_filter.images,
             flow=nbp_register.flow,
-            affine_correction=icp_correction,
-            yxz_base=yxz_coords,
+            affine=icp_correction,
+            yxz=yxz_coords,
+            use_rounds=use_rounds,
             use_channels=use_channels,
             tile=t,
-        ).reshape(image_shape + (len(use_rounds), len(use_channels),))
+        ).reshape(
+            image_shape
+            + (
+                len(use_rounds),
+                len(use_channels),
+            )
+        )
         im_t_flow_icp = np.transpose(im_t_flow_icp, (3, 4, 0, 1, 2))[r_mid][None]
 
         # concatenate the images for each channel and save
         for i, c in enumerate(use_channels):
             im_tc = nbp_filter.images[
-                t, r_mid, c, yxz_min[0]: yxz_max[0], yxz_min[1]: yxz_max[1], yxz_min[2]: yxz_max[2]
+                t, r_mid, c, yxz_min[0] : yxz_max[0], yxz_min[1] : yxz_max[1], yxz_min[2] : yxz_max[2]
             ]
             im_tc_concat = np.concatenate([im_tc[None], im_t_flow[:, i], im_t_flow_icp[:, i]], axis=0)
             im_tc_concat = fill_to_uint8(im_tc_concat)

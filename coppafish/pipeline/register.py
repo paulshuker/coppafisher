@@ -182,10 +182,8 @@ def register(
                 continue
             # load in reference spots
             ref_spots_tr_ref = nbp_find_spots.spot_yxz[f"t{t}r{nbp_basic.anchor_round}c{nbp_basic.anchor_channel}"][:]
-            # load in optical flow
-            flow_tr = nbp.flow[t, r]
             # apply the flow to the reference spots to put anchor spots in the target frame
-            ref_spots_tr_ref = spot_colours_base.apply_flow(flow=flow_tr, yxz=ref_spots_tr_ref)
+            ref_spots_tr_ref = spot_colours_base.apply_flow_new(ref_spots_tr_ref, nbp.flow, t, r)
             # load in target spots
             ref_spots_tr = nbp_find_spots.spot_yxz[f"t{t}r{r}c{c_ref}"][:]
             round_correction[t, r], n_matches_round[t, r], mse_round[t, r], converged_round[t, r] = register_base.icp(
@@ -223,8 +221,7 @@ def register(
                 )
                 im_spots_trc = im_spots_trc[~oob]
                 # 2. apply the inverse of the flow to the spots
-                flow_tr = nbp.flow[t, r]
-                im_spots_trc = spot_colours_base.apply_flow(flow=-flow_tr, yxz=im_spots_trc)
+                im_spots_trc = spot_colours_base.apply_flow_new(im_spots_trc, nbp.flow, t, r)
                 im_spots_tc = np.vstack((im_spots_tc, im_spots_trc))
             # check if there are enough spots to run ICP
             if im_spots_tc.shape[0] < config["icp_min_spots"]:

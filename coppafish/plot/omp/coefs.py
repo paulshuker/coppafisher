@@ -73,13 +73,15 @@ class ViewOMPImage:
         spot_shape_yxz = tuple([coord_max[i] - coord_min[i] for i in range(3)])
         central_yxz = tuple(torch.asarray(spot_shape_yxz)[np.newaxis].T.int() // 2)
         n_rounds_use, n_channels_use = len(nb.basic_info.use_rounds), len(nb.basic_info.use_channels)
-        image_colours = spot_colours_base.get_spot_colours(
+        image_colours = spot_colours_base.get_spot_colours_new(
             image=nb.filter.images,
             flow=nb.register.flow,
-            affine_correction=nb.register.icp_correction,
-            yxz_base=yxz,
+            affine=nb.register.icp_correction,
+            yxz=yxz,
             tile=int(tile),
+            use_rounds=nb.basic_info.use_rounds,
             use_channels=nb.basic_info.use_channels,
+            out_of_bounds_value=0,
         ).reshape(
             (
                 spot_shape_yxz
@@ -247,16 +249,17 @@ class ViewOMPPixelColours:
         self.local_yxz, tile = get_spot_position_and_tile(nb, spot_no, method)
 
         n_rounds_use, n_channels_use = len(nb.basic_info.use_rounds), len(nb.basic_info.use_channels)
-        image_colours = spot_colours_base.get_spot_colours(
+        image_colours = spot_colours_base.get_spot_colours_new(
             image=nb.filter.images,
             flow=nb.register.flow,
-            affine_correction=nb.register.icp_correction,
-            yxz_base=self.local_yxz[np.newaxis],
+            affine=nb.register.icp_correction,
+            yxz=self.local_yxz[np.newaxis],
             tile=int(tile),
+            use_rounds=nb.basic_info.use_rounds,
             use_channels=nb.basic_info.use_channels,
+            out_of_bounds_value=0,
         )
         image_colours = image_colours.astype(np.float32)
-        image_colours[np.isnan(image_colours)] = 0
         assert not np.allclose(image_colours, 0)
         colour_norm_factor = np.array(nb.call_spots.colour_norm_factor, dtype=np.float32)
         colour_norm_factor = torch.asarray(colour_norm_factor).float()
