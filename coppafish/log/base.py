@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import datetime
 import logging
 import smtplib
@@ -6,7 +7,7 @@ import subprocess
 import sys
 import time
 import traceback
-from typing import Any, Callable, Union
+from typing import Any, Union
 
 DEBUG = 10
 INFO = 20
@@ -28,7 +29,7 @@ def error_catch(func: Callable, *args, **kwargs) -> Any:
     error so the errors can be saved to the pipeline's .log file, when given.
 
     Args:
-        func (Callable): function to run and catch errors on. All other parameters are input into func.
+        - func (Callable): function to run and catch errors on. All other parameters are input into func.
 
     Returns:
         Any: function output.

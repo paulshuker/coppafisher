@@ -107,10 +107,10 @@ def apply_flow(
     top_left: Union[np.ndarray, torch.Tensor] = np.array([0, 0, 0]),
 ) -> Union[np.ndarray, torch.Tensor]:
     """
-    Apply a flow to a set of points. Note that this is applying forward warping, meaning that
-        new_points = points + flow.
-    The flow we pass in may be cropped, so if this is the case, to sample the points correctly, we need to
-        make the points relative to the top left corner of the cropped image.
+    Apply a flow to a set of points. Note that this is applying forward warping, meaning that new_points = points +
+    flow. The flow we pass in may be cropped, so if this is the case, to sample the points correctly, we need to make
+    the points relative to the top left corner of the cropped image.
+
     Args:
         yxz: integer points to apply the warp to. (n_points x 3 in yxz coords) (UNSHIFTED)
         flow: flow to apply to the points. (3 x cube_size_y x cube_size_x x cube_size_z) (SHIFTED)
@@ -351,7 +351,7 @@ def get_spot_colours(
         - use_channels: 'List[int]' channels to run on.
 
     Returns:
-        spot_colours: 'output_dtype [n_spots x n_rounds x n_channels]' spot colours.
+        `(n_spots x n_rounds x n_channels) ndarray[output_dtype]' spot_colours: spot colours.
     """
     # Deal with default values.
     if use_channels is None:

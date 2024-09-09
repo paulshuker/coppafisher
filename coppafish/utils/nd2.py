@@ -1,15 +1,17 @@
-import numpy as np
-import nd2
-import os
 import json
-import numpy_indexed
 import numbers
-from tqdm import tqdm
-from typing import Optional, List, Union, Tuple
+import os
+from typing import List, Optional, Tuple, Union
 
-from .. import setup, log
+import nd2
+import numpy as np
+import numpy_indexed
+from tqdm import tqdm
+
 from . import raw
 from . import errors
+from .. import log, setup
+from ..setup import tile_details
 
 
 # bioformats ssl certificate error solution:
@@ -104,7 +106,7 @@ def get_metadata(file_path: str, config: dict) -> dict:
         )
         xy_pos = (xy_pos - np.min(xy_pos, 0)) / metadata["pixel_size_xy"]
         metadata["xy_pos"] = xy_pos
-        metadata["tilepos_yx_nd2"], metadata["tilepos_yx"] = setup.get_tilepos(
+        metadata["tilepos_yx_nd2"], metadata["tilepos_yx"] = tile_details.get_tilepos(
             xy_pos=xy_pos, tile_sz=metadata["tile_sz"], expected_overlap=config["stitch"]["expected_overlap"]
         )
         # Now also extract the laser and camera associated with each channel

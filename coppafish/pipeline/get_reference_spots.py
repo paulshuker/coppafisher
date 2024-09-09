@@ -71,6 +71,7 @@ def get_reference_spots(
         if np.sum(in_tile) == 0:
             continue
         log.info(f"Tile {np.where(use_tiles==t)[0][0]+1}/{n_use_tiles}")
+        log.debug(f"Tile {t} has {nd_local_yxz[in_tile].shape[0]} reference spots")
         colours = spot_colours_base.get_spot_colours_new_safe(
             nbp_basic,
             image=nbp_filter.images,

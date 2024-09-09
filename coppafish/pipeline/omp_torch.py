@@ -116,7 +116,6 @@ def run_omp(
             output_dtype=np.float16,
             out_of_bounds_value=0,
         )
-
         log.debug(f"Loading tile {t} colours complete")
 
         # STEP 2: Compute OMP coefficients on the entire tile.

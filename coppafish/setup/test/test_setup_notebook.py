@@ -7,9 +7,9 @@ import numpy as np
 import zarr
 
 from coppafish import utils
-from coppafish.utils import system
 from coppafish.setup.notebook import Notebook
 from coppafish.setup.notebook_page import NotebookPage
+from coppafish.utils import system
 
 
 def test_notebook_creation() -> None:
