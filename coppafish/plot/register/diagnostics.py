@@ -15,11 +15,11 @@ import torch
 from tqdm import tqdm
 
 from coppafish.setup import Notebook, file_names
-from coppafish.spot_colours import apply_affine, apply_flow
+from coppafish.spot_colours.base import apply_affine, apply_flow_new
 
 
 class RegistrationViewer:
-    def __init__(self, nb: Notebook,config_path: Optional[str] = None, t: Optional[int] = None ):
+    def __init__(self, nb: Notebook, config_path: Optional[str] = None, t: Optional[int] = None):
         """
         Viewer for the registration of an experiment.
         - Shows the registered images for the selected tile.
@@ -399,9 +399,8 @@ class ICPPointCloudViewer:
             # in round mode, apply the flow only and set the round to the selected round
             r = self.r
             affine_round_correction = np.eye(4, 3)
-        flow = self.nb.register.flow[self.t, r]
         # apply the flow and affine correction
-        base_flow_plus_round_affine = apply_flow(yxz=base_raw, flow=flow)
+        base_flow_plus_round_affine = apply_flow_new(yxz=base_raw, flow=self.nb.register.flow, tile=self.t, r=r)
         base_flow_plus_round_affine = apply_affine(
             yxz=torch.asarray(base_flow_plus_round_affine, dtype=torch.float32),
             affine=torch.asarray(affine_round_correction, dtype=torch.float32),

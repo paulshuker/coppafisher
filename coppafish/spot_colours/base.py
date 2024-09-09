@@ -1,13 +1,104 @@
 import math as maths
-from typing import List, Optional, Tuple, Union
+from typing import List, Tuple, Union, Any, Optional
 
 import numpy as np
 import torch
 from tqdm import tqdm
 import zarr
 
-from ..setup import NotebookPage
-from ..utils import system
+from .. import utils
+
+
+def convert_coords_to_torch_grid(yxz_coords: torch.Tensor, image_shape: tuple[int, int, int]) -> torch.Tensor:
+    """
+    Convert typically used y, x, z pixel coordinates into pytorch grid coordinates as defined in pytorch's grid_sample
+    function (https://pytorch.org/docs/stable/generated/torch.nn.functional.grid_sample.html) with align_corners set to
+    True.
+
+    Args:
+        - yxz_coords(`(n_points x 3) tensor[float or int]`): y, x, and z positions.
+        - image_shape (tuple of three ints): the image length that the yxz_coords are relative to in the y, x, and z
+            directions respectively.
+
+    Returns:
+        `(n_points x 3) tensor[float32]` yxz_grid_coords: yxz_coords converted to pytorch grid space, ready to use in
+            grid_sample.
+    """
+    assert type(yxz_coords) is torch.Tensor
+    assert yxz_coords.shape[1] == 3
+    assert type(image_shape) is tuple
+    assert len(image_shape) == 3
+    assert all([type(length) is int and length > 0 for length in image_shape])
+
+    # The spacing between two pytorch grid positions that should be 1 pixel separation in yxz coordinate space for each
+    # direction.
+    grid_step = 2 / (torch.tensor(image_shape).float() - 1)
+    yxz_grid = yxz_coords.detach().clone().float()
+    yxz_grid *= grid_step[None]
+    yxz_grid -= 1
+    # The grid_sample function places z coordinate at index 0, with y at the last index.
+    yxz_grid = yxz_grid[..., [2, 1, 0]]
+    return yxz_grid
+
+
+def apply_flow_new(
+    yxz: Union[np.ndarray, torch.Tensor], flow: Union[zarr.Array, np.ndarray], tile: int, r: int
+) -> torch.Tensor:
+    """
+    Apply the pixel shifts from flow to each yxz positions given. If the yxz positions are not exact integers within
+    the flow image, then bilinear interpolation is done. On out-of-bound regions, the flow shift is taken to be the
+    same as the nearby, edge pixels.
+
+    Args:
+        - yxz (`(n_points x 3) ndarray[int or float] or tensor[int or float]`): the yxz coordinates.
+        - flow (`(n_tiles x n_rounds x 3 x im_y x im_x x im_z) zarray[float] or ndarray[float]`): the optical flow
+            shift for each pixel in the image for the y, x, and z directions. yxz positions must be aligned with the
+            flow image. I.e. 0, 0, 0 in yxz must be shifted by the flow at 0, 0, 0.
+        - tile (int): tile index to gather flow for.
+        - r (int): round index to gather flow for.
+
+    Returns:
+        `(n_points x 3) tensor[float32]` yxz_flow: yxz coordinates optical flow shifted.
+    """
+    assert type(yxz) is np.ndarray or type(yxz) is torch.Tensor
+    assert type(flow) is zarr.Array or type(flow) is np.ndarray
+    assert type(tile) is int
+    assert type(r) is int
+    assert flow.shape[0] > 0
+    assert flow.shape[1] > 0
+    assert flow.shape[2] == 3
+    tile_shape = tuple(flow.shape[3:])
+    assert tile >= 0 and tile < flow.shape[0]
+    assert r >= 0 and r < flow.shape[1], f"Got round {r}, expected r >= 0 and r < {flow.shape[1]}"
+    yxz_torch = yxz
+    if type(yxz) is np.ndarray:
+        yxz_torch = torch.tensor(yxz_torch)
+    yxz_torch = yxz_torch.detach().clone().float()
+    if yxz_torch.size(0) == 0:
+        return yxz_torch
+    yxz_min, yxz_max = yxz_torch.min(0).values, yxz_torch.max(0).values
+    # Add one pixel of additional flow retrieval for interpolation.
+    yxz_min = (yxz_min - 1).clamp(min=0).int().tolist()
+    yxz_max = (yxz_max + 1).clamp(max=torch.tensor(tile_shape)).int().tolist()
+    flow_torch = np.zeros(flow.shape[2:], np.float32)
+    flow_torch[:, yxz_min[0] : yxz_max[0], yxz_min[1] : yxz_max[1], yxz_min[2] : yxz_max[2]] = flow[
+        tile, r, :, yxz_min[0] : yxz_max[0], yxz_min[1] : yxz_max[1], yxz_min[2] : yxz_max[2]
+    ]
+    flow_torch = torch.tensor(flow_torch)
+    assert yxz_torch.ndim == 2
+    assert yxz_torch.shape[1] == 3
+    assert flow_torch.ndim == 4, f"{flow_torch.ndim}"
+    assert flow_torch.shape[0] == 3
+    yxz_grid = convert_coords_to_torch_grid(yxz_torch, tile_shape)
+    # Input has shape (3, 1, flow.shape[0], flow.shape[1], flow.shape[2]).
+    # Grid has shape (3 (repeated thrice), 1, 1, n_points, 3)
+    # Result has shape (3, 1, 1, 1, n_points).
+    flow_torch = flow_torch[:, None]
+    yxz_grid = yxz_grid[None, None, None].repeat_interleave(3, dim=0)
+    flow_shifts = torch.nn.functional.grid_sample(flow_torch, yxz_grid, align_corners=True, padding_mode="border")
+    flow_shifts = flow_shifts[:, 0, 0, 0]
+    yxz_torch += flow_shifts.T
+    return yxz_torch
 
 
 def apply_flow(
@@ -43,25 +134,24 @@ def apply_flow(
 
 def apply_affine(yxz: torch.Tensor, affine: torch.Tensor) -> torch.Tensor:
     """
-    This transforms the coordinates yxz based on the affine transform alone.
-    E.g. to find coordinates of spots on the same tile but on a different round and channel.
+    Transform the coordinates yxz based on the affine transform alone. E.g. to find coordinates of spots on the same
+    tile but on a different round and channel.
 
     Args:
-        yxz: ```int [n_spots x 3]```.
-            ```yxz[i, :2]``` are the non-centered yx coordinates in ```yx_pixels``` for spot ```i```.
-            ```yxz[i, 2]``` is the non-centered z coordinate in ```z_pixels``` for spot ```i```.
-        affine: '''float32 [4 x 3]'''. The affine transform to apply to the coordinates.
+        - yxz (`(n_points x 3) tensor[float or int]`): y, x, and z coordinates positions to affine transform.
+        - affine (`(4 x 3) tensor[float]`): affine transform to apply.
 
     Returns:
-        ```int [n_spots x 3]```.
-            ```yxz_transform``` such that
-            ```yxz_transform[i, [1,2]]``` are the transformed non-centered yx coordinates in ```yx_pixels```
-            for spot ```i```.
-            ```yxz_transform[i, 2]``` is the transformed non-centered z coordinate in ```z_pixels``` for spot ```i```.
+        `(n_points x 3) tensor[float32]` yxz_affine: the yxz coordinates affine transformed.
     """
+    assert type(yxz) is torch.Tensor
+    assert yxz.ndim == 2
+    assert yxz.shape[1] == 3
+    assert type(affine) is torch.Tensor
+    assert affine.shape == (4, 3)
     # apply icp correction
-    yxz_pad = torch.cat([yxz, torch.ones(yxz.shape[0], 1)], dim=1).float()
-    yxz_transform = yxz_pad @ affine
+    yxz_transform = torch.cat([yxz, torch.ones(yxz.shape[0], 1)], dim=1).float()
+    yxz_transform = yxz_transform @ affine
     return yxz_transform
 
 
@@ -86,44 +176,144 @@ def remove_background(spot_colours: np.ndarray) -> Tuple[np.ndarray, np.ndarray]
     return spot_colours, background_noise
 
 
-def get_spot_colours_safe(
-    nbp_basic: NotebookPage, yxz_base: Optional[Union[np.ndarray, torch.Tensor]] = None, *args, **kwargs
+def get_spot_colours_new_safe(
+    nbp_basic_info, yxz: Optional[Union[np.ndarray, torch.Tensor]] = None, *args, **kwargs
 ) -> np.ndarray:
     """
-    Calls the function get_spot_colours found below, but it is called multiple times to avoid memory crashes.
+    A wrapper function for get_spot_colours_new below. See that function for the arguments/details. This function runs
+    get_spot_colours_new through multiple calls to avoid memory crashing on large images.
 
     Args:
-        - nbp_basic (NotebookPage): `basic_info` notebook page.
-        - yxz_base (`(n_spots x 3) ndarray or tensor`, optional): pixel positions. Default: entire tile.
-        - args (tuple): get_spot_colours positional arguments.
-        - kwargs (dict[str, any]): get_spot_colours keyword arguments.
+        - nbp_basic_info (NotebookPage): `basic_info` notebook page.
+        - yxz (`(n_points x 3) ndarray or tensor`, optional): positions to gather. Default: the entire tile.
+        - args (tuple): positional arguments.
+        - kwargs (dict[str, any]): keyword arguments.
+    """
+    assert type(yxz) is np.ndarray or type(yxz) is torch.Tensor or yxz is None
+    tile_shape = (nbp_basic_info.tile_sz, nbp_basic_info.tile_sz, len(nbp_basic_info.use_z))
+    n_channels_use, n_rounds_use = len(nbp_basic_info.use_channels), len(nbp_basic_info.use_rounds)
+    if yxz is None:
+        yxz = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
+        yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int32).T.reshape((-1, 3), order="F")
+    assert yxz.ndim == 2
+    assert yxz.shape[1] == 3
+    batch_size = maths.floor(utils.system.get_available_memory() * 1.3e7 / (n_channels_use * n_rounds_use))
+    n_batches = maths.ceil(yxz.shape[0] / batch_size)
+    colours = None
+    for i in range(n_batches):
+        index_min, index_max = i * batch_size, min((i + 1) * batch_size, yxz.shape[0])
+        i_colours = get_spot_colours_new(yxz=yxz[index_min:index_max], *args, **kwargs)
+        if colours is None:
+            colours = i_colours
+        else:
+            colours = np.append(colours, i_colours, axis=0)
+        del i_colours
+    return colours
+
+
+def get_spot_colours_new(
+    yxz: Union[np.ndarray, torch.Tensor],
+    image: Union[np.ndarray, zarr.Array],
+    flow: Union[np.ndarray, zarr.Array],
+    affine: Union[np.ndarray, torch.Tensor],
+    tile: int,
+    use_rounds: list[int],
+    use_channels: Optional[list[int]] = None,
+    output_dtype: np.dtype = np.float32,
+    out_of_bounds_value: Any = np.nan,
+) -> np.ndarray:
+    """
+    (Sub)pixel positions are gathered from the given image. First, the given yxz positions are optical flow shifted
+    (yxz + flow_shifts). Second, the positions are then affine transformed (yxz_flow @ affine) to get final, float32
+    positions for each round/channel combination. These positions are then gathered from image for the given channels
+    on all rounds. Subpixel resolution is supported as bilinear interpolation is used to gather the optical flow shifts
+    and the final image values.
+
+    Args:
+        - yxz (`(n_points x 3) ndarray or tensor`): positions to gather.
+        - image (`(n_tiles x n_rounds x n_channels x im_y x im_x x im_z) ndarray or zarray`): image to gather from.
+        - flow (`(n_tiles x n_rounds x 3 x im_y x im_x x im_z) ndarray or zarray`): optical flow shifts.
+        - affine (`(n_tiles x n_rounds x n_channels x 4 x 3) ndarray or tensor`): affine transform.
+        - tile (int): tile index.
+        - use_rounds (list of ints): the round indices to use. These rounds must be sequencing rounds.
+        - use_channels (list of ints, optional): channel indices to use. Default: all channels.
+        - output_dtype (np.dtype, optional): the returned spot colour datatype. Default: float32.
+        - out_of_bounds_value (any): what to value to set for out of bound spot colours. Default: np.nan.
 
     Returns:
-        `(n_spots x n_rounds x n_channels) ndarray[output_dtype]' spot_colours: spot colours.
+        `(n_points x n_rounds x n_channels_use) ndarray[output_dtype]` colours: gathered image colours.
     """
-    if yxz_base is None:
-        yxz_base = np.meshgrid(
-            np.linspace(0, nbp_basic.tile_sz - 1, nbp_basic.tile_sz),
-            np.linspace(0, nbp_basic.tile_sz - 1, nbp_basic.tile_sz),
-            nbp_basic.use_z,
-            indexing="ij",
-        )
-        yxz_base = np.array(yxz_base, np.int16).T.reshape((-1, 3))
-    assert type(yxz_base) is np.ndarray or type(yxz_base) is torch.Tensor
-    assert yxz_base.shape[1] == 3
+    # Default value.
+    if use_channels is None:
+        use_channels = list(range(image.shape[2]))
+    # Verify parameters.
+    assert type(yxz) is np.ndarray or type(yxz) is torch.Tensor
+    assert type(image) is np.ndarray or type(image) is zarr.Array
+    assert type(flow) is np.ndarray or type(flow) is zarr.Array
+    assert type(affine) is np.ndarray or type(affine) is torch.Tensor
+    assert type(tile) is int
+    assert type(use_rounds) is list
+    assert use_channels is None or type(use_channels) is list
+    assert yxz.ndim == 2
+    assert yxz.shape[1] == 3
+    assert image.ndim == 6
+    assert flow.ndim == 6
+    assert flow.shape[2] == 3
+    assert affine.ndim == 5
+    assert affine.shape[3:] == (4, 3)
+    assert tile >= 0 and tile < image.shape[0]
+    assert len(use_rounds) > 0
+    assert all([type(r) is int for r in use_rounds])
+    assert all([r >= 0 and r < flow.shape[1] for r in use_rounds]), f"Cannot use round index {r}"
+    assert len(use_channels) > 0
+    assert all([type(c) is int for c in use_channels])
+    assert all([c >= 0 and c < image.shape[2] for c in use_channels])
 
-    n_pixels = yxz_base.shape[0]
-    n_max_pixels = 15_000 * system.get_available_memory() / (len(nbp_basic.use_rounds) * len(nbp_basic.use_channels))
-    n_max_pixels = maths.floor(n_max_pixels)
-    results = None
-    for i in range(maths.ceil(n_pixels / n_max_pixels)):
-        index_min, index_max = i * n_max_pixels, min((i + 1) * n_max_pixels, n_pixels)
-        i_results = get_spot_colours(yxz_base=yxz_base[index_min:index_max], *args, **kwargs)
-        if results is None:
-            results = i_results
-        else:
-            results = np.append(results, i_results, axis=0)
-    return results
+    # Prepare variables.
+    tile_shape = tuple(image.shape[3:])
+    # Pytorch tensors are used throughout and cast to float32 while computing.
+    yxz_torch = yxz
+    if type(yxz_torch) is np.ndarray:
+        yxz_torch = torch.tensor(yxz_torch)
+    yxz_torch = yxz_torch.detach().clone().float()
+    affine_torch = affine
+    if type(affine_torch) is np.ndarray:
+        affine_torch = torch.tensor(affine_torch)
+    affine_torch = affine_torch.detach().clone().float()
+
+    colours = np.zeros((yxz.shape[0], len(use_rounds), len(use_channels)), output_dtype)
+    for r in use_rounds:
+        # First, apply round r optical flow to the given coordinates.
+        r_yxz = apply_flow_new(yxz_torch, flow, tile, r)
+        for c_index, c in enumerate(use_channels):
+            # For each channel, apply the affine transform to the optical flow shifted yxz coordinates.
+            c_yxz = apply_affine(r_yxz, affine_torch[tile, r, c])
+            # Only gather image data that is required by the yxz coordinates.
+            c_yxz_min, c_yxz_max = c_yxz.min(0).values, c_yxz.max(0).values
+            # Pad the gathered data by one pixel for interpolation.
+            c_yxz_min = (c_yxz_min - 1).clamp(min=0).int().tolist()
+            c_yxz_max = (c_yxz_max + 1).clamp(max=torch.tensor(tile_shape)).int().tolist()
+            image_trc = np.zeros(tile_shape, np.float32)
+            image_trc[c_yxz_min[0] : c_yxz_max[0], c_yxz_min[1] : c_yxz_max[1], c_yxz_min[2] : c_yxz_max[2]] = image[
+                tile, r, c, c_yxz_min[0] : c_yxz_max[0], c_yxz_min[1] : c_yxz_max[1], c_yxz_min[2] : c_yxz_max[2]
+            ]
+            image_trc = torch.tensor(image_trc)
+
+            c_yxz_grid = convert_coords_to_torch_grid(c_yxz, tile_shape)
+            del c_yxz
+            # Input has shape (1, 1, image.shape[0], image.shape[1], image.shape[2]).
+            # Grid has shape (1, 1, 1, n_points, 3)
+            # Result has shape (1, 1, 1, 1, n_points).
+            image_trc = image_trc[None, None]
+            colours_trc = torch.nn.functional.grid_sample(image_trc, c_yxz_grid[None, None, None], align_corners=True)
+            colours_trc = colours_trc[0, 0, 0, 0].numpy().astype(output_dtype)
+
+            # Set out of bound coordinates to out_of_bounds_value.
+            is_out_of_bounds = (c_yxz_grid < -1) | (c_yxz_grid > +1)
+            colours_trc[is_out_of_bounds.any(1)] = out_of_bounds_value
+
+            colours[:, r, c_index] = colours_trc
+    return colours
 
 
 def get_spot_colours(

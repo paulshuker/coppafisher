@@ -15,11 +15,11 @@
  * Viewer: Viewer is now much faster and less laggy, due to the removal of a transparent copy of the spots, and the 
     removal of spots not in the legend. The spots are also organised into 3 layers (1 for each method) instead of
     the old method of a layer for each symbol, which was slow.
- * Viewer: The viewer now has a new feature where the user can adjust the size of the spots in the viewer.
- * Viewer: The viewer now has a new feature where the user can adjust the downsample_yx factor of the images in the 
-    viewer. For NPY files, a downsample of 4 is recommended as it greatly speeds up the loading of the viewer (30
-    seconds -> 5 seconds), and the images are still of high enough quality to see the nuclei.
- * Viewer: Napari has been updated to version 0.4.19, removing some Qt warnings.
+ * Viewer: The user can adjust the size of the spots in the viewer.
+ * Viewer: The user can adjust the downsample_yx factor of the Viewer images. For NPY files, a downsample of 4 is 
+    recommended as it greatly speeds up the loading of the viewer (30 seconds -> 5 seconds), and the images are still 
+    of high enough quality to see the nuclei.
+ * Viewer: Napari has been updated to version 0.4.19, removing Qt warnings and improving stability.
  * PDF Diagnostics: New gene spatial heat map PDFs created at runtime.
  * PDF Diagnostics: New stitch PDF created at runtime.
  * Extract: Default z_plane_mean_warning 200 -> 125.
