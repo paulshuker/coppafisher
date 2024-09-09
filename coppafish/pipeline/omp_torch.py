@@ -103,30 +103,20 @@ def run_omp(
         # STEP 1: Load every registered sequencing round/channel image into memory
         log.debug(f"Loading tile {t} colours")
         colour_image = np.zeros((np.prod(tile_shape), n_rounds_use, n_channels_use), dtype=np.float16)
-        yxz_all = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
-        yxz_all = np.array(np.meshgrid(*yxz_all, indexing="ij")).astype(np.int32).T.reshape((-1, 3), order="F")
-        batch_size = maths.floor(utils.system.get_available_memory() * 1.3e7 / (n_channels_use * n_rounds_use))
-        n_batches = maths.ceil(np.prod(tile_shape) / batch_size)
         device = torch.device("cpu") if (config["force_cpu"] or not torch.cuda.is_available()) else torch.device("cuda")
         postfix = {"tile": t, "device": str(device).upper()}
-        for j in tqdm.trange(n_batches, desc=f"Loading colours", unit="batch"):
-            index_min = j * batch_size
-            index_max = (j + 1) * batch_size
-            index_max = min(index_max, np.prod(tile_shape))
-            batch_spot_colours = spot_colours.base.get_spot_colours_new(
-                image=nbp_filter.images,
-                flow=nbp_register.flow,
-                affine=nbp_register.icp_correction,
-                yxz=yxz_all[index_min:index_max],
-                tile=t,
-                use_rounds=nbp_basic.use_rounds,
-                use_channels=nbp_basic.use_channels,
-                output_dtype=np.float16,
-                out_of_bounds_value=0,
-            )
-            batch_spot_colours = torch.asarray(batch_spot_colours)
-            colour_image[index_min:index_max, :, :] = batch_spot_colours
-            del batch_spot_colours
+        colour_image = spot_colours.base.get_spot_colours_new_safe(
+            nbp_basic,
+            image=nbp_filter.images,
+            flow=nbp_register.flow,
+            affine=nbp_register.icp_correction,
+            tile=t,
+            use_rounds=nbp_basic.use_rounds,
+            use_channels=nbp_basic.use_channels,
+            output_dtype=np.float16,
+            out_of_bounds_value=0,
+        )
+
         log.debug(f"Loading tile {t} colours complete")
 
         # STEP 2: Compute OMP coefficients on the entire tile.
@@ -300,7 +290,8 @@ def run_omp(
             dtype=np.float16,
             chunks=(n_chunk_max, 1, 1),
         )
-        t_spots_colours_temp = spot_colours.base.get_spot_colours_new(
+        t_spots_colours_temp = spot_colours.base.get_spot_colours_new_safe(
+            nbp_basic,
             image=nbp_filter.images,
             tile=t,
             flow=nbp_register.flow,

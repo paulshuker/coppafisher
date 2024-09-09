@@ -261,7 +261,8 @@ def generate_reg_images(
     for t in tqdm(use_tiles, desc="Round Images", total=len(use_tiles)):
         affine = np.zeros((n_tiles, n_rounds, n_channels, 4, 3))
         affine[:, :, :, :3, :3] = np.eye(3)
-        im_t_flow = spot_colours.base.get_spot_colours_new(
+        im_t_flow = spot_colours.base.get_spot_colours_new_safe(
+            nbp_basic,
             image=nbp_filter.images,
             flow=nbp_register.flow,
             affine=affine,
@@ -273,7 +274,8 @@ def generate_reg_images(
         im_t_flow = np.transpose(im_t_flow, (3, 4, 0, 1, 2))
 
         icp_correction[t, :, dapi_channel] = icp_correction[t, :, anchor_channel]
-        im_t_flow_icp = spot_colours.base.get_spot_colours_new(
+        im_t_flow_icp = spot_colours.base.get_spot_colours_new_safe(
+            nbp_basic,
             image=nbp_filter.images,
             flow=nbp_register.flow,
             affine=icp_correction,
@@ -300,7 +302,8 @@ def generate_reg_images(
         affine = nbp_register_debug.channel_transform_initial
         affine = np.repeat(affine[None], n_rounds, axis=0)
         affine = np.repeat(affine[None], n_tiles, axis=0)
-        im_t_flow = spot_colours.base.get_spot_colours_new(
+        im_t_flow = spot_colours.base.get_spot_colours_new_safe(
+            nbp_basic,
             image=nbp_filter.images,
             flow=nbp_register.flow,
             affine=affine,
@@ -316,7 +319,8 @@ def generate_reg_images(
             )
         )
         im_t_flow = np.transpose(im_t_flow, (3, 4, 0, 1, 2))[r_mid][None]
-        im_t_flow_icp = spot_colours.base.get_spot_colours_new(
+        im_t_flow_icp = spot_colours.base.get_spot_colours_new_safe(
+            nbp_basic,
             image=nbp_filter.images,
             flow=nbp_register.flow,
             affine=icp_correction,

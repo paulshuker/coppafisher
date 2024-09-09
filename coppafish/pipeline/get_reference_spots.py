@@ -1,6 +1,5 @@
 import numpy as np
 
-from .. import find_spots as fs
 from .. import log
 from ..call_spots import base as call_spots_base
 from ..setup import NotebookPage
@@ -72,7 +71,8 @@ def get_reference_spots(
         if np.sum(in_tile) == 0:
             continue
         log.info(f"Tile {np.where(use_tiles==t)[0][0]+1}/{n_use_tiles}")
-        colours = spot_colours_base.get_spot_colours_new(
+        colours = spot_colours_base.get_spot_colours_new_safe(
+            nbp_basic,
             image=nbp_filter.images,
             flow=nbp_register.flow,
             affine=nbp_register.icp_correction,

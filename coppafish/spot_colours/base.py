@@ -1,9 +1,12 @@
+import math as maths
 from typing import List, Tuple, Union, Any, Optional
 
 import numpy as np
 import torch
 from tqdm import tqdm
 import zarr
+
+from .. import utils
 
 
 def convert_coords_to_torch_grid(yxz_coords: torch.Tensor, image_shape: tuple[int, int, int]) -> torch.Tensor:
@@ -171,6 +174,41 @@ def remove_background(spot_colours: np.ndarray) -> Tuple[np.ndarray, np.ndarray]
         spot_colours -= background_noise[:, c][:, None, None] * np.repeat(background_code[None], n_spots, axis=0)
 
     return spot_colours, background_noise
+
+
+def get_spot_colours_new_safe(
+    nbp_basic_info, yxz: Optional[Union[np.ndarray, torch.Tensor]] = None, *args, **kwargs
+) -> np.ndarray:
+    """
+    A wrapper function for get_spot_colours_new below. See that function for the arguments/details. This function runs
+    get_spot_colours_new through multiple calls to avoid memory crashing on large images.
+
+    Args:
+        - nbp_basic_info (NotebookPage): `basic_info` notebook page.
+        - yxz (`(n_points x 3) ndarray or tensor`, optional): positions to gather. Default: the entire tile.
+        - args (tuple): positional arguments.
+        - kwargs (dict[str, any]): keyword arguments.
+    """
+    assert type(yxz) is np.ndarray or type(yxz) is torch.Tensor or yxz is None
+    tile_shape = (nbp_basic_info.tile_sz, nbp_basic_info.tile_sz, len(nbp_basic_info.use_z))
+    n_channels_use, n_rounds_use = len(nbp_basic_info.use_channels), len(nbp_basic_info.use_rounds)
+    if yxz is None:
+        yxz = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
+        yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int32).T.reshape((-1, 3), order="F")
+    assert yxz.ndim == 2
+    assert yxz.shape[1] == 3
+    batch_size = maths.floor(utils.system.get_available_memory() * 1.3e7 / (n_channels_use * n_rounds_use))
+    n_batches = maths.ceil(yxz.shape[0] / batch_size)
+    colours = None
+    for i in range(n_batches):
+        index_min, index_max = i * batch_size, min((i + 1) * batch_size, yxz.shape[0])
+        i_colours = get_spot_colours_new(yxz=yxz[index_min:index_max], *args, **kwargs)
+        if colours is None:
+            colours = i_colours
+        else:
+            colours = np.append(colours, i_colours, axis=0)
+        del i_colours
+    return colours
 
 
 def get_spot_colours_new(
