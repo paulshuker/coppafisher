@@ -66,11 +66,13 @@ def apply_flow_new(
     assert flow.shape[2] == 3
     tile_shape = tuple(flow.shape[3:])
     assert tile >= 0 and tile < flow.shape[0]
-    assert r >= 0 and r < flow.shape[1]
+    assert r >= 0 and r < flow.shape[1], f"Got round {r}, expected r >= 0 and r < {flow.shape[1]}"
     yxz_torch = yxz
     if type(yxz) is np.ndarray:
         yxz_torch = torch.tensor(yxz_torch)
     yxz_torch = yxz_torch.detach().clone().float()
+    if yxz_torch.size(0) == 0:
+        return yxz_torch
     yxz_min, yxz_max = yxz_torch.min(0).values, yxz_torch.max(0).values
     # Add one pixel of additional flow retrieval for interpolation.
     yxz_min = (yxz_min - 1).clamp(min=0).int().tolist()
@@ -177,7 +179,8 @@ def get_spot_colours_new(
     flow: Union[np.ndarray, zarr.Array],
     affine: Union[np.ndarray, torch.Tensor],
     tile: int,
-    use_channels: Optional[List[int]] = None,
+    use_rounds: list[int],
+    use_channels: Optional[list[int]] = None,
     output_dtype: np.dtype = np.float32,
     out_of_bounds_value: Any = np.nan,
 ) -> np.ndarray:
@@ -185,7 +188,8 @@ def get_spot_colours_new(
     (Sub)pixel positions are gathered from the given image. First, the given yxz positions are optical flow shifted
     (yxz + flow_shifts). Second, the positions are then affine transformed (yxz_flow @ affine) to get final, float32
     positions for each round/channel combination. These positions are then gathered from image for the given channels
-    for all rounds. Subpixel resolution is supported as bilinear interpolation is used.
+    on all rounds. Subpixel resolution is supported as bilinear interpolation is used to gather the optical flow shifts
+    and the final image values.
 
     Args:
         - yxz (`(n_points x 3) ndarray or tensor`): positions to gather.
@@ -193,12 +197,13 @@ def get_spot_colours_new(
         - flow (`(n_tiles x n_rounds x 3 x im_y x im_x x im_z) ndarray or zarray`): optical flow shifts.
         - affine (`(n_tiles x n_rounds x n_channels x 4 x 3) ndarray or tensor`): affine transform.
         - tile (int): tile index.
+        - use_rounds (list of ints): the round indices to use. These rounds must be sequencing rounds.
         - use_channels (list of ints, optional): channel indices to use. Default: all channels.
         - output_dtype (np.dtype, optional): the returned spot colour datatype. Default: float32.
         - out_of_bounds_value (any): what to value to set for out of bound spot colours. Default: np.nan.
 
     Returns:
-        `(n_points x n_rounds_use x n_channels_use) ndarray[output_dtype]` colours: gathered image colours.
+        `(n_points x n_rounds x n_channels_use) ndarray[output_dtype]` colours: gathered image colours.
     """
     # Default value.
     if use_channels is None:
@@ -209,6 +214,7 @@ def get_spot_colours_new(
     assert type(flow) is np.ndarray or type(flow) is zarr.Array
     assert type(affine) is np.ndarray or type(affine) is torch.Tensor
     assert type(tile) is int
+    assert type(use_rounds) is list
     assert use_channels is None or type(use_channels) is list
     assert yxz.ndim == 2
     assert yxz.shape[1] == 3
@@ -218,11 +224,16 @@ def get_spot_colours_new(
     assert affine.ndim == 5
     assert affine.shape[3:] == (4, 3)
     assert tile >= 0 and tile < image.shape[0]
+    assert len(use_rounds) > 0
+    assert all([type(r) is int for r in use_rounds])
+    assert all([r >= 0 and r < flow.shape[1] for r in use_rounds]), f"Cannot use round index {r}"
+    assert len(use_channels) > 0
+    assert all([type(c) is int for c in use_channels])
     assert all([c >= 0 and c < image.shape[2] for c in use_channels])
+
     # Prepare variables.
     tile_shape = tuple(image.shape[3:])
-    use_rounds = list(range(image.shape[1]))
-    # All tensors are cast to float32 while computing.
+    # Pytorch tensors are used throughout and cast to float32 while computing.
     yxz_torch = yxz
     if type(yxz_torch) is np.ndarray:
         yxz_torch = torch.tensor(yxz_torch)
@@ -233,13 +244,13 @@ def get_spot_colours_new(
     affine_torch = affine_torch.detach().clone().float()
 
     colours = np.zeros((yxz.shape[0], len(use_rounds), len(use_channels)), output_dtype)
-    for r_index, r in enumerate(use_rounds):
+    for r in use_rounds:
         # First, apply round r optical flow to the given coordinates.
         r_yxz = apply_flow_new(yxz_torch, flow, tile, r)
         for c_index, c in enumerate(use_channels):
             # For each channel, apply the affine transform to the optical flow shifted yxz coordinates.
             c_yxz = apply_affine(r_yxz, affine_torch[tile, r, c])
-            # Only gather image data that is required for interpolation.
+            # Only gather image data that is required by the yxz coordinates.
             c_yxz_min, c_yxz_max = c_yxz.min(0).values, c_yxz.max(0).values
             # Pad the gathered data by one pixel for interpolation.
             c_yxz_min = (c_yxz_min - 1).clamp(min=0).int().tolist()
@@ -263,7 +274,7 @@ def get_spot_colours_new(
             is_out_of_bounds = (c_yxz_grid < -1) | (c_yxz_grid > +1)
             colours_trc[is_out_of_bounds.any(1)] = out_of_bounds_value
 
-            colours[:, r_index, c_index] = colours_trc
+            colours[:, r, c_index] = colours_trc
     return colours
 
 

@@ -4,7 +4,7 @@ import math as maths
 import os
 import shutil
 import time
-from typing import Dict, List, Literal, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 from typing_extensions import Self
 
 import dask
@@ -601,9 +601,7 @@ class Robominnie:
         [omp]
         max_genes = 10
         spot_shape = 13, 13, 1
-        shape_isolation_distance_yx = 5
         pixel_max_percentile = 1
-        shape_sign_thresh = 0.5
         score_threshold = 0.1
         subset_size_xy = 50
         """

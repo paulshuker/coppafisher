@@ -29,7 +29,7 @@ def score_coefficient_image(
     assert type(spot) is torch.Tensor
     assert type(mean_spot) is torch.Tensor
     assert coefficient_image.dim() == 4
-    assert coefficient_image.shape[0] < 1_000, "More than 1,000 batches given"
+    assert coefficient_image.shape[0] < 2_000, "More than 2,000 batches given"
     assert spot.dim() == 3
     assert torch.isin(spot, torch.asarray([0, 1], device=coefficient_image.device)).all()
     assert spot.shape == mean_spot.shape

@@ -37,11 +37,7 @@ def get_reference_spots(
     r = nbp_basic.anchor_round
     c = nbp_basic.anchor_channel
     log.debug("Get ref spots started")
-    use_tiles, use_rounds, use_channels = (
-        np.array(nbp_basic.use_tiles),
-        list(nbp_basic.use_rounds),
-        list(nbp_basic.use_channels),
-    )
+    use_tiles, use_rounds, use_channels = np.array(nbp_basic.use_tiles), nbp_basic.use_rounds, nbp_basic.use_channels
 
     # all means all spots found on the reference round / channel
     all_local_yxz = np.zeros((0, 3), dtype=np.int16)
@@ -76,12 +72,13 @@ def get_reference_spots(
         if np.sum(in_tile) == 0:
             continue
         log.info(f"Tile {np.where(use_tiles==t)[0][0]+1}/{n_use_tiles}")
-        colours = spot_colours_base.get_spot_colours(
+        colours = spot_colours_base.get_spot_colours_new(
             image=nbp_filter.images,
             flow=nbp_register.flow,
-            affine_correction=nbp_register.icp_correction,
+            affine=nbp_register.icp_correction,
             tile=t,
-            yxz_base=nd_local_yxz[in_tile],
+            yxz=nd_local_yxz[in_tile],
+            use_rounds=use_rounds,
             use_channels=use_channels,
         )
         valid = ~(np.isnan(colours).any(1).any(1))
