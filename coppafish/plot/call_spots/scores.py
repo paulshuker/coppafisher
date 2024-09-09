@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import TextBox, CheckButtons
 import numpy as np
 
-from ...setup import Notebook
+from ...setup.notebook import Notebook
 from ...call_spots.dot_product import dot_product_score
 
 

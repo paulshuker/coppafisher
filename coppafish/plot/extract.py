@@ -4,7 +4,8 @@ from typing import List, Optional
 import napari
 
 from .. import log
-from ..setup import Notebook, file_names
+from ..setup import file_names
+from ..setup.notebook import Notebook
 from ..utils import tiles_io
 
 

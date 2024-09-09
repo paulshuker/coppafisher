@@ -1,6 +1,6 @@
 from collections import OrderedDict
 
-from ..setup import Notebook
+from ..setup.notebook import Notebook
 from . import system
 from .. import log
 

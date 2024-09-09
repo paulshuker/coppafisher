@@ -5,7 +5,7 @@ import numpy as np
 
 from .. import setup, utils
 from .. import log
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 
 
 def set_basic_info(config_file: dict, config_basic: dict, n_rounds: int = 7) -> NotebookPage:

@@ -6,7 +6,8 @@ import numpy as np
 from tqdm import tqdm
 
 from ..pipeline.basic_info import set_basic_info
-from ..setup import Notebook, file_names
+from ..setup import file_names
+from ..setup.notebook import Notebook
 from ..utils import nd2, raw
 
 

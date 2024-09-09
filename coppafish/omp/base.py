@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 import numpy.typing as npt
 
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 
 
 def get_all_scores(
@@ -110,11 +110,7 @@ def get_all_colours(
     return all_colours, all_tiles
 
 
-def global_to_local_index(
-        nbp_basic: NotebookPage,
-        nbp_omp: NotebookPage,
-        spot_global_index: int
-) -> int:
+def global_to_local_index(nbp_basic: NotebookPage, nbp_omp: NotebookPage, spot_global_index: int) -> int:
     """
     Get index of a spot on its local tile from its global index.
 
@@ -130,7 +126,7 @@ def global_to_local_index(
     assert type(nbp_omp) is NotebookPage
 
     # Get the number of spots in each tile
-    n_spots_per_tile = [nbp_omp.results[f'tile_{t}'].scores.shape[0] for t in nbp_basic.use_tiles]
+    n_spots_per_tile = [nbp_omp.results[f"tile_{t}"].scores.shape[0] for t in nbp_basic.use_tiles]
     # get the global indices where each tile starts (and a final one for the end)
     change_points = np.array([0] + list(np.cumsum(n_spots_per_tile)))
     # find the starting index of the tile that the spot is on

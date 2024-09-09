@@ -9,7 +9,7 @@ import zarr
 from .. import extract, log, utils
 from ..filter import base as filter_base
 from ..filter import deconvolution
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 from ..utils import indexing, tiles_io
 
 

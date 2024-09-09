@@ -7,7 +7,7 @@ import numpy as np
 from .. import log
 from ..call_spots.base import bayes_mean, compute_bleed_matrix
 from ..call_spots.dot_product import dot_product_score, gene_prob_score
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 
 
 def call_reference_spots(

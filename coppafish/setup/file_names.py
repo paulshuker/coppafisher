@@ -4,7 +4,7 @@ import os
 from .. import log
 from .. import setup
 from .. import utils
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 from .tile_details import get_tile_file_names
 
 

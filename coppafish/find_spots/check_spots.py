@@ -1,7 +1,7 @@
 import numpy as np
 
 from .. import setup
-from ..setup import Notebook
+from ..setup.notebook import Notebook
 from .. import log
 
 

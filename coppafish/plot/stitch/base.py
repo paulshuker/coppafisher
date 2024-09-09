@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import napari
 import numpy as np
 
-from ...setup import Notebook
+from ...setup.notebook import Notebook
 from tqdm import tqdm
 
 
@@ -26,16 +26,19 @@ def view_stitch_checkerboard(nb: Notebook):
     tiles = []
     # Load in the tiles
     for t in tqdm(use_tiles, total=len(use_tiles), desc="Loading tiles"):
-        tile = nb.filter.images[t, nb.basic_info.anchor_round, nb.basic_info.dapi_channel][:, :, mid_z - 10:mid_z + 10]
+        tile = nb.filter.images[t, nb.basic_info.anchor_round, nb.basic_info.dapi_channel][
+            :, :, mid_z - 10 : mid_z + 10
+        ]
         tiles.append(tile)
 
     # Create the checkerboard pattern
     tilepos_yx = nb.basic_info.tilepos_yx[use_tiles]
     for i, t in enumerate(use_tiles):
         y, x = tilepos_yx[i]
-        colour = 'red' if (y + x) % 2 == 0 else 'green'
-        viewer.add_image(tiles[i], name=f'tile_{t}', translate=list(tile_origin[i]), blending='additive',
-                         colormap=colour)
+        colour = "red" if (y + x) % 2 == 0 else "green"
+        viewer.add_image(
+            tiles[i], name=f"tile_{t}", translate=list(tile_origin[i]), blending="additive", colormap=colour
+        )
 
     # change dim order to zyx
     viewer.dims.order = (2, 0, 1)

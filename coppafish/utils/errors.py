@@ -4,7 +4,7 @@ import numpy as np
 import scipy
 
 from .. import log
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 
 
 class OutOfBoundsError(Exception):

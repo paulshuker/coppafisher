@@ -5,7 +5,7 @@ from tqdm import tqdm
 import zarr
 
 from .. import log, stitch as stitch_base
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 
 
 def stitch(config: dict, nbp_basic: NotebookPage, nbp_file: NotebookPage, nbp_filter: NotebookPage) -> NotebookPage:
@@ -53,8 +53,8 @@ def stitch(config: dict, nbp_basic: NotebookPage, nbp_file: NotebookPage, nbp_fi
             t1=tiles[i], t2=tiles[j], t1_pos=tilepos_yx[i], t2_pos=tilepos_yx[j], overlap=overlap
         )
 
-    # compute the nominal_origin_deviations using a minimisation of a quadratic loss function. 
-    # Instead of recording the shift between adjacent tiles to yield an n_tiles_use x n_tiles_use x 3 array as in 
+    # compute the nominal_origin_deviations using a minimisation of a quadratic loss function.
+    # Instead of recording the shift between adjacent tiles to yield an n_tiles_use x n_tiles_use x 3 array as in
     # pairwise_shiftss, this is an n_tiles x 3 array of every tile's shift from its nominal origin
     nominal_origin_deviations = stitch_base.minimise_shift_loss(shift=pairwise_shifts, score=pairwise_shift_scores)
 

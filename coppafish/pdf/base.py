@@ -14,7 +14,8 @@ from typing_extensions import Self
 
 from .. import log
 from ..omp import base as omp_base
-from ..setup import Notebook, NotebookPage
+from ..setup.notebook import Notebook
+from ..setup.notebook_page import NotebookPage
 
 
 class BuildPDF:

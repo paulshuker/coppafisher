@@ -1,7 +1,7 @@
 import itertools
 from typing import Tuple, Optional, Union, List, Any
 
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 
 
 def create(
