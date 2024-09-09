@@ -4,7 +4,9 @@ import numpy as np
 import numpy.typing as npt
 
 from .. import log
-from ..setup import Notebook, NotebookPage
+from ..omp import base as omp_base
+from ..setup.notebook import Notebook
+from ..setup.notebook_page import NotebookPage
 
 
 def get_spot_intensity(spot_colors: npt.NDArray[np.float_]) -> npt.NDArray[np.float_]:
@@ -27,28 +29,6 @@ def get_spot_intensity(spot_colors: npt.NDArray[np.float_]) -> npt.NDArray[np.fl
         log.warn(f"Found spot colors <= -15000")
     # Max over all channels, then median over all rounds
     return np.median(np.max(np.abs(spot_colors), axis=2), axis=1)
-
-
-def omp_spot_score(
-    nbp: NotebookPage,
-    spot_no: Optional[Union[int, List, np.ndarray]] = None,
-) -> np.ndarray:
-    """
-    Score for omp gene assignment
-
-    Args:
-        nbp: OMP Notebook page
-        spot_no: Which spots to get score for. If `None`, all scores will be found.
-
-    Returns:
-        Score for each spot in spot_no if given, otherwise all spot scores.
-    """
-    if spot_no is None:
-        scores = nbp.scores
-    else:
-        scores = nbp.scores[spot_no]
-
-    return scores
 
 
 def get_intensity_thresh(nb: Notebook) -> float:
@@ -84,31 +64,22 @@ def quality_threshold(
         `bool [n_spots]` indicating which spots pass quality thresholding.
 
     """
-    if method.lower() != "omp" and method.lower() != "ref" and method.lower() != "anchor" and method.lower() != "prob":
-        raise ValueError(f"method must be 'omp' or 'anchor' but {method} given.")
+    if method.lower() != "omp" and method.lower() != "anchor" and method.lower() != "prob":
+        raise ValueError(f"method must be 'omp', 'prob', or 'anchor' but {method} given.")
     method_omp = method.lower() == "omp"
-    method_anchor = method.lower() == "anchor" or method.lower() == "ref"
+    method_anchor = method.lower() == "anchor"
     method_prob = method.lower() == "prob"
-    # If thresholds are not given, get them from config file or notebook (preferably from notebook)
-    if intensity_thresh == 0 and score_thresh == 0:
-        intensity_thresh = get_intensity_thresh(nb)
-        config = nb.get_config()["thresholds"]
-        if method_omp:
-            score_thresh = config["score_omp"]
-        elif method_anchor:
-            score_thresh = config["score_ref"]
-        elif method_prob:
-            score_thresh = config["score_prob"]
-        # if thresholds page exists, use those values to override config file
-        if nb.has_page("thresholds"):
-            score_thresh = nb.thresholds.score_omp if method_omp else nb.thresholds.score_ref
 
-    intensity = np.ones_like(nb.omp.gene_no, dtype=np.float32) if method_omp else nb.call_spots.intensity
+    # No intensity threshold is available for omp.
     if method_omp:
-        score = omp_spot_score(nb.omp)
+        score, _ = omp_base.get_all_scores(nb.basic_info, nb.omp)
     elif method_anchor:
         score = nb.call_spots.dot_product_gene_score
     elif method_prob:
         score = np.max(nb.call_spots.gene_probabilities, axis=1)
+    if method_omp:
+        intensity = np.ones_like(score)
+    else:
+        intensity = nb.call_spots.intensity
     qual_ok = np.array([score > score_thresh, intensity > intensity_thresh]).all(axis=0)
     return qual_ok

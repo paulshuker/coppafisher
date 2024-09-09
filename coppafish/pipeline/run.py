@@ -13,7 +13,9 @@ from . import omp_torch
 from .. import log, setup
 from ..find_spots import check_spots
 from ..pdf.base import BuildPDF
-from ..setup import Notebook, NotebookPage, file_names
+from ..setup import file_names
+from ..setup.notebook import Notebook
+from ..setup.notebook_page import NotebookPage
 from ..utils import system as utils_system
 from ..utils import version as utils_version
 from ..utils import warnings as utils_warnings

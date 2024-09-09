@@ -2,7 +2,7 @@ import numpy as np
 
 from .. import log
 from ..call_spots import base as call_spots_base
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
 
 

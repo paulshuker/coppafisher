@@ -12,7 +12,7 @@ import zarr
 from .. import log, spot_colours, utils
 from .. import find_spots
 from ..omp import coefs, scores_torch, spots_torch
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 
 
 def run_omp(

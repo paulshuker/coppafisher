@@ -1,10 +1,13 @@
-import pandas as pd
-import numpy as np
 import os
+from typing import Optional
 
+import numpy as np
+import pandas as pd
+
+from ..omp import base as omp_base
 from ..call_spots import qual_check
-from ..setup import NotebookPage, Notebook
-from .. import log
+from ..setup.notebook import Notebook
+from ..setup.notebook_page import NotebookPage
 
 
 def get_thresholds_page(nb: Notebook) -> NotebookPage:
@@ -29,7 +32,10 @@ def get_thresholds_page(nb: Notebook) -> NotebookPage:
 
 
 def export_to_pciseq(
-    nb: Notebook, nbp_file: NotebookPage, method="omp", intensity_thresh: float = 0, score_thresh: float = 0
+    nb: Notebook,
+    method: str,
+    intensity_thresh: Optional[float] = None,
+    score_thresh: Optional[float] = None,
 ):
     """
     This saves .csv files containing plotting information for pciseq-
@@ -42,37 +48,47 @@ def export_to_pciseq(
     Only spots which pass `quality_threshold` are saved.
     This depends on parameters given in `config['thresholds']`.
 
-    One .csv file is saved for each method: *omp* and *ref_spots* if the notebook contains
-    both pages.
+    One .csv file is saved for each method: *omp*, *anchor*, and *prob*. The .csv file is saved into the directory
+    where the notebook is located.
 
     Args:
         - nb (Notebook): Notebook for the experiment containing at least the *ref_spots* page.
-        - nbp_file (NotebookPage): `file_names` notebook page.
-        - method (str, optional): `'ref'` or `'omp'` or `'anchor'` or 'prob'. Default: `'omp'`.
-        - intensity_thresh (float, optional): Intensity threshold for spots included. Default: 0.
-        - score_thresh (float, optional): Score threshold for spots included. Default: 0.
+        - method (str): 'omp', 'anchor', or 'prob'.
+        - intensity_thresh (float, optional): only include spots with colour intensity > intensity_thresh. Default: no
+            threshold.
+        - score_thresh (float, optional): only include spots with score > score_thresh. Default: no threshold.
 
     """
-    if method.lower() != "omp" and method.lower() != "ref" and method.lower() != "anchor" and method.lower() != "prob":
-        log.error(ValueError(f"method must be 'omp', 'anchor' or 'prob' but {method} given."))
+    if intensity_thresh is None:
+        intensity_thresh = -1.0
+        print(f"Using no intensity threshold")
+    if score_thresh is None:
+        score_thresh = -1.0
+        print(f"Using no score threshold")
+    intensity_thresh = float(intensity_thresh)
+    score_thresh = float(score_thresh)
+    assert type(intensity_thresh) is float, "Floating point intensity_thresh required"
+    assert type(score_thresh) is float, "Floating point score_thresh required"
+    if method.lower() != "omp" and method.lower() != "anchor" and method.lower() != "prob":
+        raise ValueError(f"method must be 'omp', 'anchor' or 'prob' but {method} given.")
+    file_path = os.path.join(os.path.dirname(nb.directory), f"pciseq_{method.lower()}.csv")
     page_name = "omp" if method.lower() == "omp" else "ref_spots"
-    index = 0
-    if method.lower() == "ref" or method.lower() == "anchor":
-        index = 1
-    elif method.lower() == "prob":
-        index = 2
     if not nb.has_page(page_name):
         raise ValueError(f"Notebook does not contain {page_name} page.")
-    if os.path.isfile(nbp_file.pciseq[index]):
-        raise FileExistsError(f"File already exists: {nbp_file.pciseq[index]}")
+    if os.path.isfile(file_path):
+        raise FileExistsError(f"File already exists: {file_path}")
     qual_ok = qual_check.quality_threshold(nb, method, intensity_thresh, score_thresh)
 
     # get coordinates in stitched image
-    global_spot_yxz = (
-        nb.__getattribute__(page_name).local_yxz + nb.stitch.tile_origin[nb.__getattribute__(page_name).tile]
-    )
+    if page_name == "omp":
+        global_spot_yxz, spot_tile_no = omp_base.get_all_local_yxz(nb.basic_info, nb.omp)
+        global_spot_yxz = global_spot_yxz.astype(np.float32) + nb.stitch.tile_origin[spot_tile_no]
+    else:
+        global_spot_yxz = (
+            nb.__getattribute__(page_name).local_yxz + nb.stitch.tile_origin[nb.__getattribute__(page_name).tile]
+        )
     if method.lower() == "omp":
-        spot_gene = nb.call_spots.gene_names[nb.omp.gene_no]
+        spot_gene, _ = omp_base.get_all_gene_no(nb.basic_info, nb.omp)
     elif method.lower() == "ref" or method.lower() == "anchor":
         spot_gene = nb.call_spots.gene_names[nb.call_spots.dot_product_gene_no]
     elif method.lower() == "prob":
@@ -81,5 +97,5 @@ def export_to_pciseq(
     global_spot_yxz = global_spot_yxz[qual_ok]
     df_to_export = pd.DataFrame(data=global_spot_yxz, index=spot_gene, columns=["y", "x", "z_stack"])
     df_to_export["Gene"] = df_to_export.index
-    df_to_export.to_csv(nbp_file.pciseq[index], index=False)
-    print(f"pciSeq file saved for method = {method}: " + nbp_file.pciseq[index])
+    df_to_export.to_csv(file_path, index=False)
+    print(f"pciSeq file saved for method {method} at " + file_path)

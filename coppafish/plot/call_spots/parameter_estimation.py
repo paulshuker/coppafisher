@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from ...setup import Notebook
+from ...setup.notebook import Notebook
 
 
 class ViewFreeAndConstrainedBledCodes:
@@ -29,8 +29,11 @@ class ViewFreeAndConstrainedBledCodes:
             c = 0
 
         # get the data
-        n_genes, n_rounds, n_channels_use = (len(nb.call_spots.gene_names), len(nb.basic_info.use_rounds),
-                                             len(nb.basic_info.use_channels))
+        n_genes, n_rounds, n_channels_use = (
+            len(nb.call_spots.gene_names),
+            len(nb.basic_info.use_rounds),
+            len(nb.basic_info.use_channels),
+        )
 
         config = nb.call_spots.associated_configs["call_spots"]
         if config["target_values"] is None:
@@ -97,7 +100,7 @@ class ViewFreeAndConstrainedBledCodes:
         n_spots_rc = self.n_spots[relevant_genes]
 
         # sort the genes by number of spots, and only keep the top n_row_cols ** 2 - 1
-        relevant_genes = relevant_genes[np.argsort(n_spots_rc)[::-1][:self.n_row_cols ** 2 - 1]]
+        relevant_genes = relevant_genes[np.argsort(n_spots_rc)[::-1][: self.n_row_cols**2 - 1]]
         fig, ax = self.fig, self.ax
 
         # clear the axes
@@ -113,32 +116,40 @@ class ViewFreeAndConstrainedBledCodes:
             ax[row, col].set_xticks([])
             ax[row, col].set_yticks([])
             # add a white box around round r channel c
-            ax[row, col].add_patch(plt.Rectangle((self.r - 0.5, self.c - 0.5), 1, 1,
-                                                 edgecolor="white", facecolor="none"))
+            ax[row, col].add_patch(
+                plt.Rectangle((self.r - 0.5, self.c - 0.5), 1, 1, edgecolor="white", facecolor="none")
+            )
             # add a white box around round r + n_rounds + 1, channel c
-            ax[row, col].add_patch(plt.Rectangle((self.r + self.n_rounds + 0.5, self.c - 0.5), 1, 1,
-                                                 edgecolor="white", facecolor="none"))
+            ax[row, col].add_patch(
+                plt.Rectangle((self.r + self.n_rounds + 0.5, self.c - 0.5), 1, 1, edgecolor="white", facecolor="none")
+            )
 
         # add the round/channel scale
         rc_scale_centred = (self.rc_scale - np.mean(self.rc_scale)) / np.std(self.rc_scale)
-        ax[-1, -1].imshow(rc_scale_centred, cmap="viridis", vmin=np.min(rc_scale_centred),
-                          vmax=np.max(rc_scale_centred))
+        ax[-1, -1].imshow(
+            rc_scale_centred, cmap="viridis", vmin=np.min(rc_scale_centred), vmax=np.max(rc_scale_centred)
+        )
         ax[-1, -1].set_title("round/channel scale (centred)")
         ax[-1, -1].set_xlabel("Round")
         ax[-1, -1].set_ylabel("Channel")
         ax[-1, -1].set_xticks([])
         ax[-1, -1].set_yticks([])
-        ax[-1, -1].add_patch(plt.Rectangle((self.r - 0.5, self.c - 0.5), 1, 1,
-                                             edgecolor="white", facecolor="none"))
+        ax[-1, -1].add_patch(plt.Rectangle((self.r - 0.5, self.c - 0.5), 1, 1, edgecolor="white", facecolor="none"))
 
         # clear the colorbar
         self.cbar_ax.clear()
-        plt.colorbar(ax[0, 0].imshow(self.code_image[relevant_genes[0]], cmap="viridis", vmin=0,
-                                     vmax=np.nanmax(self.code_image)), cax=self.cbar_ax)
+        plt.colorbar(
+            ax[0, 0].imshow(
+                self.code_image[relevant_genes[0]], cmap="viridis", vmin=0, vmax=np.nanmax(self.code_image)
+            ),
+            cax=self.cbar_ax,
+        )
 
         # add the title
-        plt.suptitle(f"Free and constrained bled codes for round {self.r}, channel {self.use_channels[self.c]}. \n"
-                     f" Boost = {rc_scale_centred[self.c, self.r]:.2f}")
+        plt.suptitle(
+            f"Free and constrained bled codes for round {self.r}, channel {self.use_channels[self.c]}. \n"
+            f" Boost = {rc_scale_centred[self.c, self.r]:.2f}"
+        )
         fig.canvas.draw()
 
     def on_scroll(self, event):
@@ -218,8 +229,10 @@ class ViewTargetRegression:
 
         # set up the data
         x_coords = [np.random.rand(n_relevant_genes)] * 2
-        y_coords = [self.free_bled_codes[relevant_genes, self.r, self.c],
-                    self.constrained_bled_codes[relevant_genes, self.r, self.c]]
+        y_coords = [
+            self.free_bled_codes[relevant_genes, self.r, self.c],
+            self.constrained_bled_codes[relevant_genes, self.r, self.c],
+        ]
         titles = ["Free bled codes", "Constrained bled codes"]
         colours = ["cyan", "red"]
 
@@ -246,8 +259,7 @@ class ViewTargetRegression:
         ax[-1].set_xlabel("Round")
         ax[-1].set_xticks([])
         ax[-1].set_yticks([])
-        ax[-1].add_patch(plt.Rectangle((self.r - 0.5, self.c - 0.5), 1, 1,
-                                       edgecolor="white", facecolor="none"))
+        ax[-1].add_patch(plt.Rectangle((self.r - 0.5, self.c - 0.5), 1, 1, edgecolor="white", facecolor="none"))
 
         plt.suptitle(f"Target regression for round {self.r}, channel {self.use_channels[self.c]}")
         fig.canvas.draw()
@@ -438,4 +450,3 @@ def ViewScaleFactors(
         plt.colorbar(ax[i].imshow(scale, cmap="viridis"), ax=ax[i])
     if show:
         plt.show()
-

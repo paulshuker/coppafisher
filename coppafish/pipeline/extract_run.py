@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 
 from .. import log, utils
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 from ..utils import indexing, tiles_io, system
 
 

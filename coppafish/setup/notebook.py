@@ -15,6 +15,13 @@ from .notebook_page import NotebookPage
 class Notebook:
     _directory: str
 
+    def get_directory(self) -> str:
+        return self._directory
+
+    # The notebook's full filepath.
+    # NOTE: This is not fixed as users can move the notebook's location. Therefore, use with caution.
+    directory: str = property(get_directory)
+
     # Attribute names allowed to be set inside the notebook page that are not in _options.
     _valid_attribute_names = ("config_path", "_config_path", "_init_config", "_directory", "_time_created", "_version")
     _debug_page = ("debug",)
@@ -26,7 +33,7 @@ class Notebook:
 
     # The latest config file path used by coppafish to run the pipeline.
     # There is no guarantee that the config file is still there when an old notebook is loaded in.
-    config_path = property(get_config_path)
+    config_path: Optional[str] = property(get_config_path)
 
     _metadata_name = "_metadata.json"
 
@@ -81,11 +88,10 @@ class Notebook:
         """
         Load the notebook found at the given directory. Or, if the directory does not exist, create the directory.
 
-        - notebook_dir (str): the notebook directory to write into/load from.
-        - config_path (str, optional): path to the pipeline's config file. Must be given when creating the notebook for
-            the first time.
-        - debugging (bool, optional): do not compare against a config file from disk. This is useful for unit testing
-            purposes only.
+        Args:
+            - notebook_dir (str): the notebook directory to write into and/or load from.
+            - config_path (str, optional): path to the pipeline's config file. This must be given for new pages to be
+                added, i.e. during the pipeline runtime. Default: not given.
         """
         assert type(notebook_dir) is str
         assert config_path is None or type(config_path) is str
@@ -111,8 +117,8 @@ class Notebook:
         if type(page) is not NotebookPage:
             raise TypeError(f"Cannot add type {type(page)} to the notebook")
         if self._config_path is None:
-            raise ValueError(f"The notebook must have a specified config path when instantiated to add notebook pages.")
-        if page.name not in self._debug_page and not os.path.isfile(self._config_path):
+            raise ValueError("The notebook must have a specified config_path when instantiated to add notebook pages.")
+        if not os.path.isfile(self._config_path) and page.name not in self._debug_page:
             raise FileNotFoundError(f"Could not add page since config at {self._config_path} was not found")
         unset_variables = page.get_unset_variables()
         if len(unset_variables) > 0:

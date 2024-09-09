@@ -19,7 +19,7 @@ class NotebookPage:
         return self._name
 
     _name: str
-    name = property(get_page_name)
+    name: str = property(get_page_name)
 
     # Attribute names allowed to be set inside the notebook page that are not in _options.
     _valid_attribute_names = ("_name", "_time_created", "_version", "_associated_configs")
@@ -29,7 +29,7 @@ class NotebookPage:
     def get_associated_configs(self) -> Dict[str, Dict[str, Any]]:
         return self._associated_configs
 
-    associated_configs = property(get_associated_configs)
+    associated_configs: Dict[str, Dict[str, Any]] = property(get_associated_configs)
 
     _metadata_name: str = "_metadata.json"
 
@@ -43,7 +43,7 @@ class NotebookPage:
     def get_version(self) -> str:
         return self._version
 
-    version = property(get_version)
+    version: str = property(get_version)
 
     # Each page variable is given a list. The list contains a datatype(s) in the first index followed by a description.
     # A variable can be allowed to take multiple datatypes by separating them with an ' or '. Check the supported

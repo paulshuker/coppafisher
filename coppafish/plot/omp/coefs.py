@@ -8,7 +8,7 @@ import torch
 
 from ...omp import coefs, scores_torch
 from ...omp import base as omp_base
-from ...setup import Notebook
+from ...setup.notebook import Notebook
 from ...spot_colours import base as spot_colours_base
 
 

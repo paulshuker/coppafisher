@@ -10,7 +10,7 @@ from .. import log
 from ..register import preprocessing
 from ..register import base as register_base
 from ..spot_colours import base as spot_colours_base
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 
 
 def register(

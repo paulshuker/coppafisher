@@ -10,7 +10,7 @@ import numpy_indexed
 import zarr
 
 from .. import log, utils
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 
 
 EXTRACT_IMAGE_DTYPE = np.uint16

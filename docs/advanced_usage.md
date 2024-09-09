@@ -18,8 +18,8 @@ the background process will run, even if the terminal is now closed. Follow its 
 tail -f nohup.out
 ```
 
-and press Ctrl + C to stop following. The process can be killed by finding it after running a command like `htop`, 
-highlighting it, pres F9, then Enter to kill it. Press q to exit the `htop` view.
+press Ctrl + C to stop following. The process can be killed by finding it after running a command like `htop`, 
+highlighting it, press F9, then Enter to kill it. Press q to exit the `htop` view.
 
 ### Windows
 
@@ -29,8 +29,8 @@ Open a command prompt, run the command
 start /b python -m C:\path\to\config.ini
 ```
 
-Try to keep the command prompt open to watch the progress. Do not log out or shutdown the PC while the process is 
-still running.
+Try to keep the command prompt open to watch the progress. Do not log out or shutdown the PC while the process is still 
+running.
 
 ## Delete notebook page
 
@@ -50,6 +50,29 @@ nb = Notebook("/path/to/notebook")
 nb.delete_page("omp")
 ```
 
+## Exporting results for pciSeq
+
+For probabilistic cell typing with [pciSeq](https://github.com/acycliq/pciSeq), you can export gene reads into a 
+compatible csv file by 
+
+```python
+from coppafish import Notebook
+from coppafish.utils import export_to_pciseq
+
+nb = Notebook("/path/to/notebook")
+export_to_pciseq(nb, method)
+```
+
+where method can be "omp", "prob", or "anchor" for each gene calling method. To set a score and/or intensity minimum 
+threshold, 
+
+```python
+export_to_pciseq(nb, method, score_thresh, intensity_thresh)
+```
+
+where score_thresh and intensity_thresh are numbers. Check the [Viewer](dianogstics.md#Viewer) for help deciding on 
+thresholds.
+
 ## Email notification
 
 To be emailed when the pipeline crashes or finishes, under section `[notifications]` in the config, add the variable 
@@ -66,7 +89,7 @@ re-run starting from an intermediate stage, you can delete all subsequent stages
 valid stages of coppafish you can re-run starting from, run in the python terminal
 
 ```python
-from coppafish import CompatibilityTracker
+from coppafish.utils import CompatibilityTracker
 tracker = CompatibilityTracker()
 tracker.print_stage_names()
 ```
@@ -74,7 +97,7 @@ tracker.print_stage_names()
 As an example, if you wished to know how to start from the stage "find_spots" again
 
 ```python
-from coppafish import CompatibilityTracker
+from coppafish.utils import CompatibilityTracker
 tracker = CompatibilityTracker()
 tracker.print_start_from("find_spots")
 ```

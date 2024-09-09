@@ -8,7 +8,7 @@ import zarr
 from .. import find_spots as fs
 from .. import log
 from ..find_spots import detect
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 from ..utils import indexing
 
 

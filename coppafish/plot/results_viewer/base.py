@@ -19,12 +19,18 @@ import tifffile
 from . import legend
 from .. import call_spots as call_spots_plot
 from ...omp import base as omp_base
-from ...setup import Notebook
-from ..call_spots import view_bled_codes, ViewBleedMatrix, view_codes, view_spot, ViewScalingAndBGRemoval, GeneEfficiencyViewer
+from ...setup.notebook import Notebook
+from ..call_spots import (
+    view_bled_codes,
+    ViewBleedMatrix,
+    view_codes,
+    view_spot,
+    ViewScalingAndBGRemoval,
+    GeneEfficiencyViewer,
+)
 from ..call_spots import ViewAllGeneHistograms, HistogramScore
 from ..omp import ViewOMPImage, ViewOMPPixelColours
 from .hotkeys import KeyBinds, ViewHotkeys
-
 
 
 class Viewer:

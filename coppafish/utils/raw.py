@@ -8,7 +8,7 @@ from typing import List, Optional, Tuple, Union
 from .errors import OutOfBoundsError
 from .. import log
 from ..utils import nd2
-from ..setup import NotebookPage
+from ..setup.notebook_page import NotebookPage
 
 
 def get_tile_indices(folder: str) -> List:

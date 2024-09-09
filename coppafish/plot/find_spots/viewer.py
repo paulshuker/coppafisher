@@ -11,7 +11,7 @@ from qtpy.QtCore import Qt
 from ... import utils
 from ...filter import base as filter_base
 from ...find_spots import check_neighbour_intensity
-from ...setup import Notebook
+from ...setup.notebook import Notebook
 from ...utils import tiles_io
 from ..raw import add_basic_info_no_save
 

@@ -1,6 +1,6 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from ...setup import Notebook
+from ...setup.notebook import Notebook
 from .spot_colours import ColorPlotBase
 
 

@@ -1,18 +1,16 @@
 from itertools import product
 import os
 import pickle
-from typing import Optional, Union, Tuple
+from typing import Union, Tuple
 
 import numpy as np
 from scipy import signal
-from scipy.ndimage import affine_transform
 import skimage
-from skimage.transform import warp
 from tqdm import tqdm
 import zarr
 
 from .. import spot_colours
-from ..setup import Notebook, NotebookPage
+from ..setup.notebook_page import NotebookPage
 
 
 def load_reg_data(nbp_file: NotebookPage, nbp_basic: NotebookPage):

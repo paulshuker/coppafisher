@@ -4,7 +4,7 @@ from typing import List, Optional
 import napari
 import numpy as np
 
-from ..setup import Notebook
+from ..setup.notebook import Notebook
 
 
 def view_filtered_images(
