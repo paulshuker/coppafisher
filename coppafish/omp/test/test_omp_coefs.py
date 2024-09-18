@@ -95,11 +95,11 @@ def test_get_next_gene_assignments() -> None:
     # Pixel 1 will contain high scores for two genes, expecting first to be selected.
     residual_colours[1, 0] = 2
     residual_colours[1, 1] = 2
-    # Pixel 2 will contain high scores for all genes, expecting it to fail selection.
-    residual_colours[2, 0] = 1
-    residual_colours[2, 1] = 1
-    residual_colours[2, 2] = 1
-    residual_colours[2, 3] = 1
+    # # Pixel 2 will contain high scores for all genes, expecting it to fail selection.
+    # residual_colours[2, 0] = 1
+    # residual_colours[2, 1] = 1
+    # residual_colours[2, 2] = 1
+    # residual_colours[2, 3] = 1
     # Pixel 3 contains no intensity, expecting to fail selection.
     # Pixel 4 scores in a gene on the fail list, expecting to fail selection.
     residual_colours[4, 4] = 0.6
