@@ -122,20 +122,24 @@ def run_omp(
         # The entire tile's coefficient results are stored in a scipy sparse matrix.
         log.debug(f"Compute coefficients, tile {t} started")
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
-        assert (~np.isnan(bled_codes)).all(), "bled codes cannot contain nan values"
+        assert np.isnan(bled_codes).sum() == 0, "bled codes cannot contain nan values"
         assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"
+        bg_bled_codes = np.eye(n_channels_use)[:, None, :].repeat(n_rounds_use, axis=1)
+        # Normalise the codes the same way as gene bled codes.
+        bg_bled_codes /= np.linalg.norm(bg_bled_codes, axis=(1, 2))
+        max_genes = config["max_genes"]
+        log.debug(f"omp config {max_genes=}")
         solver = coefs.CoefficientSolverOMP()
         coefficients = solver.compute_omp_coefficients(
             pixel_colours=colour_image,
             bled_codes=bled_codes,
-            background_codes=np.eye(n_channels_use)[:, None, :].repeat(n_rounds_use, axis=1),
+            background_codes=bg_bled_codes,
             colour_norm_factor=nbp_call_spots.colour_norm_factor[[t]].astype(np.float32),
-            maximum_iterations=config["max_genes"],
+            maximum_iterations=max_genes,
             dot_product_threshold=config["dp_thresh"],
             normalisation_shift=config["lambda_d"],
             pixel_subset_count=config["subset_pixels"],
         )
-        del colour_image
         coefficients = coefficients.tocsr()
         log.debug(f"Compute coefficients, tile {t} complete")
 
@@ -150,6 +154,10 @@ def run_omp(
             isolated_yxz = torch.zeros((0, 3)).int()
             isolated_gene_no = torch.zeros(0).int()
             for g in range(n_genes):
+                # np.savez_compressed(
+                #     f"/home/paul/Documents/yuta/output/{g}_coef_image.npz",
+                #     coefficients[:, [g]].toarray().reshape(tile_shape, order="C"),
+                # )
                 g_coef_image = torch.asarray(coefficients[:, [g]].toarray().reshape(tile_shape, order="C")).float()
                 if torch.allclose(g_coef_image, torch.zeros(1).float()):
                     log.warn(f"All tile {t} OMP coefficients for gene {nbp_call_spots.gene_names[g]} are zero")
@@ -225,8 +233,9 @@ def run_omp(
         t_spots_gene_no = tile_results.zeros("gene_no", overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.int16)
         t_spots_score = tile_results.zeros("scores", overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.float16)
 
-        batch_size = int(1e9 * utils.system.get_available_memory(device) // (np.prod(tile_shape).item() * 4.1))
+        batch_size = int(1e9 * utils.system.get_available_memory(device) // (np.prod(tile_shape).item() * 30))
         batch_size = max(batch_size, 1)
+        log.debug(f"Gene batch size: {batch_size}")
         gene_batches = [
             [g for g in range(b * batch_size, min((b + 1) * batch_size, n_genes))]
             for b in range(maths.ceil(n_genes / batch_size))
@@ -289,19 +298,8 @@ def run_omp(
             dtype=np.float16,
             chunks=(n_chunk_max, 1, 1),
         )
-        t_spots_colours_temp = spot_colours.base.get_spot_colours_new_safe(
-            nbp_basic,
-            image=nbp_filter.images,
-            tile=t,
-            flow=nbp_register.flow,
-            affine=nbp_register.icp_correction,
-            yxz=t_local_yxzs,
-            use_rounds=nbp_basic.use_rounds,
-            use_channels=nbp_basic.use_channels,
-            output_dtype=np.float16,
-            out_of_bounds_value=0,
-        )
-        t_spots_colours[:] = t_spots_colours_temp
+        colour_image = colour_image.reshape(tile_shape + colour_image.shape[1:], order="C")
+        t_spots_colours[:] = colour_image[tuple(t_local_yxzs.T)]
         del t_spots_local_yxz, t_spots_tile, t_spots_gene_no, t_spots_score, t_spots_colours
         del t_local_yxzs, tile_results
         log.debug(f"Gathering spot colours complete")

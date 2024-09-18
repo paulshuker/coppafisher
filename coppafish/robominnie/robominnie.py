@@ -599,11 +599,10 @@ class Robominnie:
         d_max = {", ".join(np.argmax(self.bleed_matrix, axis=1).astype(str))}
         
         [omp]
-        max_genes = 10
         spot_shape = 13, 13, 1
         pixel_max_percentile = 1
         score_threshold = 0.1
-        subset_size_xy = 50
+        subset_pixels = 1000
         """
         # Remove large spaces in the config contents
         config_file_contents = config_file_contents.replace("  ", "")

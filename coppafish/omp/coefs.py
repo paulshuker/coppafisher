@@ -7,6 +7,8 @@ import torch
 import tqdm
 from typing_extensions import Self
 
+from .. import log
+
 
 class CoefficientSolverOMP:
     NO_GENE_ASSIGNMENT: int = -32_768
@@ -96,6 +98,7 @@ class CoefficientSolverOMP:
         verbose = n_pixels > 1_000
 
         for i_subset in tqdm.trange(n_subsets, desc=f"Computing OMP Coefficients", unit="subset", disable=not verbose):
+            log.debug(f"=== Subset: {i_subset} ===")
             index_min = i_subset * pixel_subset_count
             index_max = min((i_subset + 1) * pixel_subset_count, n_pixels)
             subset_size = index_max - index_min
@@ -118,6 +121,7 @@ class CoefficientSolverOMP:
             bg_gene_indices = bg_gene_indices[np.newaxis].repeat_interleave(subset_size, dim=0)
 
             for iteration in range(maximum_iterations):
+                log.debug(f"Iteration: {iteration}")
                 # The residual colour is L2 normalised + a shift before being used to find the next best gene.
                 subset_residual_colours /= (
                     torch.linalg.vector_norm(subset_residual_colours, dim=1, keepdim=True) + normalisation_shift
@@ -140,7 +144,7 @@ class CoefficientSolverOMP:
                 if subset_pixels_to_continue.sum() == 0:
                     break
 
-                # On the pixels being iterated on, update all the gene coefficients with the new gene added.
+                # On the pixels being still iterated on, update all the gene coefficients with the new gene added.
                 latest_gene_selections = subset_genes_selected[subset_pixels_to_continue, : iteration + 1]
                 bled_codes_to_continue = bled_codes_torch[latest_gene_selections]
                 # Flatten rounds/channels.
@@ -197,7 +201,7 @@ class CoefficientSolverOMP:
             - all_bled_codes (`(n_genes_all x (n_rounds_use * n_channels_use)) tensor[float32]`): gene bled codes and
                 background genes appended.
             - fail_gene_indices (`(n_pixels x n_genes_fail) tensor[int32]`): if the next gene assignment for a pixel is
-                included on the list of gene indices, consider gene assignment a fail.
+                included on the list of fail gene indices, consider gene assignment a fail.
             - dot_product_threshold (float): a gene can only be assigned if the dot product score is above this threshold.
             - maximum_pass_count (int): if a pixel has more than maximum_pass_count dot product scores above the
                 dot_product_threshold, then gene assignment has failed.
@@ -228,6 +232,8 @@ class CoefficientSolverOMP:
         # Gets (n_pixels x 1 x n_genes_all) all scores
         all_gene_scores = residual_colours[:, np.newaxis] @ all_bled_codes.T[np.newaxis]
         all_gene_scores = all_gene_scores[:, 0]
+        # Negative scores are turned positive because we can have a negative colour match with a positive bled code.
+        all_gene_scores = all_gene_scores.abs()
         _, next_best_genes = torch.max(all_gene_scores, dim=1)
         next_best_genes = next_best_genes.int()
 
@@ -235,14 +241,19 @@ class CoefficientSolverOMP:
 
         # A pixel only passes if the highest scoring gene is above the dot product threshold.
         pixels_passed = genes_passed.detach().clone().any(1)
+        log.debug(f"Pixels passed min score: {pixels_passed.sum()} out of {pixels_passed.shape}")
 
         # A best gene in the fail_gene_indices means assignment failed.
         in_fail_gene_indices = (fail_gene_indices == next_best_genes[:, np.newaxis]).any(1)
+        log.debug(f"Pixels in failing gene index: {in_fail_gene_indices.sum()} out of {in_fail_gene_indices.shape}")
         pixels_passed = pixels_passed & (~in_fail_gene_indices)
 
-        # Too many high scoring genes on a single pixel causes a fail.
-        pixels_passed = pixels_passed & (genes_passed.sum(1) <= maximum_pass_count)
+        # # Too many high scoring genes on a single pixel causes a fail.
+        # too_many_high_scores = genes_passed.sum(1) > maximum_pass_count
+        # log.debug(f"Pixels with too many high scores: {too_many_high_scores.sum()} out of {too_many_high_scores.shape}")
+        # pixels_passed = pixels_passed & (~too_many_high_scores)
 
+        log.debug(f"So total pixels passed: {pixels_passed.sum()} out of {pixels_passed.shape}")
         next_best_genes[~pixels_passed] = self.NO_GENE_ASSIGNMENT
 
         return next_best_genes
