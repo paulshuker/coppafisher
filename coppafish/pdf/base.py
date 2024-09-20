@@ -329,10 +329,10 @@ class BuildPDF:
         if not os.path.isfile(ref_spots_filepath) and nb.has_page("ref_spots") and nb.has_page("call_spots"):
             with PdfPages(ref_spots_filepath) as pdf:
                 for t in nb.basic_info.use_tiles:
-                    keep = nb.ref_spots.tile == t
+                    keep = nb.ref_spots.tile[:] == t
                     fig = self.create_positions_histograms(
-                        nb.call_spots.dot_product_gene_score[keep],
-                        nb.ref_spots.local_yxz[keep],
+                        nb.call_spots.dot_product_gene_score[:][keep],
+                        nb.ref_spots.local_yxz[:][keep],
                         self.DEFAULT_REF_SCORE_THRESHOLD,
                         title=f"Spot position histograms for {t=}, scores "
                         + r"$\geq$"
@@ -342,8 +342,8 @@ class BuildPDF:
                     pdf.savefig(fig)
                     plt.close(fig)
                 # Create a page for every gene
-                gene_probabilities = nb.call_spots.gene_probabilities
-                scores = nb.ref_spots.colours * nb.call_spots.colour_norm_factor[nb.ref_spots.tile]
+                gene_probabilities = nb.call_spots.gene_probabilities[:]
+                scores = nb.ref_spots.colours[:] * nb.call_spots.colour_norm_factor[nb.ref_spots.tile[:]]
                 n_genes = len(nb.call_spots.gene_names)
                 gene_names = nb.call_spots.gene_names
                 spot_colours_rnorm = scores / np.linalg.norm(scores, axis=2)[:, :, None]
@@ -454,21 +454,21 @@ class BuildPDF:
         file_missing = not os.path.isfile(anchor_heatmap_path) or not os.path.isfile(prob_heatmap_path)
         if nb.has_page("call_spots") and file_missing:
             gene_names = nb.call_spots.gene_names
-            local_yxzs = nb.ref_spots.local_yxz.astype(np.float32)
-            tile_numbers = nb.ref_spots.tile
+            local_yxzs = nb.ref_spots.local_yxz[:].astype(np.float32)
+            tile_numbers = nb.ref_spots.tile[:]
             global_yxzs = local_yxzs + nb.stitch.tile_origin[tile_numbers]
 
             # Anchor heat maps.
-            gene_numbers = nb.call_spots.dot_product_gene_no
-            scores = nb.call_spots.dot_product_gene_score
+            gene_numbers = nb.call_spots.dot_product_gene_no[:]
+            scores = nb.call_spots.dot_product_gene_score[:]
             with PdfPages(anchor_heatmap_path) as pdf:
                 self.create_spatial_heatmaps(
                     pdf, global_yxzs, gene_numbers, scores, gene_names, self.HEATMAP_ANCHOR_SCORE_THRESH
                 )
 
             # Probability heat maps.
-            gene_numbers = np.argmax(nb.call_spots.gene_probabilities, axis=1)
-            scores = nb.call_spots.gene_probabilities.max(1)
+            gene_numbers = np.argmax(nb.call_spots.gene_probabilities[:], axis=1)
+            scores = nb.call_spots.gene_probabilities[:].max(1)
             with PdfPages(prob_heatmap_path) as pdf:
                 self.create_spatial_heatmaps(
                     pdf, global_yxzs, gene_numbers, scores, gene_names, self.HEATMAP_PROB_SCORE_THRESH

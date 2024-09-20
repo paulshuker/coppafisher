@@ -641,17 +641,17 @@ class GeneSpotsViewer:
             )
             spot_index = np.concatenate([np.arange(nb.omp.results[f"tile_{t}"].scores.shape[0]) for t in use_tiles])
         elif self.mode == "anchor":
-            spots = nb.ref_spots.colours
-            gene_no = nb.call_spots.dot_product_gene_no
-            score = nb.call_spots.dot_product_gene_score
-            tile = nb.ref_spots.tile
-            spot_index = np.arange(len(nb.ref_spots.colours))
+            spots = nb.ref_spots.colours[:]
+            gene_no = nb.call_spots.dot_product_gene_no[:]
+            score = nb.call_spots.dot_product_gene_score[:]
+            tile = nb.ref_spots.tile[:]
+            spot_index = np.arange(nb.ref_spots.colours.shape[0])
         else:
-            spots = nb.ref_spots.colours
-            gene_no = np.argmax(nb.call_spots.gene_probabilities, axis=1)
-            score = np.max(nb.call_spots.gene_probabilities, axis=1)
-            tile = nb.ref_spots.tile
-            spot_index = np.arange(len(nb.ref_spots.colours))
+            spots = nb.ref_spots.colours[:]
+            gene_no = np.argmax(nb.call_spots.gene_probabilities[:], axis=1)
+            score = np.max(nb.call_spots.gene_probabilities[:], axis=1)
+            tile = nb.ref_spots.tile[:]
+            spot_index = np.arange(nb.ref_spots.colours.shape[0])
 
         # get spots for gene gene_index with score > score_threshold for current mode and valid spots
         invalid = np.any(np.isnan(spots), axis=(1, 2))
@@ -814,13 +814,13 @@ class ViewScalingAndBGRemoval:
     def __init__(self, nb):
         plt.style.use("dark_background")
         self.nb = nb
-        spot_tile = nb.ref_spots.tile
+        spot_tile = nb.ref_spots.tile[:]
         n_spots = spot_tile.shape[0]
         n_rounds, n_channels_use = len(nb.basic_info.use_rounds), len(nb.basic_info.use_channels)
         norm_factor = nb.call_spots.colour_norm_factor
 
         # get spot colours raw, no_bg and normed_no_bg
-        spot_colour_raw = nb.ref_spots.colours.copy()
+        spot_colour_raw = nb.ref_spots.colours[:].copy()
         spot_colour_normed = spot_colour_raw * norm_factor[spot_tile]
         bg = np.repeat(np.percentile(spot_colour_normed, 25, axis=1)[:, None, :], n_rounds, axis=1)
         spot_colour_normed_no_bg = spot_colour_normed - bg

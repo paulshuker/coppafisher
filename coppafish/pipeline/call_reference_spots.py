@@ -1,8 +1,10 @@
 import importlib.resources as importlib_resources
 import itertools
+import os
 from typing import Tuple
 
 import numpy as np
+import zarr
 
 from .. import log
 from ..call_spots.base import bayes_mean, compute_bleed_matrix
@@ -73,8 +75,8 @@ def call_reference_spots(
     ), "The target values, d_max and use_channels should have the same length."
 
     # load in frequently used variables
-    spot_colours = nbp_ref_spots.colours.astype(np.float32)
-    spot_tile = nbp_ref_spots.tile
+    spot_colours = nbp_ref_spots.colours[:].astype(np.float32)
+    spot_tile = nbp_ref_spots.tile[:]
     n_tiles, n_rounds, n_channels_use = nbp_basic.n_tiles, nbp_basic.n_rounds, len(nbp_basic.use_channels)
     n_dyes, n_spots, n_genes = len(nbp_basic.dye_names), len(spot_colours), len(gene_names)
     use_tiles, use_channels = (nbp_basic.use_tiles, nbp_basic.use_channels)
@@ -177,13 +179,22 @@ def call_reference_spots(
         bled_codes=bled_codes.reshape((n_genes, n_rounds * n_channels_use)),
     )[-1]
     dp_mode, dp_score = np.argmax(gene_dot_products, axis=1), np.max(gene_dot_products, axis=1)
+    dp_mode = dp_mode.astype(np.int16)
     # update bleed matrix
     good = prob_score > prob_threshold
     bleed_matrix = compute_bleed_matrix(spot_colours[good], prob_mode[good], gene_codes, n_dyes)
+    intensity = np.median(np.max(spot_colours, axis=-1), axis=-1)
 
     # 8. save the results
-    nbp.intensity = np.median(np.max(spot_colours, axis=-1), axis=-1)
-    nbp.dot_product_gene_no, nbp.dot_product_gene_score = dp_mode.astype(np.int16), dp_score
+    kwargs = dict(chunks=False, zarr_version=2)
+    dp_mode = zarr.array(dp_mode, store=os.path.join(nbp_file.output_dir, "dp_mode.zarray"), **kwargs)
+    dp_score = zarr.array(dp_score, store=os.path.join(nbp_file.output_dir, "dp_score.zarray"), **kwargs)
+    gene_prob_initial = zarr.array(
+        gene_prob_initial, store=os.path.join(nbp_file.output_dir, "gene_prob_init.zarray"), **kwargs
+    )
+    gene_prob = zarr.array(gene_prob, store=os.path.join(nbp_file.output_dir, "gene_prob.zarray"), **kwargs)
+    nbp.intensity = zarr.array(intensity, store=os.path.join(nbp_file.output_dir, "intensity.zarray"), **kwargs)
+    nbp.dot_product_gene_no, nbp.dot_product_gene_score = dp_mode, dp_score
     nbp.gene_probabilities_initial = gene_prob_initial
     nbp.gene_probabilities = gene_prob
     nbp.gene_names, nbp.gene_codes = gene_names, gene_codes
