@@ -199,7 +199,6 @@ def get_spot_colours_new_safe(
     assert yxz.shape[1] == 3
 
     batch_size = maths.floor(utils.system.get_available_memory() * 5.3e7 / (n_channels_use * n_rounds_use))
-    log.debug(f"{batch_size=}")
     n_batches = maths.ceil(yxz.shape[0] / batch_size)
     for i in range(n_batches):
         log.debug(f"{i + 1} / {n_batches}")

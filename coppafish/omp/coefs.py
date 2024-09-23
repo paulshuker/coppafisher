@@ -1,11 +1,7 @@
-import math as maths
 from typing import Tuple
-import warnings
 
 import numpy as np
-import scipy
 import torch
-import tqdm
 from typing_extensions import Self
 
 from .. import log
@@ -29,8 +25,7 @@ class CoefficientSolverOMP:
         maximum_iterations: int,
         dot_product_threshold: float,
         normalisation_shift: float,
-        pixel_subset_count: int,
-    ) -> scipy.sparse.spmatrix:
+    ) -> torch.Tensor:
         """
         Compute OMP coefficients for all pixel colours. At each iteration of OMP, the next best gene assignment is found
         from the residual spot colours divided by their L2 norm + normalisation_shift. A pixel is stopped iterating on if
@@ -40,7 +35,7 @@ class CoefficientSolverOMP:
         32-bit float precision.
 
         Args:
-            - pixel_colours (`(n_pixels x n_rounds_use x n_channels_use) ndarray[float16]`): pixel intensity in each
+            - pixel_colours (`(n_pixels x n_rounds_use x n_channels_use) ndarray[float]`): pixel intensity in each
                 sequencing round and channel.
             - bled_codes (`(n_genes x n_rounds_use x n_channels_use) ndarray[float32]`): every gene bled code.
             - background_codes (`(n_channels_use x n_rounds_use x n_channels_use) tensor[float]`): the background bled
@@ -54,11 +49,9 @@ class CoefficientSolverOMP:
             - normalisation_shift (float): during OMP each gene assignment iteration, the residual spot colour is
                 normalised by dividing by its L2 norm + normalisation_shift. At the end of the computation, the final
                 coefficients are divided by the L2 norm of the pixel colour + normalisation_shift.
-            - pixel_subset_count (int): the maximum number of pixels to compute OMP on at a time. Used when memory limited.
 
         Returns:
-            (`(n_pixels x n_genes) scipy.sparse.csr_array[float32]`) coefficients: each gene coefficient for every pixel.
-                Most values will be zero, so kept in a sparse matrix.
+            (`(n_pixels x n_genes) ndarray[float32]`) coefficients: each gene coefficient for every pixel.
         """
         n_pixels, n_rounds_use, n_channels_use = pixel_colours.shape
         n_rounds_channels_use = n_rounds_use * n_channels_use
@@ -70,11 +63,9 @@ class CoefficientSolverOMP:
         assert type(maximum_iterations) is int
         assert type(dot_product_threshold) is float
         assert type(normalisation_shift) is float
-        assert type(pixel_subset_count) is int
         assert maximum_iterations > 0
         assert dot_product_threshold >= 0
         assert normalisation_shift >= 0
-        assert pixel_subset_count > 0
         assert pixel_colours.ndim == 3
         assert bled_codes.ndim == 3
         assert background_codes.ndim == 3
@@ -93,88 +84,63 @@ class CoefficientSolverOMP:
         all_bled_codes = torch.concat((bled_codes_torch, background_codes_torch), dim=0)
         all_bled_codes = all_bled_codes.reshape((all_bled_codes.shape[0], n_rounds_channels_use))
 
-        coefficients = scipy.sparse.csr_array((n_pixels, n_genes), dtype=np.float32)
+        coefficients = torch.zeros((n_pixels, n_genes), dtype=torch.float32)
+        colours = pixel_colours.astype(np.float32)
+        colours *= colour_norm_factor
+        colours = torch.tensor(colours)
+        # Flatten colours over rounds/channels.
+        colours = colours.reshape((n_pixels, n_rounds_channels_use))
+        # Remember the residual colour between iterations.
+        residual_colours = colours.detach().clone()
+        # Remember what pixels still need iterating on.
+        pixels_to_continue = torch.ones(n_pixels, dtype=bool)
+        # Remember the gene selections made for each pixel. NO_GENE_ASSIGNMENT for no gene selection made.
+        genes_selected = torch.full((n_pixels, maximum_iterations), self.NO_GENE_ASSIGNMENT, dtype=torch.int32)
+        bg_gene_indices = torch.linspace(n_genes, n_genes + n_channels_use - 1, n_channels_use, dtype=torch.int32)
+        bg_gene_indices = bg_gene_indices[np.newaxis].repeat_interleave(n_pixels, dim=0)
 
-        n_subsets = maths.ceil(n_pixels / pixel_subset_count)
-        verbose = n_pixels > 1_000
-
-        for i_subset in tqdm.trange(n_subsets, desc=f"Computing OMP Coefficients", unit="subset", disable=not verbose):
-            log.debug(f"=== Subset: {i_subset} ===")
-            index_min = i_subset * pixel_subset_count
-            index_max = min((i_subset + 1) * pixel_subset_count, n_pixels)
-            subset_size = index_max - index_min
-
-            subset_coefficients = torch.zeros((subset_size, n_genes), dtype=torch.float32)
-            subset_colours = pixel_colours[index_min:index_max].astype(np.float32)
-            subset_colours *= colour_norm_factor
-            subset_colours = torch.tensor(subset_colours)
-            # Flatten colours over rounds/channels.
-            subset_colours = subset_colours.reshape((subset_size, n_rounds_channels_use))
-            # Remember the residual colour between iterations.
-            subset_residual_colours = subset_colours.detach().clone()
-            # Remember what pixels still need iterating on.
-            subset_pixels_to_continue = torch.ones(subset_size, dtype=bool)
-            # Remember the gene selections made for each pixel. NO_GENE_ASSIGNMENT for no gene selection made.
-            subset_genes_selected = torch.full(
-                (subset_size, maximum_iterations), self.NO_GENE_ASSIGNMENT, dtype=torch.int32
+        for iteration in range(maximum_iterations):
+            log.debug(f"Iteration: {iteration}")
+            # The residual colour is L2 normalised + a shift before being used to find the next best gene.
+            residual_colours /= torch.linalg.vector_norm(residual_colours, dim=1, keepdim=True) + normalisation_shift
+            # Find the next best gene for pixels that have not reached a stopping criteria yet.
+            fail_gene_indices = torch.cat((genes_selected[:, :iteration], bg_gene_indices), 1)
+            fail_gene_indices = fail_gene_indices[pixels_to_continue]
+            next_best_genes = self.get_next_gene_assignments(
+                residual_colours,
+                all_bled_codes,
+                fail_gene_indices,
+                dot_product_threshold,
+                maximum_pass_count=maximum_iterations - iteration,
             )
-            bg_gene_indices = torch.linspace(n_genes, n_genes + n_channels_use - 1, n_channels_use, dtype=torch.int32)
-            bg_gene_indices = bg_gene_indices[np.newaxis].repeat_interleave(subset_size, dim=0)
+            genes_selected[pixels_to_continue, iteration] = next_best_genes
+            del next_best_genes, fail_gene_indices
 
-            for iteration in range(maximum_iterations):
-                log.debug(f"Iteration: {iteration}")
-                # The residual colour is L2 normalised + a shift before being used to find the next best gene.
-                subset_residual_colours /= (
-                    torch.linalg.vector_norm(subset_residual_colours, dim=1, keepdim=True) + normalisation_shift
-                )
-                # Find the next best gene for pixels that have not reached a stopping criteria yet.
-                fail_gene_indices = torch.cat((subset_genes_selected[:, :iteration], bg_gene_indices), 1)
-                fail_gene_indices = fail_gene_indices[subset_pixels_to_continue]
-                next_best_genes = self.get_next_gene_assignments(
-                    subset_residual_colours,
-                    all_bled_codes,
-                    fail_gene_indices,
-                    dot_product_threshold,
-                    maximum_pass_count=maximum_iterations - iteration,
-                )
-                subset_genes_selected[subset_pixels_to_continue, iteration] = next_best_genes
-                del next_best_genes, fail_gene_indices
+            # Update what pixels to continue iterating on.
+            pixels_to_continue = genes_selected[:, iteration] != self.NO_GENE_ASSIGNMENT
+            if pixels_to_continue.sum() == 0:
+                break
 
-                # Update what pixels to continue iterating on.
-                subset_pixels_to_continue = subset_genes_selected[:, iteration] != self.NO_GENE_ASSIGNMENT
-                if subset_pixels_to_continue.sum() == 0:
-                    break
+            # On the pixels being still iterated on, update all the gene coefficients with the new gene added.
+            latest_gene_selections = genes_selected[pixels_to_continue, : iteration + 1]
+            bled_codes_to_continue = bled_codes_torch[latest_gene_selections]
+            # Flatten rounds/channels.
+            bled_codes_to_continue = bled_codes_to_continue.reshape((-1, iteration + 1, n_rounds_channels_use))
+            # Change to shape (n_pixels_continue, n_rounds_channels_use, iteration + 1).
+            bled_codes_to_continue = bled_codes_to_continue.swapaxes(1, 2)
+            new_coefficients, residual_colours = self.get_next_gene_coefficients(
+                colours[pixels_to_continue, :, np.newaxis],
+                bled_codes_to_continue,
+            )
+            # TODO: With some clever indexing, this for loop may be removable.
+            # But, I am not sure if it would save much time.
+            log.debug(f"Assigning results to sparse array")
+            for j in range(iteration + 1):
+                coefficients[pixels_to_continue, latest_gene_selections[:, j]] = new_coefficients[:, j]
+            del latest_gene_selections, bled_codes_to_continue, new_coefficients
 
-                # On the pixels being still iterated on, update all the gene coefficients with the new gene added.
-                latest_gene_selections = subset_genes_selected[subset_pixels_to_continue, : iteration + 1]
-                bled_codes_to_continue = bled_codes_torch[latest_gene_selections]
-                # Flatten rounds/channels.
-                bled_codes_to_continue = bled_codes_to_continue.reshape((-1, iteration + 1, n_rounds_channels_use))
-                # Change to shape (n_pixels_continue, n_rounds_channels_use, iteration + 1).
-                bled_codes_to_continue = bled_codes_to_continue.swapaxes(1, 2)
-                new_coefficients, subset_residual_colours = self.get_next_gene_coefficients(
-                    subset_colours[subset_pixels_to_continue, :, np.newaxis],
-                    bled_codes_to_continue,
-                )
-                # TODO: With some clever indexing, this for loop may be removable.
-                # But, I am not sure if it would save much time.
-                log.debug(f"Assigning results to sparse array")
-                for j in range(iteration + 1):
-                    subset_coefficients[subset_pixels_to_continue, latest_gene_selections[:, j]] = new_coefficients[
-                        :, j
-                    ]
-                del latest_gene_selections, bled_codes_to_continue, new_coefficients
-
-            subset_coefficients /= torch.linalg.vector_norm(subset_colours, dim=1, keepdim=True) + normalisation_shift
-            subset_coefficients = subset_coefficients.cpu().numpy()
-
-            # Add the subset coefficients to the sparse coefficients matrix. This gives a warning about slow
-            # assignment, this is ignored.
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                coefficients[index_min:index_max] = subset_coefficients
-            del subset_coefficients
-
+        coefficients /= torch.linalg.vector_norm(colours, dim=1, keepdim=True) + normalisation_shift
+        coefficients = coefficients.cpu().numpy()
         return coefficients
 
     def get_next_gene_assignments(
