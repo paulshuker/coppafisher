@@ -1,3 +1,7 @@
+2024/08/22 Alpha Update (v0.10.8):
+ * OMP saves progress after each tile is complete.
+
+
 2024/08/22 Alpha Update (v0.10.7):
  * Filter intensity threshold can be zero integer edge case has been fixed.
 

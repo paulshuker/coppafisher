@@ -20,7 +20,7 @@ setup(
     maintainer_email="reillytilbury@gmail.com, paul.shuker@outlook.com",
     license="MIT",
     python_requires=">3.8, <3.11",
-    url="https://reillytilbury.github.io/coppafish/",
+    url="https://paulshuker.github.io/coppafish/",
     packages=packages,
     install_requires=[
         "numpy",
