@@ -6,7 +6,7 @@ import numpy as np
 from pathlib import PurePath
 from typing import Tuple
 
-VERSION_URL = "https://github.com/reillytilbury/coppafish/raw/HEAD/coppafish/_version.py"
+VERSION_URL = "https://github.com/paulshuker/coppafish/raw/HEAD/coppafish/_version.py"
 # The character(s) that encapsulate the software version tag in _version.py, in this case it is quotation marks
 VERSION_ENCAPSULATE = '"'
 

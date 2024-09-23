@@ -116,7 +116,7 @@ def log(msg: Union[str, Exception], severity: int, force_email: bool = False) ->
             + f"after {round(delta_time // 60)}hrs and {round(delta_time % 60)}mins:\n\n"
             + message
             + f"\n\nFor errors, please refer to our troubleshoot page "
-            + f"(https://reillytilbury.github.io/coppafish/troubleshoot/)"
+            + f"(https://paulshuker.github.io/coppafish/troubleshoot/)"
         )
         email.send_email(
             f"COPPAFISH: {severity_to_name[severity]}",
