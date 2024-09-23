@@ -42,9 +42,9 @@ class HistogramScore:
         self.genes_use = np.arange(self.n_genes)
 
         # Get spot colors
-        spot_colours_raw = nb.ref_spots.colours
+        spot_colours_raw = nb.ref_spots.colours[:]
         colour_norm_factor = nb.call_spots.colour_norm_factor
-        spot_tile = nb.ref_spots.tile
+        spot_tile = nb.ref_spots.tile[:]
         spot_colours = spot_colours_raw * colour_norm_factor[spot_tile]
         spot_colours_bg = np.repeat(np.percentile(spot_colours, 25, axis=1)[:, None, :], self.n_rounds, axis=1)
         spot_colours_bg_removed = spot_colours - spot_colours_bg

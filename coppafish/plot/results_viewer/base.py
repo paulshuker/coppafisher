@@ -559,17 +559,17 @@ class Viewer:
         colour_norm_factor = nb.call_spots.colour_norm_factor
 
         # initialise relevant information for anchor and prob methods
-        tile = [nb.ref_spots.tile, nb.ref_spots.tile]
-        local_loc = [nb.ref_spots.local_yxz, nb.ref_spots.local_yxz]
+        tile = [nb.ref_spots.tile[:], nb.ref_spots.tile[:]]
+        local_loc = [nb.ref_spots.local_yxz[:], nb.ref_spots.local_yxz[:]]
         global_loc = [(local_loc[i] + tile_origin[tile[i]])[:, [2, 0, 1]] for i in range(2)]  # convert to zyx
         # apply downsample factor
         global_loc = [loc // downsample_factor for loc in global_loc]
-        colours = [nb.__getattribute__(self.method["pages"][i]).colours.copy() for i in range(2)]
+        colours = [nb.__getattribute__(self.method["pages"][i]).colours[:].copy() for i in range(2)]
         colours = [colours[i] * colour_norm_factor[tile[i]] for i in range(2)]
-        score = [nb.call_spots.dot_product_gene_score, np.max(nb.call_spots.gene_probabilities, axis=1)]
-        gene_no = [nb.call_spots.dot_product_gene_no, np.argmax(nb.call_spots.gene_probabilities, axis=1)]
-        intensity = [nb.call_spots.intensity, nb.call_spots.intensity]
-        indices = [np.arange(len(nb.ref_spots.tile)), np.arange(len(nb.ref_spots.tile))]
+        score = [nb.call_spots.dot_product_gene_score[:], np.max(nb.call_spots.gene_probabilities[:], axis=1)]
+        gene_no = [nb.call_spots.dot_product_gene_no[:], np.argmax(nb.call_spots.gene_probabilities[:], axis=1)]
+        intensity = [nb.call_spots.intensity[:], nb.call_spots.intensity[:]]
+        indices = [np.arange(nb.ref_spots.tile.size), np.arange(nb.ref_spots.tile.size)]
 
         # add omp results to the lists
         if nb.has_page("omp"):
