@@ -117,6 +117,7 @@ def run_omp(
             out_of_bounds_value=0,
         )
         log.debug(f"Loading tile {t} colours complete")
+        log.debug(f"{colour_image.nbytes/1e9=}")
 
         # STEP 2: Compute OMP coefficients on the entire tile.
         # The entire tile's coefficient results are stored in a scipy sparse matrix.
@@ -128,7 +129,14 @@ def run_omp(
         # Normalise the codes the same way as gene bled codes.
         bg_bled_codes /= np.linalg.norm(bg_bled_codes, axis=(1, 2))
         max_genes = config["max_genes"]
-        log.debug(f"omp config {max_genes=}")
+        subset_pixels = config["subset_pixels"]
+        if subset_pixels is None:
+            subset_pixels: int = maths.floor(
+                utils.system.get_available_memory(device) * 2e7 / (n_genes * n_rounds_use * n_channels_use)
+            )
+        log.debug(f"OMP {max_genes=}")
+        log.debug(f"OMP {subset_pixels=}")
+        # TODO: Run through each set of subset pixels one at a time and gather what colour intensities are necessary.
         solver = coefs.CoefficientSolverOMP()
         coefficients = solver.compute_omp_coefficients(
             pixel_colours=colour_image,
@@ -138,9 +146,8 @@ def run_omp(
             maximum_iterations=max_genes,
             dot_product_threshold=config["dp_thresh"],
             normalisation_shift=config["lambda_d"],
-            pixel_subset_count=config["subset_pixels"],
+            pixel_subset_count=subset_pixels,
         )
-        coefficients = coefficients.tocsr()
         log.debug(f"Compute coefficients, tile {t} complete")
 
         # STEP 2.5: On the first tile, compute a mean OMP spot from coefficients for score calculations.

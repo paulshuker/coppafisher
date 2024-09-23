@@ -1,5 +1,6 @@
 import math as maths
 from typing import Tuple
+import warnings
 
 import numpy as np
 import scipy
@@ -56,7 +57,7 @@ class CoefficientSolverOMP:
             - pixel_subset_count (int): the maximum number of pixels to compute OMP on at a time. Used when memory limited.
 
         Returns:
-            (`(n_pixels x n_genes) scipy.sparse.lil_matrix[float32]`) coefficients: each gene coefficient for every pixel.
+            (`(n_pixels x n_genes) scipy.sparse.csr_array[float32]`) coefficients: each gene coefficient for every pixel.
                 Most values will be zero, so kept in a sparse matrix.
         """
         n_pixels, n_rounds_use, n_channels_use = pixel_colours.shape
@@ -92,7 +93,7 @@ class CoefficientSolverOMP:
         all_bled_codes = torch.concat((bled_codes_torch, background_codes_torch), dim=0)
         all_bled_codes = all_bled_codes.reshape((all_bled_codes.shape[0], n_rounds_channels_use))
 
-        coefficients = scipy.sparse.lil_matrix((n_pixels, n_genes), dtype=np.float32)
+        coefficients = scipy.sparse.csr_array((n_pixels, n_genes), dtype=np.float32)
 
         n_subsets = maths.ceil(n_pixels / pixel_subset_count)
         verbose = n_pixels > 1_000
@@ -157,6 +158,7 @@ class CoefficientSolverOMP:
                 )
                 # TODO: With some clever indexing, this for loop may be removable.
                 # But, I am not sure if it would save much time.
+                log.debug(f"Assigning results to sparse array")
                 for j in range(iteration + 1):
                     subset_coefficients[subset_pixels_to_continue, latest_gene_selections[:, j]] = new_coefficients[
                         :, j
@@ -166,8 +168,11 @@ class CoefficientSolverOMP:
             subset_coefficients /= torch.linalg.vector_norm(subset_colours, dim=1, keepdim=True) + normalisation_shift
             subset_coefficients = subset_coefficients.cpu().numpy()
 
-            # Add the subset coefficients to the sparse coefficients matrix.
-            coefficients[index_min:index_max] = subset_coefficients
+            # Add the subset coefficients to the sparse coefficients matrix. This gives a warning about slow
+            # assignment, this is ignored.
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                coefficients[index_min:index_max] = subset_coefficients
             del subset_coefficients
 
         return coefficients

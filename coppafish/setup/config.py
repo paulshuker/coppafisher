@@ -137,7 +137,7 @@ _options = {
         "dp_thresh": "number",
         "alpha": "number",
         "beta": "number",
-        "subset_pixels": "int",
+        "subset_pixels": "maybe_int",
         "force_cpu": "bool",
         "radius_xy": "int",
         "radius_z": "int",

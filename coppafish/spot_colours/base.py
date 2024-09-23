@@ -6,7 +6,7 @@ import torch
 from tqdm import tqdm
 import zarr
 
-from .. import utils
+from .. import utils, log
 
 
 def convert_coords_to_torch_grid(yxz_coords: torch.Tensor, image_shape: tuple[int, int, int]) -> torch.Tensor:
@@ -194,19 +194,20 @@ def get_spot_colours_new_safe(
     n_channels_use, n_rounds_use = len(nbp_basic_info.use_channels), len(nbp_basic_info.use_rounds)
     if yxz is None:
         yxz = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
-        yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int32).T.reshape((-1, 3), order="F")
+        yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).T.reshape((-1, 3), order="F")
     assert yxz.ndim == 2
     assert yxz.shape[1] == 3
+
     batch_size = maths.floor(utils.system.get_available_memory() * 5.3e7 / (n_channels_use * n_rounds_use))
+    log.debug(f"{batch_size=}")
     n_batches = maths.ceil(yxz.shape[0] / batch_size)
-    colours = None
     for i in range(n_batches):
+        log.debug(f"{i + 1} / {n_batches}")
         index_min, index_max = i * batch_size, min((i + 1) * batch_size, yxz.shape[0])
         i_colours = get_spot_colours_new(yxz=yxz[index_min:index_max], *args, **kwargs)
-        if colours is None:
-            colours = i_colours
-        else:
-            colours = np.append(colours, i_colours, axis=0)
+        if i == 0:
+            colours = np.zeros((yxz.shape[0],) + i_colours.shape[1:], i_colours.dtype)
+        colours[index_min:index_max] = i_colours
         del i_colours
     return colours
 
