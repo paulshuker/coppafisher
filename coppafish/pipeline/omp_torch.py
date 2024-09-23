@@ -138,14 +138,16 @@ def run_omp(
         n_subset_pixels = config["subset_pixels"]
         if n_subset_pixels is None:
             n_subset_pixels: int = maths.floor(
-                utils.system.get_available_memory(device) * 2e7 / (n_genes * n_rounds_use * n_channels_use)
+                utils.system.get_available_memory(device) * 2e8 / (n_genes * n_rounds_use * n_channels_use)
             )
         yxz_subsets = np.array_split(yxz_all, maths.ceil(np.prod(tile_shape).item() / n_subset_pixels), axis=0)
         index_min = 0
         solver = coefs.CoefficientSolverOMP()
         log.debug(f"OMP {max_genes=}")
         log.debug(f"OMP {n_subset_pixels=}")
-        for index_subset, yxz_subset in enumerate(yxz_subsets):
+        for index_subset, yxz_subset in enumerate(
+            tqdm.tqdm(yxz_subsets, desc=f"Computing tile {t} coefficients", unit="subset")
+        ):
             log.debug(f"==== Subset {index_subset} ====")
             colour_subset = spot_colours.base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)
             coefficient_subset = solver.compute_omp_coefficients(colour_subset, **coefficient_kwargs)

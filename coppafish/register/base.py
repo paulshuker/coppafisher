@@ -7,7 +7,6 @@ import numpy as np
 import scipy
 from scipy.ndimage import gaussian_filter
 import skimage
-import torch
 from tqdm import tqdm
 import zarr
 
@@ -305,10 +304,15 @@ def interpolate_flow(
     # grab samples for linear regression
     flow_z_crop = flow_smooth[2][::10, ::10, : -2 * window_radius]
     # grab coords of sample points
-    coords = np.array(np.meshgrid(10 * np.arange(flow_z_crop.shape[0]),
-                                  10 * np.arange(flow_z_crop.shape[1]),
-                                  np.arange(flow_z_crop.shape[2]),
-                                  indexing="ij"), dtype=np.float32)
+    coords = np.array(
+        np.meshgrid(
+            10 * np.arange(flow_z_crop.shape[0]),
+            10 * np.arange(flow_z_crop.shape[1]),
+            np.arange(flow_z_crop.shape[2]),
+            indexing="ij",
+        ),
+        dtype=np.float32,
+    )
 
     # reshape coords and flow_z_crop and pad coords with 1s for linear regression
     coords = coords.reshape(3, -1).T
@@ -318,15 +322,17 @@ def interpolate_flow(
     coefficients = np.linalg.lstsq(a=coords_pad, b=flow_z_crop, rcond=None)[0]
 
     # now we can use this to predict the flow in z
-    coords = np.array(np.meshgrid(range(flow_smooth.shape[1]),
-                                  range(flow_smooth.shape[2]),
-                                  range(flow_smooth.shape[3]),
-                                  indexing="ij"), dtype=np.float32)
+    coords = np.array(
+        np.meshgrid(
+            range(flow_smooth.shape[1]), range(flow_smooth.shape[2]), range(flow_smooth.shape[3]), indexing="ij"
+        ),
+        dtype=np.float32,
+    )
     coords = coords.reshape(3, -1).T
     coords_pad = np.pad(coords, [(0, 0), (0, 1)], constant_values=1)
-    flow_smooth[2] = (coords_pad @ coefficients).reshape(flow_smooth.shape[1],
-                                                         flow_smooth.shape[2],
-                                                         flow_smooth.shape[3])
+    flow_smooth[2] = (coords_pad @ coefficients).reshape(
+        flow_smooth.shape[1], flow_smooth.shape[2], flow_smooth.shape[3]
+    )
     del coords, coords_pad, flow_z_crop, coefficients
 
     # remove nan values
