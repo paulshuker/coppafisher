@@ -241,6 +241,7 @@ def run_reference_spots(nb: Notebook, nbp_file: NotebookPage) -> None:
     if not nb.has_page("ref_spots"):
         nbp_ref_spots = get_reference_spots.get_reference_spots(
             nbp_basic=nb.basic_info,
+            nbp_file=nbp_file,
             nbp_filter=nb.filter,
             nbp_find_spots=nb.find_spots,
             nbp_register=nb.register,

@@ -4,7 +4,7 @@ import os
 import shutil
 import tempfile
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
 import zarr
@@ -256,7 +256,7 @@ class NotebookPage:
         },
         "filter": {
             "images": [
-                "zarray",
+                "zarray[float16]",
                 "`(n_tiles x (n_rounds + n_extra_rounds) x n_channels x tile_sz x tile_sz x len(use_z))` zarray float16. "
                 + "All microscope images after filtering (deblurring) is applied.",
             ],
@@ -330,26 +330,26 @@ class NotebookPage:
                 + "or if one of the tiles is not used in the pipeline.",
             ],
             "dapi_image": [
-                "zarray",
+                "zarray[float16]",
                 "float16 array (im_z x im_y x im_x). "
                 + "Fused large dapi image created by merging all tiles together after stitch shifting is applied.",
             ],
         },
         "register": {
             "flow": [
-                "zarray",
+                "zarray[float16]",
                 "n_tiles x n_rounds x 3 x tile_sz x tile_sz x len(use_z)",
                 "The optical flow shifts for each image pixel after smoothing. The third axis is for the different "
                 + "image directions. 0 is the y shifts, 1 is the x shifts, 2 is the z shifts. "
                 + "flow[t, r] takes the anchor image to t/r image.",
             ],
             "correlation": [
-                "zarray",
+                "zarray[float16]",
                 "n_tiles x n_rounds x tile_sz x tile_sz x len(use_z)",
                 "The optical flow correlations.",
             ],
             "flow_raw": [
-                "zarray",
+                "zarray[float16]",
                 "n_tiles x n_rounds x 3 x tile_sz x tile_sz x len(use_z)",
                 "The optical flow shifts for each image pixel before smoothing. The third axis is for the different "
                 + "image directions. 0 is the y shifts, 1 is the x shifts, 2 is the z shifts.",
@@ -360,20 +360,20 @@ class NotebookPage:
                 + "yxz affine corrections to be applied after the warp.",
             ],
             "anchor_images": [
-                "zarray",
+                "zarray[uint8]",
                 "Numpy uint8 array `(n_tiles x 2 x im_y x im_x x im_z)`"
                 + "A subset of the anchor image after all image registration is applied. "
                 + "The second axis is for the channels. 0 is the dapi channel, 1 is the anchor reference channel.",
             ],
             "round_images": [
-                "zarray",
+                "zarray[uint8]",
                 "Numpy uint8 array `(n_tiles x n_rounds x 3 x im_y x im_x x im_z)`"
                 + "A subset of the anchor image after all image registration is applied. "
                 + "The third axis is for the registration step. 0 is before register, 1 is after optical flow, 2 is "
                 + "after optical flow and ICP",
             ],
             "channel_images": [
-                "zarray",
+                "zarray[uint8]",
                 "Numpy uint8 array `(n_tiles x n_channels x 3 x im_y x im_x x im_z)`"
                 + "The third axis is for the registration step. 0 is before register, 1 is after optical flow, 2 is "
                 + "after optical flow and ICP",
@@ -428,17 +428,17 @@ class NotebookPage:
         },
         "ref_spots": {
             "local_yxz": [
-                "ndarray[int16]",
+                "zarray[int16]",
                 "Numpy array [n_spots x 3]. "
                 + "`local_yxz[s]` are the $yxz$ coordinates of spot $s$ found on `tile[s]`, `ref_round`, `ref_channel`."
                 + "To get `global_yxz`, add `nb.stitch.tile_origin[tile[s]]`.",
             ],
             "tile": [
-                "ndarray[int16]",
+                "zarray[int16]",
                 "Numpy array [n_spots]. Tile each spot was found on.",
             ],
             "colours": [
-                "ndarray[float32]",
+                "zarray[float32]",
                 "Numpy array [n_spots x n_rounds x n_channels]. "
                 + "`[s, r, c]` is the intensity of spot $s$ on round $r$, channel $c$."
                 + "`-tile_pixel_value_shift` if that round/channel not used otherwise integer.",
@@ -525,25 +525,25 @@ class NotebookPage:
                 " scaled spots against the target bled codes.",
             ],
             "dot_product_gene_no": [
-                "ndarray[int16]",
+                "zarray[int16]",
                 "Numpy array [n_spots]. Gene number assigned to each spot. `None` if not assigned.",
             ],
             "dot_product_gene_score": [
-                "ndarray[float32]",
+                "zarray[float32]",
                 "Numpy float array [n_spots]. `score[s]' is the highest gene coef of spot s.",
             ],
             "gene_probabilities": [
-                "ndarray[float32]",
+                "zarray[float32]",
                 "Numpy float array [n_spots x n_genes]. `gene_probabilities[s, g]` is the probability that spot $s$ "
                 + "belongs to gene $g$.",
             ],
             "gene_probabilities_initial": [
-                "ndarray[float32]",
+                "zarray[float32]",
                 "Numpy float array [n_spots x n_genes]. `gene_probabilities_initial[s, g]` is the probability that spot"
                 + " $s$ belongs to gene $g$ after only initial scaling compared against the raw bleed matrix.",
             ],
             "intensity": [
-                "ndarray[float32]",
+                "zarray[float32]",
                 "Numpy float32 array [n_spots]. "
                 + "$\\chi_s = \\underset{r}{\\mathrm{median}}(\\max_c\\zeta_{s_{rc}})$"
                 + "where $\\pmb{\\zeta}_s=$ `colors[s, r]*colour_norm_factor[r]`.",
@@ -641,7 +641,7 @@ class NotebookPage:
             "l": ["ndarray[bool]"],
             "m": ["ndarray[str]"],
             "n": ["ndarray[uint]"],
-            "o": ["zarray"],
+            "o": ["zarray[float]"],
             "p": ["zgroup"],
         },
     }
@@ -809,7 +809,7 @@ class NotebookPage:
         expected_types = self._get_expected_types(name)
         if not self._is_types(value, expected_types):
             added_msg = ""
-            if type(value) is np.ndarray:
+            if type(value) is np.ndarray or type(value) in zarr.Array:
                 added_msg += f" with dtype {value.dtype.type}"
             msg = f"Cannot set variable {name} to type {type(value)}{added_msg}. Expected type(s) {expected_types}"
             raise TypeError(msg)
@@ -990,26 +990,10 @@ class NotebookPage:
                     ):
                         return False
                 return True
-        elif type_as_str == "ndarray[int]":
-            return self._is_ndarray_of_dtype(value, (np.int16, np.int32, np.int64))
-        elif type_as_str == "ndarray[int16]":
-            return self._is_ndarray_of_dtype(value, (np.int16,))
-        elif type_as_str == "ndarray[int32]":
-            return self._is_ndarray_of_dtype(value, (np.int32,))
-        elif type_as_str == "ndarray[uint]":
-            return self._is_ndarray_of_dtype(value, (np.uint16, np.uint32, np.uint64))
-        elif type_as_str == "ndarray[float]":
-            return self._is_ndarray_of_dtype(value, (np.float16, np.float32, np.float64))
-        elif type_as_str == "ndarray[float16]":
-            return self._is_ndarray_of_dtype(value, (np.float16,))
-        elif type_as_str == "ndarray[float32]":
-            return self._is_ndarray_of_dtype(value, (np.float32,))
-        elif type_as_str == "ndarray[str]":
-            return self._is_ndarray_of_dtype(value, (str, np.str_))
-        elif type_as_str == "ndarray[bool]":
-            return self._is_ndarray_of_dtype(value, (bool, np.bool_))
-        elif type_as_str == "zarray":
-            return type(value) is zarr.Array
+        elif type_as_str.startswith("ndarray"):
+            return self._is_ndarray_of_dtype(value, self._get_dtypes_in_type_str(type_as_str))
+        elif type_as_str.startswith("zarray"):
+            return self._is_zarray_of_dtype(value, self._get_dtypes_in_type_str(type_as_str))
         elif type_as_str == "zgroup":
             return type(value) is zarr.Group
         else:
@@ -1019,3 +1003,51 @@ class NotebookPage:
         assert type(valid_dtypes) is tuple
 
         return type(variable) is np.ndarray and isinstance(variable.dtype.type(), valid_dtypes)
+
+    def _is_zarray_of_dtype(self, variable: Any, valid_dtypes: Tuple[np.dtype], /) -> bool:
+        assert type(valid_dtypes) is tuple
+
+        return type(variable) is zarr.Array and isinstance(variable.dtype.type(), valid_dtypes)
+
+    def _get_dtypes_in_type_str(self, type_as_str: str) -> Tuple[Union[np.dtype, str, bool]]:
+        assert type(type_as_str) is str
+
+        if not (self._datatype_nest_start in type_as_str and self._datatype_nest_end in type_as_str):
+            raise ValueError(
+                f"Type {type_as_str} needs a dtype between {self._datatype_nest_start} and {self._datatype_nest_end}"
+            )
+        dtype_in_str = type_as_str[type_as_str.index(self._datatype_nest_start) + 1 :]
+        dtype_in_str = dtype_in_str[: dtype_in_str.index(self._datatype_nest_end)]
+        # TODO: Remove support for ambiguous "int", "uint", and "float" numpy dtypes.
+        if dtype_in_str == "int":
+            return (np.int16, np.int32, np.int64)
+        elif dtype_in_str == "int16":
+            return (np.int16,)
+        elif dtype_in_str == "int32":
+            return (np.int32,)
+        elif dtype_in_str == "int64":
+            return (np.int64,)
+        elif dtype_in_str == "uint":
+            return (np.uint16, np.uint32, np.uint64)
+        elif dtype_in_str == "uint8":
+            return (np.uint8,)
+        elif dtype_in_str == "uint16":
+            return (np.uint16,)
+        elif dtype_in_str == "uint32":
+            return (np.uint32,)
+        elif dtype_in_str == "uint64":
+            return (np.uint64,)
+        elif dtype_in_str == "float":
+            return (np.float16, np.float32, np.float64)
+        elif dtype_in_str == "float16":
+            return (np.float16,)
+        elif dtype_in_str == "float32":
+            return (np.float32,)
+        elif dtype_in_str == "float64":
+            return (np.float64,)
+        elif dtype_in_str == "str":
+            return (str, np.str_)
+        elif dtype_in_str == "bool":
+            return (bool, np.bool_)
+        else:
+            raise ValueError(f"Unknown datatype {dtype_in_str} in {type_as_str} for a notebook page variable")

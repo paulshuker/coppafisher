@@ -53,6 +53,7 @@
     checkerboard patten in green and red, with overlapping regions in yellow, and the other for viewing the shifts
     computed for each tile.
  * Call spots: bad_trc now works with the new colour normalisation factor computation fix.
+ * Call spots: some variables now saved as zarr arrays to reduce memory usage and notebook read speed.
  * OMP: OMP is now truly orthogonal. Before, the new gene was weighted using only the residual pixel colour. Now, all 
     genes are re-weighted using the full pixel colour and a new gene is found using the latest residual colour.
  * OMP: After each tile, OMP saves the progress and can continue where it left off if OMP is not completed fully.

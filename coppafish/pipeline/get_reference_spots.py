@@ -1,4 +1,7 @@
+import os
+
 import numpy as np
+import zarr
 
 from .. import log
 from ..call_spots import base as call_spots_base
@@ -8,6 +11,7 @@ from ..spot_colours import base as spot_colours_base
 
 def get_reference_spots(
     nbp_basic: NotebookPage,
+    nbp_file: NotebookPage,
     nbp_filter: NotebookPage,
     nbp_find_spots: NotebookPage,
     nbp_register: NotebookPage,
@@ -18,10 +22,10 @@ def get_reference_spots(
     in each of the imaging rounds/channels.
 
     Args:
-        nbp_file: `file_names` notebook page.
         nbp_basic: `basic_info` notebook page.
+        nbp_file: `file_names` notebook page.
+        nbp_filter: `filter` notebook page.
         nbp_find_spots: 'find_spots' notebook page.
-        nbp_extract: `extract` notebook page.
         nbp_register: `register` notebook page.
         nbp_stitch: `stitch` notebook page.
 
@@ -87,6 +91,12 @@ def get_reference_spots(
         spot_colours = np.append(spot_colours, colours[valid], axis=0)
         local_yxz = np.append(local_yxz, nd_local_yxz[in_tile][valid], axis=0)
         tile = np.append(tile, np.ones(valid.sum(), dtype=np.int16) * t)
+
+    # Convert the numpy results to zarrays for saving.
+    kwargs = dict(chunks=False, zarr_version=2)
+    local_yxz = zarr.array(local_yxz, store=os.path.join(nbp_file.output_dir, "local_yxz.zarray"), **kwargs)
+    tile = zarr.array(tile, store=os.path.join(nbp_file.output_dir, "tile.zarray"), **kwargs)
+    spot_colours = zarr.array(spot_colours, store=os.path.join(nbp_file.output_dir, "spot_colours.zarray"), **kwargs)
 
     # save spot info to notebook
     nbp.local_yxz = local_yxz

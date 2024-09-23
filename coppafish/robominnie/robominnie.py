@@ -665,15 +665,15 @@ class Robominnie:
         assert nb.has_page("ref_spots"), f"Reference spots not found in notebook at {config_filepath}"
         assert nb.has_page("call_spots")
 
-        self.prob_spots_positions = nb.ref_spots.local_yxz.astype(np.float32)
-        self.prob_spots_scores = nb.call_spots.gene_probabilities.max(1)
-        self.prob_spots_gene_indices = np.argmax(nb.call_spots.gene_probabilities, 1)
-        self.prob_spots_tile = nb.ref_spots.tile
+        self.prob_spots_positions = nb.ref_spots.local_yxz[:].astype(np.float32)
+        self.prob_spots_scores = nb.call_spots.gene_probabilities[:].max(1)
+        self.prob_spots_gene_indices = np.argmax(nb.call_spots.gene_probabilities[:], 1)
+        self.prob_spots_tile = nb.ref_spots.tile[:]
 
-        self.ref_spots_local_positions_yxz = nb.ref_spots.local_yxz.astype(np.float32)
-        self.ref_spots_scores = nb.call_spots.dot_product_gene_score
-        self.ref_spots_gene_indices = nb.call_spots.dot_product_gene_no
-        self.ref_spots_tile = nb.ref_spots.tile
+        self.ref_spots_local_positions_yxz = nb.ref_spots.local_yxz[:].astype(np.float32)
+        self.ref_spots_scores = nb.call_spots.dot_product_gene_score[:]
+        self.ref_spots_gene_indices = nb.call_spots.dot_product_gene_no[:]
+        self.ref_spots_tile = nb.ref_spots.tile[:]
 
         end_time = time.time()
         print(

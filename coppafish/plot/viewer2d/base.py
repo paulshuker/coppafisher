@@ -153,7 +153,7 @@ class Viewer2D:
             ]
 
         # Keep gene positions and scores inside the Viewer2D instance.
-        self.anchor_global_yxz = nb.ref_spots.local_yxz + nb.stitch.tile_origin[nb.ref_spots.tile]
+        self.anchor_global_yxz = nb.ref_spots.local_yxz[:] + nb.stitch.tile_origin[nb.ref_spots.tile[:]]
         self.anchor_gene_no = nb.call_spots.dot_product_gene_no
         self.anchor_score = nb.call_spots.dot_product_gene_score
         self.probs_global_yxz = self.anchor_global_yxz

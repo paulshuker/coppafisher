@@ -149,7 +149,7 @@ def test_notebook_creation() -> None:
 
     try:
         nb += nb_page
-        assert False, f"Shoul not be able to add an unfinished page to the notebook"
+        assert False, f"Should not be able to add an unfinished page to the notebook"
     except ValueError:
         pass
 
@@ -207,3 +207,7 @@ def test_notebook_creation() -> None:
     # Clean any temporary files/directories.
     temp_zarr.cleanup()
     temp_zgroup.cleanup()
+
+
+if __name__ == "__main__":
+    test_notebook_creation()
