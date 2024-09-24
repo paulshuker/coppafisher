@@ -138,7 +138,7 @@ def run_omp(
         n_subset_pixels = config["subset_pixels"]
         if n_subset_pixels is None:
             n_subset_pixels: int = maths.floor(
-                utils.system.get_available_memory(device) * 2e8 / (n_genes * n_rounds_use * n_channels_use)
+                utils.system.get_available_memory(device) * 1e8 / (n_genes * n_rounds_use * n_channels_use)
             )
         yxz_subsets = np.array_split(yxz_all, maths.ceil(np.prod(tile_shape).item() / n_subset_pixels), axis=0)
         index_min = 0
@@ -149,10 +149,13 @@ def run_omp(
             tqdm.tqdm(yxz_subsets, desc=f"Computing tile {t} coefficients", unit="subset")
         ):
             log.debug(f"==== Subset {index_subset} ====")
+            log.debug(f"Getting spot colours")
             colour_subset = spot_colours.base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)
+            log.debug(f"Computing coefficients")
             coefficient_subset = solver.compute_omp_coefficients(colour_subset, **coefficient_kwargs)
             index_max = index_min + colour_subset.shape[0]
             # Add the subset coefficients to the sparse coefficients matrix.
+            log.debug(f"Adding results to sparse matrix")
             coefficients[index_min:index_max] = coefficient_subset
             index_min = index_max
             del colour_subset, coefficient_subset
@@ -185,6 +188,7 @@ def run_omp(
                     radius_xy=config["shape_isolation_distance_yx"],
                     radius_z=shape_isolation_distance_z,
                 )
+                g_isolated_yxz = torch.from_numpy(g_isolated_yxz)
                 g_gene_no = torch.full((g_isolated_yxz.shape[0],), g).int()
                 isolated_yxz = torch.cat((isolated_yxz, g_isolated_yxz), dim=0).int()
                 isolated_gene_no = torch.cat((isolated_gene_no, g_gene_no), dim=0)
@@ -274,6 +278,8 @@ def run_omp(
                     radius_z=config["radius_z"],
                     remove_duplicates=True,
                 )
+                g_spot_local_positions = torch.from_numpy(g_spot_local_positions)
+                g_spot_scores = torch.from_numpy(g_spot_scores)
                 n_g_spots = g_spot_scores.size(0)
                 if n_g_spots == 0:
                     continue

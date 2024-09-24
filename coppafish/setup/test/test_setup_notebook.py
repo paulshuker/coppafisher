@@ -207,7 +207,3 @@ def test_notebook_creation() -> None:
     # Clean any temporary files/directories.
     temp_zarr.cleanup()
     temp_zgroup.cleanup()
-
-
-if __name__ == "__main__":
-    test_notebook_creation()

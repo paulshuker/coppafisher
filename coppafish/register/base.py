@@ -2,6 +2,7 @@ import time
 from typing import Optional, Tuple
 
 import joblib
+from joblib.externals import loky
 import nd2
 import numpy as np
 import scipy
@@ -165,13 +166,17 @@ def optical_flow_single(
     if n_cores is None:
         n_cores = utils.system.get_core_count()
     log.info(f"Computing optical flow using {n_cores} cores")
-    flow_sub = joblib.Parallel(n_jobs=n_cores)(
+    flow_sub = joblib.Parallel(n_jobs=n_cores, timeout=45 * 60)(
         joblib.delayed(skimage.registration.optical_flow_ilk)(
             target_sub[n], base_sub[n], radius=window_radius, prefilter=True
         )
         for n in range(pos.shape[0])
     )
-    flow_sub = np.array(flow_sub)  # convert list to numpy array. Shape: (n_subvols, 3, n_y, n_x, n_z)
+    # Convert list to numpy array with shape (n_subvols, 3, n_y, n_x, n_z).
+    flow_sub = np.array(flow_sub)
+    # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, the reusable loky executor is
+    # explicitly killed when done. Re-spawning it in the future only takes ~0.1s.
+    loky.get_reusable_executor().shutdown(wait=True)
 
     # Now that we have the optical flow for each subvolume, we need to merge them back together
     flow = np.array(

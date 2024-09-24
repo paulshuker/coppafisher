@@ -1,15 +1,17 @@
+from concurrent.futures import ProcessPoolExecutor
+import math as maths
 import os
 
 import numpy as np
 import torch
-from tqdm import tqdm
+import tqdm
 import zarr
 
 from .. import find_spots as fs
 from .. import log
 from ..find_spots import detect
 from ..setup.notebook_page import NotebookPage
-from ..utils import indexing
+from ..utils import indexing, system
 
 
 def find_spots(
@@ -54,13 +56,13 @@ def find_spots(
         dtype=np.float32,
     )
     group_path = os.path.join(nbp_file.output_dir, "spot_yxz.zgroup")
-    spot_yxz = zarr.group(store=group_path, zarr_version=2)
+    spot_yxz = zarr.group(store=group_path, overwrite=True, zarr_version=2)
     spot_no = np.zeros(
         (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.n_extra_rounds, nbp_basic.n_channels), dtype=np.int32
     )
 
     # Define use_indices as a [n_tiles x n_rounds x n_channels] boolean array where use_indices[t, r, c] is True if
-    # we want to use tile `t`, round `r`, channel `c` to find spots.
+    # we want to find spots on said tile `t`, round `r`, channel `c`.
     use_indices = np.zeros(
         (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.use_anchor, nbp_basic.n_channels), dtype=bool
     )
@@ -72,31 +74,43 @@ def find_spots(
     ):
         use_indices[t, r, c] = True
 
+    batch_size = maths.floor(
+        system.get_available_memory() * 6e7 / (nbp_basic.tile_sz * nbp_basic.tile_sz * len(nbp_basic.use_z))
+    )
+    batch_size = max(min(system.get_core_count(), batch_size), 1)
+    log.debug(f"{batch_size=}")
+    n_batches = maths.ceil(use_indices.sum() / batch_size)
+    index_min = 0
+
     # Phase 2: Detect spots on uncompleted tiles, rounds and channels
-    with tqdm(
-        total=use_indices.sum(),
-        postfix={"tile": t, "round": r, "channel": c},
-        desc=f"Detecting spots on filtered images",
-    ) as pbar:
-        # Loop over uncompleted tiles, rounds and channels
-        for t, r, c in np.argwhere(use_indices):
-            pbar.set_postfix({"tile": t, "round": r, "channel": c})
-            image_trc = nbp_filter.images[t, r, c].astype(np.float32)
-            image_trc = torch.asarray(image_trc)
+    # Using python's concurrency to multi-process detect spots and save time detecting spots.
+    for _ in tqdm.trange(n_batches, desc="Detecting spots", unit="batch"):
+        # Loop over an uncompleted batch of tiles, rounds and channels.
+        index_max = min(index_min + batch_size, use_indices.sum())
+        use_indices_batch = np.argwhere(use_indices)[index_min:index_max]
+        futures = []
+        with ProcessPoolExecutor(max_workers=batch_size) as executor:
+            for t, r, c in use_indices_batch:
+                image_trc = nbp_filter.images[t, r, c].astype(np.float32)
 
-            # Compute the image's auto threshold to detect spots.
-            mid_z = image_trc.size(2) // 2
-            auto_thresh[t, r, c] = float(auto_thresh_multiplier * image_trc[..., mid_z].abs().ravel().median().clip(1))
+                # Compute the image's auto threshold to detect spots.
+                mid_z = image_trc.shape[2] // 2
+                auto_thresh[t, r, c] = float(auto_thresh_multiplier * np.median(np.abs(image_trc[..., mid_z])).clip(1))
 
-            local_yxz, spot_intensity = detect.detect_spots(
-                image_trc,
-                auto_thresh[t, r, c].item(),
-                remove_duplicates=True,
-                radius_xy=config["radius_xy"],
-                radius_z=config["radius_z"],
-            )
-            local_yxz = local_yxz.numpy().astype(np.int16)
-            spot_intensity = spot_intensity.numpy()
+                futures.append(
+                    executor.submit(
+                        detect.detect_spots,
+                        image_trc,
+                        auto_thresh[t, r, c].item(),
+                        remove_duplicates=True,
+                        radius_xy=config["radius_xy"],
+                        radius_z=config["radius_z"],
+                    )
+                )
+
+        for t, r, c in use_indices_batch:
+            local_yxz, spot_intensity = futures.pop(0).result(timeout=30 * 60)
+            local_yxz = local_yxz.astype(np.int16)
             if r != nbp_basic.anchor_round:
                 # On imaging rounds, only keep the highest intensity spots on each z plane.
                 local_yxz = fs.filter_intense_spots(local_yxz, spot_intensity, n_z, max_spots)
@@ -106,7 +120,7 @@ def find_spots(
             trc_yxz = spot_yxz.zeros(f"t{t}r{r}c{c}", chunks=local_yxz.size == 0, shape=local_yxz.shape, dtype=np.int16)
             trc_yxz[:] = local_yxz
 
-            pbar.update()
+        index_min = index_max
 
     # Phase 3: Save results to notebook page
     nbp.auto_thresh = auto_thresh
