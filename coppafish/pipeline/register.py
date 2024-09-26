@@ -1,4 +1,5 @@
 import itertools
+import math as maths
 import os
 from typing import Tuple
 
@@ -9,8 +10,8 @@ import zarr
 from .. import log
 from ..register import preprocessing
 from ..register import base as register_base
-from ..spot_colours import base as spot_colours_base
 from ..setup.notebook_page import NotebookPage
+from ..spot_colours import base as spot_colours_base
 
 
 def register(
@@ -49,7 +50,7 @@ def register(
 
     # Part 0: Initialisation
     # Initialise frequently used variables
-    log.debug("Register started")
+    log.info("Register started")
     nbp = NotebookPage("register", {"register": config})
     nbp_debug = NotebookPage("register_debug", {"register": config})
     use_tiles, use_rounds, use_channels = (
@@ -101,7 +102,14 @@ def register(
         nbp_basic.tile_sz,
         len(nbp_basic.use_z),
     )
-    raw_smooth_chunks = (1, 1, None, None, nbp_basic.tile_sz // 11.5, 1)
+    # Chunks are made into thin rods along the y direction as this is how flow is gathered in OMP.
+    x_length = max(maths.floor(1e6 / (raw_smooth_shape[2] * raw_smooth_shape[3] * 2)), 1)
+    z_length = 1
+    while x_length > nbp_basic.tile_sz:
+        x_length -= nbp_basic.tile_sz
+        z_length += 1
+    z_length = min(z_length, raw_smooth_shape[5])
+    raw_smooth_chunks = (1, 1, None, None, x_length, z_length)
     zarr.open_array(
         store=corr_loc,
         mode="w",
@@ -130,7 +138,7 @@ def register(
         # Load in the anchor image and the round images. Note that here anchor means anchor round, not necessarily
         # anchor channel
         anchor_image = nbp_filter.images[t, nbp_basic.anchor_round, nbp_basic.dapi_channel]
-        for r in tqdm(use_rounds, desc="Round", total=len(use_rounds)):
+        for r in use_rounds:
             round_image = nbp_filter.images[t, r, nbp_basic.dapi_channel]
             # Now run the registration algorithm on this tile and round
             register_base.optical_flow_register(
@@ -177,7 +185,7 @@ def register(
         for r in use_rounds:
             # check if there are enough spots to run ICP
             if nbp_find_spots.spot_no[t, r, c_ref] < config["icp_min_spots"]:
-                log.info(f"Tile {t}, round {r}, channel {c_ref} has too few spots to run ICP.")
+                log.warn(f"Tile {t}, round {r}, channel {c_ref} has too few spots to run ICP.")
                 round_correction[t, r][:3, :3] = np.eye(3)
                 continue
             # load in reference spots
@@ -225,7 +233,7 @@ def register(
                 im_spots_tc = np.vstack((im_spots_tc, im_spots_trc))
             # check if there are enough spots to run ICP
             if im_spots_tc.shape[0] < config["icp_min_spots"]:
-                log.info(f"Tile {t}, channel {c} has too few spots to run ICP.")
+                log.warn(f"Tile {t}, channel {c} has too few spots to run ICP.")
                 channel_correction[t, c][:3, :3] = np.eye(3)
                 continue
             # run ICP
@@ -276,5 +284,5 @@ def register(
     # Save a registered image subsets for debugging/plotting purposes.
     preprocessing.generate_reg_images(nbp_basic, nbp_file, nbp_filter, nbp, nbp_debug)
 
-    log.debug("Register complete")
+    log.info("Register complete")
     return nbp, nbp_debug

@@ -3,6 +3,7 @@ import os
 import pickle
 import platform
 from typing import Any, Dict, Tuple
+import warnings
 
 import numpy as np
 import scipy
@@ -105,7 +106,7 @@ def run_omp(
         device = torch.device("cpu") if (config["force_cpu"] or not torch.cuda.is_available()) else torch.device("cuda")
         postfix = {"tile": t, "device": str(device).upper()}
         yxz_all = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
-        yxz_all = np.array(np.meshgrid(*yxz_all, indexing="ij")).astype(np.int16).T.reshape((-1, 3), order="F")
+        yxz_all = np.array(np.meshgrid(*yxz_all, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
         spot_colour_kwargs = dict(
             image=nbp_filter.images,
             flow=nbp_register.flow,
@@ -126,7 +127,7 @@ def run_omp(
         max_genes = config["max_genes"]
         # The tile's coefficient results are stored into a scipy sparse matrix. Most coefficients in each row are
         # zeroes, so a csr array is appropriate.
-        coefficients = scipy.sparse.lil_matrix((np.prod(tile_shape).item(), n_genes), dtype=np.float32)
+        coefficients = scipy.sparse.csr_matrix((np.prod(tile_shape).item(), n_genes), dtype=np.float32)
         coefficient_kwargs = dict(
             bled_codes=bled_codes,
             background_codes=bg_bled_codes,
@@ -136,30 +137,39 @@ def run_omp(
             normalisation_shift=config["lambda_d"],
         )
         n_subset_pixels = config["subset_pixels"]
-        if n_subset_pixels is None:
-            n_subset_pixels: int = maths.floor(
-                utils.system.get_available_memory(device) * 1e8 / (n_genes * n_rounds_use * n_channels_use)
-            )
-        yxz_subsets = np.array_split(yxz_all, maths.ceil(np.prod(tile_shape).item() / n_subset_pixels), axis=0)
-        index_min = 0
+        index_subset, index_min = 0, 0
         solver = coefs.CoefficientSolverOMP()
         log.debug(f"OMP {max_genes=}")
         log.debug(f"OMP {n_subset_pixels=}")
-        for index_subset, yxz_subset in enumerate(
-            tqdm.tqdm(yxz_subsets, desc=f"Computing tile {t} coefficients", unit="subset")
-        ):
-            log.debug(f"==== Subset {index_subset} ====")
-            log.debug(f"Getting spot colours")
-            colour_subset = spot_colours.base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)
-            log.debug(f"Computing coefficients")
-            coefficient_subset = solver.compute_omp_coefficients(colour_subset, **coefficient_kwargs)
-            index_max = index_min + colour_subset.shape[0]
-            # Add the subset coefficients to the sparse coefficients matrix.
-            log.debug(f"Adding results to sparse matrix")
-            coefficients[index_min:index_max] = coefficient_subset
-            index_min = index_max
-            del colour_subset, coefficient_subset
-        coefficients = coefficients.tocsr()
+
+        # Large numbers now have commas.
+        with tqdm.tqdm(
+            total=np.prod(tile_shape).item(), desc=f"Computing tile {t} coefficients with {str(device)}", unit="pixel"
+        ) as pbar:
+            while index_min < yxz_all.shape[0]:
+                if n_subset_pixels is None:
+                    n_subset_pixels: int = maths.floor(
+                        utils.system.get_available_memory(device) * 8e8 / (n_genes * n_rounds_use * n_channels_use)
+                    )
+                log.debug(f"==== Subset {index_subset} ====")
+                log.debug(f"Getting spot colours")
+                index_max = index_min + n_subset_pixels
+                colour_subset = spot_colours.base.get_spot_colours_new_safe(
+                    nbp_basic, yxz_all[index_min:index_max], **spot_colour_kwargs
+                )
+                log.debug(f"Computing coefficients")
+                coefficient_subset = solver.compute_omp_coefficients(colour_subset, **coefficient_kwargs)
+                del colour_subset
+                # Add the subset coefficients to the sparse coefficients matrix.
+                log.debug(f"Adding results to sparse matrix")
+                coefficient_subset = scipy.sparse.csr_matrix(coefficient_subset)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    coefficients[index_min:index_max] = coefficient_subset
+                pbar.update(n_subset_pixels)
+                index_min = index_max
+                index_subset += 1
+                del coefficient_subset
         del solver
         log.debug(f"Compute coefficients, tile {t} complete")
 
@@ -174,13 +184,9 @@ def run_omp(
             isolated_yxz = torch.zeros((0, 3)).int()
             isolated_gene_no = torch.zeros(0).int()
             for g in range(n_genes):
-                # np.savez_compressed(
-                #     f"/home/paul/Documents/yuta/output/{g}_coef_image.npz",
-                #     coefficients[:, [g]].toarray().reshape(tile_shape, order="C"),
-                # )
-                g_coef_image = torch.asarray(coefficients[:, [g]].toarray().reshape(tile_shape, order="C")).float()
+                g_coef_image = torch.asarray(coefficients[:, [g]].toarray().reshape(tile_shape, order="F")).float()
                 if torch.allclose(g_coef_image, torch.zeros(1).float()):
-                    log.warn(f"All tile {t} OMP coefficients for gene {nbp_call_spots.gene_names[g]} are zero")
+                    log.warn(f"Tile {t} OMP coefficients for gene {nbp_call_spots.gene_names[g]} are all zero")
                 g_isolated_yxz, _ = find_spots.detect.detect_spots(
                     g_coef_image,
                     config["shape_coefficient_threshold"],
@@ -254,7 +260,7 @@ def run_omp(
         t_spots_gene_no = tile_results.zeros("gene_no", overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.int16)
         t_spots_score = tile_results.zeros("scores", overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.float16)
 
-        batch_size = int(1e9 * utils.system.get_available_memory(device) // (np.prod(tile_shape).item() * 30))
+        batch_size = int(2e6 * utils.system.get_available_memory(device) // (np.prod(tile_shape).item()))
         batch_size = max(batch_size, 1)
         log.debug(f"Gene batch size: {batch_size}")
         gene_batches = [
@@ -263,7 +269,7 @@ def run_omp(
         ]
         for gene_batch in tqdm.tqdm(gene_batches, desc=f"Scoring/detecting spots", unit="gene batch", postfix=postfix):
             # STEP 2: Score every gene's coefficient image.
-            g_coef_image = coefficients[:, gene_batch].toarray().T.reshape((len(gene_batch),) + tile_shape, order="C")
+            g_coef_image = coefficients[:, gene_batch].toarray().T.reshape((len(gene_batch),) + tile_shape, order="F")
             g_coef_image = torch.asarray(g_coef_image).float()
             g_score_image = scores_torch.score_coefficient_image(g_coef_image, spot, mean_spot, config["force_cpu"])
             del g_coef_image

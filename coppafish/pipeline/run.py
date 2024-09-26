@@ -78,6 +78,7 @@ def initialize_nb(config_path: str) -> Tuple[Notebook, NotebookPage]:
         config_notify["sender_email"],
         config_notify["sender_email_password"],
     )
+    log.info("")
     log.info(
         f" COPPAFISH v{utils_system.get_software_version()} ".center(utils_system.get_terminal_size_xy(-33)[0], "=")
     )
@@ -132,7 +133,7 @@ def run_filter(nb: Notebook, nbp_file: NotebookPage) -> None:
         - nb (Notebook): `Notebook` containing `basic_info`, `scale` and `extract` pages.
         - nbp_file (NotebookPage): `file_names` notebook page.
     """
-    if not nb.has_page("filter"):
+    if not nb.has_page("filter") or not nb.has_page("filter_debug"):
         config = setup.config.get_config(nb.config_path)
         nbp, nbp_debug = filter_run.run_filter(config["filter"], nbp_file, nb.basic_info)
         nb += nbp
@@ -207,8 +208,7 @@ def run_register(nb: Notebook, nbp_file: NotebookPage) -> None:
         - (NotebookPage) nbp_file: `file_names` notebook page.
     """
     config = setup.config.get_config(nb.config_path)
-    # if not all(nb.has_page(["register", "register_debug"])):
-    if not nb.has_page("register"):
+    if not nb.has_page("register") or not nb.has_page("register_debug"):
         nbp, nbp_debug = register.register(
             nb.basic_info,
             nbp_file,
@@ -216,7 +216,6 @@ def run_register(nb: Notebook, nbp_file: NotebookPage) -> None:
             nb.find_spots,
             config["register"],
         )
-        # register.preprocessing.generate_reg_images(nb, nbp, nbp_debug)
         nb += nbp
         nb += nbp_debug
     else:

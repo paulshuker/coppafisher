@@ -165,7 +165,7 @@ def optical_flow_single(
     # compute the optical flow (in parallel)
     if n_cores is None:
         n_cores = utils.system.get_core_count()
-    log.info(f"Computing optical flow using {n_cores} cores")
+    log.debug(f"Computing optical flow using {n_cores} cores")
     flow_sub = joblib.Parallel(n_jobs=n_cores, timeout=45 * 60)(
         joblib.delayed(skimage.registration.optical_flow_ilk)(
             target_sub[n], base_sub[n], radius=window_radius, prefilter=True
@@ -208,7 +208,7 @@ def optical_flow_single(
         zarray = zarr.open_array(loc, mode="r+")
         zarray[tile, round] = flow_up
     t_end = time.time()
-    log.info("Optical flow computation took " + str(t_end - t_start) + " seconds")
+    log.debug("Optical flow computation took " + str(t_end - t_start) + " seconds")
 
     return flow
 
@@ -259,7 +259,7 @@ def flow_correlation(
         zarray = zarr.open_array(loc, mode="r+")
         zarray[tile, round] = correlation_upsampled
     t_end = time.time()
-    log.info("Computing correlation took " + str(t_end - t_start) + " seconds")
+    log.debug("Computing correlation took " + str(t_end - t_start) + " seconds")
     return correlation, correlation_upsampled
 
 
@@ -357,7 +357,7 @@ def interpolate_flow(
         zarray = zarr.open_array(loc, mode="r+")
         zarray[tile, round] = flow_smooth
     time_end = time.time()
-    log.info("Interpolating flow took " + str(time_end - time_start) + " seconds")
+    log.debug("Interpolating flow took " + str(time_end - time_start) + " seconds")
     return flow_smooth
 
 
@@ -485,7 +485,7 @@ def channel_registration(
             )
             if not converged:
                 transform[i] = np.eye(4, 3)
-                log.error(Warning("ICP did not converge for camera " + str(i) + ". Replacing with identity."))
+                log.warn("ICP did not converge for camera " + str(i) + ". Replacing with identity.")
             pbar.update(1)
 
     # Need to add in z coord info as not accounted for by registration due to all coords being equal

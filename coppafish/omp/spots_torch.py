@@ -90,7 +90,7 @@ def compute_mean_spot(
     spots = torch.zeros((0, n_shifts)).float()
 
     for g in spot_positions_gene_no.unique():
-        g_coef_image = torch.asarray(coefficients[:, [g]].toarray()).reshape(tile_shape).float()
+        g_coef_image = torch.asarray(coefficients[:, [g]].toarray().reshape(tile_shape, order="F")).float()
         # Pad the coefficient image for out of bound cases.
         g_coef_image = torch.nn.functional.pad(g_coef_image, (0, spot_shape[2], 0, spot_shape[1], 0, spot_shape[0]))
         g_yxz = spot_positions_yxz[spot_positions_gene_no == g].int()
