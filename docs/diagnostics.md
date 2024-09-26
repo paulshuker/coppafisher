@@ -1,9 +1,9 @@
-Diagnostics specific to the methods are found in the Method tab above.
+Diagnostics specific to the methods are found in the [method](stitch.md) tab.
 
 ## Viewer
 
 The Viewer is coppafish's flagship way of viewing final results. It is a fast, three-dimensional view of gene reads 
-found by coppafish. The view is powered by <a href="https://github.com/napari/napari" target="_blank">napari</a>.
+found by coppafish. The application is run through [napari](https://github.com/napari/napari).
 
 ### Opening
 
@@ -11,7 +11,7 @@ A Viewer can be displayed once coppafish has run through at least [call spots](o
 
 ```python
 from coppafish import Notebook, Viewer
-nb = Notebook("path/to/notebook.npz")
+nb = Notebook("/path/to/notebook.npz")
 Viewer(nb)
 ```
 
@@ -20,12 +20,12 @@ opened by
 
 ```python
 from coppafish import Notebook, Viewer
-nb = Notebook("path/to/notebook.npz")
-Viewer(nb, gene_marker_file="path/to/custom/gene_marker_file.csv")
+nb = Notebook("/path/to/notebook.npz")
+Viewer(nb, gene_marker_file="/path/to/custom/gene_marker_file.csv")
 ```
 
 see [here](https://github.com/paulshuker/coppafish/raw/HEAD/coppafish/plot/results_viewer/gene_color.csv) for the 
-default .csv file for gene markers.
+default gene marker file.
 
 ### Description
 
@@ -53,7 +53,7 @@ recommend a value $\ge1$, but there is no known optimal value.
 ```python
 from coppafish import RegistrationViewer, Notebook
 
-nb = Notebook("path/to/notebook.npz")
+nb = Notebook("/path/to/notebook.npz")
 RegistrationViewer(nb, t=t)
 ```
 
@@ -72,7 +72,7 @@ To open
 ```python
 from coppafish import Notebook, Viewer2D
 
-nb = Notebook("path/to/notebook.npz")
+nb = Notebook("/path/to/notebook.npz")
 Viewer2D(nb)
 ```
 
@@ -109,7 +109,7 @@ you wish to view all of the them from the sequencing images.
 
 ### Filtered images
 
-Images after all [filtering](overview.md#filter) are viewed by
+Images after the [filter](overview.md#filter) stage are viewed by
 
 ```python
 from coppafish import Notebook, plot
