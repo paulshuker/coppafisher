@@ -1,17 +1,17 @@
 import copy
+import importlib.resources as importlib_resources
 import os
 import time
 from typing import Optional, Union
 import warnings
 
-import importlib.resources as importlib_resources
+from PyQt5.QtWidgets import QMainWindow, QPushButton
 import matplotlib.pyplot as plt
 import napari
 from napari.layers.points import Points
 from napari.layers.points._points_constants import Mode
 import numpy as np
 import pandas as pd
-from PyQt5.QtWidgets import QMainWindow, QPushButton
 from qtpy.QtCore import Qt
 from superqt import QDoubleRangeSlider, QDoubleSlider
 import tifffile
@@ -21,14 +21,14 @@ from .. import call_spots as call_spots_plot
 from ...omp import base as omp_base
 from ...setup.notebook import Notebook
 from ..call_spots import (
-    view_bled_codes,
+    GeneEfficiencyViewer,
     ViewBleedMatrix,
+    ViewScalingAndBGRemoval,
+    view_bled_codes,
     view_codes,
     view_spot,
-    ViewScalingAndBGRemoval,
-    GeneEfficiencyViewer,
 )
-from ..call_spots import ViewAllGeneHistograms, HistogramScore
+from ..call_spots import HistogramScore, ViewAllGeneHistograms
 from ..omp import ViewOMPImage, ViewOMPPixelColours
 from .hotkeys import KeyBinds, ViewHotkeys
 
@@ -37,9 +37,9 @@ class Viewer:
     def __init__(
         self,
         nb: Notebook,
-        background_image: Optional[list] = ["dapi"],
-        background_image_colour: Optional[list] = ["gray"],
-        background_image_max_intensity_projection: Optional[list] = [False],
+        background_image: Optional[tuple] = ("dapi",),
+        background_image_colour: Optional[tuple] = ("gray",),
+        background_image_max_intensity_projection: Optional[tuple] = (False,),
         gene_marker_file: Optional[str] = None,
         spot_size: int = 10,
         downsample_factor: int = 1,
@@ -60,13 +60,14 @@ class Viewer:
             * legend: dict, containing the legend figure and axes.
             * sliders: dict, containing the sliders in the napari viewer.
             * nb: Notebook, the notebook object.
+
         Args:
             nb: Notebook containing at least the `ref_spots` page.
-            background_image: Optional list of file_names or images that will be plotted as the background image.
+            background_image: Optional tuple of file_names or images that will be plotted as the background image.
                 If images, z dimensions need to be first i.e. `n_z x n_y x n_x` if 3D or `n_y x n_x` if 2D.
                 If pass *2D* image for *3D* data, will show same image as background on each z-plane.
-            background_image_colour: list of names of background colours. Must be same length as background_image
-            background_image_max_intensity_projection: Optional list of bools. If True, will plot the maximum intensity
+            background_image_colour: tuple of names of background colours. Must be same length as background_image
+            background_image_max_intensity_projection: Optional tuple of bools. If True, will plot the maximum intensity
                 projection of the background image. If False, will plot the background_image as is.
             gene_marker_file: Path to csv file containing marker and color for each gene. There must be 7 columns
                 in the csv file with the following headers (comma separated):
@@ -109,9 +110,9 @@ class Viewer:
         self.create_spots_list(nb=nb, downsample_factor=downsample_factor)
         self.load_bg_images(
             nb=nb,
-            background_image=background_image,
-            background_image_colour=background_image_colour,
-            max_intensity_projections=background_image_max_intensity_projection,
+            background_image=list(background_image),
+            background_image_colour=list(background_image_colour),
+            max_intensity_projections=list(background_image_max_intensity_projection),
             downsample_factor=downsample_factor,
         )
 
