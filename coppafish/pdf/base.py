@@ -4,10 +4,10 @@ from typing import Optional, Tuple, Union
 import webbrowser
 
 import matplotlib as mpl
+from matplotlib import colors as mcolours
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
 from matplotlib.transforms import ScaledTranslation
-from matplotlib import colors as mcolours
 import numpy as np
 from tqdm import tqdm
 from typing_extensions import Self
@@ -34,7 +34,7 @@ class BuildPDF:
     HEATMAP_BIN_SIZE = 10  # In pixel count
     HEATMAP_PROB_SCORE_THRESH = 0.5
     HEATMAP_ANCHOR_SCORE_THRESH = 0.5
-    HEATMAP_OMP_SCORE_THRESH = 0.3
+    HEATMAP_OMP_SCORE_THRESH = 0.2
 
     def __init__(
         self,
