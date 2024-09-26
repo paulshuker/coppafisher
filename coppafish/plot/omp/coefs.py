@@ -283,6 +283,7 @@ class ViewOMPPixelColours:
         final_selected_genes = (~np.isclose(coefficients, 0)).nonzero()[0]
         self.n_assigned_genes: int = final_selected_genes.size
         if self.n_assigned_genes == 0:
+            # FIXME: I don't think this is always telling the truth...
             raise ValueError(f"The selected pixel has no OMP gene assignments to display")
         # Show the zeroth iteration too with no genes assigned.
         self.coefficients = np.zeros((self.n_assigned_genes + 1, self.n_assigned_genes), dtype=np.float32)
