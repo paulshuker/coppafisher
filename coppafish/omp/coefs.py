@@ -25,7 +25,7 @@ class CoefficientSolverOMP:
         maximum_iterations: int,
         dot_product_threshold: float,
         normalisation_shift: float,
-    ) -> torch.Tensor:
+    ) -> np.ndarray:
         """
         Compute OMP coefficients for all pixel colours. At each iteration of OMP, the next best gene assignment is found
         from the residual spot colours divided by their L2 norm + normalisation_shift. A pixel is stopped iterating on if
