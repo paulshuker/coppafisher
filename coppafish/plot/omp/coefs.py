@@ -258,13 +258,10 @@ class ViewOMPPixelColours:
             tile=int(tile),
             use_rounds=nb.basic_info.use_rounds,
             use_channels=nb.basic_info.use_channels,
-            output_dtype=np.float32,
             out_of_bounds_value=0,
         )
         image_colours = image_colours.astype(np.float32)
         assert not np.allclose(image_colours, 0)
-        colour_norm_factor = np.array(nb.call_spots.colour_norm_factor, dtype=np.float32)
-        colour_norm_factor = torch.asarray(colour_norm_factor).float()
         bled_codes = nb.call_spots.bled_codes.astype(np.float32)
         assert (~np.isnan(bled_codes)).all(), "bled codes cannot contain nan values"
         assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"

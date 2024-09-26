@@ -128,9 +128,12 @@ class Viewer:
         """
         Create the napari viewer.
         """
-        # turn off layer list and layer controls
-        self.viewer.window.qt_viewer.dockLayerList.setVisible(False)
-        self.viewer.window.qt_viewer.dockLayerControls.setVisible(False)
+        # FIXME: This is leads to future deprecation warnings. Perhaps there is a better way?
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            # Turn off layer list and layer controls.
+            self.viewer.window.qt_viewer.dockLayerList.setVisible(False)
+            self.viewer.window.qt_viewer.dockLayerControls.setVisible(False)
 
         # add gene legend to viewer
         self.add_legend(gene_legend_info=gene_legend_info)
