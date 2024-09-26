@@ -48,9 +48,10 @@ class BuildPDF:
         file was found inside output_dir.
 
         Args:
-            nb (Notebook or str): notebook or file path to notebook.
-            output_dir (str, optional): directory to save pdfs. Default: `nb.basic_info.file_names/diagnostics.pdf`.
-            auto_open (bool, optional): open the PDF in a web browser after creation. Default: true.
+            - nb (Notebook or str): notebook or file path to notebook.
+            - nbp_file (NotebookPage): `file_names` notebook page.
+            - output_dir (str, optional): directory to save pdfs. Default: `nb.basic_info.file_names`.
+            - auto_open (bool, optional): automatically open the output directory after creation. Default: false.
         """
         log.debug("Creating diagnostic PDF started")
         pbar = tqdm(desc="Creating Diagnostic PDFs", total=11, unit="section")
@@ -65,6 +66,7 @@ class BuildPDF:
 
         # Light default theme
         plt.style.use("default")
+        self.tile_shape = (nb.basic_info.tile_sz, nb.basic_info.tile_sz, len(nb.basic_info.use_z))
         self.use_channels_anchor = [
             c for c in [nb.basic_info.dapi_channel, nb.basic_info.anchor_channel] if c is not None
         ]
@@ -333,11 +335,11 @@ class BuildPDF:
                     fig = self.create_positions_histograms(
                         nb.call_spots.dot_product_gene_score[:][keep],
                         nb.ref_spots.local_yxz[:][keep],
+                        self.tile_shape,
                         self.DEFAULT_REF_SCORE_THRESHOLD,
                         title=f"Spot position histograms for {t=}, scores "
                         + r"$\geq$"
                         + str(self.DEFAULT_REF_SCORE_THRESHOLD),
-                        use_z=nb.basic_info.use_z,
                     )
                     pdf.savefig(fig)
                     plt.close(fig)
@@ -439,9 +441,9 @@ class BuildPDF:
                     fig = self.create_positions_histograms(
                         nb.omp.results[f"tile_{t}/scores"][:],
                         nb.omp.results[f"tile_{t}/local_yxz"][:],
+                        self.tile_shape,
                         self.DEFAULT_OMP_SCORE,
                         title=f"Spot position histograms for {t=}, scores " + r"$\geq$" + str(self.DEFAULT_OMP_SCORE),
-                        use_z=nb.basic_info.use_z,
                     )
                     pdf.savefig(fig)
                     plt.close(fig)
@@ -940,40 +942,39 @@ class BuildPDF:
         self,
         scores: np.ndarray,
         local_yxz: np.ndarray,
+        tile_shape: tuple[int, int, int],
         score_threshold: float = 0,
         title: Optional[str] = None,
-        use_z: Optional[list[int]] = None,
     ) -> plt.Figure:
         """
         Histograms of positions x, y, and z.
 
         Args:
-            scores (`(n_spots) ndarray[float]`): scores of each position.
-            local_yxz (`(n_spots x 3) ndarray[int]`): local x, y, and z positions.
-            score_threshold (float): score threshold. Default: 0.
-            title (str, optional): plot title.
+            - scores (`(n_spots) ndarray[float]`): scores of each position.
+            - local_yxz (`(n_spots x 3) ndarray[int]`): local y, x, and z positions.
+            - tile_shape (tuple of 3 ints): the tile's shape in y, x, and z directions.
+            - score_threshold (float): score threshold. Default: 0.
+            - title (str, optional): plot title.
 
         Returns:
             figure: positions histograms plot.
         """
         assert scores.size == local_yxz.shape[0]
+        assert type(tile_shape) is tuple and len(tile_shape) == 3
 
-        fig, axes = self.create_empty_page(3, 1, share_y=True)
+        fig, axes = self.create_empty_page(3, 1, share_y=False)
         positions = {1: "x", 0: "y", 2: "z"}
         colours = ["green", "blue", "red"]
-        bins = [100, 100, local_yxz[:, 2].max() + 1]
-        if use_z is not None:
-            bins[2] = len(use_z)
         for index, position in positions.items():
             ax: plt.Axes = axes[index, 0]
             ax.set_title(position.upper())
             ax.hist(
                 local_yxz[scores >= score_threshold, index],
                 color=colours[index],
-                bins=bins[index],
+                bins=tile_shape[index],
+                range=(0, tile_shape[index] - 1),
                 edgecolor="black",
-                linewidth=0.4,
-                range=(use_z[0], use_z[-1]) if position == "z" else None,
+                linewidth=0 if index < 2 else 0.4,
             )
             ax.set_ylabel("Count")
         if title is None:
