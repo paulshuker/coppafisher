@@ -258,13 +258,14 @@ class ViewOMPPixelColours:
             tile=int(tile),
             use_rounds=nb.basic_info.use_rounds,
             use_channels=nb.basic_info.use_channels,
+            output_dtype=np.float32,
             out_of_bounds_value=0,
         )
         image_colours = image_colours.astype(np.float32)
         assert not np.allclose(image_colours, 0)
         colour_norm_factor = np.array(nb.call_spots.colour_norm_factor, dtype=np.float32)
         colour_norm_factor = torch.asarray(colour_norm_factor).float()
-        bled_codes = nb.call_spots.bled_codes
+        bled_codes = nb.call_spots.bled_codes.astype(np.float32)
         assert (~np.isnan(bled_codes)).all(), "bled codes cannot contain nan values"
         assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"
         bg_bled_codes = np.eye(n_channels_use)[:, None, :].repeat(n_rounds_use, axis=1)
@@ -283,7 +284,7 @@ class ViewOMPPixelColours:
             normalisation_shift=config["lambda_d"],
         )[0]
         final_selected_genes = (~np.isclose(coefficients, 0)).nonzero()[0]
-        self.n_assigned_genes: int = (~np.isclose(coefficients, 0)).sum().item()
+        self.n_assigned_genes: int = final_selected_genes.size
         if self.n_assigned_genes == 0:
             raise ValueError(f"The selected pixel has no OMP gene assignments to display")
         # Show the zeroth iteration too with no genes assigned.
