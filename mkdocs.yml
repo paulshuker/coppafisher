@@ -62,10 +62,13 @@ markdown_extensions:
   - pymdownx.inlinehilite
   # Footnote support
   - footnotes
-  # Captions and aligned images support
+  # Captions and aligned images support, re-sizeable images, and grids.
   - md_in_html
-  # Re-sizeable images
   - attr_list
+  # Simple icons.
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
 # Required for LaTeX maths support.
 extra_javascript:

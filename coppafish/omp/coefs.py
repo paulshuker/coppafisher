@@ -157,13 +157,11 @@ class CoefficientSolverOMP:
 
         - The top gene dot product score is below the dot_product_threshold.
         - The next best gene is in the fail_gene_indices list.
-        - There are more than maximum_pass_count genes scoring above the dot_product_threshold.
 
         The reason for each of these conditions is:
 
         - to cut out dim background and bad gene reads.
         - to not doubly assign a gene and avoid assigning background genes.
-        - to cut out ambiguous colours.
 
         respectively.
 

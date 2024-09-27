@@ -25,16 +25,19 @@ class NotebookPage:
     _valid_attribute_names = ("_name", "_time_created", "_version", "_associated_configs")
 
     _associated_configs: Dict[str, Dict[str, Any]]
-
     def get_associated_configs(self) -> Dict[str, Dict[str, Any]]:
         return self._associated_configs
-
     associated_configs: Dict[str, Dict[str, Any]] = property(get_associated_configs)
 
     _metadata_name: str = "_metadata.json"
 
     _page_name_key: str = "page_name"
+
     _time_created: float
+    def get_time_created(self) -> float:
+        return self._time_created
+    time_created: float = property(get_time_created)
+    
     _time_created_key: str = "time_created"
     _version: str
     _version_key: str = "version"

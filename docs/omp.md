@@ -42,14 +42,12 @@ A gene is successfully assigned to a pixel when all conditions are met:
 - The best gene score is above `dp_thresh` (typically 0.225).
 - The best gene is not already assigned to the pixel.
 - The best gene is not a background gene.
-- There are fewer than $\text{max_genes} - i + 1$ genes/background genes above the `dp_thresh` score.
 
 The reasons for each of these conditions is:
 
 - to remove poor gene reads and dim pixels.
 - to not double assign genes.
 - to avoid over-fitting on high-background pixel colour.
-- to stop iterating on ambiguous pixel colour.
 
 respectively. If a pixel fails to meet one or more of these conditions, then no more genes are assigned to it. If all 
 remaining pixels fail the conditions, then the iterations stop and the coefficients $\mathbf{c}$ are kept as final.
@@ -87,4 +85,4 @@ $$
 
 $\lambda_d$ should be on the order of background signal, typically $0.4$.
 
-## 4: Mean Sign Spot Computation
+## 4: Mean Spot Computation
