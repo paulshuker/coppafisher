@@ -27,7 +27,7 @@ def detect_spots(
             than radius_xy. Default: not given.
 
     Returns:
-        - `(n_spots x 3) ndarray[int32]` maxima_yxz: y, x, and z coordinate positions of local maxima.
+        - `(n_spots x 3) ndarray[int16]` maxima_yxz: y, x, and z coordinate positions of local maxima.
         - `(n_spots) ndarray[image.dtype]` maxima_intensity: maxima_intensity[i] is the image intensity at maxima_yxz[i].
     """
     assert type(image) is np.ndarray or type(image) is torch.Tensor
@@ -41,7 +41,7 @@ def detect_spots(
         assert radius_z > 0
 
     # (n_spots x 3) coordinate positions of the image local maxima.
-    maxima_locations = np.array(np.array(image > intensity_thresh).nonzero()).T
+    maxima_locations = np.array(np.array(image > intensity_thresh).nonzero()).T.astype(np.int16)
     maxima_intensities = np.array(image[tuple(maxima_locations.T)])
     if remove_duplicates:
         maxima_locations_norm = maxima_locations.astype(np.float32)

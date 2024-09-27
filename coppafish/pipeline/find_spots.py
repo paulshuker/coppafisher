@@ -74,7 +74,7 @@ def find_spots(
         use_indices[t, r, c] = True
 
     batch_size = maths.floor(
-        system.get_available_memory() * 6e7 / (nbp_basic.tile_sz * nbp_basic.tile_sz * len(nbp_basic.use_z))
+        system.get_available_memory() * 5e7 / (nbp_basic.tile_sz * nbp_basic.tile_sz * len(nbp_basic.use_z))
     )
     batch_size = max(min(system.get_core_count(), batch_size), 1)
     log.debug(f"{batch_size=}")
