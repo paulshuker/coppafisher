@@ -53,7 +53,7 @@ def test_detect_spots() -> None:
     assert maxima_yxz.shape == (2, 3)
     assert (maxima_yxz[0] == 0).all()
     # Only one of the two close maxima should be kept.
-    assert (maxima_yxz[1] == [0, 3, 2]).all() or (maxima_yxz[2] == [0, 3, 4]).all()
+    assert (maxima_yxz[1] == [0, 3, 2]).all() or (maxima_yxz[1] == [0, 3, 4]).all()
     assert maxima_intensity[0] == 1
     assert maxima_intensity[1] == 2
     image[0, 3, 4] = 5

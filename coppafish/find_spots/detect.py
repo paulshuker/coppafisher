@@ -49,16 +49,13 @@ def detect_spots(
         kdtree = scipy.spatial.KDTree(maxima_locations_norm)
         # Gives a list for each maxima that contains a list of indices that are nearby neighbours, including itself.
         pairs = kdtree.query_ball_tree(kdtree, r=radius_xy)
-        # TODO: Can this be vectorised?
-        keep_maxima = np.zeros(maxima_locations.shape[0], dtype=bool)
+        keep_maxima = np.array([len(pair) == 1 for pair in pairs], bool)
         for i, i_pairs in enumerate(pairs):
-            if len(i_pairs) == 1:
-                keep_maxima[i] = True
-                continue
             if keep_maxima[i_pairs].any():
                 # A near neighbour has already been kept.
                 continue
             if (maxima_intensities[i] >= maxima_intensities[i_pairs]).all():
+                keep_maxima[i_pairs] = False
                 keep_maxima[i] = True
         maxima_locations = maxima_locations[keep_maxima]
         maxima_intensities = maxima_intensities[keep_maxima]

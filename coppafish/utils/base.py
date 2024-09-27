@@ -253,7 +253,7 @@ def estimate_runtime() -> None:
     extract_read_time = 7.1e-9 * n_tile_pixels * n_rounds * n_tiles
     extract_time = maths.ceil(extract_compress_time + extract_read_time)
     filter_time = maths.ceil(3e-10 * n_tile_pixels * n_rounds * n_channels)
-    find_spots_time = maths.ceil(2e-10 * n_tile_pixels * n_rounds * n_sequence_channels * n_tiles)
+    find_spots_time = maths.ceil(5.6e-10 * n_tile_pixels * n_rounds * n_sequence_channels * n_tiles)
     register_time = maths.ceil(1.8e-9 * n_tile_pixels * n_rounds * n_channels * n_tiles)
     stitch_time = maths.ceil(7.5e-9 * n_tile_pixels)
     call_spots_time = maths.ceil(3.4e-12 * n_tile_pixels * n_sequence_channels * n_sequence_rounds * n_genes * n_tiles)
