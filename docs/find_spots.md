@@ -43,8 +43,8 @@ $$
 \frac{\text{max\_spots\_percent} \times L_{xy}^2}{100}
 $$
 
-where $L_{xy}$ is the number of pixels along the x (y) axis. `max_spots_percent` (typically $0.0094$) is a config 
-parameter.
+where $L_{xy}$ is the number of pixels along the x (y) axis for a single tile. `max_spots_percent` (typically $0.0094$) 
+is a config parameter.
 
 ## Diagnostics
 
