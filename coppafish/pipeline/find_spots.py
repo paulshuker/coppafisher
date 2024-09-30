@@ -1,3 +1,4 @@
+import math as maths
 import os
 
 import numpy as np
@@ -40,12 +41,7 @@ def find_spots(
     if auto_thresh_multiplier <= 0:
         raise ValueError(f"The auto_thresh_multiplier in 'find_spots' config must be positive")
     n_z = np.max([1, nbp_basic.is_3d * nbp_basic.nz])
-    if not nbp_basic.is_3d:
-        # set z details to None if using 2d pipeline
-        config["radius_z"] = None
-        max_spots = config["max_spots_2d"]
-    else:
-        max_spots = config["max_spots_3d"]
+    max_spots = maths.floor(config["max_spots_percent"] * nbp_basic.tile_sz**2 / 100)
     INVALID_AUTO_THRESH = -1
     auto_thresh = np.full(
         (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.n_extra_rounds, nbp_basic.n_channels),
@@ -72,7 +68,7 @@ def find_spots(
         use_indices[t, r, c] = True
 
     # Phase 2: Detect spots on uncompleted tiles, rounds and channels
-    pbar = tqdm.tqdm(total=use_indices.sum(), desc="Detecting spots", unit="image")
+    pbar = tqdm.tqdm(total=use_indices.sum(), desc="Finding spots", unit="image")
     for t, r, c in np.argwhere(use_indices):
         pbar.set_postfix_str(f"{t=}, {r=}, {c=}")
         image_trc = nbp_filter.images[t, r, c]
@@ -93,6 +89,7 @@ def find_spots(
             local_yxz = fs.filter_intense_spots(local_yxz, spot_intensity, n_z, max_spots)
 
         spot_no[t, r, c] = local_yxz.shape[0]
+        log.debug(f"Found {spot_no[t, r, c]} spots on {t=}, {r=}, {c=}")
         # Save results to zarr group.
         trc_yxz = spot_yxz.zeros(f"t{t}r{r}c{c}", chunks=local_yxz.size == 0, shape=local_yxz.shape, dtype=np.int16)
         trc_yxz[:] = local_yxz
