@@ -25,8 +25,10 @@ class NotebookPage:
     _valid_attribute_names = ("_name", "_time_created", "_version", "_associated_configs")
 
     _associated_configs: Dict[str, Dict[str, Any]]
+
     def get_associated_configs(self) -> Dict[str, Dict[str, Any]]:
         return self._associated_configs
+
     associated_configs: Dict[str, Dict[str, Any]] = property(get_associated_configs)
 
     _metadata_name: str = "_metadata.json"
@@ -34,10 +36,12 @@ class NotebookPage:
     _page_name_key: str = "page_name"
 
     _time_created: float
+
     def get_time_created(self) -> float:
         return self._time_created
+
     time_created: float = property(get_time_created)
-    
+
     _time_created_key: str = "time_created"
     _version: str
     _version_key: str = "version"
@@ -302,13 +306,6 @@ class NotebookPage:
                 + "tile/round/channel index is uniquely saved. For example, tile 0, round 1, channel 2 is labelled "
                 + "t0r1c2 so it can be gathered as ndarray[int1e] by nb.find_spots.spot_yxz['t0r1c2'][:]",
             ],
-            # "spot_yxz": [
-            #     "ndarray[int16]",
-            #     "Numpy array [n_total_spots x 3]"
-            #     + "`spot_yxz[i,:]` is `[y, x, z]` for spot $i$"
-            #     + "$y$, $x$ gives the local tile coordinates in yx-pixels. "
-            #     + "$z$ gives local tile coordinate in z-pixels (0 if *2D*)",
-            # ],
         },
         "stitch": {
             "tile_origin": [

@@ -55,11 +55,11 @@ def test_integration_small_two_tile():
     del robominnie
 
 
-@pytest.mark.integration
+@pytest.mark.notebook
 @pytest.mark.manual
 def test_viewers() -> None:
     """
-    Make sure the coppafish plotting is working without crashing.
+    Make sure the coppafish Viewer and RegistrationViewer is working without crashing.
 
     Notes:
         - Requires a robominnie instance to have successfully run through first.

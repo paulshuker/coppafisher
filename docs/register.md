@@ -1,4 +1,5 @@
 # Registration
+
 The register section is the part of the pipeline concerned with aligning different rounds and channels. This is crucial for decoding spot colours into genes in the Call Spots and OMP sections. The aim of this section is to find a function $g_{trc}(\mathbf{x})$ for each tile, round and channel that takes in a location $\mathbf{x}$ on the anchor image for tile $t$ and returns the corresponding location in round $r$, channel $c$ of the same tile. Since registration is done independently for each tile and we are often only working on one tile, we sometimes omit the subscript $t$ in this documentation.
 
 Once we have these transformations $g$, we can get a $n_{\textrm{rounds}} \times n_{\textrm{channels}}$ spot colours matrix $\boldsymbol{F}(\mathbf{x})$ for each location $\mathbf{x}$ in the anchor image of a given tile via

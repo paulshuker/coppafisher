@@ -48,3 +48,6 @@ jobs:
 
       - name: Run default integration tests
         run: pytest -m "integration and not manual" --cov=coppafish --cov-report term
+
+      - name: Run notebook-dependent tests
+        run: pytest -m "not integration and not manual and notebook" --cov=coppafish --cov-report term
