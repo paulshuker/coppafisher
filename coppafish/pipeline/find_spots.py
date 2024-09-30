@@ -40,10 +40,9 @@ def find_spots(
     if auto_thresh_multiplier <= 0:
         raise ValueError(f"The auto_thresh_multiplier in 'find_spots' config must be positive")
     n_z = np.max([1, nbp_basic.is_3d * nbp_basic.nz])
-    if nbp_basic.is_3d is False:
+    if not nbp_basic.is_3d:
         # set z details to None if using 2d pipeline
         config["radius_z"] = None
-        config["isolation_radius_z"] = None
         max_spots = config["max_spots_2d"]
     else:
         max_spots = config["max_spots_3d"]
