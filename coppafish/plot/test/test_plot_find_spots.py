@@ -11,6 +11,4 @@ def test_view_find_spots() -> None:
     nb_path = path.join(nb_path, "robominnie", "test", ".integration_dir", "output_coppafish", "notebook")
     nb = Notebook(nb_path)
     # We cannot test all the dash app internal functionality like this. But, this can make sure the app can be built.
-    find_spots.view_find_spots(
-        nb, nb.basic_info.use_tiles[0], nb.basic_info.use_rounds[0], nb.basic_info.use_channels[0], debug=True
-    )
+    find_spots.view_find_spots(nb, debug=True)
