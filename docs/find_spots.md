@@ -86,7 +86,7 @@ python find_spots_plot.py
 ```
 
 Open the link (http://127.0.0.1:8050/) shown in the terminal on a modern browser to show and interact with the viewer. 
-Press Ctrl + C in the terminal to close the viewer.
+Press Ctrl + C when in the terminal to close the viewer.
 
 Spot detection is most crucial for the anchor round/channel images. So, it is recommended to configure find spots 
 parameters based on one of these images.
