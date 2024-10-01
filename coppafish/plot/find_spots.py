@@ -10,15 +10,12 @@ from ..find_spots import detect
 from ..setup.notebook import Notebook
 
 
-def view_find_spots(nb: Notebook, tile: int, round: int, channel: int, debug: bool = False) -> None:
+def view_find_spots(nb: Notebook, debug: bool = False) -> None:
     """
     View the detected spots from the find spots stage on top of the filtered image.
 
     Args:
         - nb (Notebook): notebook containing `find_spots` page.
-        - tile (int): the tile index.
-        - round (int): the round index.
-        - channel (int): the channel index.
         - debug (bool, optional): run the app continuously after it is built. Default: true.
     """
     page_names_required = ("basic_info", "filter", "find_spots")
@@ -30,8 +27,9 @@ def view_find_spots(nb: Notebook, tile: int, round: int, channel: int, debug: bo
     use_tiles: list[int] = nb.basic_info.use_tiles
     valid_rounds: list[int] = nb.basic_info.use_rounds + [anchor_round]
     valid_channels: list[int] = nb.basic_info.use_channels
-    if tile not in nb.basic_info.use_tiles or round not in valid_rounds or channel not in valid_channels:
-        raise ValueError(f"Invalid tile/round/channel combination: {t}/{r}/{c}")
+    tile = use_tiles[0]
+    round = nb.basic_info.anchor_round
+    channel = nb.basic_info.anchor_channel
 
     def r_to_str(r: int) -> str:
         return "anchor" if r == anchor_round else str(r)
@@ -48,8 +46,8 @@ def view_find_spots(nb: Notebook, tile: int, round: int, channel: int, debug: bo
     default_radius_z = int(config["radius_z"])
     max_radius_z = max(5 * default_radius_z, 10)
     max_z_plane = 7
-    # Gather a central square from the filtered images no larger than 300x300 pixels.
-    max_xy_pixels = 300
+    # Gather a central square from the filtered images no larger than 250x250 pixels.
+    max_xy_pixels = 250
     xy_pixels = min(max_xy_pixels, nb.filter.images.shape[3])
     mid_xy = nb.basic_info.tile_sz // 2
     xy_slice = slice(mid_xy - xy_pixels // 2, mid_xy + xy_pixels // 2, 1)
