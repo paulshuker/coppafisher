@@ -1,4 +1,4 @@
-2024/mm/dd Major Update (v1.0.0):
+2024/mm/dd Version 1 Major Release (v1.0.0):
  * General: From version 1.0.0 onwards, coppafish will automatically detect incompatible notebook versions. A suggested 
     course of action is given if a compatibility problem is found.
  * General: Presequence channels are no longer supported.
@@ -11,6 +11,7 @@
  * General: Security patches for zipp, urllib3, scikit-learn, tornado, requests, and certifi.
  * Documentation: New documentation for exporting data to pciSeq, skipping bad microscope images, running background 
     processes, deleting notebook pages, and retrieving config data from the notebook.
+ * Documentation: Detailed method description for find spots, stitch, call spots, and OMP.
  * Viewer: The viewer is more customisable. Users can now toggle whether they want each image shown to be a max 
     intensity projection or not, which is achieved by setting the max_intensity_projection variable in the viewer to 
     True or False.
@@ -22,6 +23,7 @@
     recommended as it greatly speeds up the loading of the viewer (30 seconds -> 5 seconds), and the images are still 
     of high enough quality to see the nuclei.
  * Viewer: Napari has been updated to version 0.4.19, removing Qt warnings and improving stability.
+ * Viewer: New find spots viewer.
  * PDF Diagnostics: New gene spatial heat map PDFs created at runtime.
  * PDF Diagnostics: New stitch PDF created at runtime.
  * Extract: Default z_plane_mean_warning 200 -> 125.

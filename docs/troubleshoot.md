@@ -46,6 +46,7 @@ issue:
 
 ## Memory crash at OMP
 
-Try lowering `subset_size_xy` in the OMP config. This will cause OMP to compute on fewer pixels at time. It has a 
-minimal effect on compute times, but can lower the RAM/VRAM usage. The default is found 
-[here](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/setup/settings.default.ini).
+Try reducing `subset_pixels` in the OMP config. This will cause OMP to compute on fewer pixels at time. It has a 
+minimal effect on compute times, but will lower the RAM/VRAM usage. By default, the subset pixels number is found on 
+the fly based on the PC's hardware, you can see this by looking at the pipeline.log file and searching for 
+`subset_pixels`.
