@@ -8,7 +8,7 @@ import zarr
 
 from coppafish import utils
 from coppafish.setup.notebook import Notebook
-from coppafish.setup.notebook_page import NotebookPage
+from coppafish.setup.notebook_page import NotebookPage, PageTypeError
 from coppafish.utils import system
 
 
@@ -76,7 +76,7 @@ def test_notebook_creation() -> None:
     try:
         nb_page.b = 5
         assert False, "Should not be able to set a float type to an int"
-    except TypeError:
+    except PageTypeError:
         pass
     nb_page.b = b
     nb_page.c = c
@@ -85,7 +85,7 @@ def test_notebook_creation() -> None:
         nb_page.d = (5, "4")
         nb_page.d = (5, 0.5)
         assert False, "Should not be able to set a tuple[int] type like this"
-    except TypeError:
+    except PageTypeError:
         pass
     nb_page.d = tuple()
     del nb_page.d
@@ -102,23 +102,33 @@ def test_notebook_creation() -> None:
     try:
         nb_page.j = np.zeros(10, dtype=int)
         assert False, "Should not be able to set a ndarray[float] type like this"
-    except TypeError:
+    except PageTypeError:
         pass
     try:
         nb_page.j = np.zeros(10, dtype=bool)
         assert False, "Should not be able to set a ndarray[float] type like this"
-    except TypeError:
+    except PageTypeError:
         pass
     nb_page.j = j
     try:
         nb_page.k = np.zeros(10, dtype=np.float32)
         assert False, "Should not be able to set a ndarray[int] type like this"
-    except TypeError:
+    except PageTypeError:
+        pass
+    try:
+        nb_page.k = zarr.array(np.ones(10))
+        assert False, "Should not be able to set a ndarray[int] type to zarray"
+    except PageTypeError:
         pass
     try:
         nb_page.k = np.zeros(10, dtype=bool)
         assert False, "Should not be able to set a ndarray[int] type like this"
-    except TypeError:
+    except PageTypeError:
+        pass
+    try:
+        nb_page.k = False
+        assert False, "Should not be able to set a ndarray[int] type like this"
+    except PageTypeError:
         pass
     nb_page.k = k
     nb_page.l = l

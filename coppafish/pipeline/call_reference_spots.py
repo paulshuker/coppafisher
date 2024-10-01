@@ -1,5 +1,6 @@
 import importlib.resources as importlib_resources
 import itertools
+import math as maths
 import os
 from typing import Tuple
 
@@ -10,6 +11,7 @@ from .. import log
 from ..call_spots.base import bayes_mean, compute_bleed_matrix
 from ..call_spots.dot_product import dot_product_score, gene_prob_score
 from ..setup.notebook_page import NotebookPage
+from ..utils import system
 
 
 def call_reference_spots(
@@ -44,7 +46,9 @@ def call_reference_spots(
         nbp_ref_spots: NotebookPage
             The reference spots notebook page.
     """
-    log.debug("Call spots started")
+    # TODO: Run call spots on each tile separately as this is robust for huge, many tile datasets.
+
+    log.info("Call spots started")
     nbp = NotebookPage("call_spots", {"call_spots": config})
 
     # assign config values that have not been provided
@@ -106,6 +110,10 @@ def call_reference_spots(
 
     # 3. Use spots with score above threshold to work out global dye codes
     prob_mode_initial, prob_score_initial = np.argmax(gene_prob_initial, axis=1), np.max(gene_prob_initial, axis=1)
+    kwargs = dict(chunks=False, zarr_version=2, overwrite=True)
+    gene_prob_initial = zarr.array(
+        gene_prob_initial, store=os.path.join(nbp_file.output_dir, "gene_prob_init.zarray"), **kwargs
+    )
     prob_threshold = min(config["gene_prob_threshold"], np.percentile(prob_score_initial, 90))
     good = prob_score_initial > prob_threshold
     bleed_matrix_initial = compute_bleed_matrix(spot_colours[good], prob_mode_initial[good], gene_codes, n_dyes)
@@ -169,30 +177,34 @@ def call_reference_spots(
             np.sqrt(n_spots_per_gene) * bled_codes[relevant_genes, r, c] * free_bled_codes[relevant_genes, t, r, c]
         ) / np.sum(np.sqrt(n_spots_per_gene) * free_bled_codes[relevant_genes, t, r, c] ** 2)
 
-    # 7. update the normalised spots and the bleed matrix, then do a second round of gene assignments with the new bled
-    # codes
+    # 7. Update the normalised spots and the bleed matrix, then do a second round of gene assignments with the new bled
+    # codes.
     spot_colours = spot_colours * tile_scale[spot_tile, :, :]  # update the spot colours
     gene_prob = gene_prob_score(spot_colours=spot_colours, bled_codes=bled_codes, kappa=config["kappa"])  # update probs
     prob_mode, prob_score = np.argmax(gene_prob, axis=1), np.max(gene_prob, axis=1)
-    gene_dot_products = dot_product_score(
-        spot_colours=spot_colours.reshape((n_spots, n_rounds * n_channels_use)),
-        bled_codes=bled_codes.reshape((n_genes, n_rounds * n_channels_use)),
-    )[-1]
-    dp_mode, dp_score = np.argmax(gene_dot_products, axis=1), np.max(gene_dot_products, axis=1)
-    dp_mode = dp_mode.astype(np.int16)
+    gene_prob = zarr.array(gene_prob, store=os.path.join(nbp_file.output_dir, "gene_prob.zarray"), **kwargs)
+    # Computing all dot product scores at once can take too much memory.
+    gene_dot_products = np.zeros((n_spots, n_genes), np.float16)
+    n_max_score_pixels = 0.7 * system.get_available_memory() * 1e9 / (n_spots * n_genes * n_rounds * n_channels_use * 4)
+    n_max_score_pixels = int(max(1, n_max_score_pixels))
+    n_batches = maths.ceil(n_spots / n_max_score_pixels)
+    log.debug(f"{n_max_score_pixels=}")
+    for batch_i in range(n_batches):
+        index_min = batch_i * n_max_score_pixels
+        index_max = min(spot_colours.shape[0], (batch_i + 1) * n_max_score_pixels)
+        gene_dot_products[index_min:index_max] = dot_product_score(
+            spot_colours=spot_colours[index_min:index_max].reshape((-1, n_rounds * n_channels_use)),
+            bled_codes=bled_codes.reshape((n_genes, n_rounds * n_channels_use)),
+        )[-1]
+    dp_mode, dp_score = np.argmax(gene_dot_products, axis=1).astype(np.int16), np.max(gene_dot_products, axis=1)
+    dp_mode = zarr.array(dp_mode, store=os.path.join(nbp_file.output_dir, "dp_mode.zarray"), **kwargs)
+    dp_score = zarr.array(dp_score, store=os.path.join(nbp_file.output_dir, "dp_score.zarray"), **kwargs)
     # update bleed matrix
     good = prob_score > prob_threshold
     bleed_matrix = compute_bleed_matrix(spot_colours[good], prob_mode[good], gene_codes, n_dyes)
     intensity = np.median(np.max(spot_colours, axis=-1), axis=-1)
 
-    # 8. save the results
-    kwargs = dict(chunks=False, zarr_version=2)
-    dp_mode = zarr.array(dp_mode, store=os.path.join(nbp_file.output_dir, "dp_mode.zarray"), **kwargs)
-    dp_score = zarr.array(dp_score, store=os.path.join(nbp_file.output_dir, "dp_score.zarray"), **kwargs)
-    gene_prob_initial = zarr.array(
-        gene_prob_initial, store=os.path.join(nbp_file.output_dir, "gene_prob_init.zarray"), **kwargs
-    )
-    gene_prob = zarr.array(gene_prob, store=os.path.join(nbp_file.output_dir, "gene_prob.zarray"), **kwargs)
+    # 8. Save the results.
     nbp.intensity = zarr.array(intensity, store=os.path.join(nbp_file.output_dir, "intensity.zarray"), **kwargs)
     nbp.dot_product_gene_no, nbp.dot_product_gene_score = dp_mode, dp_score
     nbp.gene_probabilities_initial = gene_prob_initial
@@ -207,5 +219,6 @@ def call_reference_spots(
         bleed_matrix_initial,
         bleed_matrix,
     )
+    log.info("Call spots complete")
 
     return nbp

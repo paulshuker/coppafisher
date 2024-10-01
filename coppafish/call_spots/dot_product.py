@@ -23,7 +23,7 @@ def dot_product_score(
         - `[n_spots x n_genes] ndarray[float]`: `score` such that `score[d, c]` gives dot product between
             `spot_colours` vector `d` with `bled_codes` vector `c`.
     """
-    variance = np.ones_like(spot_colours) if variance is None else variance
+    variance = np.ones_like(spot_colours, spot_colours.dtype) if variance is None else variance
     assert spot_colours.shape == variance.shape, f"{spot_colours.shape=}, {variance.shape=}"
     n_genes = bled_codes.shape[0]
     # If no variance is provided, we assume all spots are equally reliable
