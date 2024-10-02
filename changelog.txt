@@ -1,6 +1,7 @@
 2024/mm/dd Version 1 Major Release (v1.0.0):
  * General: From version 1.0.0 onwards, coppafish will automatically detect incompatible notebook versions. A suggested 
     course of action is given if a compatibility problem is found.
+ * General: Python 3.9 is no longer supported.
  * General: Presequence channels are no longer supported.
  * General: All output variables are now stored within the notebook except for extract images.
  * General: Users can move output directory and/or tiles directory mid-pipeline.

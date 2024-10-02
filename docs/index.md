@@ -38,6 +38,7 @@ Install coppafish software from within an environment. This can be a `venv` or `
 #### Conda
 
 For `conda`, build an environment by doing:
+
 ```terminal
 conda create -n coppafish python=3.10
 conda activate coppafish
@@ -45,23 +46,34 @@ conda activate coppafish
 
 ### Install
 
-Our latest coppafish release can be cloned locally
+Clone the latest coppafish release locally 
+
 ```terminal
 git clone --depth 1 https://github.com/paulshuker/coppafish
 ```
 
-or get a specific version. For example, version 1.0.0 by
+or get a specific version. For example, like version 1.0.0 by
 
 ```terminal
 git clone --depth 1 --branch 1.0.0 https://github.com/paulshuker/coppafish
 ```
 
-then install package dependencies and coppafish by
+install package dependencies by
 
 ```terminal
 cd coppafish
-python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
+```
+
+install [PyTorch](https://pytorch.org/) with CPU and Cuda version 12.4 support by 
+
+```terminal
+python -m pip install -r requirements-torch.txt
+```
+
+Finally, install coppafish by 
+
+```
 python -m pip install .
 ```
 
@@ -70,7 +82,8 @@ python -m pip install .
 Coppafish will not automatically install updates. But, you will see a warning at the start of a pipeline if a new 
 online version is available.
 
-To update version, follow all [install](#install) instructions again while inside of your coppafish conda environment.
+To update version, delete the old conda environment by `#!terminal conda env remove -n coppafish`. Then follow all 
+[install](#install) instructions again while inside of your coppafish conda environment.
 
 You can verify your install by running `#!terminal pip show coppafish` in the coppafish environment to check you have the 
 latest version.

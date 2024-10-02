@@ -1,4 +1,5 @@
-annotated_types==0.7.0
+alabaster==1.0.0
+annotated-types==0.7.0
 app-model==0.3.0
 appdirs==1.4.4
 asciitree==0.3.3
@@ -149,10 +150,6 @@ tifffile==2024.9.20
 tomli==2.0.2
 tomli_w==1.0.0
 toolz==0.12.1
---index-url https://download.pytorch.org/whl/cu124
-torch==2.4.1+cu124
-torchaudio==2.4.1+cu124
-torchvision==0.19.1+cu124
 tornado==6.4.1
 tqdm==4.66.5
 traitlets==5.14.3

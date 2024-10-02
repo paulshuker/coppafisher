@@ -46,7 +46,7 @@ setup(
         "scikit-image",
         "scikit-learn",
         "scipy",
-        "torch",
+        "torch>=2",
         "tqdm",
         "zarr",
     ],
