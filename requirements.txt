@@ -1,4 +1,4 @@
-annotated-types==0.7.0
+annotated_types==0.7.0
 app-model==0.3.0
 appdirs==1.4.4
 asciitree==0.3.3
