@@ -1,18 +1,21 @@
 ## Coppafish
 
-<div class="grid cards" markdown>
+<div class="grid cards no-format" markdown>
 
-- :material-checkbox-multiple-blank: __Zarr__ for image compression
-- :material-fast-forward: __PyTorch__ for GPU/CPU acceleration
-- :material-eye: __Napari__ for 3D visualisation
-- :material-web: __Dash__ for web interaction
+ - [:material-checkbox-multiple-blank: __Zarr__ for image compression](https://zarr.readthedocs.io/)
+ - [:material-fast-forward:  __PyTorch__ for GPU/CPU acceleration](https://pytorch.org/)
+ - [:material-eye:  __Napari__ for 3D visualisation](https://napari.org/)
+ - [:material-web:  __Dash__ for web interaction](https://dash.plotly.com/)
 
 </div>
 
 Coppafish is an open source data analysis software for COmbinatorial Padlock-Probe-Amplified Fluorescence In Situ
 Hybridization (coppafish) datasets. A series of 3D microscope images are arranged into tiles, rounds and channels. For
 each sequencing round, every considered gene is fluoresced by a dye. By the end of all rounds, each gene has a unique,
-barcode-like sequence of dyes, called the gene code. For more details about coppafish's methodology, see the
+barcode-like sequence of dyes called the gene code. Coppafish is a data analysis pipeline to decode gene's by their 
+gene codes in 3D.
+
+For more details about coppafish's methodology, see the
 [overview](overview.md). See [installation](#installation) on how to install our software, and [usage](basic_usage.md) to
 run coppafish on your dataset. Some vocabulary might be unfamiliar, please see the [glossary](glossary.md) for
 reference.
