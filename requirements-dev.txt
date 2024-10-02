@@ -8,4 +8,3 @@ pyright
 black
 # Automatic imports organiser
 isort
-

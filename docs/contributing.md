@@ -31,4 +31,44 @@ one another, you are doing something wrong. This also applies for the function's
 `#!python int` or `#!python None` is reasonable. A parameter that can be `#!python bool` or `#!python float` is not 
 reasonable.
 * The documentation should update in parallel with the code. Having the documentation as part of the github repository 
-makes this easy.
+makes this easier.
+
+## Run Tests
+
+In your coppafish environment, install dev packages 
+
+```terminal
+pip install -r requirements-dev.txt
+```
+
+Run unit tests (~10s) 
+
+```terminal
+pytest -m "not integration and not manual and not notebook"
+```
+
+Run integration tests (~50s) 
+
+```terminal
+pytest -m "integration and not manual"
+```
+
+Run unit tests requiring a notebook (~3s) 
+
+```terminal
+pytest -m "notebook and not integration and not manual"
+```
+
+## Run Documentation Locally
+
+Install [mkdocs-material](https://squidfunk.github.io/mkdocs-material/) 
+
+```terminal
+python -m pip install mkdocs-material
+```
+
+Start the documentation locally 
+
+```terminal
+mkdocs serve
+```
