@@ -13,7 +13,6 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         python-version:
-          - "3.9"
           - "3.10"
     name: Tests
     runs-on: ${{ matrix.os }}
