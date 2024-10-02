@@ -1,5 +1,5 @@
 import math as maths
-from typing import List, Tuple, Union, Any, Optional
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -77,9 +77,10 @@ def apply_flow_new(
     if yxz_torch.size(0) == 0:
         return yxz_torch
     yxz_min, yxz_max = yxz_torch.min(0).values, yxz_torch.max(0).values
-    # Add one pixel of additional flow retrieval for interpolation.
-    yxz_min = (yxz_min - 1).clamp(min=0).int().tolist()
-    yxz_max = (yxz_max + 1).clamp(max=torch.tensor(tile_shape)).int().tolist()
+    yxz_not_planar = (~torch.isclose(yxz_min, yxz_max)).to(torch.float32)
+    # Add one pixel pad of flow retrieval for interpolation if the pixels are not planar along said axis.
+    yxz_min = (yxz_min - yxz_not_planar).clamp(min=0).int().tolist()
+    yxz_max = (yxz_max + yxz_not_planar).clamp(max=torch.tensor(tile_shape)).int().tolist()
     flow_torch = np.zeros(flow.shape[2:], np.float32)
     flow_torch[:, yxz_min[0] : yxz_max[0], yxz_min[1] : yxz_max[1], yxz_min[2] : yxz_max[2]] = flow[
         tile, r, :, yxz_min[0] : yxz_max[0], yxz_min[1] : yxz_max[1], yxz_min[2] : yxz_max[2]
@@ -194,19 +195,18 @@ def get_spot_colours_new_safe(
     n_channels_use, n_rounds_use = len(nbp_basic_info.use_channels), len(nbp_basic_info.use_rounds)
     if yxz is None:
         yxz = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
-        yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int32).T.reshape((-1, 3), order="F")
+        yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).T.reshape((-1, 3), order="F")
     assert yxz.ndim == 2
     assert yxz.shape[1] == 3
+
     batch_size = maths.floor(utils.system.get_available_memory() * 5.3e7 / (n_channels_use * n_rounds_use))
     n_batches = maths.ceil(yxz.shape[0] / batch_size)
-    colours = None
     for i in range(n_batches):
         index_min, index_max = i * batch_size, min((i + 1) * batch_size, yxz.shape[0])
         i_colours = get_spot_colours_new(yxz=yxz[index_min:index_max], *args, **kwargs)
-        if colours is None:
-            colours = i_colours
-        else:
-            colours = np.append(colours, i_colours, axis=0)
+        if i == 0:
+            colours = np.zeros((yxz.shape[0],) + i_colours.shape[1:], i_colours.dtype)
+        colours[index_min:index_max] = i_colours
         del i_colours
     return colours
 
@@ -269,9 +269,11 @@ def get_spot_colours_new(
     assert all([type(c) is int for c in use_channels])
     assert all([c >= 0 and c < image.shape[2] for c in use_channels])
 
+    # TODO: GPU support.
+
     # Prepare variables.
     tile_shape = tuple(image.shape[3:])
-    # Pytorch tensors are used throughout and cast to float32 while computing.
+    # Pytorch float32 tensors are used whilst computing.
     yxz_torch = yxz
     if type(yxz_torch) is np.ndarray:
         yxz_torch = torch.tensor(yxz_torch)
@@ -283,6 +285,9 @@ def get_spot_colours_new(
 
     colours = np.zeros((yxz.shape[0], len(use_rounds), len(use_channels)), output_dtype)
     for r in use_rounds:
+        # The image is only populated in cuboid regions that are actually required to gather the colours to save time.
+        image_tr = np.zeros((len(use_channels), 1) + tile_shape, np.float32)
+        grid_tr = torch.zeros((len(use_channels), yxz.shape[0], 3), dtype=torch.float32)
         # First, apply round r optical flow to the given coordinates.
         r_yxz = apply_flow_new(yxz_torch, flow, tile, r)
         for c_index, c in enumerate(use_channels):
@@ -293,26 +298,35 @@ def get_spot_colours_new(
             # Pad the gathered data by one pixel for interpolation.
             c_yxz_min = (c_yxz_min - 1).clamp(min=0).int().tolist()
             c_yxz_max = (c_yxz_max + 1).clamp(max=torch.tensor(tile_shape)).int().tolist()
-            image_trc = np.zeros(tile_shape, np.float32)
-            image_trc[c_yxz_min[0] : c_yxz_max[0], c_yxz_min[1] : c_yxz_max[1], c_yxz_min[2] : c_yxz_max[2]] = image[
-                tile, r, c, c_yxz_min[0] : c_yxz_max[0], c_yxz_min[1] : c_yxz_max[1], c_yxz_min[2] : c_yxz_max[2]
-            ]
-            image_trc = torch.tensor(image_trc)
+            image_tr[
+                c_index, 0, c_yxz_min[0] : c_yxz_max[0], c_yxz_min[1] : c_yxz_max[1], c_yxz_min[2] : c_yxz_max[2]
+            ] = image[tile, r, c, c_yxz_min[0] : c_yxz_max[0], c_yxz_min[1] : c_yxz_max[1], c_yxz_min[2] : c_yxz_max[2]]
 
             c_yxz_grid = convert_coords_to_torch_grid(c_yxz, tile_shape)
             del c_yxz
-            # Input has shape (1, 1, image.shape[0], image.shape[1], image.shape[2]).
-            # Grid has shape (1, 1, 1, n_points, 3)
-            # Result has shape (1, 1, 1, 1, n_points).
-            image_trc = image_trc[None, None]
-            colours_trc = torch.nn.functional.grid_sample(image_trc, c_yxz_grid[None, None, None], align_corners=True)
-            colours_trc = colours_trc[0, 0, 0, 0].numpy().astype(output_dtype)
 
-            # Set out of bound coordinates to out_of_bounds_value.
-            is_out_of_bounds = (c_yxz_grid < -1) | (c_yxz_grid > +1)
-            colours_trc[is_out_of_bounds.any(1)] = out_of_bounds_value
+            grid_tr[c_index] = c_yxz_grid
+            del c_yxz_grid
+        del r_yxz
 
-            colours[:, r, c_index] = colours_trc
+        image_tr = torch.from_numpy(image_tr)
+
+        # TODO: This could be vectorised further by having one dimensions be of shape n_rounds * n_channels_use.
+
+        # Input (image_tr) has shape (n_channels_use, 1, image.shape[0], image.shape[1], image.shape[2]).
+        # Grid has shape (n_channels_use, 1, 1, n_points, 3)
+        # Result has shape (n_channels_use, 1, 1, 1, n_points).
+        colours_tr = torch.nn.functional.grid_sample(image_tr, grid_tr[:, None, None], align_corners=True)
+        colours_tr = colours_tr[:, 0, 0, 0]
+
+        # Set out of bound coordinates.
+        out_of_bounds = (grid_tr < -1) | (grid_tr > +1)
+        colours_tr[out_of_bounds.any(2)] = out_of_bounds_value
+        del image_tr, grid_tr
+
+        colours[:, r] = colours_tr.T
+        del colours_tr
+
     return colours
 
 

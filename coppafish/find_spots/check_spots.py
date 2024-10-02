@@ -1,8 +1,9 @@
+import math as maths
+
 import numpy as np
 
-from .. import setup
-from ..setup.notebook import Notebook
 from .. import log
+from ..setup.notebook import Notebook
 
 
 def check_n_spots(nb: Notebook):
@@ -22,11 +23,14 @@ def check_n_spots(nb: Notebook):
         nb: *Notebook* containing `find_spots` page.
     """
     # TODO: show example of what error looks like in the docs
-    config = setup.config.get_config(nb.config_path)["find_spots"]
-    if nb.basic_info.is_3d:
-        n_spots_warn = config["n_spots_warn_fraction"] * config["max_spots_3d"] * nb.basic_info.nz
-    else:
-        n_spots_warn = config["n_spots_warn_fraction"] * config["max_spots_2d"]
+    config = nb.find_spots.associated_configs["find_spots"]
+    n_spots_warn = maths.floor(
+        config["n_spots_warn_fraction"]
+        * config["max_spots_percent"]
+        * nb.basic_info.tile_sz**2
+        * nb.basic_info.nz
+        / 100
+    )
     n_spots_warn = int(np.ceil(n_spots_warn))
     use_tiles = np.asarray(nb.basic_info.use_tiles)
     use_rounds = np.asarray(nb.basic_info.use_rounds)  # don't consider anchor in this analysis

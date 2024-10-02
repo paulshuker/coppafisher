@@ -1,14 +1,16 @@
 2024/mm/dd Major Update (v1.0.0):
- * General: From this version onwards, coppafish will automatically detect incompatible notebook versions. A suggested 
-    course of action is given if a problem is found.
- * General: Presequence support is removed.
+ * General: From version 1.0.0 onwards, coppafish will automatically detect incompatible notebook versions. A suggested 
+    course of action is given if a compatibility problem is found.
+ * General: Presequence channels are no longer supported.
  * General: All output variables are now stored within the notebook except for extract images.
- * General: Users can move output directory and tiles directory mid-pipeline.
+ * General: Users can move output directory and/or tiles directory mid-pipeline.
  * General: The notebook can be moved location without breaking diagnostics.
  * General: Package versions are now logged in the pipeline.log file.
  * General: Incorrect numpy data types have been fixed within the notebook.
- * General: The notebook is now faster at saving, can save zarr arrays/groups, and has better overwrite protection.
+ * General: The notebook is now faster at saving/loading, saves zarr arrays/groups, and has overwrite protection.
  * General: Security patches for zipp, urllib3, scikit-learn, tornado, requests, and certifi.
+ * Documentation: New documentation for exporting data to pciSeq, skipping bad microscope images, running background 
+    processes, deleting notebook pages, and retrieving config data from the notebook.
  * Viewer: The viewer is more customisable. Users can now toggle whether they want each image shown to be a max 
     intensity projection or not, which is achieved by setting the max_intensity_projection variable in the viewer to 
     True or False.
@@ -23,21 +25,20 @@
  * PDF Diagnostics: New gene spatial heat map PDFs created at runtime.
  * PDF Diagnostics: New stitch PDF created at runtime.
  * Extract: Default z_plane_mean_warning 200 -> 125.
- * Extract: Images are now rotated during extract instead of filter. Hence, the config parameter `num_rotations` has 
-    been moved from the `filter` section to the `extract` section.
- * Filter: Filtered images are now saved as float16 instead of uint16.
- * Filter: Filtered images are not scaled anymore.
+ * Extract: Images are now rotated during extract instead of filter. So, the config parameter `num_rotations` has been 
+    moved from `filter` to `extract`.
+ * Filter: Images are now saved as float16 instead of uint16.
  * Filter: Images are now saved in the 'filter' notebook page.
- * Filter: The PSF used for image filtering is not computed anymore. It is given as an input. There is a default PSF 
-    located at coppafish/setup/default_psf.npz.
+ * Filter: Images are not multiplied by a scalar anymore.
+ * Filter: The PSF used for image filtering is not computed anymore. It is a config input. There is a default PSF 
+    saved at coppafish/setup/default_psf.npz.
+ * Filter: Optimised zarr image chunking.
  * Filter: Removed legacy filter options: difference of Hanning and image smoothing.
  * Filter: Warning issues when a filtered image contains adjacent pixels at the maximum possible integer value.
  * Find spots: Automatic spot intensity threshold (nb.find_spots.auto_thresh) is now computed in find_spots, not filter.
- * Register: Moved bg_scale from filter page -> register page.
- * Channel Register: An index error in channel registration, leading to the wrong channel corrections being applied, 
-    has been fixed.
- * Channel Register: now done more thoroughly, with the bead images being shift corrected with a phase correlation
+ * Channel Register: Now done more thoroughly, with the bead images being shift corrected with a phase correlation
     before any registration begins. This is to make the job of ICP easier.
+ * Channel Register: Index error in channel registration fixed, it lead to the wrong channel corrections being applied.
  * Channel Register: The fluorescent bead images are now isodata thresholded before circle detection, to make the
     circle detection more robust. The impact of this has been that the circle centres are much more accurate and closer
     to the true centre of the bead.
@@ -54,14 +55,16 @@
     computed for each tile.
  * Call spots: bad_trc now works with the new colour normalisation factor computation fix.
  * Call spots: some variables now saved as zarr arrays to reduce memory usage and notebook read speed.
- * OMP: OMP is now truly orthogonal. Before, the new gene was weighted using only the residual pixel colour. Now, all 
-    genes are re-weighted using the full pixel colour and a new gene is found using the latest residual colour.
+ * OMP: OMP is now truly orthogonal fix. Before, the new gene was weighted using only the residual pixel colour. Now, 
+    all genes are re-weighted using the full pixel colour and a new gene is found using the latest residual colour.
  * OMP: After each tile, OMP saves the progress and can continue where it left off if OMP is not completed fully.
  * OMP: Pixel colours are not background fitted before being run through OMP. OMP stops iterating on a pixel if a 
     background gene is assigned.
  * OMP: Better OMP mean spot computation.
  * OMP: Less memory intensive by saving each tile's results separately. Also, the results are compressed to disk.
- * OMP: New OMP subplots for the Viewer. Pressing "Shift + k" will bring up all subplot shortcuts.
+ * OMP: New OMP subplots for the Viewer. Press "Shift + k" to bring up all subplot shortcuts.
+ * OMP: Lower memory requirements.
+ * OMP: Much faster compute times with and without cuda.
  * OMP: Scores now saved as float16, not int16.
 
 

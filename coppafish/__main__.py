@@ -9,7 +9,8 @@ import textwrap
 
 import numpy as np
 
-from coppafish import Notebook, Viewer, export_to_pciseq, run_pipeline
+from coppafish import Notebook, Viewer, run_pipeline
+from coppafish.utils import export_to_pciseq
 from coppafish.setup import file_names
 
 

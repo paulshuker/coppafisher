@@ -75,7 +75,7 @@ def test_get_spot_colours_new() -> None:
         np.linspace(0, tile_shape[2] - 1, tile_shape[2]),
         indexing="ij",
     )
-    yxz = np.array(yxz).T.reshape((-1, 3), order="F")
+    yxz = np.array(yxz).reshape((3, -1), order="F").T
     flow = np.zeros((n_tiles, n_rounds, 3) + tile_shape)
     affine = np.zeros((n_tiles, n_rounds, n_channels, 4, 3))
     affine[:, :, :, :3] = np.eye(3)
@@ -91,19 +91,42 @@ def test_get_spot_colours_new() -> None:
     for r in range(n_rounds):
         for c in range(n_channels):
             assert np.allclose(colours[:, r, c], image[tile, r, c][tuple(yxz.T.astype(int))], atol=abs_tol)
-    # NOTE: Reshaping with order F again is wrong. The reshaping must be done with the opposite order: "C".
-    # This is a significant risk and shows the subtle nature of using reshape to return back to a 3-dimensional shape.
-    colours = colours.swapaxes(0, 1).swapaxes(1, 2).reshape((n_rounds, n_channels) + tile_shape, order="C")
+    # NOTE: Reshaping with order F again is correct.
+    colours = colours.swapaxes(0, 1).swapaxes(1, 2).reshape((n_rounds, n_channels) + tile_shape, order="F")
     assert np.allclose(colours, image[tile], atol=abs_tol)
 
+    # Try with just gathering a single line of y pixels.
+    yxz = np.meshgrid(
+        [3],
+        np.linspace(0, tile_shape[1] - 1, tile_shape[1]),
+        [6],
+        indexing="ij",
+    )
+    yxz = np.array(yxz).reshape((3, -1), order="F").T
+    colours = spot_colours_base.get_spot_colours_new(
+        yxz, image, flow, affine, tile, use_rounds, output_dtype=output_dtype
+    )
+    assert type(colours) is np.ndarray
+    assert colours.shape == (yxz.shape[0], n_rounds, n_channels)
+    for r in range(n_rounds):
+        for c in range(n_channels):
+            assert np.allclose(colours[:, r, c], image[tile, r, c][tuple(yxz.T.astype(int))], atol=abs_tol)
+
     # Check optical flow shifting is working.
+    yxz = np.meshgrid(
+        np.linspace(0, tile_shape[0] - 1, tile_shape[0]),
+        np.linspace(0, tile_shape[1] - 1, tile_shape[1]),
+        np.linspace(0, tile_shape[2] - 1, tile_shape[2]),
+        indexing="ij",
+    )
+    yxz = np.array(yxz).reshape((3, -1), order="F").T
     flow[tile, 0, 0] = 1
     flow[tile, 0, 1] = -1
     flow[tile, 2, 2] = 2
     colours = spot_colours_base.get_spot_colours_new(
         yxz, image, flow, affine, tile, use_rounds, output_dtype=output_dtype
     )
-    colours = colours.swapaxes(0, 1).swapaxes(1, 2).reshape((n_rounds, n_channels) + tile_shape, order="C")
+    colours = colours.swapaxes(0, 1).swapaxes(1, 2).reshape((n_rounds, n_channels) + tile_shape, order="F")
     # Check out of bounds.
     assert np.isnan(colours[0, :, -1]).all()
     assert np.isnan(colours[0, :, :, 0]).all()
@@ -123,7 +146,7 @@ def test_get_spot_colours_new() -> None:
         np.linspace(0, tile_shape[2] - 1, tile_shape[2]),
         indexing="ij",
     )
-    yxz = np.array(yxz).T.reshape((-1, 3), order="F")
+    yxz = np.array(yxz).reshape((3, -1), order="F").T
     affine = np.zeros((n_tiles, n_rounds, n_channels, 4, 3))
     affine[:, :, :, :3] = np.eye(3)
     affine[tile, 2, 1] = 0
@@ -140,7 +163,7 @@ def test_get_spot_colours_new() -> None:
     colours = spot_colours_base.get_spot_colours_new(
         yxz, image, flow, affine, tile, use_rounds, output_dtype=output_dtype
     )
-    colours = colours.swapaxes(0, 1).swapaxes(1, 2).reshape((n_rounds, n_channels) + tile_shape, order="C")
+    colours = colours.swapaxes(0, 1).swapaxes(1, 2).reshape((n_rounds, n_channels) + tile_shape, order="F")
     assert np.allclose(colours[0, 1:4], image[tile, 0, 1:4], atol=abs_tol)
     assert np.allclose(colours[1, 1:4], image[tile, 1, 1:4], atol=abs_tol)
     assert np.allclose(colours[2, 2:4], image[tile, 2, 2:4], atol=abs_tol)

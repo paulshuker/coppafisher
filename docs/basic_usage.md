@@ -72,20 +72,22 @@ with open(file_path, "w") as f:
 
 ### Code book
 
-A code book is a `.txt` file that tells coppafish the expected gene codes for each gene. An example of a four 
-gene code book is
-```
+A code book is a `.txt` file that tells coppafish the gene codes for each gene. Each digit is the dye index for each 
+sequencing round. An example of a four gene code book is
+
+```text
 gene_0 0123012
 gene_1 1230123
 gene_2 2301230
 gene_3 3012301
 ```
-the names (`gene_0`, `gene_1`, ...) can be changed. Do not assign any genes a constant gene code, e.g. `0000000`. To 
+
+the names (`gene_0`, `gene_1`, ...) can be changed. Do not assign any genes a constant gene code like `0000000`. To 
 learn how the codes can be generated, see [advanced usage](advanced_usage.md#). For details on how the codes are 
-generated, see `reed_solomon_codes` in 
-[`coppafish/utils/base.py`](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/utils/base.py). See the 
-[Wikipedia article](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction) for how gene codes are best 
-selected.
+best generated, see `reed_solomon_codes` in 
+[`coppafish/utils/base.py`](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/utils/base.py). See 
+[Wikipedia](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction) for algorithmic details on how gene 
+codes are best selected.
 
 ### Configuration
 
@@ -132,7 +134,7 @@ at <a href="https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/setup/se
 
 ## Running
 
-Coppafish must be run with a config file. In the terminal
+Coppafish must be run with a [configuration](basic_usage.md#configuration) file. In the terminal
 
 ```console
 python3 -m coppafish /path/to/config.ini

@@ -98,17 +98,18 @@ class ViewOMPImage:
         assert (~np.isnan(bled_codes)).all(), "bled codes cannot contain nan values"
         assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"
         omp_solver = coefs.CoefficientSolverOMP()
+        bg_bled_codes = np.eye(n_channels_use)[:, None, :].repeat(n_rounds_use, axis=1)
+        # Normalise the codes the same way as gene bled codes.
+        bg_bled_codes /= np.linalg.norm(bg_bled_codes, axis=(1, 2))
         coefficient_image = omp_solver.compute_omp_coefficients(
             pixel_colours=image_colours,
             bled_codes=bled_codes,
-            background_codes=np.eye(n_channels_use)[:, None, :].repeat(n_rounds_use, axis=1),
+            background_codes=bg_bled_codes,
             colour_norm_factor=nb.call_spots.colour_norm_factor[[tile]].astype(np.float32),
             maximum_iterations=config["max_genes"],
             dot_product_threshold=config["dp_thresh"],
             normalisation_shift=config["lambda_d"],
-            pixel_subset_count=config["subset_pixels"],
         )
-        coefficient_image = coefficient_image.toarray()
         coefficient_image = torch.asarray(coefficient_image).T.reshape(
             (len(nb.call_spots.gene_names),) + spot_shape_yxz
         )
@@ -261,27 +262,28 @@ class ViewOMPPixelColours:
         )
         image_colours = image_colours.astype(np.float32)
         assert not np.allclose(image_colours, 0)
-        colour_norm_factor = np.array(nb.call_spots.colour_norm_factor, dtype=np.float32)
-        colour_norm_factor = torch.asarray(colour_norm_factor).float()
-        bled_codes = nb.call_spots.bled_codes
+        bled_codes = nb.call_spots.bled_codes.astype(np.float32)
         assert (~np.isnan(bled_codes)).all(), "bled codes cannot contain nan values"
         assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"
+        bg_bled_codes = np.eye(n_channels_use)[:, None, :].repeat(n_rounds_use, axis=1)
+        # Normalise the codes the same way as gene bled codes.
+        bg_bled_codes /= np.linalg.norm(bg_bled_codes, axis=(1, 2))
 
         # Get the maximum number of OMP gene assignments made and what genes.
         omp_solver = coefs.CoefficientSolverOMP()
         coefficients = omp_solver.compute_omp_coefficients(
             pixel_colours=image_colours,
             bled_codes=bled_codes,
-            background_codes=np.eye(n_channels_use)[:, None, :].repeat(n_rounds_use, axis=1),
+            background_codes=bg_bled_codes,
             colour_norm_factor=nb.call_spots.colour_norm_factor[[tile]].astype(np.float32),
             maximum_iterations=config["max_genes"],
             dot_product_threshold=config["dp_thresh"],
             normalisation_shift=config["lambda_d"],
-            pixel_subset_count=config["subset_pixels"],
-        ).toarray()[0]
+        )[0]
         final_selected_genes = (~np.isclose(coefficients, 0)).nonzero()[0]
-        self.n_assigned_genes: int = (~np.isclose(coefficients, 0)).sum().item()
+        self.n_assigned_genes: int = final_selected_genes.size
         if self.n_assigned_genes == 0:
+            # FIXME: I don't think this is always telling the truth...
             raise ValueError(f"The selected pixel has no OMP gene assignments to display")
         # Show the zeroth iteration too with no genes assigned.
         self.coefficients = np.zeros((self.n_assigned_genes + 1, self.n_assigned_genes), dtype=np.float32)
@@ -289,13 +291,12 @@ class ViewOMPPixelColours:
             self.coefficients[i] = omp_solver.compute_omp_coefficients(
                 pixel_colours=image_colours,
                 bled_codes=bled_codes,
-                background_codes=np.eye(n_channels_use)[:, None, :].repeat(n_rounds_use, axis=1),
+                background_codes=bg_bled_codes,
                 colour_norm_factor=nb.call_spots.colour_norm_factor[[tile]].astype(np.float32),
                 maximum_iterations=config["max_genes"],
                 dot_product_threshold=config["dp_thresh"],
                 normalisation_shift=config["lambda_d"],
-                pixel_subset_count=config["subset_pixels"],
-            ).toarray()[0, final_selected_genes]
+            )[0, final_selected_genes]
         self.assigned_genes_names = nb.call_spots.gene_names[final_selected_genes]
         self.gene_bled_codes = bled_codes[final_selected_genes].reshape((-1, n_rounds_use, n_channels_use))
         self.gene_bled_codes = self.gene_bled_codes[np.newaxis].repeat(self.n_assigned_genes + 1, axis=0)

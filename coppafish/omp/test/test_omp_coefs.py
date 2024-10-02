@@ -1,5 +1,4 @@
 import numpy as np
-import scipy
 import torch
 
 from coppafish.omp import coefs
@@ -43,31 +42,22 @@ def test_compute_omp_coefficients() -> None:
     maximum_iterations = 4
     dot_product_threshold = 0.5
     normalisation_shift = 0.03
-    pixel_subset_count = 3
 
     pixel_colours_previous = pixel_colours.copy()
     bled_codes_previous = bled_codes.copy()
     background_codes_previous = background_codes.copy()
     colour_norm_factor_previous = colour_norm_factor.copy()
-    previous_coefficients = None
     omp_solver = coefs.CoefficientSolverOMP()
-    for pixel_subset_count in range(1, n_pixels + 2):
-        coefficients = omp_solver.compute_omp_coefficients(
-            pixel_colours=pixel_colours,
-            bled_codes=bled_codes,
-            background_codes=background_codes,
-            colour_norm_factor=colour_norm_factor,
-            maximum_iterations=maximum_iterations,
-            dot_product_threshold=dot_product_threshold,
-            normalisation_shift=normalisation_shift,
-            pixel_subset_count=pixel_subset_count,
-        )
-        assert type(coefficients) is scipy.sparse.lil_matrix
-        coefficients: np.ndarray = coefficients.toarray()
-        if previous_coefficients is not None:
-            # Ensure the pixel subset count value does not affect the results.
-            assert np.allclose(coefficients, previous_coefficients)
-        previous_coefficients = coefficients
+    coefficients = omp_solver.compute_omp_coefficients(
+        pixel_colours=pixel_colours,
+        bled_codes=bled_codes,
+        background_codes=background_codes,
+        colour_norm_factor=colour_norm_factor,
+        maximum_iterations=maximum_iterations,
+        dot_product_threshold=dot_product_threshold,
+        normalisation_shift=normalisation_shift,
+    )
+    assert type(coefficients) is np.ndarray
     assert np.allclose(pixel_colours_previous, pixel_colours)
     assert np.allclose(bled_codes_previous, bled_codes)
     assert np.allclose(background_codes_previous, background_codes)

@@ -2,12 +2,12 @@ import time
 from typing import Optional, Tuple
 
 import joblib
+from joblib.externals import loky
 import nd2
 import numpy as np
 import scipy
 from scipy.ndimage import gaussian_filter
 import skimage
-import torch
 from tqdm import tqdm
 import zarr
 
@@ -165,14 +165,18 @@ def optical_flow_single(
     # compute the optical flow (in parallel)
     if n_cores is None:
         n_cores = utils.system.get_core_count()
-    log.info(f"Computing optical flow using {n_cores} cores")
-    flow_sub = joblib.Parallel(n_jobs=n_cores)(
+    log.debug(f"Computing optical flow using {n_cores} cores")
+    flow_sub = joblib.Parallel(n_jobs=n_cores, timeout=45 * 60)(
         joblib.delayed(skimage.registration.optical_flow_ilk)(
             target_sub[n], base_sub[n], radius=window_radius, prefilter=True
         )
         for n in range(pos.shape[0])
     )
-    flow_sub = np.array(flow_sub)  # convert list to numpy array. Shape: (n_subvols, 3, n_y, n_x, n_z)
+    # Convert list to numpy array with shape (n_subvols, 3, n_y, n_x, n_z).
+    flow_sub = np.array(flow_sub)
+    # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, the reusable loky executor is
+    # explicitly killed when done. Re-spawning it in the future only takes ~0.1s.
+    loky.get_reusable_executor().shutdown(wait=True)
 
     # Now that we have the optical flow for each subvolume, we need to merge them back together
     flow = np.array(
@@ -204,7 +208,7 @@ def optical_flow_single(
         zarray = zarr.open_array(loc, mode="r+")
         zarray[tile, round] = flow_up
     t_end = time.time()
-    log.info("Optical flow computation took " + str(t_end - t_start) + " seconds")
+    log.debug("Optical flow computation took " + str(t_end - t_start) + " seconds")
 
     return flow
 
@@ -255,7 +259,7 @@ def flow_correlation(
         zarray = zarr.open_array(loc, mode="r+")
         zarray[tile, round] = correlation_upsampled
     t_end = time.time()
-    log.info("Computing correlation took " + str(t_end - t_start) + " seconds")
+    log.debug("Computing correlation took " + str(t_end - t_start) + " seconds")
     return correlation, correlation_upsampled
 
 
@@ -305,10 +309,15 @@ def interpolate_flow(
     # grab samples for linear regression
     flow_z_crop = flow_smooth[2][::10, ::10, : -2 * window_radius]
     # grab coords of sample points
-    coords = np.array(np.meshgrid(10 * np.arange(flow_z_crop.shape[0]),
-                                  10 * np.arange(flow_z_crop.shape[1]),
-                                  np.arange(flow_z_crop.shape[2]),
-                                  indexing="ij"), dtype=np.float32)
+    coords = np.array(
+        np.meshgrid(
+            10 * np.arange(flow_z_crop.shape[0]),
+            10 * np.arange(flow_z_crop.shape[1]),
+            np.arange(flow_z_crop.shape[2]),
+            indexing="ij",
+        ),
+        dtype=np.float32,
+    )
 
     # reshape coords and flow_z_crop and pad coords with 1s for linear regression
     coords = coords.reshape(3, -1).T
@@ -318,15 +327,17 @@ def interpolate_flow(
     coefficients = np.linalg.lstsq(a=coords_pad, b=flow_z_crop, rcond=None)[0]
 
     # now we can use this to predict the flow in z
-    coords = np.array(np.meshgrid(range(flow_smooth.shape[1]),
-                                  range(flow_smooth.shape[2]),
-                                  range(flow_smooth.shape[3]),
-                                  indexing="ij"), dtype=np.float32)
+    coords = np.array(
+        np.meshgrid(
+            range(flow_smooth.shape[1]), range(flow_smooth.shape[2]), range(flow_smooth.shape[3]), indexing="ij"
+        ),
+        dtype=np.float32,
+    )
     coords = coords.reshape(3, -1).T
     coords_pad = np.pad(coords, [(0, 0), (0, 1)], constant_values=1)
-    flow_smooth[2] = (coords_pad @ coefficients).reshape(flow_smooth.shape[1],
-                                                         flow_smooth.shape[2],
-                                                         flow_smooth.shape[3])
+    flow_smooth[2] = (coords_pad @ coefficients).reshape(
+        flow_smooth.shape[1], flow_smooth.shape[2], flow_smooth.shape[3]
+    )
     del coords, coords_pad, flow_z_crop, coefficients
 
     # remove nan values
@@ -346,7 +357,7 @@ def interpolate_flow(
         zarray = zarr.open_array(loc, mode="r+")
         zarray[tile, round] = flow_smooth
     time_end = time.time()
-    log.info("Interpolating flow took " + str(time_end - time_start) + " seconds")
+    log.debug("Interpolating flow took " + str(time_end - time_start) + " seconds")
     return flow_smooth
 
 
@@ -474,7 +485,7 @@ def channel_registration(
             )
             if not converged:
                 transform[i] = np.eye(4, 3)
-                log.error(Warning("ICP did not converge for camera " + str(i) + ". Replacing with identity."))
+                log.warn("ICP did not converge for camera " + str(i) + ". Replacing with identity.")
             pbar.update(1)
 
     # Need to add in z coord info as not accounted for by registration due to all coords being equal

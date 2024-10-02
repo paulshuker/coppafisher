@@ -148,19 +148,30 @@ class Notebook:
         except AttributeError:
             return False
 
-    def delete_page(self, page_name: str) -> None:
+    def delete_page(self, page_name: str, prompt: bool = True) -> None:
         """
         Delete a notebook page from disk and memory.
 
         Args:
             - page_name (str): page name to delete.
+            - prompt (bool, optional): give the user a y/n prompt for other suggestions to the notebook. Default: true.
 
         Notes:
             - This function is helpful for users when they have finished version compatibility checks using the
             CompatibilityTracker and now wish to delete incompatible notebook pages.
         """
         assert type(page_name) is str
-        assert self.has_page(page_name), f"Page name {page_name} not found"
+        if not self.has_page(page_name):
+            raise ValueError(f"Page name {page_name} not found")
+        if prompt:
+            earlier_pages = self._get_page_names_after_page(page_name)
+            if len(earlier_pages) == 0:
+                return
+            print(f"The notebook contains pages {', '.join(earlier_pages)} that were added after page {page_name}.")
+            result = input("Do you want to delete these pages too (recommended)? (y/n): ")
+            if result == "y":
+                for earlier_page_name in earlier_pages:
+                    self.delete_page(earlier_page_name, prompt=False)
         page_name_directory = self._get_page_directory(page_name)
         shutil.rmtree(page_name_directory)
         self.__delattr__(page_name)
@@ -342,3 +353,18 @@ class Notebook:
 
     def _get_metadata_path(self) -> str:
         return os.path.join(self._directory, self._metadata_name)
+
+    def _get_page_names_after_page(self, page_name: str) -> tuple[str]:
+        """
+        Get all the pages added to the notebook before the given notebook page.
+        """
+        assert self.has_page(page_name)
+
+        result = []
+        page: NotebookPage = self.__getattribute__(page_name)
+        for other_page in self._get_added_pages():
+            if other_page == page:
+                continue
+            if other_page.time_created > page.time_created:
+                result.append(other_page.name)
+        return tuple(result)

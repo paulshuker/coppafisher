@@ -34,7 +34,14 @@ class NotebookPage:
     _metadata_name: str = "_metadata.json"
 
     _page_name_key: str = "page_name"
+
     _time_created: float
+
+    def get_time_created(self) -> float:
+        return self._time_created
+
+    time_created: float = property(get_time_created)
+
     _time_created_key: str = "time_created"
     _version: str
     _version_key: str = "version"
@@ -529,7 +536,7 @@ class NotebookPage:
                 "Numpy array [n_spots]. Gene number assigned to each spot. `None` if not assigned.",
             ],
             "dot_product_gene_score": [
-                "zarray[float32]",
+                "zarray[float16]",
                 "Numpy float array [n_spots]. `score[s]' is the highest gene coef of spot s.",
             ],
             "gene_probabilities": [
@@ -809,10 +816,10 @@ class NotebookPage:
         expected_types = self._get_expected_types(name)
         if not self._is_types(value, expected_types):
             added_msg = ""
-            if type(value) is np.ndarray or type(value) in zarr.Array:
+            if type(value) is np.ndarray or type(value) is zarr.Array:
                 added_msg += f" with dtype {value.dtype.type}"
             msg = f"Cannot set variable {name} to type {type(value)}{added_msg}. Expected type(s) {expected_types}"
-            raise TypeError(msg)
+            raise PageTypeError(msg)
 
         object.__setattr__(self, name, value)
 
@@ -881,7 +888,7 @@ class NotebookPage:
             np.savez_compressed(new_path, value)
         elif file_suffix == ".zarray":
             if type(value) is not zarr.Array:
-                raise TypeError(f"Variable {name} is of type {type(value)}, expected zarr.Array")
+                raise PageTypeError(f"Variable {name} is of type {type(value)}, expected zarr.Array")
             old_path = os.path.abspath(value.store.path)
             shutil.copytree(old_path, new_path)
             new_array = zarr.open_array(store=new_path, mode="r+")
@@ -892,7 +899,7 @@ class NotebookPage:
             self.__setattr__(name, new_array)
         elif file_suffix == ".zgroup":
             if type(value) is not zarr.Group:
-                raise TypeError(f"Variable {name} is of type {type(value)}, expected zarr.Group")
+                raise PageTypeError(f"Variable {name} is of type {type(value)}, expected zarr.Group")
             old_path = os.path.abspath(value.store.path)
             shutil.copytree(old_path, new_path)
             new_group = zarr.open_group(store=new_path, mode="r")
@@ -943,7 +950,7 @@ class NotebookPage:
                 for type_as_str in types_as_str.split(self._datatype_separator):
                     unique_suffixes.add(self._type_str_to_suffix(type_as_str))
                 if len(unique_suffixes) > 1:
-                    raise TypeError(
+                    raise PageTypeError(
                         f"Variable {var_name} in page {page_name} has incompatible types: "
                         + f"{' and '.join(unique_suffixes)} in _options"
                     )
@@ -997,7 +1004,7 @@ class NotebookPage:
         elif type_as_str == "zgroup":
             return type(value) is zarr.Group
         else:
-            raise TypeError(f"Unexpected type '{type_as_str}' found in _options in NotebookPage class")
+            raise PageTypeError(f"Unexpected type '{type_as_str}' found in _options in NotebookPage class")
 
     def _is_ndarray_of_dtype(self, variable: Any, valid_dtypes: Tuple[np.dtype], /) -> bool:
         assert type(valid_dtypes) is tuple
@@ -1051,3 +1058,14 @@ class NotebookPage:
             return (bool, np.bool_)
         else:
             raise ValueError(f"Unknown datatype {dtype_in_str} in {type_as_str} for a notebook page variable")
+
+
+class PageTypeError(Exception):
+    def __init__(self, msg: str):
+        """
+        Error raised because the notebook page was given a wrong variable type.
+
+        Args:
+            - msg (str): the error message.
+        """
+        super().__init__(msg)

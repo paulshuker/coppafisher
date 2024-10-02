@@ -1,16 +1,13 @@
 import enum
-import numbers
 import os
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Union
 
 from numcodecs import Blosc, blosc
 import numpy as np
 import numpy.typing as npt
-import numpy_indexed
 import zarr
 
-from .. import log, utils
-from ..setup.notebook_page import NotebookPage
+from .. import utils
 
 
 EXTRACT_IMAGE_DTYPE = np.uint16
@@ -134,32 +131,3 @@ def _load_image(file_path: str) -> zarr.Array:
     Returns `(im_y x im_x x im_z) zarray[uint16]`: loaded extract image.
     """
     return zarr.open(file_path, mode="r")
-
-
-def get_npy_tile_ind(
-    tile_ind_nd2: Union[int, List[int]], tile_pos_yx_nd2: np.ndarray, tile_pos_yx_npy: np.ndarray
-) -> Union[int, List[int]]:
-    """
-    Gets index of tile in npy file from tile index of nd2 file.
-
-    Args:
-        tile_ind_nd2: Index of tile in nd2 file
-        tile_pos_yx_nd2: ```int [n_tiles x 2]```.
-            ```[i,:]``` contains YX position of tile with nd2 index ```i```.
-            Index 0 refers to ```YX = [0, 0]```.
-            Index 1 refers to ```YX = [0, 1] if MaxX > 0```.
-        tile_pos_yx_npy: ```int [n_tiles x 2]```.
-            ```[i,:]``` contains YX position of tile with npy index ```i```.
-            Index 0 refers to ```YX = [MaxY, MaxX]```.
-            Index 1 refers to ```YX = [MaxY, MaxX - 1] if MaxX > 0```.
-
-    Returns:
-        Corresponding indices in npy file.
-    """
-    if isinstance(tile_ind_nd2, numbers.Number):
-        tile_ind_nd2 = [tile_ind_nd2]
-    npy_index = numpy_indexed.indices(tile_pos_yx_npy, tile_pos_yx_nd2[tile_ind_nd2]).tolist()
-    if len(npy_index) == 1:
-        return npy_index[0]
-    else:
-        return npy_index

@@ -237,42 +237,64 @@ def estimate_runtime() -> None:
     """
     Asks the user for relevant questions to estimate the pipeline run-time for coppafish to complete.
     """
-    n_sequence_rounds = int(input("Number of sequencing rounds: "))
+    n_sequence_rounds = int(eval(input("Number of sequencing rounds: ")))
     n_rounds = n_sequence_rounds + 1
-    n_sequence_channels = int(input("Number of sequencing channels: "))
+    n_sequence_channels = int(eval(input("Number of sequencing channels: ")))
     n_channels = n_sequence_channels + 1
-    n_genes = int(input("Gene panel size: "))
-    n_tile_pixels = int(input("Number of pixels in one tile: "))
-    n_tiles = int(input("Number of tiles: "))
-    has_gpu = input("Do you have a GPU available? (y or n): ")
-    assert has_gpu in ("y", "n")
+    n_genes = int(eval(input("Gene panel size: ")))
+    n_tile_pixels = int(eval(input("Number of pixels in one tile: ")))
+    n_tiles = int(eval(input("Number of tiles: ")))
+    has_gpu = input("Do you have a GPU available? (y/n): ")
+    if has_gpu not in ("y", "n"):
+        raise ValueError(f"Must answer y or n")
     has_gpu = has_gpu == "y"
     # All times are in minutes.
-    extract_compress_time = 8.8e-10 * n_tile_pixels * n_rounds * n_channels * n_tiles
-    extract_read_time = 7.1e-9 * n_tile_pixels * n_rounds * n_tiles
+    extract_compress_time = 7.3e-11 * n_tile_pixels * n_rounds * n_channels * n_tiles
+    extract_read_time = 6.1e-9 * n_tile_pixels * n_rounds * n_tiles
     extract_time = maths.ceil(extract_compress_time + extract_read_time)
-    filter_time = maths.ceil(3e-10 * n_tile_pixels * n_rounds * n_channels)
-    find_spots_time = maths.ceil(2e-10 * n_tile_pixels * n_rounds * n_sequence_channels * n_tiles)
-    register_time = maths.ceil(1.8e-9 * n_tile_pixels * n_rounds * n_channels * n_tiles)
-    stitch_time = maths.ceil(7.5e-9 * n_tile_pixels)
-    call_spots_time = maths.ceil(3.4e-12 * n_tile_pixels * n_sequence_channels * n_sequence_rounds * n_genes * n_tiles)
-    omp_load_time = 1.2e-9 * n_tile_pixels * n_sequence_channels * n_sequence_rounds * n_tiles
-    if has_gpu:
-        omp_compute_time = 3.8e-12 * n_tile_pixels * n_sequence_rounds * n_sequence_channels * n_genes * n_tiles
-        omp_score_time = 2.4e-10 * n_tile_pixels * n_genes * n_tiles
+    filter_time = maths.ceil(6.2e-10 * n_tile_pixels * n_rounds * n_channels * n_tiles)
+    find_spots_time = maths.ceil(9.2e-10 * n_tile_pixels * n_rounds * n_sequence_channels * n_tiles)
+    register_time = maths.ceil(7.1e-10 * n_tile_pixels * n_rounds * n_channels * n_tiles)
+    stitch_time = maths.ceil(1e-9 * n_tile_pixels * n_tiles)
+    get_ref_spots_time = maths.ceil(2.3e-10 * n_tile_pixels * n_sequence_rounds * n_sequence_channels * n_tiles)
+    call_spots_time = maths.ceil(2.5e-15 * n_tile_pixels * n_sequence_channels * n_sequence_rounds * n_genes * n_tiles)
+    if not has_gpu:
+        omp_colour_time = 3e-9 * n_tile_pixels * n_sequence_rounds * n_sequence_channels * n_tiles
+        omp_compute_time = 3e-13 * n_tile_pixels * n_sequence_rounds * n_sequence_channels * n_genes * n_tiles
+        # Time taken to compute the OMP mean spot and spot.
+        omp_mean_spot_time = 2e-10 * n_tile_pixels * n_genes
+        # Time taken to place OMP coefficients into the scipy sparse matrix.
+        omp_sparse_time = 1.3e-10 * n_tile_pixels * n_genes * n_tiles
+        omp_score_time = 2.6e-10 * n_tile_pixels * n_genes * n_tiles
     else:
-        omp_compute_time = 1.5e-11 * n_tile_pixels * n_sequence_rounds * n_sequence_channels * n_genes * n_tiles
-        omp_score_time = 7.2e-10 * n_tile_pixels * n_genes * n_tiles
-    omp_time = maths.ceil(omp_load_time + omp_compute_time + omp_score_time)
+        # TODO: Update the GPU compute times.
+        omp_colour_time = 3e-9 * n_tile_pixels * n_sequence_rounds * n_sequence_channels * n_tiles
+        omp_compute_time = 3e-13 * n_tile_pixels * n_sequence_rounds * n_sequence_channels * n_genes * n_tiles
+        # Time taken to compute the OMP mean spot and spot.
+        omp_mean_spot_time = 2e-10 * n_tile_pixels * n_genes
+        # Time taken to place OMP coefficients into the scipy sparse matrix.
+        omp_sparse_time = 1.3e-10 * n_tile_pixels * n_genes * n_tiles
+        omp_score_time = 2.6e-10 * n_tile_pixels * n_genes * n_tiles
+    omp_time = maths.ceil(omp_colour_time + omp_compute_time + omp_mean_spot_time + omp_sparse_time + omp_score_time)
 
-    print("Assuming that you have a DAPI channel")
-    print("Assuming you are extracting/filtering to zarr arrays (default)")
+    print(f"GPU: {has_gpu}")
     print(f"Extract time: {extract_time} minutes")
     print(f"Filter time: {filter_time} minutes")
     print(f"Find spots time: {find_spots_time} minutes")
     print(f"Register time: {register_time} minutes")
     print(f"Stitch time: {stitch_time} minutes")
+    print(f"Get reference spots time: {get_ref_spots_time} minutes")
     print(f"Call spots time: {call_spots_time} minutes")
     print(f"OMP time: {omp_time} minutes")
-    total_time = extract_time + filter_time + find_spots_time + register_time + stitch_time + omp_time
-    print(f"Total time: {total_time} minutes")
+    total_time = (
+        extract_time
+        + filter_time
+        + find_spots_time
+        + register_time
+        + stitch_time
+        + get_ref_spots_time
+        + call_spots_time
+        + omp_time
+    )
+    print("-" * 50)
+    print(f"Total time: {total_time // 60} hours ({total_time} minutes)")
