@@ -27,6 +27,7 @@ class CompatibilityTracker:
         (
             ("0.10.6", "extract"),
             ("0.10.7", "filter"),
+            ("0.10.8", "none"),
             ("1.0.0", "initialisation"),
         )
     )
@@ -108,7 +109,10 @@ class CompatibilityTracker:
         # Find and print the instructions to migrate from the earliest stage.
         log.info(f"Migrating from coppafish {from_version} to {to_version}:")
         self.print_start_from(earliest_stage)
-        log.info(f"To remove notebook pages, see Usage -> Advanced Usage in the online documentation")
+        log.info(
+            "To delete notebook pages, see Usage -> Advanced Usage at "
+            + "https://paulshuker.github.io/coppafish/advanced_usage/#delete-notebook-page in the online documentation"
+        )
 
     def notebook_is_compatible(self, nb: Notebook) -> bool:
         """

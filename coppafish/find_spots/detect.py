@@ -35,8 +35,6 @@ def detect_spots(
     assert type(remove_duplicates) is bool
     assert image.ndim == 3
     if remove_duplicates:
-        assert type(radius_xy) is int, "radius_xy must be an int if remove_duplicates is true"
-        assert type(radius_z) is int, "radius_z must be an int if remove_duplicates is true"
         assert radius_xy > 0
         assert radius_z > 0
 

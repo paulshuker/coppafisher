@@ -319,6 +319,7 @@ def get_nd2_tile_ind(
         tile_ind_npy = [tile_ind_npy]
     # As npy and nd2 have different coordinate systems, we need to convert tile_pos_yx_npy to nd2 tile coordinates
     tile_pos_yx_npy = np.max(tile_pos_yx_npy, axis=0) - tile_pos_yx_npy
+    # TODO: Remove the dependency on an obscure package for a single function.
     nd2_index = numpy_indexed.indices(tile_pos_yx_nd2, tile_pos_yx_npy[tile_ind_npy]).tolist()
     if len(nd2_index) == 1:
         return nd2_index[0]

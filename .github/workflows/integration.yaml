@@ -13,8 +13,8 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
         python-version:
-          - "3.9"
           - "3.10"
+          - "3.11"
     name: Tests
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
@@ -28,14 +28,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Update pip
-        run: python -m pip install --upgrade pip
-
-      - name: Install dev packages
-        run: python -m pip install -r requirements-dev.txt
-
       - name: Install default dependencies
-        run: python -m pip install -r requirements.txt
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements-torch.txt
       
       - name: Install coppafish
         run: python -m pip install .
@@ -43,8 +39,14 @@ jobs:
       - name: Verify coppafish import
         run: python -Ic "import coppafish"
 
+      - name: Install dev packages
+        run: python -m pip install -r requirements-dev.txt
+
       - name: Run default unit tests
-        run: pytest -m "not integration and not manual" --cov=coppafish --cov-report term
+        run: pytest -m "not integration and not manual and not notebook" --cov=coppafish --cov-report term
 
       - name: Run default integration tests
         run: pytest -m "integration and not manual" --cov=coppafish --cov-report term
+
+      - name: Run notebook-dependent tests
+        run: pytest -m "notebook and not integration and not manual" --cov=coppafish --cov-report term
