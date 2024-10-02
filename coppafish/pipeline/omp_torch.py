@@ -144,7 +144,7 @@ def run_omp(
 
         # Large numbers now have commas.
         with tqdm.tqdm(
-            total=np.prod(tile_shape).item(), desc=f"Computing tile {t} coefficients with {str(device)}", unit="pixel"
+            total=np.prod(tile_shape).item(), desc=f"Computing coefficients", unit="pixel", postfix=postfix
         ) as pbar:
             while index_min < yxz_all.shape[0]:
                 if n_subset_pixels is None:
