@@ -169,7 +169,7 @@ def call_reference_spots(
             ]
         )
         if n_spots_per_gene.sum() == 0:
-            log.warn(f"No relevant genes found to calculate tile scale factor Q for {t=}, {r=}, {c=}")
+            log.warn(f"No relevant spots found to calculate tile scale factor Q for {t=}, {r=}, {c=}")
             continue
         tile_scale[t, r, c] = np.sum(
             np.sqrt(n_spots_per_gene) * bled_codes[relevant_genes, r, c] * free_bled_codes[relevant_genes, t, r, c]
