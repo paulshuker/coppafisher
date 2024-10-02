@@ -15,8 +15,8 @@ nb = Notebook("/path/to/notebook.npz")
 Viewer(nb)
 ```
 
-where a new napari tab will be opened. You can specify a how genes are marked using a .csv file, then the Viewer can be 
-opened by
+where a new napari window will be opened. You can specify a how genes are marked using a .csv file, then the Viewer can 
+be opened by
 
 ```python
 from coppafish import Notebook, Viewer
@@ -40,9 +40,7 @@ allows for multiple z planes of genes to be displayed at once. Genes further awa
 allows the user to change the minimum and maximum scores to be displayed. The "Intensity Threshold" affects the minimum 
 allowed spot intensity to display (only affects Anchor and OMP). The "Method" is the chosen method of gene calling. 
 "Prob" is the Von-Mises probability method, "Anchor" is the anchor method (see [call spots](overview.md#call-spots)), and 
-"OMP" is the Orthogonal Matching Pursuit method (see [OMP](overview.md#orthogonal-matching-pursuit)). The "OMP Score 
-Multiplier" will affect how much weight positive coefficient has over negative coefficient parts of a spot. We 
-recommend a value $\ge1$, but there is no known optimal value.
+"OMP" is the Orthogonal Matching Pursuit method (see [OMP](overview.md#orthogonal-matching-pursuit)).
 
 ![](images/Viewer_example.PNG "The Viewer")
 

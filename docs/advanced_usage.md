@@ -22,7 +22,7 @@ tracker.print_start_from("find_spots")
 ```
 
 and follow the instructions given. Then, you are safe to change the configuration for all sections after find spots. If 
-you are told to delete notebook page(s), see [here](#delete-notebook-page).
+you are told to delete notebook page(s), see the [instructions](#delete-notebook-page).
 
 ## Skipping bad microscope images
 
@@ -35,7 +35,7 @@ bad_trc = (t1, r1, c1), (t2, r2, c2), ...
 ```
 
 under the `basic_info` section. Each set of brackets represents one image to ignore. This allows for meaningful 
-results to be salvaged from a tile.
+results to be salvaged from an incomplete tile.
 
 ## Exporting results for pciSeq
 
@@ -57,7 +57,7 @@ threshold,
 export_to_pciseq(nb, method, score_thresh, intensity_thresh)
 ```
 
-where score_thresh and intensity_thresh are numbers. Check the [Viewer](dianogstics.md#Viewer) for help deciding on 
+where score_thresh and intensity_thresh are numbers. Check the [Viewer](diagnostics.md#viewer) for help deciding on 
 thresholds.
 
 ## Create a background process
@@ -105,14 +105,16 @@ nb = Notebook("/path/to/notebook")
 nb.delete_page("page_name")
 ```
 
-For example, to remove the omp page
+For example, to remove the stitch page
 
 ```python
 from coppafish import Notebook
 
 nb = Notebook("/path/to/notebook")
-nb.delete_page("omp")
+nb.delete_page("stitch")
 ```
+
+Any page's added after stitch are warned about. It is recommended to delete these by typing `y`.
 
 ## Email notification
 

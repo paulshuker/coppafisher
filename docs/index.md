@@ -5,7 +5,7 @@
 - :material-checkbox-multiple-blank: __Zarr__ for image compression
 - :material-fast-forward: __PyTorch__ for GPU/CPU acceleration
 - :material-eye: __Napari__ for 3D visualisation
-- :material-web: __Dash__ for web browser interaction
+- :material-web: __Dash__ for web interaction
 
 </div>
 
