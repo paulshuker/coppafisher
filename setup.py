@@ -19,7 +19,7 @@ setup(
     maintainer="Paul Shuker",
     maintainer_email="paul.shuker@outlook.com",
     license="MIT",
-    python_requires=">3.9, <3.11",
+    python_requires=">=3.10, <3.12",
     url="https://paulshuker.github.io/coppafish/",
     packages=packages,
     install_requires=[

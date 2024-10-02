@@ -27,6 +27,7 @@ class CompatibilityTracker:
         (
             ("0.10.6", "extract"),
             ("0.10.7", "filter"),
+            ("0.10.8", "none"),
             ("1.0.0", "initialisation"),
         )
     )

@@ -26,21 +26,21 @@ reference.
 
 ### Prerequisites
 
-* Windows or Linux operating system. MacOS is not tested.
-* At least 48GB of RAM for tile sizes `58x2048x2048`.
-* Python version 3.9 or 3.10.
+* Windows or Linux. MacOS is not tested.
+* At least 64GB of memory for tile sizes `64x2048x2048`.
+* Python 3.10 or 3.11.
+* Nvidia GPU with Cuda 12.4 support (optional).
 * [Git](https://git-scm.com/).
 
 ### Environment
 
-Install coppafish software from within an environment. This can be a `venv` or `conda` (recommended) environment.
+Install coppafish software from within an environment. We will use a conda environment, so 
+[miniconda](https://docs.anaconda.com/miniconda/) or [anaconda](https://anaconda.org/anaconda/conda) is required.
 
-#### Conda
-
-For `conda`, build an environment by doing:
+First, build an environment
 
 ```terminal
-conda create -n coppafish python=3.10
+conda create -n coppafish python=3.11
 conda activate coppafish
 ```
 
@@ -52,7 +52,7 @@ Clone the latest coppafish release locally
 git clone --depth 1 https://github.com/paulshuker/coppafish
 ```
 
-or get a specific version. For example, like version 1.0.0 by
+or get a specific version. For example, version 1.0.0 
 
 ```terminal
 git clone --depth 1 --branch 1.0.0 https://github.com/paulshuker/coppafish
@@ -65,7 +65,7 @@ cd coppafish
 python -m pip install -r requirements.txt
 ```
 
-install [PyTorch](https://pytorch.org/) with CPU and Cuda version 12.4 support by 
+install [PyTorch](https://pytorch.org/) with CPU and Cuda 12.4 by 
 
 ```terminal
 python -m pip install -r requirements-torch.txt
@@ -73,9 +73,11 @@ python -m pip install -r requirements-torch.txt
 
 Finally, install coppafish by 
 
-```
+```terminal
 python -m pip install .
 ```
+
+You can now safely delete the locally cloned coppafish repository.
 
 ## Updating
 
@@ -83,27 +85,10 @@ Coppafish will not automatically install updates. But, you will see a warning at
 online version is available.
 
 To update version, delete the old conda environment by `#!terminal conda env remove -n coppafish`. Then follow all 
-[install](#install) instructions again while inside of your coppafish conda environment.
+[installation](#installation) instructions again.
 
 You can verify your install by running `#!terminal pip show coppafish` in the coppafish environment to check you have the 
 latest version.
 
-## Changing software version
-
-If you wish to know what old output files should be deleted when migrating from one software version to another, run 
-in the python terminal
-```python
-from coppafish import CompatibilityTracker
-
-track = CompatibilityTracker()
-track.check(X, Y)
-```
-
-where X is the old coppafish version, Y is the new coppafish version. This works for coppafish versions 0.10.7 and 
-above. For example, to find what files to delete when migrating from 0.10.7 to 1.0.0, run
-```python
-from coppafish import CompatibilityTracker
-
-track = CompatibilityTracker()
-track.check("0.10.7", "1.0.0")
-```
+Keep all output data (including the notebook) when updating coppafish versions. If data saved to disk is now 
+deprecated, coppafish will automatically suggest a course of action when it is [run](basic_usage.md#running).
