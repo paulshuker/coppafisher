@@ -30,6 +30,7 @@ setup(
         "datashader",
         "distinctipy",
         "h5py",
+        "joblib",
         "magicgui",
         "matplotlib",
         "mplcursors",

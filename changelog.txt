@@ -6,9 +6,10 @@
  * General: Users can move output directory and/or tiles directory mid-pipeline.
  * General: The notebook can be moved location without breaking diagnostics.
  * General: Package versions are now logged in the pipeline.log file.
- * General: Incorrect numpy data types have been fixed within the notebook.
+ * General: Incorrect numpy data types within the notebook fixed.
  * General: The notebook is now faster at saving/loading, saves zarr arrays/groups, and has overwrite protection.
  * General: Security patches for zipp, urllib3, scikit-learn, tornado, requests, and certifi.
+ * General: Many package updates.
  * Documentation: New documentation for exporting data to pciSeq, skipping bad microscope images, running background 
     processes, deleting notebook pages, and retrieving config data from the notebook.
  * Documentation: Detailed method description for find spots, stitch, call spots, and OMP.
