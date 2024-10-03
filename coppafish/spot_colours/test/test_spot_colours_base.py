@@ -96,7 +96,7 @@ def test_get_spot_colours_new() -> None:
     colours = colours.swapaxes(0, 1).swapaxes(1, 2).reshape((n_rounds, n_channels) + tile_shape, order="F")
     assert np.allclose(colours, image[tile], atol=abs_tol)
 
-    # Try with just gathering a single line of y pixels.
+    # Try with just gathering a single line of x pixels.
     yxz = np.meshgrid(
         [3],
         np.linspace(0, tile_shape[1] - 1, tile_shape[1]),
@@ -176,3 +176,8 @@ def test_get_spot_colours_new() -> None:
     assert np.isnan(colours[0, 0, :, :, 3:]).all()
     assert np.allclose(colours[2, 0, 0, 0, 0], image[tile, 2, 0, 0, 1:3, 0].mean(), atol=abs_tol)
     assert np.isnan(colours[2, 0, :, 3:]).all()
+
+
+if __name__ == "__main__":
+    test_apply_flow_new()
+    test_get_spot_colours_new()

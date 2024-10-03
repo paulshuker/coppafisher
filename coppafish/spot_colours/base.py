@@ -91,16 +91,17 @@ def apply_flow_new(
     yxz_min, yxz_max = yxz_torch.min(0).values, yxz_torch.max(0).values
     yxz_min = yxz_min.floor().clamp(min=0).int().tolist()
     yxz_max = (yxz_max.ceil() + 1).clamp(max=torch.tensor(tile_shape)).int().tolist()
-    flow_torch = np.zeros(flow.shape[2:], np.float32)
-    flow_torch[:, yxz_min[0] : yxz_max[0], yxz_min[1] : yxz_max[1], yxz_min[2] : yxz_max[2]] = flow[
-        tile, r, :, yxz_min[0] : yxz_max[0], yxz_min[1] : yxz_max[1], yxz_min[2] : yxz_max[2]
-    ]
-    flow_torch = torch.tensor(flow_torch)
+    subset_tile_shape: tuple[int] = tuple([yxz_max[i] - yxz_min[i] for i in range(3)])
+    flow_torch = flow[tile, r, :, yxz_min[0] : yxz_max[0], yxz_min[1] : yxz_max[1], yxz_min[2] : yxz_max[2]]
+    assert flow_torch.shape == (3,) + subset_tile_shape
+    flow_torch = torch.from_numpy(flow_torch).float()
     assert yxz_torch.ndim == 2
     assert yxz_torch.shape[1] == 3
     assert flow_torch.ndim == 4, f"{flow_torch.ndim}"
     assert flow_torch.shape[0] == 3
-    yxz_grid = convert_coords_to_torch_grid(yxz_torch, tile_shape)
+
+    yxz_torch -= torch.tensor(yxz_min)[None]
+    yxz_grid = convert_coords_to_torch_grid(yxz_torch, subset_tile_shape)
     # Input has shape (3, 1, flow.shape[0], flow.shape[1], flow.shape[2]).
     # Grid has shape (3 (repeated thrice), 1, 1, n_points, 3)
     # Result has shape (3, 1, 1, 1, n_points).
@@ -108,39 +109,8 @@ def apply_flow_new(
     yxz_grid = yxz_grid[None, None, None].repeat_interleave(3, dim=0)
     flow_shifts = torch.nn.functional.grid_sample(flow_torch, yxz_grid, align_corners=True, padding_mode="border")
     flow_shifts = flow_shifts[:, 0, 0, 0]
-    yxz_torch += flow_shifts.T
+    yxz_torch += flow_shifts.T + torch.tensor(yxz_min)[None]
     return yxz_torch
-
-
-def apply_flow(
-    yxz: Union[np.ndarray, torch.Tensor],
-    flow: Union[np.ndarray, torch.Tensor],
-    top_left: Union[np.ndarray, torch.Tensor] = np.array([0, 0, 0]),
-) -> Union[np.ndarray, torch.Tensor]:
-    """
-    Apply a flow to a set of points. Note that this is applying forward warping, meaning that new_points = points +
-    flow. The flow we pass in may be cropped, so if this is the case, to sample the points correctly, we need to make
-    the points relative to the top left corner of the cropped image.
-
-    Args:
-        yxz: integer points to apply the warp to. (n_points x 3 in yxz coords) (UNSHIFTED)
-        flow: flow to apply to the points. (3 x cube_size_y x cube_size_x x cube_size_z) (SHIFTED)
-        top_left: the top left corner of the cube in the flow_image. (3 in yxz coords) Default: [0, 0, 0]
-
-    Returns:
-        yxz_flow: (float) new points. (n_points x 3 in yxz coords)
-    """
-    # First, make yxz coordinates relative to the top left corner of the flow image, so that we can sample the shifts
-    yxz_relative = yxz - top_left
-    y_indices_rel, x_indices_rel, z_indices_rel = yxz_relative.T
-    # sample the shifts relative to the top left corner of the flow image
-    yxz_shifts = np.array([flow[i, y_indices_rel, x_indices_rel, z_indices_rel] for i in range(3)]).astype(np.float32).T
-    # if original coords are torch, make the shifts torch
-    if type(yxz) is torch.Tensor:
-        yxz_shifts = torch.tensor(yxz_shifts)
-    # apply the shifts to the original points
-    yxz_flow = yxz + yxz_shifts
-    return yxz_flow
 
 
 def apply_affine(yxz: torch.Tensor, affine: torch.Tensor) -> torch.Tensor:
