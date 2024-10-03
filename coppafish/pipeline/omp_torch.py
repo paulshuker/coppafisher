@@ -149,7 +149,7 @@ def run_omp(
             while index_min < yxz_all.shape[0]:
                 if n_subset_pixels is None:
                     n_subset_pixels: int = maths.floor(
-                        utils.system.get_available_memory(device) * 8e8 / (n_genes * n_rounds_use * n_channels_use)
+                        utils.system.get_available_memory(device) * 2e9 / (n_genes * n_rounds_use * n_channels_use)
                     )
                 log.debug(f"==== Subset {index_subset} ====")
                 log.debug(f"Getting spot colours")
