@@ -283,9 +283,9 @@ def get_spot_colours_new(
         affine_torch = torch.tensor(affine_torch)
     affine_torch = affine_torch.detach().clone().float()
 
-    colours = np.zeros((yxz.shape[0], len(use_rounds), len(use_channels)), output_dtype)
+    image_t = torch.zeros((len(use_rounds), len(use_channels), 1) + tile_shape, dtype=torch.float32)
+    grid_t = torch.zeros((len(use_rounds), len(use_channels), yxz.shape[0], 3), dtype=torch.float32)
     for r in use_rounds:
-        # The image is only populated in cuboid regions that are actually required to gather the colours to save time.
         image_tr = np.zeros((len(use_channels), 1) + tile_shape, np.float32)
         grid_tr = torch.zeros((len(use_channels), yxz.shape[0], 3), dtype=torch.float32)
         # First, apply round r optical flow to the given coordinates.
@@ -298,6 +298,7 @@ def get_spot_colours_new(
             # Pad the gathered data by one pixel for interpolation.
             c_yxz_min = (c_yxz_min - 1).clamp(min=0).int().tolist()
             c_yxz_max = (c_yxz_max + 1).clamp(max=torch.tensor(tile_shape)).int().tolist()
+            # The image is only populated in cuboid regions that are actually required to gather the colours.
             image_tr[
                 c_index, 0, c_yxz_min[0] : c_yxz_max[0], c_yxz_min[1] : c_yxz_max[1], c_yxz_min[2] : c_yxz_max[2]
             ] = image[tile, r, c, c_yxz_min[0] : c_yxz_max[0], c_yxz_min[1] : c_yxz_max[1], c_yxz_min[2] : c_yxz_max[2]]
@@ -310,22 +311,32 @@ def get_spot_colours_new(
         del r_yxz
 
         image_tr = torch.from_numpy(image_tr)
+        image_t[r] = image_tr
+        del image_tr
 
-        # TODO: This could be vectorised further by having one dimensions be of shape n_rounds * n_channels_use.
+        grid_t[r] = grid_tr
+        del grid_tr
 
-        # Input (image_tr) has shape (n_channels_use, 1, image.shape[0], image.shape[1], image.shape[2]).
-        # Grid has shape (n_channels_use, 1, 1, n_points, 3)
-        # Result has shape (n_channels_use, 1, 1, 1, n_points).
-        colours_tr = torch.nn.functional.grid_sample(image_tr, grid_tr[:, None, None], align_corners=True)
-        colours_tr = colours_tr[:, 0, 0, 0]
+    image_t = image_t.reshape((len(use_rounds) * len(use_channels), 1) + tile_shape)
+    grid_t = grid_t.reshape((len(use_rounds) * len(use_channels), 1, 1, yxz.shape[0], 3))
 
-        # Set out of bound coordinates.
-        out_of_bounds = (grid_tr < -1) | (grid_tr > +1)
-        colours_tr[out_of_bounds.any(2)] = out_of_bounds_value
-        del image_tr, grid_tr
+    # Input (image_tr) has shape (n_rounds * n_channels_use, 1, image.shape[0], image.shape[1], image.shape[2]).
+    # Grid has shape (n_rounds * n_channels_use, 1, 1, n_points, 3)
+    # Result has shape (n_rounds * n_channels_use, 1, 1, 1, n_points).
+    colours = torch.nn.functional.grid_sample(image_t, grid_t, align_corners=True)
 
-        colours[:, r] = colours_tr.T
-        del colours_tr
+    # Grid positions that are out of bounds are filled.
+    out_of_bounds = (grid_t < -1) | (grid_t > +1)
+    out_of_bounds = out_of_bounds.any(4)[:, np.newaxis]
+    colours[out_of_bounds] = out_of_bounds_value
+    del out_of_bounds
+
+    colours = colours[:, 0, 0, 0].reshape((len(use_rounds), len(use_channels), yxz.shape[0]))
+    # (n_rounds, n_channels_use, n_points) -> (n_points, n_rounds, n_channels_use).
+    colours = colours.swapaxes(0, 2).swapaxes(1, 2)
+
+    colours = colours.numpy()
+    colours = colours.astype(output_dtype)
 
     return colours
 
