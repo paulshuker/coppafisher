@@ -33,7 +33,7 @@ theme:
         name: Switch to dark mode
 
 nav:
-  - Getting started: homepage.md
+  - Getting started: index.md
   - Usage:
     - Basic Usage: basic_usage.md
     - Advanced Usage: advanced_usage.md
