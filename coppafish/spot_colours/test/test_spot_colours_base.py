@@ -86,6 +86,7 @@ def test_get_spot_colours_new() -> None:
         yxz, image, flow, affine, tile, use_rounds, output_dtype=output_dtype
     )
     assert type(colours) is np.ndarray
+    assert colours.dtype.type is output_dtype
     assert colours.shape == (np.prod(tile_shape), n_rounds, n_channels)
     abs_tol = 1e-7
     for r in range(n_rounds):
@@ -140,6 +141,7 @@ def test_get_spot_colours_new() -> None:
     flow = np.zeros((n_tiles, n_rounds, 3) + tile_shape)
     image_shape = (n_tiles, n_rounds, n_channels) + tile_shape
     image = rng.rand(*image_shape).astype(np.float32)
+    output_dtype = np.float64
     yxz = np.meshgrid(
         np.linspace(0, tile_shape[0] - 1, tile_shape[0]),
         np.linspace(0, tile_shape[1] - 1, tile_shape[1]),
@@ -163,6 +165,7 @@ def test_get_spot_colours_new() -> None:
     colours = spot_colours_base.get_spot_colours_new(
         yxz, image, flow, affine, tile, use_rounds, output_dtype=output_dtype
     )
+    assert colours.dtype.type is output_dtype
     colours = colours.swapaxes(0, 1).swapaxes(1, 2).reshape((n_rounds, n_channels) + tile_shape, order="F")
     assert np.allclose(colours[0, 1:4], image[tile, 0, 1:4], atol=abs_tol)
     assert np.allclose(colours[1, 1:4], image[tile, 1, 1:4], atol=abs_tol)
