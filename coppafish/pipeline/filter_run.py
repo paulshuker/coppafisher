@@ -60,12 +60,16 @@ def run_filter(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) ->
     chunks = (1, None, 1, None, x_length, z_length)
     images = zarr.open_array(
         os.path.join(nbp_file.output_dir, "filter_images.zarr"),
-        "w",
+        "a",
         shape=shape,
         chunks=chunks,
+        fill_value=np.nan,
         zarr_version=2,
         dtype=np.float16,
     )
+    # Bad trc images are filled with zeros.
+    for t, r, c in nbp_basic.bad_trc:
+        images[t, r, c] = 0
 
     nbp_debug.r_dapi = config["r_dapi"]
 
@@ -93,11 +97,8 @@ def run_filter(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) ->
 
     with tqdm(total=len(indices), desc=f"Filtering extract images") as pbar:
         for t, r, c in indices:
-            if (t, r, c) in nbp_basic.bad_trc:
-                # In case of bad trc, save a blank image
-                im_filtered = np.zeros((nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z)), dtype=np.float16)
-                images[t, r, c] = im_filtered
-                del im_filtered
+            if not np.isnan(images[t, r, c]).any():
+                # Already saved filtered images are not re-filtered.
                 pbar.update()
                 continue
             file_path_raw = nbp_file.tile_unfiltered[t][r][c]
