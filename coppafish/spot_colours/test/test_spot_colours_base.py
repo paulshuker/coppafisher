@@ -81,9 +81,10 @@ def test_get_spot_colours_new() -> None:
     affine[:, :, :, :3] = np.eye(3)
     tile = 0
     use_rounds = list(range(n_rounds))
+    use_channels = list(range(n_channels))
     output_dtype = np.float32
     colours = spot_colours_base.get_spot_colours_new(
-        yxz, image, flow, affine, tile, use_rounds, output_dtype=output_dtype
+        yxz, image, flow, affine, tile, use_rounds, use_channels, output_dtype=output_dtype
     )
     assert type(colours) is np.ndarray
     assert colours.dtype.type is output_dtype
@@ -105,7 +106,7 @@ def test_get_spot_colours_new() -> None:
     )
     yxz = np.array(yxz).reshape((3, -1), order="F").T
     colours = spot_colours_base.get_spot_colours_new(
-        yxz, image, flow, affine, tile, use_rounds, output_dtype=output_dtype
+        yxz, image, flow, affine, tile, use_rounds, use_channels, output_dtype=output_dtype
     )
     assert type(colours) is np.ndarray
     assert colours.shape == (yxz.shape[0], n_rounds, n_channels)
@@ -125,7 +126,7 @@ def test_get_spot_colours_new() -> None:
     flow[tile, 0, 1] = -1
     flow[tile, 2, 2] = 2
     colours = spot_colours_base.get_spot_colours_new(
-        yxz, image, flow, affine, tile, use_rounds, output_dtype=output_dtype
+        yxz, image, flow, affine, tile, use_rounds, use_channels, output_dtype=output_dtype
     )
     colours = colours.swapaxes(0, 1).swapaxes(1, 2).reshape((n_rounds, n_channels) + tile_shape, order="F")
     # Check out of bounds.
@@ -163,7 +164,7 @@ def test_get_spot_colours_new() -> None:
     # Shift all x positions by 1.5 pixels on round 2, channel 0.
     affine[tile, 2, 0, 3, 1] = 1.5
     colours = spot_colours_base.get_spot_colours_new(
-        yxz, image, flow, affine, tile, use_rounds, output_dtype=output_dtype
+        yxz, image, flow, affine, tile, use_rounds, use_channels, output_dtype=output_dtype
     )
     assert colours.dtype.type is output_dtype
     colours = colours.swapaxes(0, 1).swapaxes(1, 2).reshape((n_rounds, n_channels) + tile_shape, order="F")

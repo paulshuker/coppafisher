@@ -186,7 +186,7 @@ def get_spot_colours_new_safe(
         utils.system.get_available_memory() * 1e9
         < z_planes * 4 * n_channels_use * n_rounds_use * nbp_basic_info.tile_sz**2
     ):
-        batch_size = min(yxz.shape[0] // (z_planes * 4), yxz.shape[0])
+        batch_size = 1
     n_batches = maths.ceil(yxz.shape[0] / batch_size)
     log.debug(f"Get spot colours new safe {z_planes=}")
     log.debug(f"Get spot colours new safe {batch_size=}")
@@ -209,7 +209,7 @@ def get_spot_colours_new(
     affine: Union[np.ndarray, torch.Tensor],
     tile: int,
     use_rounds: list[int],
-    use_channels: Optional[list[int]] = None,
+    use_channels: list[int],
     output_dtype: np.dtype = np.float32,
     out_of_bounds_value: Any = np.nan,
 ) -> np.ndarray:
@@ -227,7 +227,7 @@ def get_spot_colours_new(
         - affine (`(n_tiles x n_rounds x n_channels x 4 x 3) ndarray or tensor`): affine transform.
         - tile (int): tile index.
         - use_rounds (list of ints): the round indices to use. These rounds must be sequencing rounds.
-        - use_channels (list of ints, optional): channel indices to use. Default: all channels.
+        - use_channels (list of ints): channel indices to use.
         - output_dtype (np.dtype, optional): the returned spot colour datatype. Default: float32.
         - out_of_bounds_value (any): what to value to set for out of bound spot colours. Default: np.nan.
 
