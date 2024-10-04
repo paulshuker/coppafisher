@@ -169,6 +169,9 @@ def get_spot_colours_new_safe(
         - yxz (`(n_points x 3) ndarray or tensor`, optional): positions to gather. Default: the entire tile.
         - args (tuple): positional arguments.
         - kwargs (dict[str, any]): keyword arguments.
+
+    Returns:
+        `(n_points x n_rounds x n_channels_use) ndarray` colours: gathered image colours.
     """
     assert type(yxz) is np.ndarray or type(yxz) is torch.Tensor or yxz is None
     tile_shape = (nbp_basic_info.tile_sz, nbp_basic_info.tile_sz, len(nbp_basic_info.use_z))
