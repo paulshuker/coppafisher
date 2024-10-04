@@ -176,8 +176,3 @@ def test_get_spot_colours_new() -> None:
     assert np.isnan(colours[0, 0, :, :, 3:]).all()
     assert np.allclose(colours[2, 0, 0, 0, 0], image[tile, 2, 0, 0, 1:3, 0].mean(), atol=abs_tol)
     assert np.isnan(colours[2, 0, :, 3:]).all()
-
-
-if __name__ == "__main__":
-    test_apply_flow_new()
-    test_get_spot_colours_new()
