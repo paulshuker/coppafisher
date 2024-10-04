@@ -172,32 +172,26 @@ def get_spot_colours_new_safe(
     """
     assert type(yxz) is np.ndarray or type(yxz) is torch.Tensor or yxz is None
     tile_shape = (nbp_basic_info.tile_sz, nbp_basic_info.tile_sz, len(nbp_basic_info.use_z))
-    n_channels_use, n_rounds_use = len(nbp_basic_info.use_channels), len(nbp_basic_info.use_rounds)
     if yxz is None:
         yxz = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
         yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).T.reshape((-1, 3), order="F")
+    if type(yxz) is np.ndarray:
+        yxz = torch.from_numpy(yxz).detach().clone()
     assert yxz.ndim == 2
     assert yxz.shape[1] == 3
 
-    batch_size = maths.floor(utils.system.get_available_memory() * 5.3e7 / (n_channels_use * n_rounds_use))
-    z_coords = np.array(yxz[:, 2]).copy()
-    z_planes = int(np.ceil(np.array(z_coords).max()) - np.floor(np.array(z_coords).min()) + 1)
-    if (
-        utils.system.get_available_memory() * 1e9
-        < z_planes * 4 * n_channels_use * n_rounds_use * nbp_basic_info.tile_sz**2
-    ):
-        batch_size = 1
-    n_batches = maths.ceil(yxz.shape[0] / batch_size)
-    log.debug(f"Get spot colours new safe {z_planes=}")
-    log.debug(f"Get spot colours new safe {batch_size=}")
-    log.debug(f"Get spot colours new safe {n_batches=}")
-    del z_planes, z_coords
-    for i in range(n_batches):
-        index_min, index_max = i * batch_size, min((i + 1) * batch_size, yxz.shape[0])
-        i_colours = get_spot_colours_new(yxz=yxz[index_min:index_max], *args, **kwargs)
+    z_coords = yxz[:, 2].detach().clone()
+    # Sort yxz coordinates to gather based on z plane as we want to gather all of the same z plane at once.
+    # This makes for faster disk reading and avoids memory crashing when yxz spans a lot of the tile space.
+    _, yxz_sort_indices = z_coords.sort(stable=True)
+    yxz_sorted = yxz[yxz_sort_indices]
+    for i, z in enumerate(z_coords.unique()):
+        is_z = torch.isclose(yxz_sorted[:, 2], z).nonzero()
+        index_min, index_max = is_z[0], is_z[-1]
+        i_colours = get_spot_colours_new(yxz=yxz_sorted[index_min:index_max], *args, **kwargs)
         if i == 0:
             colours = np.zeros((yxz.shape[0],) + i_colours.shape[1:], i_colours.dtype)
-        colours[index_min:index_max] = i_colours
+        colours[yxz_sort_indices[index_min:index_max]] = i_colours
         del i_colours
     return colours
 
