@@ -6,7 +6,7 @@ import torch
 from tqdm import tqdm
 import zarr
 
-from .. import utils
+from .. import utils, log
 
 
 def convert_coords_to_torch_grid(yxz_coords: torch.Tensor, image_shape: tuple[int, int, int]) -> torch.Tensor:
@@ -180,7 +180,18 @@ def get_spot_colours_new_safe(
     assert yxz.shape[1] == 3
 
     batch_size = maths.floor(utils.system.get_available_memory() * 5.3e7 / (n_channels_use * n_rounds_use))
+    z_coords = np.array(yxz[:, 2]).copy()
+    z_planes = int(np.ceil(np.array(z_coords).max()) - np.floor(np.array(z_coords).min()) + 1)
+    if (
+        utils.system.get_available_memory() * 1e9
+        < z_planes * 4 * n_channels_use * n_rounds_use * nbp_basic_info.tile_sz**2
+    ):
+        batch_size = min(yxz.shape[0] / (z_planes * 4), yxz.shape[0])
     n_batches = maths.ceil(yxz.shape[0] / batch_size)
+    log.debug(f"Get spot colours new safe {z_planes=}")
+    log.debug(f"Get spot colours new safe {batch_size=}")
+    log.debug(f"Get spot colours new safe {n_batches=}")
+    del z_planes, z_coords
     for i in range(n_batches):
         index_min, index_max = i * batch_size, min((i + 1) * batch_size, yxz.shape[0])
         i_colours = get_spot_colours_new(yxz=yxz[index_min:index_max], *args, **kwargs)
