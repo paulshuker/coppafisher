@@ -186,7 +186,7 @@ def get_spot_colours_new_safe(
         utils.system.get_available_memory() * 1e9
         < z_planes * 4 * n_channels_use * n_rounds_use * nbp_basic_info.tile_sz**2
     ):
-        batch_size = min(yxz.shape[0] / (z_planes * 4), yxz.shape[0])
+        batch_size = min(yxz.shape[0] // (z_planes * 4), yxz.shape[0])
     n_batches = maths.ceil(yxz.shape[0] / batch_size)
     log.debug(f"Get spot colours new safe {z_planes=}")
     log.debug(f"Get spot colours new safe {batch_size=}")
