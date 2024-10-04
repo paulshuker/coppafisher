@@ -177,7 +177,7 @@ def get_spot_colours_new_safe(
     tile_shape = (nbp_basic_info.tile_sz, nbp_basic_info.tile_sz, len(nbp_basic_info.use_z))
     if yxz is None:
         yxz = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
-        yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).T.reshape((-1, 3), order="F")
+        yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
     if type(yxz) is np.ndarray:
         yxz = torch.from_numpy(yxz).detach().clone()
     assert yxz.ndim == 2

@@ -63,11 +63,13 @@ def view_registered_images(
         subset_limits_yxz[1][0] : subset_limits_yxz[1][1],
         subset_limits_yxz[2][0] : subset_limits_yxz[2][1],
     ]
+    # (im_y, im_x, im_z) -> (im_z, im_y, im_x).
+    anchor_image = anchor_image.transpose((2, 0, 1))
 
     # Gather sequencing and DAPI images.
     use_channels = [nb.basic_info.dapi_channel] + nb.basic_info.use_channels
-    yxz = [np.linspace(subset_shape_yxz[i], subset_shape_yxz[i] - 1, subset_shape_yxz[i]) for i in range(3)]
-    yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).T.reshape((-1, 3), order="F")
+    yxz = [np.linspace(subset_limits_yxz[i][0], subset_limits_yxz[i][1] - 1, subset_shape_yxz[i]) for i in range(3)]
+    yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
     icp_correction = nb.register.icp_correction
     icp_correction[tile, :, nb.basic_info.dapi_channel] = icp_correction[tile, :, nb.basic_info.anchor_channel]
 
@@ -80,17 +82,18 @@ def view_registered_images(
         tile=tile,
         use_rounds=nb.basic_info.use_rounds,
         use_channels=use_channels,
+        output_dtype=np.float32,
         out_of_bounds_value=np.nan,
     )
-    # (n_points, n_rounds, n_channels_use) -> (n_rounds, n_channels_use, n_points).
-    images = images.transpose((1, 2, 0))
-    images = images.reshape(images.shape[:2] + subset_shape_yxz, order="F")
+    images = images.reshape(subset_shape_yxz + images.shape[1:], order="F")
+    # (im_y, im_x, im_z, n_rounds, n_channels_use) -> (n_rounds, n_channels_use, im_z, im_y, im_x).
+    images = images.transpose((3, 4, 2, 0, 1))
 
     if not show:
         return
 
     viewer = napari.Viewer(title=f"Registered Images, Tile {tile}")
-    viewer.add_image(anchor_image, name="r=anchor c=anchor", visible=True)
+    viewer.add_image(anchor_image, name="r=anchor c=anchor", visible=True, rgb=False)
 
     for r_index, round in enumerate(nb.basic_info.use_rounds):
         for c_index, channel in enumerate(use_channels):
@@ -102,6 +105,6 @@ def view_registered_images(
                 c_str = "anchor"
             if channel == nb.basic_info.dapi_channel:
                 c_str = "dapi"
-            viewer.add_image(images[r_index, c_index], name=f"r={r_str} c={c_str}", visible=False)
+            viewer.add_image(images[r_index, c_index], name=f"r={r_str} c={c_str}", visible=False, rgb=False)
 
     napari.run()
