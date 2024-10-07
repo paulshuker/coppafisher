@@ -39,7 +39,7 @@ class ViewHotkeys:
                 View gene efficiencies: {KeyBinds.key_to_str(KeyBinds.view_gene_efficiency)}
                 View score histogram: {KeyBinds.key_to_str(KeyBinds.view_histogram_scores)}
                 View scaled k means: {KeyBinds.key_to_str(KeyBinds.view_scaled_k_means)}
-                Compare spot colours and codes: {KeyBinds.key_to_str(KeyBinds.view_colour_and_codes)}
+                View spot colour and gene bled code: {KeyBinds.key_to_str(KeyBinds.view_colour_and_codes)}
                 View spot intensities: {KeyBinds.key_to_str(KeyBinds.view_spot_intensities)}
                 View spot colours and weights: {KeyBinds.key_to_str(KeyBinds.view_spot_colours_and_weights)}
                 View intensities calculation from colour: {KeyBinds.key_to_str(KeyBinds.view_intensity_from_colour)}

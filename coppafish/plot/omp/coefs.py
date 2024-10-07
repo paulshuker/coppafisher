@@ -6,23 +6,10 @@ from matplotlib.widgets import CheckButtons, Slider
 import numpy as np
 import torch
 
+from ..results_viewer import base as results_viewer_base
 from ...omp import coefs, scores_torch
-from ...omp import base as omp_base
 from ...setup.notebook import Notebook
 from ...spot_colours import base as spot_colours_base
-
-
-def get_spot_position_and_tile(nb: Notebook, spot_no: int, method: str) -> Tuple[np.ndarray, int]:
-    if method in ("anchor", "prob"):
-        local_yxz = nb.ref_spots.local_yxz[spot_no]
-        tile = nb.ref_spots.tile[spot_no]
-    elif method == "omp":
-        all_local_yxz, all_tile = omp_base.get_all_local_yxz(nb.basic_info, nb.omp)
-        local_yxz = all_local_yxz[spot_no]
-        tile = all_tile[spot_no].item()
-    else:
-        raise ValueError(f"Unknown gene calling method: {method}")
-    return local_yxz, int(tile)
 
 
 class ViewOMPImage:
@@ -58,7 +45,7 @@ class ViewOMPImage:
 
         plt.style.use("dark_background")
 
-        local_yxz, tile = get_spot_position_and_tile(nb, spot_no, method)
+        local_yxz, _, _, tile, _ = results_viewer_base.get_spot_info(nb, spot_no, method)
         assert local_yxz.shape == (3,)
 
         config = nb.omp.associated_configs["omp"]
@@ -247,7 +234,7 @@ class ViewOMPPixelColours:
         assert method in ("omp", "prob", "anchor")
 
         config = nb.omp.associated_configs["omp"]
-        self.local_yxz, tile = get_spot_position_and_tile(nb, spot_no, method)
+        self.local_yxz, _, _, tile, _ = results_viewer_base.get_spot_info(nb, spot_no, method)
 
         n_rounds_use, n_channels_use = len(nb.basic_info.use_rounds), len(nb.basic_info.use_channels)
         image_colours = spot_colours_base.get_spot_colours_new(

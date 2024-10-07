@@ -440,8 +440,7 @@ class NotebookPage:
             "colours": [
                 "zarray[float32]",
                 "Numpy array [n_spots x n_rounds x n_channels]. "
-                + "`[s, r, c]` is the intensity of spot $s$ on round $r$, channel $c$."
-                + "`-tile_pixel_value_shift` if that round/channel not used otherwise integer.",
+                + "`[s, r, c]` is the intensity of spot $s$ in round $r$, channel $c$."
             ],
         },
         "call_spots": {

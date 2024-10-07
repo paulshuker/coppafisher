@@ -25,7 +25,7 @@ from ..call_spots import (
     ViewBleedMatrix,
     ViewScalingAndBGRemoval,
     view_bled_codes,
-    view_codes,
+    ViewSpotColourAndCode,
     view_spot,
 )
 from ..call_spots import HistogramScore, ViewAllGeneHistograms
@@ -84,28 +84,28 @@ class Viewer:
             downsample_factor: int, factor by which to downsample the images in y and x. Default is 1 which means no
                 downsampling.
         """
-        # set matplotlib background to dark
+        # Set matplotlib background to dark.
         plt.style.use("dark_background")
-        # set up gene legend info
+        # Set up gene legend info.
         if gene_marker_file is None:
             gene_marker_file = importlib_resources.files("coppafish.plot.results_viewer").joinpath("gene_color.csv")
         gene_legend_info = pd.read_csv(gene_marker_file)
 
-        # declare variables needed from the notebook
+        # Declare variables needed from the notebook.
         self.nb = nb
         self.method = {"names": ["anchor", "prob"], "pages": ["ref_spots", "ref_spots"], "active": 0}
         self.background_images = {"images": [], "names": [], "colours": []}
-        self.spots = {"anchor": [], "prob": []}
+        self.spots: dict[str, Union[Spots, list]] = {"anchor": [], "prob": []}
         self.legend, self.sliders = {}, {}
-        # add omp to the method and spots if it is in the notebook
+        # Add omp to the method and spots if it is in the notebook.
         if nb.has_page("omp"):
             self.method["names"].append("omp")
             self.method["pages"].append("omp")
             self.method["active"] = 2
             self.spots["omp"] = []
-        # add genes objects
+        # Add genes objects.
         self.genes = []
-        # populate variables
+        # Populate variables.
         self.create_gene_list(gene_marker_file=gene_marker_file, nb_gene_names=nb.call_spots.gene_names)
         self.create_spots_list(nb=nb, downsample_factor=downsample_factor)
         self.load_bg_images(
@@ -116,7 +116,7 @@ class Viewer:
             downsample_factor=downsample_factor,
         )
 
-        # create napari viewer
+        # Create napari viewer.
         self.viewer = napari.Viewer()
         self.add_data_to_viewer(spot_size=spot_size / downsample_factor)
         self.update_status_continually()
@@ -820,10 +820,21 @@ class Viewer:
         @self.viewer.bind_key(KeyBinds.view_colour_and_codes)
         def call_to_view_codes(viewer):
             notebook_index = self.get_selected_spot_index()
-            napari_index = self.get_selected_spot_index(return_napari_index=True)
-            spot_tile = self.spots[self.method["names"][self.method["active"]]].tile[napari_index]
+            spot: Spots = self.spots[self.method["names"][self.method["active"]]]
             if notebook_index is not None:
-                view_codes(self.nb, notebook_index, spot_tile, self.method["names"][self.method["active"]])
+                gene_no = spot.gene[notebook_index]
+                method = self.method["names"][self.method["active"]]
+                ViewSpotColourAndCode(
+                    notebook_index,
+                    spot.score[notebook_index],
+                    spot.tile[notebook_index],
+                    spot.colours[notebook_index],
+                    self.nb.call_spots.bled_codes[gene_no],
+                    gene_no,
+                    self.nb.call_spots.gene_names[gene_no],
+                    self.nb.call_spots.colour_norm_factor,
+                    method,
+                )
 
         @self.viewer.bind_key(KeyBinds.view_spot_intensities)
         def call_to_view_spot(viewer):
