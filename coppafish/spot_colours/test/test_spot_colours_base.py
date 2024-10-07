@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 
+from coppafish import NotebookPage
 from coppafish.spot_colours import base as spot_colours_base
 
 
@@ -58,6 +59,51 @@ def test_apply_flow_new() -> None:
     assert type(yxz_flow) is torch.Tensor
     assert yxz_flow.shape == (2, 3)
     assert torch.allclose(yxz_flow, yxz_expected)
+
+
+def test_get_spot_colours_new_safe() -> None:
+    rng = np.random.RandomState(0)
+    n_tiles = 2
+    n_rounds = 3
+    n_channels = 4
+    tile_shape = (5, 5, 7)
+    image_shape = (n_tiles, n_rounds, n_channels) + tile_shape
+    image = rng.rand(*image_shape).astype(np.float32)
+    yxz = np.meshgrid(
+        np.linspace(0, tile_shape[0] - 1, tile_shape[0]),
+        np.linspace(0, tile_shape[1] - 1, tile_shape[1]),
+        np.linspace(0, tile_shape[2] - 1, tile_shape[2]),
+        indexing="ij",
+    )
+    yxz = np.array(yxz).reshape((3, -1), order="F").T
+    flow = np.zeros((n_tiles, n_rounds, 3) + tile_shape)
+    affine = np.zeros((n_tiles, n_rounds, n_channels, 4, 3))
+    affine[:, :, :, :3] = np.eye(3)
+    tile = 0
+    use_rounds = list(range(n_rounds))
+    use_channels = list(range(n_channels))
+    nbp_basic = NotebookPage("basic_info")
+    nbp_basic.tile_sz = tile_shape[0]
+    nbp_basic.use_z = tuple(range(tile_shape[2]))
+    output_dtype = np.float32
+    colours = spot_colours_base.get_spot_colours_new_safe(
+        nbp_basic,
+        yxz=yxz,
+        image=image,
+        flow=flow,
+        affine=affine,
+        tile=tile,
+        use_rounds=use_rounds,
+        use_channels=use_channels,
+        output_dtype=output_dtype,
+    )
+    assert type(colours) is np.ndarray
+    assert colours.dtype.type is output_dtype
+    assert colours.shape == (np.prod(tile_shape), n_rounds, n_channels)
+    abs_tol = 1e-7
+    for r in range(n_rounds):
+        for c in range(n_channels):
+            assert np.allclose(colours[:, r, c], image[tile, r, c][tuple(yxz.T.astype(int))], atol=abs_tol)
 
 
 def test_get_spot_colours_new() -> None:
