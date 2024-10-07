@@ -1,12 +1,9 @@
-import math as maths
 from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 import torch
 from tqdm import tqdm
 import zarr
-
-from .. import utils, log
 
 
 def convert_coords_to_torch_grid(yxz_coords: torch.Tensor, image_shape: tuple[int, int, int]) -> torch.Tensor:
@@ -190,7 +187,7 @@ def get_spot_colours_new_safe(
     yxz_sorted = yxz[yxz_sort_indices]
     for i, z in enumerate(z_coords.unique()):
         is_z = torch.isclose(yxz_sorted[:, 2], z).nonzero()
-        index_min, index_max = is_z[0], is_z[-1]
+        index_min, index_max = is_z[0], is_z[-1] + 1
         i_colours = get_spot_colours_new(yxz=yxz_sorted[index_min:index_max], *args, **kwargs)
         if i == 0:
             colours = np.zeros((yxz.shape[0],) + i_colours.shape[1:], i_colours.dtype)
