@@ -9,6 +9,8 @@ def test_ViewSpotColourAndCode() -> None:
     n_tiles = 3
     n_rounds = 7
     n_channels_use = 9
+    use_channels = list(range(n_channels_use))
+    use_channels[-1] = 15
     spot_no = 0
     spot_score = 0.6
     spot_tile = 1
@@ -35,12 +37,21 @@ def test_ViewSpotColourAndCode() -> None:
         gene_index,
         gene_name,
         colour_norm_factor,
+        use_channels,
         method,
-        show=True,
+        show=False,
     )
     assert type(view) is spot_colours.ViewSpotColourAndCode
     assert np.allclose(spot_colour_init, spot_colour), f"spot_colour was modified"
     assert np.allclose(gene_bled_code_init, gene_bled_code), f"gene_bled_code was modified"
+    view.plot_colour()
+    view.change_background()
+    view.change_use_colour_norm()
+    view.change_norm()
+    view.change_background()
+    view.change_norm()
+    view.change_use_colour_norm()
+    view.change_use_colour_norm()
 
 
 if __name__ == "__main__":

@@ -29,8 +29,8 @@ from ..call_spots import (
     view_spot,
 )
 from ..call_spots import HistogramScore, ViewAllGeneHistograms
-from ..omp import ViewOMPImage, ViewOMPPixelColours
-from .hotkeys import KeyBinds, ViewHotkeys
+from ..omp import ViewOMPImage
+from .hotkeys import Hotkeys, ViewHotkeys
 
 
 class Viewer:
@@ -763,7 +763,7 @@ class Viewer:
 
     def key_call_functions(self):
         # Contains all functions which can be called by pressing a key with napari viewer open
-        @Points.bind_key(KeyBinds.switch_zoom_select, overwrite=True)
+        @Points.bind_key(Hotkeys.switch_zoom_select, overwrite=True)
         def change_zoom_select_mode(layer):
             if layer.mode == Mode.PAN_ZOOM:
                 layer.mode = Mode.SELECT
@@ -772,12 +772,12 @@ class Viewer:
                 layer.mode = Mode.PAN_ZOOM
                 self.viewer.help = "Mode: Pan/Zoom"
 
-        @self.viewer.bind_key(KeyBinds.view_hotkeys)
+        @self.viewer.bind_key(Hotkeys.view_hotkeys)
         def view_hotkeys(viewer):
             # Show Viewer keybindings
             ViewHotkeys()
 
-        @self.viewer.bind_key(KeyBinds.remove_background)
+        @self.viewer.bind_key(Hotkeys.remove_background)
         def remove_background_image(viewer):
             # Make background image visible / remove it
             for i in range(len(self.background_image)):
@@ -785,23 +785,23 @@ class Viewer:
                     self.background_image_name[i]
                 ].visible
 
-        @self.viewer.bind_key(KeyBinds.view_bleed_matrix)
+        @self.viewer.bind_key(Hotkeys.view_bleed_matrix)
         def call_to_view_bm(viewer):
             ViewBleedMatrix(self.nb)
 
-        @self.viewer.bind_key(KeyBinds.view_background_norm)
+        @self.viewer.bind_key(Hotkeys.view_background_norm)
         def call_to_view_bg_norm(viewer):
             ViewScalingAndBGRemoval(self.nb)
 
-        @self.viewer.bind_key(KeyBinds.view_bled_codes)
+        @self.viewer.bind_key(Hotkeys.view_bled_codes)
         def call_to_view_bled(viewer):
             view_bled_codes(self.nb)
 
-        @self.viewer.bind_key(KeyBinds.view_all_gene_scores)
+        @self.viewer.bind_key(Hotkeys.view_all_gene_scores)
         def call_to_view_all_hists(viewer):
             ViewAllGeneHistograms(self.nb)
 
-        @self.viewer.bind_key(KeyBinds.view_gene_efficiency)
+        @self.viewer.bind_key(Hotkeys.view_gene_efficiency)
         def call_to_view_gene_efficiency(viewer):
             self.open_plot = GeneEfficiencyViewer(
                 self.nb,
@@ -809,16 +809,16 @@ class Viewer:
                 score_threshold=self.sliders["score_range"].value()[0],
             )
 
-        @self.viewer.bind_key(KeyBinds.view_histogram_scores)
+        @self.viewer.bind_key(Hotkeys.view_histogram_scores)
         def call_to_view_omp_score(viewer):
             HistogramScore(self.nb)
 
-        @self.viewer.bind_key(KeyBinds.view_scaled_k_means)
+        @self.viewer.bind_key(Hotkeys.view_scaled_k_means)
         def call_to_view_omp_score(viewer):
             call_spots_plot.view_scaled_k_means(self.nb)
 
-        @self.viewer.bind_key(KeyBinds.view_colour_and_codes)
-        def call_to_view_codes(viewer):
+        @self.viewer.bind_key(Hotkeys.view_colour_and_codes)
+        def call_to_view_spot_colour_and_code(viewer):
             notebook_index = self.get_selected_spot_index()
             spot: Spots = self.spots[self.method["names"][self.method["active"]]]
             if notebook_index is not None:
@@ -833,10 +833,11 @@ class Viewer:
                     gene_no,
                     self.nb.call_spots.gene_names[gene_no],
                     self.nb.call_spots.colour_norm_factor,
+                    self.nb.basic_info.use_channels,
                     method,
                 )
 
-        @self.viewer.bind_key(KeyBinds.view_spot_intensities)
+        @self.viewer.bind_key(Hotkeys.view_spot_intensities)
         def call_to_view_spot(viewer):
             spot_index = self.get_selected_spot_index()
             napari_index = self.get_selected_spot_index(return_napari_index=True)
@@ -850,17 +851,23 @@ class Viewer:
         #     if spot_index is not None:
         #         view_score(self.nb, spot_index, self.method["names"][self.method["active"]])
 
-        @self.viewer.bind_key(KeyBinds.view_omp_coef_image)
+        @self.viewer.bind_key(Hotkeys.view_omp_coef_image)
         def call_to_view_omp(viewer):
             spot_index = self.get_selected_spot_index()
+            spot: Spots = self.spots[self.method["names"][self.method["active"]]]
+            local_yxzs, _ = omp_base.get_all_local_yxz(self.nb.basic_info, self.nb.omp)
             if spot_index is not None:
-                self.open_plot = ViewOMPImage(self.nb, spot_index, self.method["names"][self.method["active"]])
-
-        @self.viewer.bind_key(KeyBinds.view_omp_pixel_colours)
-        def call_to_view_omp_colours(viewer):
-            spot_index = self.get_selected_spot_index()
-            if spot_index is not None:
-                self.open_plot = ViewOMPPixelColours(self.nb, spot_index, self.method["names"][self.method["active"]])
+                self.open_plot = ViewOMPImage(
+                    self.nb.basic_info,
+                    self.nb.filter,
+                    self.nb.register,
+                    self.nb.call_spots,
+                    self.nb.omp,
+                    local_yxzs[spot_index],
+                    spot.tile[spot_index],
+                    spot_index,
+                    self.method["names"][self.method["active"]],
+                )
 
 
 class Method(QMainWindow):

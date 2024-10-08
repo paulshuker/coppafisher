@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Self
 
 import matplotlib as mpl
 from matplotlib import cm
@@ -238,9 +238,10 @@ class ViewSpotColourAndCode:
         gene_index: int,
         gene_name: str,
         colour_norm_factor: np.ndarray,
+        use_channels: list[int],
         method: str,
         show: bool = True,
-    ):
+    ) -> Self:
         """
         Viewer subplot diagnostic to compare a spot's colour to the calculated gene bled code (`bled_code`). After
         background removal (if enabled), the spot's colour is divided by its L2 norm over all its values (all
@@ -248,60 +249,134 @@ class ViewSpotColourAndCode:
 
         Args:
             - spot_no (int): index of spot (number between 0 and n_spots - 1).
+            - spot_score (float): score of spot gene assignment.
             - spot_tile (int): index of tile spot is on.
             - spot_colour (`(n_rounds x n_channels_use) ndarray[float]`): spot colour before background removal.
             - gene_bled_code (`(n_rounds x n_channels_use) ndarray[float]`): the spot's gene's final bled code.
             - gene_name (str): the spot's gene's name.
             - gene_index (int): the spot's gene's index.
-            - method (str): spot's method. Can be 'anchor', 'omp' or 'prob'.
             - colour_norm_factor (`(n_tiles x n_rounds x n_channels_use) ndarray[float32]`): normalisation factor for
                 each tile, round, and channel that is applied to colours.
+            - use_channels (list of int): sequencing channels used.
+            - method (str): spot's method. Can be 'anchor', 'omp' or 'prob'.
             - show (bool, optional): show the plot after creating. Turn off for unit testing. Default: true.
+
+        Notes:
+            - Keep the class instance in a named variable when running this subplot. This ensures that the UI buttons
+                continue to allow interaction.
         """
         assert method.lower() in ["anchor", "omp", "prob"], "method must be 'anchor', 'omp' or 'prob'"
 
+        self.use_colour_norm_factor = True
+        self.remove_background = True
+        self.l2_normalise = True
+
         plt.style.use("dark_background")
 
-        spot_colour = spot_colour.astype(np.float32).copy()
-        gene_bled_code = gene_bled_code.astype(np.float32).copy()
-        colour_norm_factor = colour_norm_factor.astype(np.float32).copy()
-        self.fig, self.axes = plt.subplots(2, 1, squeeze=False, sharex=True, sharey=True)
+        self.spot_tile = spot_tile
+        self.gene_bled_code = gene_bled_code.astype(np.float32).copy()
+        self.colour_norm_factor = colour_norm_factor.astype(np.float32).copy()
+        self.spot_colour = spot_colour.astype(np.float32).copy()
+        self.fig, self.axes = plt.subplots(2, 1, squeeze=False, sharex=True, sharey=True, layout="constrained")
+        self.fig.supxlabel("Round")
 
-        abs_max = float(np.max([np.abs(spot_colour).max(), np.abs(gene_bled_code).max()]))
-        cmap = mpl.cm.seismic
-        norm = mpl.colors.Normalize(vmin=-abs_max, vmax=abs_max)
+        abs_max = np.max(
+            [
+                np.abs(self.spot_colour.copy()).max(),
+                (np.abs(self.spot_colour.copy() * self.colour_norm_factor[spot_tile])).max(),
+                np.abs(self.gene_bled_code.copy()).max(),
+            ]
+        )
 
-        spot_colour *= colour_norm_factor[spot_tile]
-        spot_colour -= np.percentile(spot_colour, 25, axis=0, keepdims=True)
-        spot_colour /= np.linalg.norm(spot_colour, axis=(0, 1), keepdims=True)
+        self.cmap = mpl.cm.seismic
+        self.norm = mpl.colors.Normalize(vmin=-abs_max, vmax=abs_max)
 
         # Spot colour image.
         ax: plt.Axes = self.axes[0, 0]
-        ax.imshow(spot_colour, cmap=cmap, norm=norm)
+        self.colour_im = ax.imshow(spot_colour.T, cmap=self.cmap, norm=self.norm)
         ax.set_title(
             f"Spot Colour\n{method.capitalize()} index {spot_no}, bg removed, score: {'{:.2f}'.format(spot_score)}"
         )
+        ax.set_ylabel("Channel")
+        ax.set_yticks(range(len(use_channels)), use_channels)
+        self.plot_colour()
 
         # Predicted gene bled code image.
         ax: plt.Axes = self.axes[1, 0]
-        im = ax.imshow(gene_bled_code, cmap=cmap, norm=norm)
-        ax.set_title(f"Gene {gene_index}: {gene_name}")
+        im = ax.imshow(gene_bled_code.T, cmap=self.cmap, norm=self.norm)
+        ax.set_title(f"Gene {gene_index}: {gene_name} predicted bled code")
+        ax.set_xticks(range(spot_colour.shape[0]), range(spot_colour.shape[0]))
+        ax.set_ylabel("Channel")
+        ax.set_yticks(range(len(use_channels)), use_channels)
 
         # Colour bar on right.
-        cbar_pos = [0.9, 0.3, 0.03, 0.6]  # left, bottom, width, height
+        cbar_pos = [0.85, 0.4, 0.09, 0.5]  # left, bottom, width, height
         cbar_ax = self.fig.add_axes(cbar_pos)
         self.fig.colorbar(im, cax=cbar_ax, orientation="vertical", label="Intensity")
 
-        # TODO: Make background removal button functional.
-        self.norm_button_colour = "red"
-        self.norm_button_colour_press = "white"
-        self.background_button_ax = self.fig.add_axes([0.85, 0.1, 0.1, 0.05])
+        self.button_colour_not_pressed = "red"
+        self.button_colour_pressed = "green"
+        self.use_colour_norm_button_ax = self.fig.add_axes([0.85, 0.25, 0.1, 0.05])
+        self.use_colour_norm_button = Button(self.use_colour_norm_button_ax, "Colour Norm Factor", hovercolor="0.275")
+        self.use_colour_norm_button.label.set_color(self.button_colour_pressed)
+        self.use_colour_norm_button.on_clicked(self.change_use_colour_norm)
+        self.background_button_ax = self.fig.add_axes([0.85, 0.05, 0.1, 0.05])
         self.background_button = Button(self.background_button_ax, "Background", hovercolor="0.275")
-        self.background_button.label.set_color(self.norm_button_colour)
+        self.background_button.label.set_color(self.button_colour_pressed)
         self.background_button.on_clicked(self.change_background)
+        self.norm_button_ax = self.fig.add_axes([0.85, 0.15, 0.1, 0.05])
+        self.norm_button = Button(self.norm_button_ax, "L2 Normalise", hovercolor="0.275")
+        self.norm_button.label.set_color(self.button_colour_pressed)
+        self.norm_button.on_clicked(self.change_norm)
 
         if show:
             plt.show()
+
+    def plot_colour(self) -> None:
+        plot_spot_colour = self.spot_colour.copy()
+        if self.use_colour_norm_factor:
+            plot_spot_colour *= self.colour_norm_factor[self.spot_tile]
+        if self.remove_background:
+            plot_spot_colour -= np.percentile(plot_spot_colour, 25, axis=0, keepdims=True)
+        if self.l2_normalise:
+            plot_spot_colour /= np.linalg.norm(plot_spot_colour, axis=(0, 1), keepdims=True)
+
+        self.colour_im.set_data(plot_spot_colour.T)
+        self.colour_im.figure.canvas.draw()
+
+    def change_use_colour_norm(self, _=None) -> None:
+        """
+        Function triggered on press of colour norm factor button. Will either remove/add colour normalisation factor to
+        spot_colour
+        """
+        self.use_colour_norm_factor = not self.use_colour_norm_factor
+        if self.use_colour_norm_factor:
+            self.use_colour_norm_button.label.set_color(self.button_colour_pressed)
+        else:
+            self.use_colour_norm_button.label.set_color(self.button_colour_not_pressed)
+        self.plot_colour()
+
+    def change_background(self, _=None) -> None:
+        """
+        Function triggered on press of background button. Will either remove/add background contribution to spot_colour
+        """
+        self.remove_background = not self.remove_background
+        if self.remove_background:
+            self.background_button.label.set_color(self.button_colour_pressed)
+        else:
+            self.background_button.label.set_color(self.button_colour_not_pressed)
+        self.plot_colour()
+
+    def change_norm(self, _=None) -> None:
+        """
+        Function triggered on press of l2 normalise button. Will either remove/add l2 normalisation of spot_colour.
+        """
+        self.l2_normalise = not self.l2_normalise
+        if self.l2_normalise:
+            self.norm_button.label.set_color(self.button_colour_pressed)
+        else:
+            self.norm_button.label.set_color(self.button_colour_not_pressed)
+        self.plot_colour()
 
         # if method.lower() == "omp":
         #     # convert spot_no to be relative to tile
@@ -392,26 +467,6 @@ class ViewSpotColourAndCode:
         #     plt.close()
         # else:
         #     plt.show()
-
-    def change_background(self, event=None):
-        """
-        Function triggered on press of background button.
-        Will either remove/add background contribution to spot_colour
-        """
-        # need to make new slider at each button press because min/max will change
-        if not self.background_removed:
-            self.im_data[0] = self.spot_colour_pb
-            self.background_removed = True
-            # Change colour when pressed
-            self.background_button.label.set_color(self.norm_button_colour)
-        else:
-            self.im_data[0] = self.spot_colour
-            self.background_removed = False
-            self.background_button.label.set_color(self.norm_button_colour_press)
-        # Change norm method before call change_norm so overall it does not change
-        if self.colour_norm is not None:
-            self.method = "norm" if self.method == "raw" else "raw"  # change to the other method
-        self.change_norm()
 
 
 class view_spot(ColorPlotBase):
