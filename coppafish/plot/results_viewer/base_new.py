@@ -129,7 +129,7 @@ class Viewer:
             self.nbp_omp = None
             if nb.has_page("omp"):
                 self.nbp_omp = nb.omp
-        if nb is None:
+        else:
             self.nbp_basic = nbp_basic
             self.nbp_filter = nbp_filter
             self.nbp_register = nbp_register
@@ -137,6 +137,7 @@ class Viewer:
             self.nbp_ref_spots = nbp_ref_spots
             self.nbp_call_spots = nbp_call_spots
             self.nbp_omp = nbp_omp
+            del nbp_basic, nbp_filter, nbp_register, nbp_stitch, nbp_ref_spots, nbp_call_spots, nbp_omp
         assert self.nbp_basic is not None
         assert self.nbp_filter is not None
         assert self.nbp_register is not None
@@ -168,15 +169,15 @@ class Viewer:
         spot_data["anchor"].intensity = self.nbp_call_spots.intensity[:]
         self.selected_method = "anchor"
         self.selected_spot = None
-        if nbp_omp is not None:
+        if self.nbp_omp is not None:
             spot_data["omp"] = self.MethodData()
             spot_data["omp"].local_yxz, spot_data["omp"].tile = omp_base.get_all_local_yxz(self.nbp_basic, self.nbp_omp)
             spot_data["omp"].yxz = (
                 spot_data["omp"].local_yxz.astype(np.float32) + self.nbp_stitch.tile_origin[spot_data["omp"].tile]
             )
-            spot_data["omp"].gene_no = omp_base.get_all_gene_no(self.nbp_basic, nbp_omp)[0].astype(np.int16)
-            spot_data["omp"].score = omp_base.get_all_scores(self.nbp_basic, nbp_omp)[0]
-            spot_data["omp"].colours = omp_base.get_all_colours(self.nbp_basic, nbp_omp)[0].astype(np.float32)
+            spot_data["omp"].gene_no = omp_base.get_all_gene_no(self.nbp_basic, self.nbp_omp)[0].astype(np.int16)
+            spot_data["omp"].score = omp_base.get_all_scores(self.nbp_basic, self.nbp_omp)[0]
+            spot_data["omp"].colours = omp_base.get_all_colours(self.nbp_basic, self.nbp_omp)[0].astype(np.float32)
             # OMP's intensity will be a similar scale to prob and anchor if the spot colours are colour normalised too.
             colours_normed = spot_data["omp"].colours * self.nbp_call_spots.colour_norm_factor[spot_data["omp"].tile]
             spot_data["omp"].intensity = np.median(colours_normed.max(-1), 1)
@@ -189,7 +190,7 @@ class Viewer:
             data.check_variables()
 
         min_yxz = np.array([0, 0, 0], np.float32)
-        max_yxz = np.array([nbp_basic.tile_sz, nbp_basic.tile_sz, max(nbp_basic.use_z)], np.float32)
+        max_yxz = np.array([self.nbp_basic.tile_sz, self.nbp_basic.tile_sz, max(self.nbp_basic.use_z)], np.float32)
         max_score = 1.0
         max_intensity = 1.0
         for method in self.spot_data.keys():
@@ -278,7 +279,7 @@ class Viewer:
         # TODO: Place the background image layer.
         self.background_image = None
         if background_image == "dapi":
-            self.background_image = self.viewer.add_image(nbp_stitch.dapi_image[:])
+            self.background_image = self.viewer.add_image(self.nbp_stitch.dapi_image[:])
 
         if self.background_image is None:
             # Place a blank, 3D image to make the napari Viewer have the z slider.
@@ -354,7 +355,7 @@ class Viewer:
 
         # When subplots open, some of them need to be kept within the Viewer class to avoid garbage collection.
         # The garbage collection breaks the UI elements like buttons and sliders.
-        self.open_subplots = list() 
+        self.open_subplots = list()
 
         end_time = time.time()
         print(f"Viewer built in {'{:.1f}'.format(end_time - start_time)}s")
@@ -500,7 +501,7 @@ class Viewer:
 
     # HOTKEY FUNCTIONS:
     def view_hotkeys(self, _=None) -> None:
-        fig, ax = plt.subplots(1, 1)
+        fig, ax = plt.subplots(1, 1, figsize=(10, 8))
         ax.set_title("Hotkeys", fontdict={"size": 20})
         ax.set_axis_off()
         text = ""

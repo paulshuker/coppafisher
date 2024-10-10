@@ -1,4 +1,4 @@
-from typing import List, Optional, Tuple, Union, Self
+from typing import List, Optional, Tuple, Union
 
 import matplotlib as mpl
 from matplotlib import cm
@@ -241,7 +241,7 @@ class ViewSpotColourAndCode:
         use_channels: list[int],
         method: str,
         show: bool = True,
-    ) -> Self:
+    ):
         """
         Viewer subplot diagnostic to compare a spot's colour to the calculated gene bled code (`bled_code`). After
         background removal (if enabled), the spot's colour is divided by its L2 norm over all its values (all

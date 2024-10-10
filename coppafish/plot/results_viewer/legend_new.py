@@ -60,8 +60,8 @@ class Legend:
             scatter_kwargs = dict()
             scatter_kwargs["s"] = 20 + 10 / maths.sqrt(active_count)
             if gene.symbol_napari == "ring":
-                scatter_kwargs["facecolour"] = "none"
-                scatter_kwargs["edgecolour"] = gene.colour
+                scatter_kwargs["facecolor"] = "none"
+                scatter_kwargs["edgecolor"] = gene.colour
             self.scatter_axes.append(self.canvas.axes.scatter(x, y, marker=marker, color=gene.colour, **scatter_kwargs))
             X.append(x)
             Y.append(y)
