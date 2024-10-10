@@ -1,4 +1,5 @@
-from typing import Self, Tuple, Union
+from typing import Tuple, Union
+import warnings
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -27,7 +28,7 @@ class ViewOMPImage:
         z_planes: Tuple[int] = (-2, -1, 0, 1, 2),
         init_select_gene: Union[int, None] = None,
         show: bool = True,
-    ) -> Self:
+    ):
         """
         Display omp coefficients of all genes around the local neighbourhood of a pixel position.
 
@@ -148,7 +149,7 @@ class ViewOMPImage:
         self.show_iteration_counts = False
         self.draw_canvas()
         if show:
-            plt.show()
+            self.fig.show()
 
     def draw_canvas(self) -> None:
         self.fig, self.axes = plt.subplots(
@@ -157,18 +158,20 @@ class ViewOMPImage:
             squeeze=False,
             gridspec_kw={"width_ratios": [5] * len(self.z_planes) + [1] * 1, "height_ratios": [6, 1]},
             layout="constrained",
-            num="OMP Image",
         )
         # Keep widgets in self otherwise they will get garbage collected and not respond to clicks anymore.
         ax_slider: plt.Axes = self.axes[1, 0]
-        self.gene_slider = Slider(
-            ax_slider,
-            label="Gene",
-            valmin=self.selectable_genes.min(),
-            valmax=self.selectable_genes.max(),
-            valstep=self.selectable_genes,
-            valinit=self.selected_gene,
-        )
+        # Ignore the user warnings that occurs when there is only one gene in the slider.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            self.gene_slider = Slider(
+                ax_slider,
+                label="Gene",
+                valmin=self.selectable_genes.min(),
+                valmax=self.selectable_genes.max(),
+                valstep=self.selectable_genes,
+                valinit=self.selected_gene,
+            )
         self.gene_slider.on_changed(self.gene_selected_updated)
         ax_iteration_count = self.axes[1, 2]
         self.show_iteration_count_button = CheckButtons(

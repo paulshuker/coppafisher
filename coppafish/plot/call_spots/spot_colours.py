@@ -330,7 +330,7 @@ class ViewSpotColourAndCode:
         self.norm_button.on_clicked(self.change_norm)
 
         if show:
-            plt.show()
+            self.fig.show()
 
     def plot_colour(self) -> None:
         plot_spot_colour = self.spot_colour.copy()

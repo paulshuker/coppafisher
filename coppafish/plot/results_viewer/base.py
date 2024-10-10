@@ -43,7 +43,7 @@ class Viewer:
         gene_marker_file: Optional[str] = None,
         spot_size: int = 10,
         downsample_factor: int = 1,
-    ) -> None:
+    ):
         """
         This is the function to view the results of the pipeline i.e. the spots found and which genes they were
         assigned to.
