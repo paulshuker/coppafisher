@@ -299,7 +299,6 @@ class ViewSpotColourAndCode:
         )
         ax.set_ylabel("Channel")
         ax.set_yticks(range(len(use_channels)), use_channels)
-        self.plot_colour()
 
         # Predicted gene bled code image.
         ax: plt.Axes = self.axes[1, 0]
@@ -311,8 +310,8 @@ class ViewSpotColourAndCode:
 
         # Colour bar on right.
         cbar_pos = [0.85, 0.4, 0.09, 0.5]  # left, bottom, width, height
-        cbar_ax = self.fig.add_axes(cbar_pos)
-        self.fig.colorbar(im, cax=cbar_ax, orientation="vertical", label="Intensity")
+        self.cbar_ax = self.fig.add_axes(cbar_pos)
+        self.cbar = plt.colorbar(im, cax=self.cbar_ax, orientation="vertical", label="Intensity")
 
         self.button_colour_not_pressed = "red"
         self.button_colour_pressed = "green"
@@ -329,8 +328,11 @@ class ViewSpotColourAndCode:
         self.norm_button.label.set_color(self.button_colour_pressed)
         self.norm_button.on_clicked(self.change_norm)
 
+        self.plot_colour()
+
         if show:
-            self.fig.show()
+            plt.show()
+            # self.fig.show()
 
     def plot_colour(self) -> None:
         plot_spot_colour = self.spot_colour.copy()
@@ -341,7 +343,10 @@ class ViewSpotColourAndCode:
         if self.l2_normalise:
             plot_spot_colour /= np.linalg.norm(plot_spot_colour, axis=(0, 1), keepdims=True)
 
+        # TODO: Update the colour bar when the plotted spot colour changes.
         self.colour_im.set_data(plot_spot_colour.T)
+        abs_max = np.max([np.abs(plot_spot_colour).max(), np.abs(self.gene_bled_code).max()])
+        self.colour_im.set_clim(-abs_max, abs_max)
         self.colour_im.figure.canvas.draw()
 
     def change_use_colour_norm(self, _=None) -> None:
@@ -377,96 +382,6 @@ class ViewSpotColourAndCode:
         else:
             self.norm_button.label.set_color(self.button_colour_not_pressed)
         self.plot_colour()
-
-        # if method.lower() == "omp":
-        #     # convert spot_no to be relative to tile
-        #     spot_no = omp_base.global_to_local_index(nb.basic_info, nb.omp, spot_no)
-        #     # now that spot_no is relative to tile, get spot_score, spot_colour and gene_no
-        #     spot_score = nb.omp.results[f"tile_{tile}"].scores[spot_no]
-        #     self.spot_colour = nb.omp.results[f"tile_{tile}"].colours[spot_no]
-        #     gene_no = nb.omp.results[f"tile_{tile}"].gene_no[spot_no]
-        # elif method.lower() == "anchor":
-        #     spot_score = nb.call_spots.dot_product_gene_score[spot_no]
-        #     self.spot_colour = nb.ref_spots.colours[spot_no]
-        #     gene_no = nb.call_spots.dot_product_gene_no[spot_no]
-        # else:
-        #     spot_score = np.max(nb.call_spots.gene_probabilities[spot_no])
-        #     self.spot_colour = nb.ref_spots.colours[spot_no]
-        #     gene_no = np.argmax(nb.call_spots.gene_probabilities[spot_no])
-
-        # colour_norm = nb.call_spots.colour_norm_factor[tile]
-        # gene_name = nb.call_spots.gene_names[gene_no]
-        # # Get spot colour after background fitting
-        # self.spot_colour_pb = spot_colours_base.remove_background(self.spot_colour[None].astype(float))[0][0]
-        # self.spot_colour = self.spot_colour
-        # self.background_removed = bg_removed
-        # self.spot_colour, self.spot_colour_pb = self.spot_colour.transpose(), self.spot_colour_pb.transpose()
-        # colour_norm = colour_norm.transpose()
-
-        # if bg_removed:
-        #     colour = self.spot_colour_pb
-        # else:
-        #     colour = self.spot_colour
-        # gene_colour_float_norm = nb.call_spots.bled_codes[gene_no].transpose()
-        # gene_colour_float_raw = gene_colour_float_norm / colour_norm
-        # float_to_int_scale = np.linalg.norm(colour) / (2 * np.linalg.norm(gene_colour_float_raw))
-        # gene_colour = gene_colour_float_raw * float_to_int_scale
-        # super().__init__(
-        #     [colour, gene_colour], colour_norm, slider_pos=[0.85, 0.2, 0.01, 0.75], cbar_pos=[0.9, 0.2, 0.03, 0.75]
-        # )
-        # self.ax[0].set_title(f"Spot {spot_no}: match {str(np.around(spot_score, 2))} " f"to {gene_name}")
-        # self.ax[1].set_title(f"Predicted code for Gene {gene_no}: {gene_name}")
-        # self.ax[0].set_yticks(ticks=np.arange(self.im_data[0].shape[0]), labels=nb.basic_info.use_channels)
-        # self.ax[1].set_xticks(ticks=np.arange(self.im_data[0].shape[1]))
-        # self.ax[1].set_xlabel("Round")
-        # self.fig.supylabel("colour Channel")
-
-        # # for each round, plot a green circle in the channel which is highest for that round
-        # n_channels, n_rounds = gene_colour.shape
-        # max_channels = np.zeros((n_rounds, n_channels), dtype=bool)
-        # max_channel_share = np.zeros((n_rounds, n_channels))
-        # total_intensity = 0
-        # for r in range(n_rounds):
-        #     # we will add all channels with intensity > 0.25 * sum of all channels
-        #     round_colour_norm = gene_colour_float_norm[:, r] / np.sum(gene_colour_float_norm[:, r])
-        #     good_channels = np.where(round_colour_norm > 0.25)[0]
-        #     max_channels[r, good_channels] = True
-        #     max_channel_share[r, good_channels] = gene_colour_float_norm[good_channels, r]
-        #     total_intensity += np.sum(gene_colour_float_norm[good_channels, r])
-        # n_circles = np.sum(max_channels)
-        # max_channel_share *= n_circles / total_intensity
-        # for j in range(2):
-        #     for r in range(n_rounds):
-        #         good_channels = np.where(max_channels[r])[0]
-        #         for c in good_channels:
-        #             scale = max_channel_share[r, c]
-        #             default_width = 0.1
-        #             default_height = 0.3
-        #             circle = mpl.patches.Ellipse(
-        #                 (r, c),
-        #                 width=scale * default_width,
-        #                 height=scale * default_height,
-        #                 facecolor="lime",
-        #                 edgecolor="none",
-        #                 alpha=0.5,
-        #             )
-        #             self.ax[j].add_patch(circle)
-        #     # plot a black horizontal line above every third channel
-        #     for c in range(n_channels):
-        #         if c % 3 == 0:
-        #             self.ax[j].axhline(c - 0.5, color="black", lw=2)
-
-        # self.background_button_ax = self.fig.add_axes([0.85, 0.1, 0.1, 0.05])
-        # self.background_button = Button(self.background_button_ax, "Background", hovercolor="0.275")
-        # self.background_button.label.set_color(self.norm_button_colour if bg_removed else self.norm_button_colour_press)
-        # self.background_button.on_clicked(self.change_background)
-
-        # self.change_norm()  # initialise with method = 'norm'
-        # if save_loc:
-        #     plt.savefig(save_loc, dpi=300)
-        #     plt.close()
-        # else:
-        #     plt.show()
 
 
 class view_spot(ColorPlotBase):
