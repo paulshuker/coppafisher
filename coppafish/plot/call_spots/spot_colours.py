@@ -331,8 +331,7 @@ class ViewSpotColourAndCode:
         self.plot_colour()
 
         if show:
-            plt.show()
-            # self.fig.show()
+            self.fig.show()
 
     def plot_colour(self) -> None:
         plot_spot_colour = self.spot_colour.copy()
