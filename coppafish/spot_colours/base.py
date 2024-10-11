@@ -215,18 +215,18 @@ def get_spot_colours_new(
     and the final image values.
 
     Args:
-        - yxz (`(n_points x 3) ndarray or tensor`): positions to gather.
-        - image (`(n_tiles x n_rounds x n_channels x im_y x im_x x im_z) ndarray or zarray`): image to gather from.
-        - flow (`(n_tiles x n_rounds x 3 x im_y x im_x x im_z) ndarray or zarray`): optical flow shifts.
-        - affine (`(n_tiles x n_rounds x n_channels x 4 x 3) ndarray or tensor`): affine transform.
-        - tile (int): tile index.
-        - use_rounds (list of ints): the round indices to use. These rounds must be sequencing rounds.
-        - use_channels (list of ints): channel indices to use.
-        - output_dtype (np.dtype, optional): the returned spot colour datatype. Default: float32.
-        - out_of_bounds_value (any): what to value to set for out of bound spot colours. Default: np.nan.
+        yxz (`(n_points x 3) ndarray or tensor`): positions to gather.
+        image (`(n_tiles x n_rounds x n_channels x im_y x im_x x im_z) ndarray or zarray`): image to gather from.
+        flow (`(n_tiles x n_rounds x 3 x im_y x im_x x im_z) ndarray or zarray`): optical flow shifts.
+        affine (`(n_tiles x n_rounds x n_channels x 4 x 3) ndarray or tensor`): affine transform.
+        tile (int): tile index.
+        use_rounds (list of ints): the round indices to use. These rounds must be sequencing rounds.
+        use_channels (list of ints): channel indices to use.
+        output_dtype (np.dtype, optional): the returned spot colour datatype. Default: float32.
+        out_of_bounds_value (any): what to value to set for out of bound spot colours. Default: np.nan.
 
     Returns:
-        `(n_points x n_rounds x n_channels_use) ndarray[output_dtype]` colours: gathered image colours.
+        `(n_points x n_rounds x n_channels_use) ndarray[output_dtype]`: colours. Gathered image colours.
     """
     # Default value.
     if use_channels is None:

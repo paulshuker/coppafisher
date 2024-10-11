@@ -7,21 +7,13 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, RangeSlider
 import mplcursors
 import numpy as np
+import zarr
 
 from ..results_viewer.subplot import Subplot
 from ...call_spots.dot_product import gene_prob_score
 from ...omp import base as omp_base
 from ...setup.notebook import Notebook
 from ...spot_colours import base as spot_colours_base
-
-# FIXME: Code outside any functions or classes will slow coppafish importing significantly.
-try:
-    # So matplotlib plots pop out
-    # Put in try so don't get error when unit testing in continuous integration
-    # which is in headless mode
-    mpl.use("qtagg")
-except ImportError:
-    pass
 
 
 class ColorPlotBase:
@@ -249,18 +241,18 @@ class ViewSpotColourAndCode(Subplot):
         rounds/channels).
 
         Args:
-            - spot_no (int): index of spot (number between 0 and n_spots - 1).
-            - spot_score (float): score of spot gene assignment.
-            - spot_tile (int): index of tile spot is on.
-            - spot_colour (`(n_rounds x n_channels_use) ndarray[float]`): spot colour before background removal.
-            - gene_bled_code (`(n_rounds x n_channels_use) ndarray[float]`): the spot's gene's final bled code.
-            - gene_name (str): the spot's gene's name.
-            - gene_index (int): the spot's gene's index.
-            - colour_norm_factor (`(n_tiles x n_rounds x n_channels_use) ndarray[float32]`): normalisation factor for
+            spot_no (int): index of spot in the notebook (number between 0 and n_spots - 1).
+            spot_score (float): score of spot gene assignment.
+            spot_tile (int): index of tile spot is on.
+            spot_colour (`(n_rounds x n_channels_use) ndarray[float]`): spot colour before background removal.
+            gene_bled_code (`(n_rounds x n_channels_use) ndarray[float]`): the spot's gene's final bled code.
+            gene_index (int): the spot's gene's index.
+            gene_name (str): the spot's gene's name.
+            colour_norm_factor (`(n_tiles x n_rounds x n_channels_use) ndarray[float32]`): normalisation factor for
                 each tile, round, and channel that is applied to colours.
-            - use_channels (list of int): sequencing channels used.
-            - method (str): spot's method. Can be 'anchor', 'omp' or 'prob'.
-            - show (bool, optional): show the plot after creating. Turn off for unit testing. Default: true.
+            use_channels (list of int): sequencing channels used.
+            method (str): spot's method. Can be 'anchor', 'omp' or 'prob'.
+            show (bool, optional): show the plot after creating. Turn off for unit testing. Default: true.
 
         Notes:
             - Keep the class instance in a named variable when running this subplot. This ensures that the UI buttons
@@ -296,7 +288,8 @@ class ViewSpotColourAndCode(Subplot):
         ax: plt.Axes = self.axes[0, 0]
         self.colour_im = ax.imshow(spot_colour.T, cmap=self.cmap, norm=self.norm)
         ax.set_title(
-            f"Spot Colour\n{method.capitalize()} index {spot_no}, bg removed, score: {'{:.2f}'.format(spot_score)}"
+            f"Spot Colour\n{method.capitalize()} index {spot_no}, gene {gene_index} {gene_name}, "
+            + f"score: {'{:.2f}'.format(spot_score)}"
         )
         ax.set_ylabel("Channel")
         ax.set_yticks(range(len(use_channels)), use_channels)
@@ -343,11 +336,10 @@ class ViewSpotColourAndCode(Subplot):
         if self.l2_normalise:
             plot_spot_colour /= np.linalg.norm(plot_spot_colour, axis=(0, 1), keepdims=True)
 
-        # TODO: Update the colour bar when the plotted spot colour changes.
         self.colour_im.set_data(plot_spot_colour.T)
         abs_max = np.max([np.abs(plot_spot_colour).max(), np.abs(self.gene_bled_code).max()])
         self.colour_im.set_clim(-abs_max, abs_max)
-        self.colour_im.figure.canvas.draw()
+        self.fig.canvas.draw()
 
     def change_use_colour_norm(self, _=None) -> None:
         """
@@ -382,6 +374,112 @@ class ViewSpotColourAndCode(Subplot):
         else:
             self.norm_button.label.set_color(self.button_colour_not_pressed)
         self.plot_colour()
+
+
+class ViewSpotColourRegion(Subplot):
+    def __init__(
+        self,
+        spot_no: int,
+        spot_score: float,
+        spot_local_yxz: np.ndarray,
+        spot_tile: int,
+        gene_index: int,
+        gene_name: str,
+        filter_images: zarr.Array,
+        flow: zarr.Array,
+        affine: zarr.Array,
+        colour_norm_factor: np.ndarray,
+        use_rounds: list[int],
+        use_channels: list[int],
+        method: str,
+        show: bool = True,
+    ):
+        """
+        Build a grid of pyplot imshows for each channel and round showing the registered, filtered image intensity in a
+        2D neighbourhood around the spot in Y and X. Out of bounds pixels are not plotted.
+
+        Args:
+            spot_no (int): index of spot in the notebook (number between 0 and n_spots - 1).
+            spot_score (float): score of spot gene assignment.
+            spot_local_yxz (`(3) ndarray[int]`): the spot's local y, x, and z position relative to the spot's tile's
+                bottom-left corner.
+            spot_tile (int): index of tile spot is on.
+            gene_index (int): the spot's gene's index.
+            gene_name (str): the spot's gene's name.
+            filter_images (`(n_tiles x n_rounds x n_channels) zarray`): the filtered images.
+            flow (): the register optical flow results.
+            affine (): the register affine corrections.
+            colour_norm_factor (`(n_tiles x n_rounds x n_channels_use) ndarray[float32]`): normalisation factor for
+                each tile, round, and channel that is applied to colours.
+            use_rounds (list of int): sequencing rounds.
+            use_channels (list of int): sequencing channels.
+            method (str): spot's method. Can be 'anchor', 'omp' or 'prob'.
+            show (bool, optional): show the plot after creating. Turn off for unit testing. Default: true.
+        """
+        assert method.lower() in ["anchor", "omp", "prob"], "method must be 'anchor', 'omp' or 'prob'"
+
+        self.local_region_shape_yx = (7, 15)
+        self.use_colour_norm_factor = True
+        self.remove_background = True
+        self.l2_normalise = True
+
+        self.n_rounds = len(use_rounds)
+        self.n_channels = len(use_channels)
+        Y = np.linspace(0, self.local_region_shape_yx[0] - 1, self.local_region_shape_yx[0])
+        X = np.linspace(0, self.local_region_shape_yx[1] - 1, self.local_region_shape_yx[1])
+        yxz_local_region = np.array(np.meshgrid(Y, X, [spot_local_yxz[2]], indexing="ij"), int)
+        # Becomes shape (n_pixels, 3).
+        yxz_local_region = yxz_local_region.reshape((3, -1), order="F").T
+        colours = spot_colours_base.get_spot_colours_new(
+            yxz_local_region, filter_images, flow, affine, int(spot_tile), use_rounds, use_channels
+        )
+        self.colours = colours.reshape(self.local_region_shape_yx + (self.n_rounds, self.n_channels), order="F")
+
+        plt.style.use("dark_background")
+
+        self.spot_tile = spot_tile
+        self.colour_norm_factor = colour_norm_factor.astype(np.float32).copy()
+
+        self.fig, self.axes = plt.subplots(self.n_channels, self.n_rounds, squeeze=False, sharex=True, sharey=True)
+        self.fig.suptitle(
+            f"Spot Colour Region\n{method.capitalize()} index {spot_no}, gene {gene_index} {gene_name}, score: "
+            + f"{'{:.2f}'.format(spot_score)}"
+        )
+        self.fig.supxlabel("Round")
+
+        # Spot colour images.
+        abs_max = 0
+        plot_colours = np.zeros(self.local_region_shape_yx + (self.n_rounds, self.n_channels), float)
+        for c in range(self.n_channels):
+            for r in range(self.n_rounds):
+                rc_colours = self.colours[:, :, r, c].copy()
+                if self.use_colour_norm_factor:
+                    rc_colours *= self.colour_norm_factor[self.spot_tile, r, c]
+                plot_colours[:, :, r, c] = rc_colours
+        if self.remove_background:
+            plot_colours -= np.percentile(plot_colours, 25, axis=3, keepdims=True)
+        if self.l2_normalise:
+            plot_colours /= np.linalg.norm(plot_colours, axis=(2, 3), keepdims=True)
+        self.fig.supxlabel("Round")
+        self.fig.supylabel("Channel")
+
+        abs_max = np.abs(plot_colours).max()
+        self.cmap = mpl.cm.seismic
+        self.norm = mpl.colors.Normalize(vmin=-abs_max, vmax=+abs_max)
+
+        for c in range(self.n_channels):
+            for r in range(self.n_rounds):
+                ax: plt.Axes = self.axes[c, r]
+                ax.set_xticks([])
+                ax.set_yticks([])
+                im = ax.imshow(plot_colours[:, :, r, c].T, cmap=self.cmap, norm=self.norm)
+        # Colour bar on right.
+        cbar_pos = [0.88, 0.4, 0.06, 0.5]  # left, bottom, width, height
+        self.cbar_ax = self.fig.add_axes(cbar_pos)
+        self.cbar = plt.colorbar(im, cax=self.cbar_ax, orientation="vertical", label="Intensity")
+
+        if show:
+            self.fig.show()
 
 
 class view_spot(ColorPlotBase):

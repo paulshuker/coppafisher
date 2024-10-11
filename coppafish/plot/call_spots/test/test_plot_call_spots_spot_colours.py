@@ -52,7 +52,3 @@ def test_ViewSpotColourAndCode() -> None:
     view.change_norm()
     view.change_use_colour_norm()
     view.change_use_colour_norm()
-
-
-if __name__ == "__main__":
-    test_ViewSpotColourAndCode()

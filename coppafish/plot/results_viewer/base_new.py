@@ -36,8 +36,7 @@ class Viewer:
     _method_to_string: dict[str, str] = {"prob": "Probability", "anchor": "Anchor", "omp": "OMP"}
     _starting_score_thresholds: dict[str, tuple[float]] = {"prob": (0.5, 1.0), "anchor": (0.5, 1.0), "omp": (0.4, 1.0)}
     _default_spot_size: float = 8.0
-    # If there are more than this number of subplots open, we begin to cull the earliest opened ones.
-    _max_subplots: int = 5
+    _max_open_subplots: int = 5
 
     # Data:
     nbp_basic: NotebookPage
@@ -61,7 +60,6 @@ class Viewer:
     open_subplots: list[Subplot | Figure]
 
     # UI variables:
-    # viewer: napari.Viewer
     legend: legend_new.Legend
     point_layers: dict[str, Points]
     method_combo_box: QComboBox
@@ -91,20 +89,20 @@ class Viewer:
         notebook pages (useful for unit testing).
 
         Args:
-            - nb (Notebook, optional): the notebook to visualise. Must have completed up to `call_spots` at least. If
+            nb (Notebook, optional): the notebook to visualise. Must have completed up to `call_spots` at least. If
                 none, then all nbp_* notebook pages must be given except nbp_omp which is optional. Default: none.
-            - gene_marker_filepath (str, optional): the file path to the gene marker file. Default: use the default
-                gene marker at coppafish/plot/results_viewer/gene_color.csv.
-            - background_image (str or none, optional): what to use as the background image, can be "dapi" or None. Set
+            gene_marker_filepath (str, optional): the file path to the gene marker file. Default: use the default gene
+                marker at coppafish/plot/results_viewer/gene_color.csv.
+            background_image (str or none, optional): what to use as the background image, can be "dapi" or None. Set
                 to None for no background image. Default: "dapi".
-            - nbp_basic (NotebookPage, optional): `basic_info` notebook page. Default: not given.
-            - nbp_filter (NotebookPage, optional): `filter` notebook page. Default: not given.
-            - nbp_register (NotebookPage, optional): `register` notebook page. Default: not given.
-            - nbp_stitch (NotebookPage, optional): `stitch` notebook page. Default: not given.
-            - nbp_ref_spots (NotebookPage, optional): `ref_spots` notebook page. Default: not given.
-            - nbp_call_spots (NotebookPage, optional): `call_spots` notebook page. Default: not given.
-            - nbp_omp (NotebookPage, optional): `omp` notebook page. OMP is not a required page. Default: not given.
-            - show (bool, optional): show the viewer once it is built. False for unit testing. Default: true.
+            nbp_basic (NotebookPage, optional): `basic_info` notebook page. Default: not given.
+            nbp_filter (NotebookPage, optional): `filter` notebook page. Default: not given.
+            nbp_register (NotebookPage, optional): `register` notebook page. Default: not given.
+            nbp_stitch (NotebookPage, optional): `stitch` notebook page. Default: not given.
+            nbp_ref_spots (NotebookPage, optional): `ref_spots` notebook page. Default: not given.
+            nbp_call_spots (NotebookPage, optional): `call_spots` notebook page. Default: not given.
+            nbp_omp (NotebookPage, optional): `omp` notebook page. OMP is not a required page. Default: not given.
+            show (bool, optional): show the viewer once it is built. False for unit testing. Default: true.
         """
         assert type(nb) is Notebook or nb is None
         assert type(gene_marker_filepath) is str or gene_marker_filepath is None
@@ -228,7 +226,7 @@ class Viewer:
 
         plt.style.use("dark_background")
         # + 1 for the gene legend.
-        plt.rcParams["figure.max_open_warning"] = self._max_subplots + 1
+        plt.rcParams["figure.max_open_warning"] = self._max_open_subplots + 1
         self.viewer = napari.Viewer(title=f"Coppafish {utils_system.get_software_version()} Viewer", show=False)
 
         print("Building gene legend")
@@ -243,7 +241,7 @@ class Viewer:
         self.background_image = None
         if background_image == "dapi":
             self.background_image = self.viewer.add_image(
-                self.nbp_stitch.dapi_image[:], rgb=False, axis_labels=("Z", "Y", "X")
+                self.nbp_stitch.dapi_image[:], rgb=False, axis_labels=("Z", "Y", "X"), colormap=background_image_colour
             )
 
         if self.background_image is None:
@@ -349,15 +347,28 @@ class Viewer:
                 "",
                 lambda _: (self._free_subplot_spaces(1), self.open_subplots.append(self.view_hotkeys())),
                 "Help",
+                False,
             ),
             Hotkey(
-                "Toggle background", "i", "Toggle the background image on and off", self.toggle_background, "Visual"
+                "Toggle background",
+                "i",
+                "Toggle the background image on and off",
+                self.toggle_background,
+                "Visual",
+                False,
             ),
             Hotkey(
                 "View spot colour and code",
                 "c",
                 "Show the selected spot's colour and predicted bled code",
                 lambda _: (self._free_subplot_spaces(1), self.open_subplots.append(self.view_spot_colour_and_code())),
+                "General Diagnostics",
+            ),
+            Hotkey(
+                "View spot colour region",
+                "r",
+                "Show the selected spot's colour in a local region centred around it",
+                lambda _: (self._free_subplot_spaces(1), self.open_subplots.append(self.view_spot_colour_region())),
                 "General Diagnostics",
             ),
             Hotkey(
@@ -592,6 +603,27 @@ class Viewer:
             show=self.show,
         )
 
+    def view_spot_colour_region(self, _=None) -> Subplot:
+        if self.selected_spot is None:
+            return
+        index, _, local_yxz, tile, gene_no, score, _ = self._get_selection_data()
+        return spot_colours.ViewSpotColourRegion(
+            index,
+            score,
+            local_yxz,
+            tile,
+            gene_no,
+            self.nbp_call_spots.gene_names[gene_no],
+            self.nbp_filter.images,
+            self.nbp_register.flow,
+            self.nbp_register.icp_correction,
+            self.nbp_call_spots.colour_norm_factor,
+            self.nbp_basic.use_rounds,
+            self.nbp_basic.use_channels,
+            self.selected_method,
+            show=self.show,
+        )
+
     def view_omp_coefficients(self, _=None) -> Subplot:
         if self.selected_spot is None:
             return
@@ -694,7 +726,7 @@ class Viewer:
         If there are too many subplots open, then the oldest subplots are closed until there is n_free_spaces free
         spaces.
         """
-        while (len(self.open_subplots) + n_free_spaces) > self._max_subplots:
+        while (len(self.open_subplots) + n_free_spaces) > self._max_open_subplots:
             self._close_oldest_subplot()
 
     def _close_oldest_subplot(self) -> None:

@@ -177,6 +177,20 @@ def test_Viewer() -> None:
             viewer.clear_spot_selections()
             hotkey.invoke(None)
             viewer.close_all_subplots()
+
+    # # Temporary.
+    # viewer = Viewer(
+    #     background_image="dapi",
+    #     nbp_basic=nbp_basic,
+    #     nbp_filter=nbp_filter,
+    #     nbp_register=nbp_register,
+    #     nbp_stitch=nbp_stitch,
+    #     nbp_ref_spots=nbp_ref_spots,
+    #     nbp_call_spots=nbp_call_spots,
+    #     nbp_omp=nbp_omp,
+    #     show=True,
+    # )
+
     temp_zgroup.cleanup()
 
 
