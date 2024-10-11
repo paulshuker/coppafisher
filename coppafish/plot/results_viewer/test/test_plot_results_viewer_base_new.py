@@ -10,6 +10,7 @@ from coppafish.plot.results_viewer.base_new import Viewer
 
 
 @pytest.mark.usefixtures("qtbot")
+@pytest.mark.manual
 def test_Viewer(qtbot) -> None:
     matplotlib.use("Agg")
 
