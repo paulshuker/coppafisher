@@ -82,14 +82,17 @@ def test_Viewer(qtbot) -> None:
         nbp_omp=nbp_omp,
         show=False,
     )
+    # Test every hotkey.
     for hotkey in viewer.hotkeys:
-        viewer.selected_spot = 33
+        viewer.selected_spot = 20
+        for _ in range(viewer._max_open_subplots * 2):
+            hotkey.invoke(None)
+        viewer.close_all_subplots()
+        viewer.clear_spot_selections()
+        viewer.selected_spot = 5
         hotkey.invoke(None)
-        hotkey.invoke(None)
-        hotkey.invoke(None)
-        viewer.selected_spot = 14
-        hotkey.invoke(None)
-        hotkey.invoke(None)
+        viewer.close_all_subplots()
+        viewer.clear_spot_selections()
     viewer.close()
     viewer = Viewer(
         background_image="dapi",
@@ -102,14 +105,17 @@ def test_Viewer(qtbot) -> None:
         nbp_omp=nbp_omp,
         show=False,
     )
+    # Test every hotkey.
     for hotkey in viewer.hotkeys:
-        viewer.selected_spot = 1
-        hotkey.invoke(None)
-        hotkey.invoke(None)
-        hotkey.invoke(None)
         viewer.selected_spot = 20
+        for _ in range(viewer._max_open_subplots * 2):
+            hotkey.invoke(None)
+        viewer.close_all_subplots()
+        viewer.clear_spot_selections()
+        viewer.selected_spot = 5
         hotkey.invoke(None)
-        hotkey.invoke(None)
+        viewer.close_all_subplots()
+        viewer.clear_spot_selections()
     viewer.close()
 
     n_omp_spots = 85 // n_tiles
@@ -170,15 +176,15 @@ def test_Viewer(qtbot) -> None:
         viewer.close_all_subplots()
         # Test every hotkey.
         for hotkey in viewer.hotkeys:
-            hotkey.invoke(None)
-            hotkey.invoke(None)
-            hotkey.invoke(None)
             viewer.selected_spot = 20
-            hotkey.invoke(None)
-            hotkey.invoke(None)
+            for _ in range(viewer._max_open_subplots * 2):
+                hotkey.invoke(None)
+            viewer.close_all_subplots()
             viewer.clear_spot_selections()
+            viewer.selected_spot = 5
             hotkey.invoke(None)
             viewer.close_all_subplots()
+            viewer.clear_spot_selections()
     viewer.close()
 
     # # Temporary.

@@ -346,7 +346,7 @@ class Viewer:
                 "View hotkeys",
                 "h",
                 "",
-                lambda _: (self._free_subplot_spaces(1), self.open_subplots.append(self.view_hotkeys())),
+                lambda _: (self._free_subplot_spaces(1), self._add_subplot(self.view_hotkeys())),
                 "Help",
                 False,
             ),
@@ -362,21 +362,21 @@ class Viewer:
                 "View spot colour and code",
                 "c",
                 "Show the selected spot's colour and predicted bled code",
-                lambda _: (self._free_subplot_spaces(1), self.open_subplots.append(self.view_spot_colour_and_code())),
+                lambda _: (self._free_subplot_spaces(1), self._add_subplot(self.view_spot_colour_and_code())),
                 "General Diagnostics",
             ),
             Hotkey(
                 "View spot colour region",
                 "r",
                 "Show the selected spot's colour in a local region centred around it",
-                lambda _: (self._free_subplot_spaces(1), self.open_subplots.append(self.view_spot_colour_region())),
+                lambda _: (self._free_subplot_spaces(1), self._add_subplot(self.view_spot_colour_region())),
                 "General Diagnostics",
             ),
             Hotkey(
                 "View OMP Coefficients",
                 "o",
                 "Show the OMP coefficients around the selected spot's local region",
-                lambda _: (self._free_subplot_spaces(1), self.open_subplots.append(self.view_omp_coefficients())),
+                lambda _: (self._free_subplot_spaces(1), self._add_subplot(self.view_omp_coefficients())),
                 "OMP",
             ),
             # Hotkey("", "", ""),
@@ -576,7 +576,7 @@ class Viewer:
             self.point_layers[method].size = new_size
 
     # ========== HOTKEY FUNCTIONS ==========
-    def view_hotkeys(self, _=None) -> Subplot:
+    def view_hotkeys(self) -> Subplot:
         fig, ax = plt.subplots(1, 1, figsize=(10, 8))
         ax.set_title("Hotkeys", fontdict={"size": 20})
         ax.set_axis_off()
@@ -597,7 +597,7 @@ class Viewer:
         fig.show()
         return fig
 
-    def view_spot_colour_and_code(self, _=None) -> Subplot:
+    def view_spot_colour_and_code(self) -> Subplot:
         if self.selected_spot is None:
             return
         index, _, _, tile, gene_no, score, colour = self._get_selection_data()
@@ -615,7 +615,7 @@ class Viewer:
             show=self.show,
         )
 
-    def view_spot_colour_region(self, _=None) -> Subplot:
+    def view_spot_colour_region(self) -> Subplot:
         if self.selected_spot is None:
             return
         index, _, local_yxz, tile, gene_no, score, _ = self._get_selection_data()
@@ -636,7 +636,7 @@ class Viewer:
             show=self.show,
         )
 
-    def view_omp_coefficients(self, _=None) -> Subplot:
+    def view_omp_coefficients(self) -> Subplot:
         if self.selected_spot is None:
             return
         if self.nbp_omp is None:
@@ -676,6 +676,11 @@ class Viewer:
         self.closing = True
         self.viewer.close()
         del self.viewer
+
+    def _add_subplot(self, subplot: Figure | Subplot | None) -> None:
+        if subplot is None:
+            return
+        self.open_subplots.append(subplot)
 
     def _get_selection_data(self) -> tuple[np.ndarray]:
         # Get the currently selected spot's data.
