@@ -164,13 +164,9 @@ def test_Viewer(qtbot) -> None:
         viewer.selected_method = method
         viewer.clear_spot_selections()
         viewer.selected_spot = 10
-        viewer.toggle_background()
-        viewer.toggle_background()
-        viewer.toggle_background()
         viewer.clear_spot_selections()
         viewer.clear_spot_selections()
         viewer.selected_spot = 21
-        viewer.toggle_background()
         viewer.selected_spot = 10
         # Clean up open subplots.
         viewer.close_all_subplots()

@@ -594,7 +594,8 @@ class Viewer:
             for hotkey in section_hotkeys:
                 text += str(hotkey) + "\n"
         ax.text(0.5, 0.5, text, size=12, va="center", ha="center")
-        fig.show()
+        if self.show:
+            fig.show()
         return fig
 
     def view_spot_colour_and_code(self) -> Subplot:
