@@ -9,7 +9,7 @@ from coppafish.plot.results_viewer.base_new import Viewer
 
 
 @pytest.mark.usefixtures("qtbot")
-def test_Viewer() -> None:
+def test_Viewer(qtbot) -> None:
     rng = np.random.RandomState(0)
 
     n_tiles = 4
@@ -90,6 +90,7 @@ def test_Viewer() -> None:
         viewer.selected_spot = 14
         hotkey.invoke(None)
         hotkey.invoke(None)
+    viewer.close()
     viewer = Viewer(
         background_image="dapi",
         nbp_basic=nbp_basic,
@@ -109,6 +110,7 @@ def test_Viewer() -> None:
         viewer.selected_spot = 20
         hotkey.invoke(None)
         hotkey.invoke(None)
+    viewer.close()
 
     n_omp_spots = 85 // n_tiles
     omp_config = {"omp": {"max_genes": 2, "dp_thresh": 0.01, "lambda_d": 0.001}}
@@ -177,6 +179,7 @@ def test_Viewer() -> None:
             viewer.clear_spot_selections()
             hotkey.invoke(None)
             viewer.close_all_subplots()
+    viewer.close()
 
     # # Temporary.
     # viewer = Viewer(
@@ -195,4 +198,4 @@ def test_Viewer() -> None:
 
 
 if __name__ == "__main__":
-    test_Viewer()
+    test_Viewer(None)

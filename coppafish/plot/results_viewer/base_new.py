@@ -58,6 +58,7 @@ class Viewer:
     spot_size: float
     hotkeys: tuple[Hotkey]
     open_subplots: list[Subplot | Figure]
+    closing: bool
 
     # UI variables:
     legend: legend_new.Legend
@@ -400,12 +401,19 @@ class Viewer:
         # The garbage collection breaks the UI elements like buttons and sliders.
         self.open_subplots = list()
 
+        self.closing = False
+
         end_time = time.time()
         print(f"Viewer built in {'{:.1f}'.format(end_time - start_time)}s")
 
         if self.show:
             self.viewer.show()
-            napari.run()
+            try:
+                napari.run()
+            except KeyboardInterrupt as exception:
+                # When keyboard interrupted, close the viewer down properly before interrupting.
+                self.close()
+                raise exception
 
     def selected_spot_changed(self) -> None:
         self._set_status_to("")
@@ -451,6 +459,10 @@ class Viewer:
 
     def z_slider_changed(self, _) -> None:
         # Called when the user changes the z slider in the napari viewer.
+        if self.closing:
+            # For some god forsaken reason this function is sometimes called when closing the viewer...
+            # This is probably an issue I should raise on napari's github if I can make it simple & reproducible.
+            return
         new_z = self.viewer.dims.current_step[0]
         if new_z == self.z:
             return
@@ -656,6 +668,14 @@ class Viewer:
         """
         for _ in self.open_subplots:
             self._close_oldest_subplot()
+
+    def close(self) -> None:
+        """
+        Close the entire Viewer.
+        """
+        self.closing = True
+        self.viewer.close()
+        del self.viewer
 
     def _get_selection_data(self) -> tuple[np.ndarray]:
         # Get the currently selected spot's data.
