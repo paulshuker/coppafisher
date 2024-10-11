@@ -1,7 +1,7 @@
 import importlib.resources as importlib_resources
 from os import path
 import time
-from typing import Optional
+from typing import Callable, Optional
 import warnings
 
 from PyQt5.QtWidgets import QComboBox, QPushButton
@@ -83,7 +83,7 @@ class Viewer:
         nbp_ref_spots: Optional[NotebookPage] = None,
         nbp_call_spots: Optional[NotebookPage] = None,
         nbp_omp: Optional[NotebookPage] = None,
-        show: bool = True,
+        make_napari_viewer: Callable = None,
     ):
         """
         Instantiate a Viewer based on the given output data. The data can be given as a notebook or all the required
@@ -120,7 +120,7 @@ class Viewer:
         assert type(nbp_ref_spots) is NotebookPage or nbp_ref_spots is None
         assert type(nbp_call_spots) is NotebookPage or nbp_call_spots is None
         assert type(nbp_omp) is NotebookPage or nbp_omp is None
-        assert type(show) is bool
+        self.show = make_napari_viewer is None
         if nb is not None:
             if not all([nb.has_page(name) for name in self._required_page_names]):
                 raise ValueError(f"The notebook requires pages {', '.join(self._required_page_names)}")
@@ -148,7 +148,6 @@ class Viewer:
         assert self.nbp_stitch is not None
         assert self.nbp_ref_spots is not None
         assert self.nbp_call_spots is not None
-        self.show = show
         del nb
 
         start_time = time.time()
@@ -228,7 +227,11 @@ class Viewer:
         plt.style.use("dark_background")
         # + 1 for the gene legend.
         plt.rcParams["figure.max_open_warning"] = self._max_open_subplots + 1
-        self.viewer = napari.Viewer(title=f"Coppafish {utils_system.get_software_version()} Viewer", show=False)
+        viewer_kwargs =dict(title=f"Coppafish {utils_system.get_software_version()} Viewer", show=False) 
+        if self.show:
+            self.viewer = napari.Viewer(**viewer_kwargs)
+        else:
+            self.viewer = make_napari_viewer(**viewer_kwargs)
 
         print("Building gene legend")
         self.legend = legend_new.Legend()

@@ -1,6 +1,7 @@
 import tempfile
 
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
 import pytest
 import zarr
@@ -9,9 +10,9 @@ from coppafish.setup.notebook_page import NotebookPage
 from coppafish.plot.results_viewer.base_new import Viewer
 
 
-@pytest.mark.usefixtures("qtbot")
-@pytest.mark.manual
-def test_Viewer(qtbot) -> None:
+@pytest.mark.fixture("make_napari_viewer")
+def test_Viewer(make_napari_viewer) -> None:
+    plt.close("all")
     matplotlib.use("Agg")
 
     rng = np.random.RandomState(0)
@@ -84,7 +85,7 @@ def test_Viewer(qtbot) -> None:
         nbp_ref_spots=nbp_ref_spots,
         nbp_call_spots=nbp_call_spots,
         nbp_omp=nbp_omp,
-        show=False,
+        make_napari_viewer=make_napari_viewer,
     )
     # Test every hotkey.
     for hotkey in viewer.hotkeys:
@@ -107,7 +108,7 @@ def test_Viewer(qtbot) -> None:
         nbp_ref_spots=nbp_ref_spots,
         nbp_call_spots=nbp_call_spots,
         nbp_omp=nbp_omp,
-        show=False,
+        make_napari_viewer=make_napari_viewer,
     )
     # Test every hotkey.
     for hotkey in viewer.hotkeys:
@@ -162,7 +163,7 @@ def test_Viewer(qtbot) -> None:
         nbp_ref_spots=nbp_ref_spots,
         nbp_call_spots=nbp_call_spots,
         nbp_omp=nbp_omp,
-        show=False,
+        make_napari_viewer=make_napari_viewer,
     )
     for method in ("prob", "anchor", "omp"):
         viewer.selected_method = method
