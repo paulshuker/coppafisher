@@ -10,9 +10,10 @@ import torch
 from coppafish.omp import coefs, scores_torch
 from coppafish.setup.notebook import NotebookPage
 from coppafish.spot_colours import base as spot_colours_base
+from coppafish.plot.results_viewer.subplot import Subplot
 
 
-class ViewOMPImage:
+class ViewOMPImage(Subplot):
     def __init__(
         self,
         nbp_basic: NotebookPage,

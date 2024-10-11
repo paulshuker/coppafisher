@@ -1,12 +1,14 @@
 import tempfile
 
 import numpy as np
+import pytest
 import zarr
 
 from coppafish.setup.notebook_page import NotebookPage
 from coppafish.plot.results_viewer.base_new import Viewer
 
 
+@pytest.mark.usefixtures("qtbot")
 def test_Viewer() -> None:
     rng = np.random.RandomState(0)
 
@@ -80,8 +82,14 @@ def test_Viewer() -> None:
         nbp_omp=nbp_omp,
         show=False,
     )
-    viewer.toggle_background()
-    viewer.toggle_background()
+    for hotkey in viewer.hotkeys:
+        viewer.selected_spot = 33
+        hotkey.invoke(None)
+        hotkey.invoke(None)
+        hotkey.invoke(None)
+        viewer.selected_spot = 14
+        hotkey.invoke(None)
+        hotkey.invoke(None)
     viewer = Viewer(
         background_image="dapi",
         nbp_basic=nbp_basic,
@@ -93,8 +101,14 @@ def test_Viewer() -> None:
         nbp_omp=nbp_omp,
         show=False,
     )
-    viewer.toggle_background()
-    viewer.toggle_background()
+    for hotkey in viewer.hotkeys:
+        viewer.selected_spot = 1
+        hotkey.invoke(None)
+        hotkey.invoke(None)
+        hotkey.invoke(None)
+        viewer.selected_spot = 20
+        hotkey.invoke(None)
+        hotkey.invoke(None)
 
     n_omp_spots = 85 // n_tiles
     omp_config = {"omp": {"max_genes": 2, "dp_thresh": 0.01, "lambda_d": 0.001}}
@@ -138,6 +152,31 @@ def test_Viewer() -> None:
         nbp_omp=nbp_omp,
         show=False,
     )
+    for method in ("prob", "anchor", "omp"):
+        viewer.selected_method = method
+        viewer.clear_spot_selections()
+        viewer.selected_spot = 10
+        viewer.toggle_background()
+        viewer.toggle_background()
+        viewer.toggle_background()
+        viewer.clear_spot_selections()
+        viewer.clear_spot_selections()
+        viewer.selected_spot = 21
+        viewer.toggle_background()
+        viewer.selected_spot = 10
+        # Clean up open subplots.
+        viewer.close_all_subplots()
+        # Test every hotkey.
+        for hotkey in viewer.hotkeys:
+            hotkey.invoke(None)
+            hotkey.invoke(None)
+            hotkey.invoke(None)
+            viewer.selected_spot = 20
+            hotkey.invoke(None)
+            hotkey.invoke(None)
+            viewer.clear_spot_selections()
+            hotkey.invoke(None)
+            viewer.close_all_subplots()
     temp_zgroup.cleanup()
 
 

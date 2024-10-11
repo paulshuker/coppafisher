@@ -41,7 +41,7 @@ In your coppafish environment, install dev packages
 pip install -r requirements-dev.txt
 ```
 
-Run unit tests (~10s) 
+Run unit tests (~15s) 
 
 ```terminal
 pytest -m "not integration and not manual and not notebook"
@@ -60,12 +60,6 @@ pytest -m "notebook and not integration and not manual"
 ```
 
 ## Run Documentation Locally
-
-Install [mkdocs-material](https://squidfunk.github.io/mkdocs-material/) 
-
-```terminal
-python -m pip install mkdocs-material
-```
 
 Start the documentation locally 
 

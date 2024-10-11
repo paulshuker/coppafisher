@@ -96,7 +96,6 @@ class Legend:
         Returns:
             (int or none) gene_index: the closest gene index. None if no gene is nearby.
         """
-        # TODO: Implement.
         radii = (self.X - x) ** 2 + (self.Y - y) ** 2
         min_radius = np.min(radii)
         if min_radius <= self._selection_radius**2:

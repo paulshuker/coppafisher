@@ -1,11 +1,16 @@
 from collections.abc import Callable
 from typing import Optional
 
-import matplotlib.pyplot as plt
-
 
 class Hotkey:
-    def __init__(self, name: str, key_press: str, description: str, invoke: Optional[Callable], section: str):
+    def __init__(
+        self,
+        name: str,
+        key_press: str,
+        description: str,
+        invoke: Optional[Callable],
+        section: str,
+    ):
         self.name = name
         self.key_press = key_press
         self.description = description

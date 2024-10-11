@@ -8,6 +8,7 @@ from matplotlib.widgets import Button, RangeSlider
 import mplcursors
 import numpy as np
 
+from ..results_viewer.subplot import Subplot
 from ...call_spots.dot_product import gene_prob_score
 from ...omp import base as omp_base
 from ...setup.notebook import Notebook
@@ -227,7 +228,7 @@ class ColorPlotBase:
         self.im[-1].axes.figure.canvas.draw()
 
 
-class ViewSpotColourAndCode:
+class ViewSpotColourAndCode(Subplot):
     def __init__(
         self,
         spot_no: int,

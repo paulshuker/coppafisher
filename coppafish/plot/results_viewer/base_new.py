@@ -1,11 +1,12 @@
 import importlib.resources as importlib_resources
 from os import path
 import time
-from typing import Any, Optional
+from typing import Optional
 import warnings
 
 from PyQt5.QtWidgets import QComboBox, QPushButton
 import matplotlib as mpl
+from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import napari
 import napari.components
@@ -20,6 +21,7 @@ from qtpy.QtCore import Qt
 from superqt import QDoubleRangeSlider, QDoubleSlider
 
 from . import legend_new
+from .subplot import Subplot
 from ..call_spots import spot_colours
 from ..omp import ViewOMPImage
 from ...omp import base as omp_base
@@ -33,7 +35,9 @@ class Viewer:
     _required_page_names: tuple[str] = ("basic_info", "filter", "register", "stitch", "ref_spots", "call_spots")
     _method_to_string: dict[str, str] = {"prob": "Probability", "anchor": "Anchor", "omp": "OMP"}
     _starting_score_thresholds: dict[str, tuple[float]] = {"prob": (0.5, 1.0), "anchor": (0.5, 1.0), "omp": (0.4, 1.0)}
-    _default_spot_size: float = 4.0
+    _default_spot_size: float = 8.0
+    # If there are more than this number of subplots open, we begin to cull the earliest opened ones.
+    _max_subplots: int = 5
 
     # Data:
     nbp_basic: NotebookPage
@@ -54,7 +58,7 @@ class Viewer:
     intensity_threshs: dict[str, tuple[float, float]]
     spot_size: float
     hotkeys: tuple[Hotkey]
-    open_subplots: list[Any]
+    open_subplots: list[Subplot | Figure]
 
     # UI variables:
     # viewer: napari.Viewer
@@ -117,6 +121,7 @@ class Viewer:
         assert type(nbp_ref_spots) is NotebookPage or nbp_ref_spots is None
         assert type(nbp_call_spots) is NotebookPage or nbp_call_spots is None
         assert type(nbp_omp) is NotebookPage or nbp_omp is None
+        assert type(show) is bool
         if nb is not None:
             if not all([nb.has_page(name) for name in self._required_page_names]):
                 raise ValueError(f"The notebook requires pages {', '.join(self._required_page_names)}")
@@ -144,6 +149,7 @@ class Viewer:
         assert self.nbp_stitch is not None
         assert self.nbp_ref_spots is not None
         assert self.nbp_call_spots is not None
+        self.show = show
         del nb
 
         start_time = time.time()
@@ -153,15 +159,17 @@ class Viewer:
         spot_data: dict[str, Viewer.MethodData] = {}
         spot_data["prob"] = self.MethodData()
         spot_data["prob"].tile = self.nbp_ref_spots.tile[:]
-        spot_data["prob"].local_yxz = self.nbp_ref_spots.local_yxz[:].astype(np.float32)
-        spot_data["prob"].yxz = spot_data["prob"].local_yxz + self.nbp_stitch.tile_origin[spot_data["prob"].tile]
+        spot_data["prob"].local_yxz = self.nbp_ref_spots.local_yxz[:].astype(np.int16)
+        spot_data["prob"].yxz = (
+            spot_data["prob"].local_yxz.astype(np.float32) + self.nbp_stitch.tile_origin[spot_data["prob"].tile]
+        )
         spot_data["prob"].gene_no = np.argmax(self.nbp_call_spots.gene_probabilities[:], 1).astype(np.int16)
         spot_data["prob"].score = self.nbp_call_spots.gene_probabilities[:].max(1)
         spot_data["prob"].colours = self.nbp_ref_spots.colours[:].astype(np.float32)
         spot_data["prob"].intensity = self.nbp_call_spots.intensity[:]
         spot_data["anchor"] = self.MethodData()
         spot_data["anchor"].tile = spot_data["prob"].tile.copy()
-        spot_data["anchor"].local_yxz = self.nbp_ref_spots.local_yxz[:].astype(np.float32)
+        spot_data["anchor"].local_yxz = self.nbp_ref_spots.local_yxz[:].astype(np.int16)
         spot_data["anchor"].yxz = spot_data["prob"].yxz.copy()
         spot_data["anchor"].gene_no = self.nbp_call_spots.dot_product_gene_no[:]
         spot_data["anchor"].score = self.nbp_call_spots.dot_product_gene_score[:]
@@ -183,7 +191,9 @@ class Viewer:
             spot_data["omp"].intensity = np.median(colours_normed.max(-1), 1)
             self.selected_method = "omp"
         for method in spot_data.keys():
-            spot_data[method].indices = np.linspace(0, spot_data[method].score.size - 1, spot_data[method].score.size)
+            spot_data[method].indices = np.linspace(
+                0, spot_data[method].score.size - 1, spot_data[method].score.size, dtype=np.uint16
+            )
         self.spot_data = spot_data
         # Sanity check spot data.
         for data in self.spot_data.values():
@@ -217,6 +227,8 @@ class Viewer:
             self.spot_data[method].remove_data_at(spot_is_invisible)
 
         plt.style.use("dark_background")
+        # + 1 for the gene legend.
+        plt.rcParams["figure.max_open_warning"] = self._max_subplots + 1
         self.viewer = napari.Viewer(title=f"Coppafish {utils_system.get_software_version()} Viewer", show=False)
 
         print("Building gene legend")
@@ -225,6 +237,20 @@ class Viewer:
         self.legend.canvas.mpl_connect("button_press_event", self.legend_clicked)
         self.viewer.window.add_dock_widget(self.legend.canvas, name="Gene Legend", area="left")
         self._update_gene_legend()
+
+        print("Placing background image")
+        # TODO: Place the background image layer.
+        self.background_image = None
+        if background_image == "dapi":
+            self.background_image = self.viewer.add_image(
+                self.nbp_stitch.dapi_image[:], rgb=False, axis_labels=("Z", "Y", "X")
+            )
+
+        if self.background_image is None:
+            # Place a blank, 3D image to make the napari Viewer have the z slider.
+            blank_image = np.zeros((max(self.nbp_basic.use_z), 1, 1), dtype=np.int8)
+            # Image has shape (z, y, x)
+            self.viewer.add_image(blank_image)
 
         print("Building UI")
         # Method selection as a dropdown box containing every gene call method available.
@@ -258,10 +284,18 @@ class Viewer:
         # Marker size slider. For visuals only.
         self.spot_size = self._default_spot_size
         self.marker_size_slider = QDoubleSlider(Qt.Orientation.Horizontal)
-        self.marker_size_slider.setRange(1.0, self.spot_size * 5)
+        self.marker_size_slider.setRange(self.spot_size / 4, self.spot_size * 4)
         self.marker_size_slider.setValue(self.spot_size)
         self.marker_size_slider.sliderReleased.connect(self.marker_size_changed)
         self.viewer.window.add_dock_widget(self.marker_size_slider, area="left", name="Marker Size")
+        if self.background_image is not None:
+            # Background image contrast limits.
+            self.contrast_limits = (np.min(self.background_image.data), np.max(self.background_image.data))
+            self.contrast_slider = QDoubleRangeSlider(Qt.Orientation.Horizontal)
+            self.contrast_slider.setRange(*self.contrast_limits)
+            self.contrast_slider.setValue(self.contrast_limits)
+            self.contrast_slider.sliderReleased.connect(self.contrast_limits_changed)
+            self.viewer.window.add_dock_widget(self.contrast_slider, area="left", name="Background Contrast")
         # View hotkeys button.
         self.view_hotkeys_button = QPushButton(text="Hotkeys")
         self.view_hotkeys_button.clicked.connect(self.view_hotkeys)
@@ -274,18 +308,6 @@ class Viewer:
             # Turn off layer list and layer controls.
             self.viewer.window.qt_viewer.dockLayerList.hide()
             self.viewer.window.qt_viewer.dockLayerControls.hide()
-
-        print("Placing background image")
-        # TODO: Place the background image layer.
-        self.background_image = None
-        if background_image == "dapi":
-            self.background_image = self.viewer.add_image(self.nbp_stitch.dapi_image[:])
-
-        if self.background_image is None:
-            # Place a blank, 3D image to make the napari Viewer have the z slider.
-            blank_image = np.zeros((max(self.nbp_basic.use_z), 1, 1), dtype=np.int8)
-            # Image has shape (z, y, x)
-            self.viewer.add_image(blank_image)
 
         self.z = self.viewer.dims.current_step[0]
         # Connect to z slider changing event.
@@ -321,7 +343,13 @@ class Viewer:
 
         print(f"Connecting hotkeys")
         self.hotkeys = (
-            Hotkey("View hotkeys", "h", "", self.view_hotkeys, "Help"),
+            Hotkey(
+                "View hotkeys",
+                "h",
+                "",
+                lambda _: (self._free_subplot_spaces(1), self.open_subplots.append(self.view_hotkeys())),
+                "Help",
+            ),
             Hotkey(
                 "Toggle background", "i", "Toggle the background image on and off", self.toggle_background, "Visual"
             ),
@@ -329,14 +357,14 @@ class Viewer:
                 "View spot colour and code",
                 "c",
                 "Show the selected spot's colour and predicted bled code",
-                self.view_spot_colour_and_code,
+                lambda _: (self._free_subplot_spaces(1), self.open_subplots.append(self.view_spot_colour_and_code())),
                 "General Diagnostics",
             ),
             Hotkey(
                 "View OMP Coefficients",
                 "o",
                 "Show the OMP coefficients around the selected spot's local region",
-                self.view_omp_coefficients,
+                lambda _: (self._free_subplot_spaces(1), self.open_subplots.append(self.view_omp_coefficients())),
                 "OMP",
             ),
             # Hotkey("", "", ""),
@@ -353,6 +381,10 @@ class Viewer:
                 continue
             self.viewer.bind_key(hotkey.key_press)(hotkey.invoke)
 
+        # Give the Viewer a larger window.
+        self.viewer.window.resize(1400, 900)
+        self.viewer.window.activate()
+
         # When subplots open, some of them need to be kept within the Viewer class to avoid garbage collection.
         # The garbage collection breaks the UI elements like buttons and sliders.
         self.open_subplots = list()
@@ -360,19 +392,23 @@ class Viewer:
         end_time = time.time()
         print(f"Viewer built in {'{:.1f}'.format(end_time - start_time)}s")
 
-        if show:
-            # Give the Viewer a larger window.
-            self.viewer.window.resize(1400, 900)
+        if self.show:
             self.viewer.show()
-            self.viewer.window.activate()
             napari.run()
 
     def selected_spot_changed(self) -> None:
+        self._set_status_to("")
         selected_data: Selection = self.point_layers[self.selected_method].selected_data
         self.selected_spot = selected_data.active
         if self.selected_spot is None:
             return
-        print(f"Selected spot: {self.selected_spot}")
+        index, _, local_yxz, tile, gene_no, score, _ = self._get_selection_data()
+        message = (
+            f"Selected spot: {index} at {tuple(local_yxz)}, tile {tile}, gene {gene_no}: "
+            + f"{self.nbp_call_spots.gene_names[gene_no]}, score {score}"
+        )
+        print(message)
+        self._set_status_to(message)
 
     def legend_clicked(self, event: mpl.backend_bases.MouseEvent) -> None:
         if event.inaxes != self.legend.canvas.axes:
@@ -418,6 +454,9 @@ class Viewer:
         self.selected_method = new_selected_method
         self.update_widget_values()
         self.update_viewer_data()
+        self.clear_spot_selections()
+        # Put the user back to pan/zoom mode.
+        self.viewer.camera.interactive = True
         print(f"Method: {self.selected_method}")
 
     def z_thick_changed(self) -> None:
@@ -452,6 +491,13 @@ class Viewer:
         self.spot_size = new_spot_size
         self.set_spot_size_to(self.spot_size)
         print(f"Marker size: {self.spot_size}")
+
+    def contrast_limits_changed(self) -> None:
+        new_contrast_limits = self.contrast_slider.value()
+        if new_contrast_limits == self.contrast_limits:
+            return
+        self.contrast_limits = new_contrast_limits
+        self.background_image.contrast_limits = self.contrast_limits
 
     def update_widget_values(self) -> None:
         """
@@ -489,6 +535,13 @@ class Viewer:
             # To allow the points on the method layer to be selectable, the layer must be selected.
             self.viewer.layers.selection.active = self.point_layers[method]
 
+    def clear_spot_selections(self) -> None:
+        for method in self.spot_data.keys():
+            if self.point_layers[method].selected_data.active is None:
+                continue
+            self.point_layers[method].selected_data.clear()
+        self._set_status_to("")
+
     def set_spot_size_to(self, new_size: float) -> None:
         """
         Update the spot sizes in the napari Viewer. This is purely visual.
@@ -499,8 +552,8 @@ class Viewer:
         for method in self.spot_data.keys():
             self.point_layers[method].size = new_size
 
-    # HOTKEY FUNCTIONS:
-    def view_hotkeys(self, _=None) -> None:
+    # ========== HOTKEY FUNCTIONS ==========
+    def view_hotkeys(self, _=None) -> Subplot:
         fig, ax = plt.subplots(1, 1, figsize=(10, 8))
         ax.set_title("Hotkeys", fontdict={"size": 20})
         ax.set_axis_off()
@@ -519,49 +572,72 @@ class Viewer:
                 text += str(hotkey) + "\n"
         ax.text(0.5, 0.5, text, size=12, va="center", ha="center")
         fig.show()
+        return fig
 
-    def view_spot_colour_and_code(self, _=None) -> None:
+    def view_spot_colour_and_code(self, _=None) -> Subplot:
         if self.selected_spot is None:
             return
-        spot_data = self.spot_data[self.selected_method]
-        gene_number = spot_data.gene_no[self.selected_spot]
-        spot_colours.ViewSpotColourAndCode(
-            spot_data.indices[self.selected_spot],
-            spot_data.score[self.selected_spot],
-            spot_data.tile[self.selected_spot],
-            spot_data.colours[self.selected_spot],
-            self.nbp_call_spots.bled_codes[gene_number],
-            gene_number,
-            self.nbp_call_spots.gene_names[gene_number],
+        index, _, _, tile, gene_no, score, colour = self._get_selection_data()
+        return spot_colours.ViewSpotColourAndCode(
+            index,
+            score,
+            tile,
+            colour,
+            self.nbp_call_spots.bled_codes[gene_no],
+            gene_no,
+            self.nbp_call_spots.gene_names[gene_no],
             self.nbp_call_spots.colour_norm_factor,
             self.nbp_basic.use_channels,
             self.selected_method,
+            show=self.show,
         )
 
-    def view_omp_coefficients(self, _=None) -> None:
+    def view_omp_coefficients(self, _=None) -> Subplot:
         if self.selected_spot is None:
             return
         if self.nbp_omp is None:
             return
         spot_data = self.spot_data[self.selected_method]
-        self.open_subplots.append(
-            ViewOMPImage(
-                self.nbp_basic,
-                self.nbp_filter,
-                self.nbp_register,
-                self.nbp_call_spots,
-                self.nbp_omp,
-                spot_data.local_yxz[self.selected_spot],
-                spot_data.tile[self.selected_spot],
-                spot_data.indices[self.selected_spot],
-                self.selected_method,
-            )
+        return ViewOMPImage(
+            self.nbp_basic,
+            self.nbp_filter,
+            self.nbp_register,
+            self.nbp_call_spots,
+            self.nbp_omp,
+            spot_data.local_yxz[self.selected_spot],
+            spot_data.tile[self.selected_spot],
+            spot_data.indices[self.selected_spot],
+            self.selected_method,
+            show=self.show,
         )
 
     def toggle_background(self, _=None) -> None:
         if self.background_image is None:
             return
         self.background_image.visible = not self.background_image.visible
+
+    # ======================================
+
+    def close_all_subplots(self) -> None:
+        """
+        Close the currently open subplots. Saves memory and avoid warnings.
+        """
+        for _ in self.open_subplots:
+            self._close_oldest_subplot()
+
+    def _get_selection_data(self) -> tuple[np.ndarray]:
+        # Get the currently selected spot's data.
+        assert self.selected_spot is not None
+        spot_data = self.spot_data[self.selected_method]
+        index = spot_data.indices[self.selected_spot]
+        local_yxz = spot_data.local_yxz[self.selected_spot]
+        yxz = spot_data.yxz[self.selected_spot]
+        tile = spot_data.tile[self.selected_spot]
+        gene_no = spot_data.gene_no[self.selected_spot]
+        score = spot_data.score[self.selected_spot]
+        colour = spot_data.colours[self.selected_spot]
+
+        return index, yxz, local_yxz, tile, gene_no, score, colour
 
     def _create_gene_list(self, gene_marker_filepath: Optional[str] = None) -> tuple["Viewer.Gene"]:
         """
@@ -613,9 +689,30 @@ class Viewer:
 
         return tuple(genes)
 
+    def _free_subplot_spaces(self, n_free_spaces: int = 1) -> None:
+        """
+        If there are too many subplots open, then the oldest subplots are closed until there is n_free_spaces free
+        spaces.
+        """
+        while (len(self.open_subplots) + n_free_spaces) > self._max_subplots:
+            self._close_oldest_subplot()
+
+    def _close_oldest_subplot(self) -> None:
+        subplot = self.open_subplots.pop(0)
+        if isinstance(subplot, Subplot):
+            subplot.close()
+        elif isinstance(subplot, Figure):
+            plt.close(subplot)
+        else:
+            raise TypeError(f"Unkown subplot type: {type(subplot)}")
+
     def _update_gene_legend(self) -> None:
         # Called when the gene selection has changed by user input
         self.legend.update_selected_legend_genes([g.active for g in self.genes])
+
+    def _set_status_to(self, message: str) -> None:
+        # Sets the status bar of the viewer to a new message.
+        self.viewer.status = message
 
     # A nested class. Each instance of this class holds data on a specific gene calling method.
     class MethodData:
