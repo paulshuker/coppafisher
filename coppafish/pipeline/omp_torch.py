@@ -143,7 +143,6 @@ def run_omp(
         log.debug(f"OMP {max_genes=}")
         log.debug(f"OMP {n_subset_pixels=}")
 
-        # Large numbers now have commas.
         with tqdm.tqdm(
             total=np.prod(tile_shape).item(), desc=f"Computing coefficients", unit="pixel", postfix=postfix
         ) as pbar:
