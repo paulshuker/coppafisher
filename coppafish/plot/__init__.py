@@ -4,4 +4,4 @@ from .filter import view_filtered_images
 from .find_spots import n_spots_grid, view_find_spots
 from .raw import view_raw
 from .register import view_registered_images
-from .results_viewer.base import Viewer
+from .results_viewer.base_new import Viewer
