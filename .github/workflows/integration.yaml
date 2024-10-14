@@ -43,7 +43,7 @@ jobs:
         run: python -m pip install -r requirements-dev.txt
 
       - name: Run default unit tests
-        run: pytest -vm "not integration and not manual and not notebook" --cov=coppafish --cov-report term
+        run: pytest -m "not integration and not manual and not notebook" --cov=coppafish --cov-report term
 
       - name: Run default integration tests
         run: pytest -m "integration and not manual" --cov=coppafish --cov-report term

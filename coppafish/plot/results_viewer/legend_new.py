@@ -1,9 +1,20 @@
 import math as maths
 
+import matplotlib
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvasHeadless
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import numpy as np
+
+
+# A headless (Agg) backend version of MplCanvas, this is required for unit testing the gene legend.
+class MplCanvasHeadless(FigureCanvasHeadless):
+    def __init__(self, _=None):
+        fig = Figure()
+        fig.set_size_inches(5, 4)
+        self.axes = fig.subplots(1, 1)
+        super(MplCanvasHeadless, self).__init__(fig)
 
 
 class MplCanvas(FigureCanvas):
@@ -44,7 +55,10 @@ class Legend:
         """
         plt.style.use("dark_background")
 
-        self.canvas = MplCanvas()
+        if matplotlib.get_backend() == "Agg":
+            self.canvas = MplCanvasHeadless()
+        else:
+            self.canvas = MplCanvas()
         self.scatter_axes = []
         # Gene scatter points are populated within a bounding box of -1 to 1 in both x and y directions.
         X, Y = [], []
