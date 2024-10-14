@@ -75,7 +75,6 @@ class Viewer:
         background_image: Optional[str] = "dapi",
         background_image_colour: str = "gray",
         background_image_max_intensity_projection: bool = False,
-        background_image_downsample_factor: int = 3,
         nbp_basic: Optional[NotebookPage] = None,
         nbp_filter: Optional[NotebookPage] = None,
         nbp_register: Optional[NotebookPage] = None,
@@ -87,15 +86,22 @@ class Viewer:
     ):
         """
         Instantiate a Viewer based on the given output data. The data can be given as a notebook or all the required
-        notebook pages (useful for unit testing).
+        notebook pages (used for unit testing).
 
         Args:
             nb (Notebook, optional): the notebook to visualise. Must have completed up to `call_spots` at least. If
                 none, then all nbp_* notebook pages must be given except nbp_omp which is optional. Default: none.
             gene_marker_filepath (str, optional): the file path to the gene marker file. Default: use the default gene
                 marker at coppafish/plot/results_viewer/gene_color.csv.
-            background_image (str or none, optional): what to use as the background image, can be "dapi" or None. Set
-                to None for no background image. Default: "dapi".
+            background_image (str or none, optional): what to use as the background image, can be none, "dapi" or a
+                file path to a .npy file or .npz file. The array at a file path must be a numpy array of shape
+                `(im_y x im_x)` or `(im_z x im_y x im_x)` If set to a .npz file path, the background image must be
+                located at key 'arr_0'. Set to None for no background image. Default: "dapi".
+            background_image_colour (str, optional): the napari colour mapping used for the background image.
+                Default: gray.
+            background_image_max_intensity_projection (bool, optional): use the Max Intensity Projection (MIP) of the
+                background image. In other words, place the maximum intensity found along the z axis for each x and y
+                position. Default: false.
             nbp_basic (NotebookPage, optional): `basic_info` notebook page. Default: not given.
             nbp_filter (NotebookPage, optional): `filter` notebook page. Default: not given.
             nbp_register (NotebookPage, optional): `register` notebook page. Default: not given.
@@ -111,8 +117,10 @@ class Viewer:
             raise FileNotFoundError(f"Could not find gene marker filepath at {gene_marker_filepath}")
         if background_image is not None and type(background_image) is not str:
             raise TypeError(f"background_image must be type str, got type {type(background_image)}")
-        if background_image is not None and background_image not in ("dapi",):
-            raise ValueError(f"Unknown given background_image: {background_image}")
+        if background_image is not None and background_image not in ("dapi",) and type(background_image) is not str:
+            raise ValueError(f"Unknown given background_image: {background_image} of type {type(background_image)}")
+        if type(background_image) is str and background_image not in ("dapi",) and not path.isfile(background_image):
+            raise FileNotFoundError(f"No background_image file at {background_image}")
         assert type(nbp_basic) is NotebookPage or nbp_basic is None
         assert type(nbp_filter) is NotebookPage or nbp_filter is None
         assert type(nbp_register) is NotebookPage or nbp_register is None
@@ -227,7 +235,7 @@ class Viewer:
         self._update_gene_legend()
 
         print("Placing background image")
-        self._place_background(background_image, background_image_colour)
+        self._place_background(background_image, background_image_colour, background_image_max_intensity_projection)
 
         print("Building UI")
         self._build_UI()
@@ -435,7 +443,6 @@ class Viewer:
             return
         self.spot_size = new_spot_size
         self.set_spot_size_to(self.spot_size)
-        print(f"Marker size: {self.spot_size}")
 
     def contrast_limits_changed(self) -> None:
         new_contrast_limits = self.contrast_slider.value()
@@ -582,11 +589,14 @@ class Viewer:
             spot_data.local_yxz[self.selected_spot],
             spot_data.tile[self.selected_spot],
             spot_data.indices[self.selected_spot],
+            spot_data.gene_no[self.selected_spot],
             self.selected_method,
             show=self.show,
         )
 
     def toggle_background(self, _=None) -> None:
+        if not self.viewer_exists():
+            return
         if self.background_image is None:
             return
         self.background_image.visible = not self.background_image.visible
@@ -614,20 +624,46 @@ class Viewer:
         self.viewer.close()
         del self.viewer
 
-    def _place_background(self, background_image: Optional[str], background_image_colour: str) -> None:
-        # TODO: Support for other background types.
+    def _place_background(self, image: Optional[str], colour_map: str, max_intensity_project: bool) -> None:
+        z_count = max(self.nbp_basic.use_z)
         self.background_image = None
+        if image == "dapi":
+            background_image = self.nbp_stitch.dapi_image[:]
+            self.background_image = background_image
+        elif type(image) is str and image.endswith(".npy"):
+            if not path.isfile(image):
+                raise FileNotFoundError(f"Cannot find background image of file path: {image}")
+            background_image: np.ndarray = np.load(image)
+            if background_image.ndim not in (2, 3):
+                raise ValueError(f"Unexpected background image dimension count: {background_image.ndim}")
+            if background_image.ndim == 2:
+                background_image = background_image[None].repeat(z_count, 0)
+            self.background_image = background_image
+        elif type(image) is str and image.endswith(".npz"):
+            if not path.isfile(image):
+                raise FileNotFoundError(f"Cannot find background image of file path: {image}")
+            background_image: np.ndarray = np.load(image)["arr_0"]
+            if background_image.ndim not in (2, 3):
+                raise ValueError(f"Unexpected background image dimension count: {background_image.ndim}")
+            if background_image.ndim == 2:
+                background_image = background_image[None].repeat(z_count, 0)
+            self.background_image = background_image
+        elif type(image) is str:
+            raise ValueError(
+                f"Unexpected background_image: {image}. " + "The image must end with .npy or .npz or be equal to dapi"
+            )
+        if max_intensity_project:
+            z_count = background_image.shape[0]
+            background_image = background_image.max(0, keepdims=True).repeat(z_count, 0)
         if not self.viewer_exists():
             return
-        if background_image == "dapi":
+        if self.background_image is not None:
             self.background_image = self.viewer.add_image(
-                self.nbp_stitch.dapi_image[:], rgb=False, axis_labels=("Z", "Y", "X"), colormap=background_image_colour
+                background_image, rgb=False, axis_labels=("Z", "Y", "X"), colormap=colour_map
             )
-        if self.background_image is None:
+        else:
             # Place a blank, 3D image to make the napari Viewer have the z slider.
-            blank_image = np.zeros((max(self.nbp_basic.use_z), 1, 1), dtype=np.int8)
-            # Image has shape (z, y, x)
-            self.viewer.add_image(blank_image)
+            self.viewer.add_image(np.zeros((z_count, 1, 1), dtype=np.int8), rgb=False)
 
     def _build_UI(self) -> None:
         min_yxz = np.array([0, 0, 0], np.float32)

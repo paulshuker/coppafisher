@@ -24,6 +24,7 @@ class ViewOMPImage(Subplot):
         local_yxz: np.ndarray,
         tile: int,
         spot_no: int,
+        spot_gene_no: int,
         method: str,
         im_size: int = 8,
         z_planes: Tuple[int] = (-2, -1, 0, 1, 2),
@@ -34,19 +35,21 @@ class ViewOMPImage(Subplot):
         Display omp coefficients of all genes around the local neighbourhood of a pixel position.
 
         Args:
-            - nbp_basic (NotebookPage): `basic_info` notebook page.
-            - nbp_filter (NotebookPage): `filter` notebook page.
-            - nbp_register (NotebookPage): `register` notebook page.
-            - nbp_call_spots (NotebookPage): `call_spots` notebook page.
-            - nbp_omp (NotebookPage): `omp` notebook page.
-            - local_yxz (`(3) ndarray[int]`): the pixel position relative to the tile it is on's bottom-left corner.
-            - tile (int-like): tile index the pixel is on.
-            - spot_no (int-like or none): Spot index to be plotted.
-            - method (str): gene calling method.
-            - im_size (int, optional): number of pixels out from the central pixel to plot to create the square images.
-            - z_planes (tuple of int, optional): z planes to show. 0 is the central z plane.
-            - init_select_gene (int, optional): gene number to display initially. Default: the highest scoring gene.
-            - show (bool, optional): display the plot once built. False is useful when unit testing. Default: true.
+            nbp_basic (NotebookPage): `basic_info` notebook page.
+            nbp_filter (NotebookPage): `filter` notebook page.
+            nbp_register (NotebookPage): `register` notebook page.
+            nbp_call_spots (NotebookPage): `call_spots` notebook page.
+            nbp_omp (NotebookPage): `omp` notebook page.
+            local_yxz (`(3) ndarray[int]`): the pixel position relative to its tile's bottom-left corner.
+            tile (int-like): tile index the pixel is on.
+            spot_no (int-like or none): spot index to be plotted.
+            spot_gene_no (int-like or none): spot's gene index. The index will be a selectable option on the slider if
+                given. None if not given.
+            method (str): gene calling method.
+            im_size (int, optional): number of pixels out from the central pixel to plot to create the square images.
+            z_planes (tuple of int, optional): z planes to show. 0 is the central z plane.
+            init_select_gene (int, optional): gene number to display initially. Default: the highest scoring gene.
+            show (bool, optional): display the plot once built. False is useful when unit testing. Default: true.
         """
         assert type(nbp_basic) is NotebookPage
         assert type(nbp_filter) is NotebookPage
@@ -57,6 +60,7 @@ class ViewOMPImage(Subplot):
         assert local_yxz.shape == (3,)
         assert type(int(tile)) is int
         assert type(int(spot_no)) is int
+        assert type(int(spot_gene_no)) is int
         assert type(method) is str
         assert type(im_size) is int
         assert im_size >= 0
@@ -133,6 +137,7 @@ class ViewOMPImage(Subplot):
         central_pixel = np.array(self.coefficient_image.shape[1:]) // 2
         central_pixels = np.ix_(range(n_genes), [central_pixel[0]], [central_pixel[1]], [central_pixel[2]])
         gene_is_selectable = ~np.isclose(self.coefficient_image[central_pixels].ravel(), 0)
+        gene_is_selectable[spot_gene_no] = True
         if init_select_gene is not None:
             gene_is_selectable[init_select_gene] = True
         assert gene_is_selectable.ndim == 1

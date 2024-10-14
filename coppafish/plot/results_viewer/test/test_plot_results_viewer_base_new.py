@@ -1,3 +1,4 @@
+import os
 import tempfile
 
 import matplotlib
@@ -72,29 +73,43 @@ def test_Viewer() -> None:
     assert nbp_call_spots.gene_names.size == n_genes
     nbp_omp = None
 
-    viewer = Viewer(
-        background_image=None,
-        nbp_basic=nbp_basic,
-        nbp_filter=nbp_filter,
-        nbp_register=nbp_register,
-        nbp_stitch=nbp_stitch,
-        nbp_ref_spots=nbp_ref_spots,
-        nbp_call_spots=nbp_call_spots,
-        nbp_omp=nbp_omp,
-        show=False,
-    )
-    viewer._max_open_subplots = 2
-    # Test every hotkey.
-    for hotkey in viewer.hotkeys:
-        viewer.selected_spot = 20
-        hotkey.invoke(None)
+    npy_filepath = os.path.join(tempfile.gettempdir(), "test_array.npy")
+    background_array = rng.rand(25, 31)
+    np.save(npy_filepath, background_array)
+    npz_filepath = os.path.join(tempfile.gettempdir(), "test_array.npz")
+    background_array = rng.randint(0, 100, size=(8, 25, 31))
+    np.savez_compressed(npz_filepath, background_array)
+
+    # Try different background image valid parameters.
+    background_images = []
+    background_images.append("dapi")
+    background_images.append(None)
+    background_images.append(npy_filepath)
+    background_images.append(npz_filepath)
+    for background_image in background_images:
+        viewer = Viewer(
+            background_image=background_image,
+            nbp_basic=nbp_basic,
+            nbp_filter=nbp_filter,
+            nbp_register=nbp_register,
+            nbp_stitch=nbp_stitch,
+            nbp_ref_spots=nbp_ref_spots,
+            nbp_call_spots=nbp_call_spots,
+            nbp_omp=nbp_omp,
+            show=False,
+        )
+        # Test every hotkey.
+        for hotkey in viewer.hotkeys:
+            viewer.selected_spot = 20
+            hotkey.invoke(None)
+            hotkey.invoke(None)
+            viewer.close_all_subplots()
+            viewer.clear_spot_selections()
+            viewer.selected_spot = 5
+            hotkey.invoke(None)
+            viewer.clear_spot_selections()
         viewer.close_all_subplots()
-        viewer.clear_spot_selections()
-        viewer.selected_spot = 5
-        hotkey.invoke(None)
-        viewer.clear_spot_selections()
-    viewer.close_all_subplots()
-    viewer.close()
+        viewer.close()
     viewer = Viewer(
         background_image="dapi",
         nbp_basic=nbp_basic,
@@ -106,16 +121,18 @@ def test_Viewer() -> None:
         nbp_omp=nbp_omp,
         show=False,
     )
-    viewer._max_open_subplots = 2
     # Test every hotkey.
     for hotkey in viewer.hotkeys:
         viewer.selected_spot = 20
         hotkey.invoke(None)
+        hotkey.invoke(None)
+        viewer.close_all_subplots()
         viewer.close_all_subplots()
         viewer.clear_spot_selections()
         viewer.selected_spot = 5
         hotkey.invoke(None)
         viewer.close_all_subplots()
+        viewer.clear_spot_selections()
         viewer.clear_spot_selections()
     viewer.close()
 
@@ -161,7 +178,6 @@ def test_Viewer() -> None:
         nbp_omp=nbp_omp,
         show=False,
     )
-    viewer._max_open_subplots = 2
     for method in ("prob", "anchor", "omp"):
         viewer.selected_method = method
         viewer.clear_spot_selections()
@@ -173,14 +189,15 @@ def test_Viewer() -> None:
         # Clean up open subplots.
         viewer.close_all_subplots()
         # Test every hotkey.
-    for hotkey in viewer.hotkeys:
-        viewer.selected_spot = 20
-        hotkey.invoke(None)
-        viewer.close_all_subplots()
-        viewer.clear_spot_selections()
-        viewer.selected_spot = 5
-        hotkey.invoke(None)
-        viewer.clear_spot_selections()
+        for hotkey in viewer.hotkeys:
+            viewer.selected_spot = 20
+            hotkey.invoke(None)
+            hotkey.invoke(None)
+            viewer.close_all_subplots()
+            viewer.clear_spot_selections()
+            viewer.selected_spot = 5
+            hotkey.invoke(None)
+            viewer.clear_spot_selections()
     viewer.close_all_subplots()
     viewer.close()
 
