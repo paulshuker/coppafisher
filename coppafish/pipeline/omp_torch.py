@@ -151,6 +151,7 @@ def run_omp(
                     n_subset_pixels: int = maths.floor(
                         utils.system.get_available_memory(device) * 2e9 / (n_genes * n_rounds_use * n_channels_use)
                     )
+                    n_subset_pixels = min(n_subset_pixels, yxz_all.shape[0] - index_max)
                 log.debug(f"==== Subset {index_subset} ====")
                 log.debug(f"Getting spot colours")
                 index_max = index_min + n_subset_pixels
@@ -166,10 +167,10 @@ def run_omp(
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     coefficients[index_min:index_max] = coefficient_subset
+                del coefficient_subset
                 pbar.update(n_subset_pixels)
                 index_min = index_max
                 index_subset += 1
-                del coefficient_subset
         del solver
         log.debug(f"Compute coefficients, tile {t} complete")
 
@@ -322,8 +323,8 @@ def run_omp(
         t_spots_colours = tile_results.zeros(
             "colours",
             shape=(t_spots_tile.size, n_rounds_use, n_channels_use),
-            dtype=np.float16,
             chunks=(n_chunk_max, 1, 1),
+            dtype=np.float16,
         )
         t_spots_colours[:] = spot_colours.base.get_spot_colours_new_safe(
             nbp_basic, t_local_yxzs, **spot_colour_kwargs

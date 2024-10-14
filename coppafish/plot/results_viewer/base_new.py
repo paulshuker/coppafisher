@@ -122,6 +122,7 @@ class Viewer:
         assert type(nbp_omp) is NotebookPage or nbp_omp is None
         assert type(show) is bool
         self.show = show
+        self.closing = False
         if nb is not None:
             if not all([nb.has_page(name) for name in self._required_page_names]):
                 raise ValueError(f"The notebook requires pages {', '.join(self._required_page_names)}")
@@ -322,8 +323,6 @@ class Viewer:
         # When subplots open, some of them need to be kept within the Viewer class to avoid garbage collection.
         # The garbage collection breaks the UI elements like buttons and sliders.
         self.open_subplots = list()
-
-        self.closing = False
 
         end_time = time.time()
         print(f"Viewer built in {'{:.1f}'.format(end_time - start_time)}s")
