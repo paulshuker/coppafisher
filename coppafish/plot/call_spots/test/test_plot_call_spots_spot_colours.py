@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 
 from coppafish.plot.call_spots import spot_colours
@@ -52,3 +53,5 @@ def test_ViewSpotColourAndCode() -> None:
     view.change_norm()
     view.change_use_colour_norm()
     view.change_use_colour_norm()
+    plt.close(view.fig)
+    del view

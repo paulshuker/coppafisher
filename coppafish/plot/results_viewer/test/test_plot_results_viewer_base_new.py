@@ -1,18 +1,14 @@
 import tempfile
 
 import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
-import pytest
 import zarr
 
 from coppafish.setup.notebook_page import NotebookPage
 from coppafish.plot.results_viewer.base_new import Viewer
 
 
-@pytest.mark.fixture("qtbot")
-def test_Viewer(qtbot) -> None:
-    plt.close("all")
+def test_Viewer() -> None:
     matplotlib.use("Agg")
 
     rng = np.random.RandomState(0)
