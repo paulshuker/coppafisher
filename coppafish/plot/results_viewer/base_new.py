@@ -647,37 +647,39 @@ class Viewer:
             min_yxz = min_yxz.clip(max=method_min_yxz)
             max_yxz = max_yxz.clip(min=method_max_yxz)
 
-        # Method selection as a dropdown box containing every gene call method available.
-        self.method_combo_box = QComboBox()
-        for method in self.spot_data.keys():
-            self.method_combo_box.addItem(self._method_to_string[method])
-        self.method_combo_box.setCurrentText(self._method_to_string[self.selected_method])
-        self.method_combo_box.currentIndexChanged.connect(self.method_changed)
-        # Z thickness slider.
+        # Initial UI Widget values.
         self.z_thick: float = 1.0
-        self.z_thick_slider = QDoubleSlider(Qt.Orientation.Horizontal)
-        self.z_thick_slider.setRange(0, max_yxz[2] - min_yxz[2])
-        self.z_thick_slider.setValue(self.z_thick)
-        self.z_thick_slider.sliderReleased.connect(self.z_thick_changed)
-        # Score slider. Keep a separate score threshold for each method.
         self.score_threshs = {method: self._starting_score_thresholds[method] for method in self.spot_data.keys()}
-        self.score_slider = QDoubleRangeSlider(Qt.Orientation.Horizontal)
-        self.score_slider.setRange(0, max_score)
-        self.score_slider.setValue(self.score_threshs[self.selected_method])
-        self.score_slider.sliderReleased.connect(self.score_thresholds_changed)
-        # Intensity slider. Keep a separate intensity threshold for each method.
         self.intensity_threshs = {method: (0.0, max_intensity) for method in self.spot_data.keys()}
-        self.intensity_slider = QDoubleRangeSlider(Qt.Orientation.Horizontal)
-        self.intensity_slider.setRange(0, max_intensity)
-        self.intensity_slider.setValue(self.intensity_threshs[self.selected_method])
-        self.intensity_slider.sliderReleased.connect(self.intensity_thresholds_changed)
-        # Marker size slider. For visuals only.
         self.spot_size = self._default_spot_size
-        self.marker_size_slider = QDoubleSlider(Qt.Orientation.Horizontal)
-        self.marker_size_slider.setRange(self.spot_size / 4, self.spot_size * 4)
-        self.marker_size_slider.setValue(self.spot_size)
-        self.marker_size_slider.sliderReleased.connect(self.marker_size_changed)
+
         if self.viewer_exists():
+            # Method selection as a dropdown box containing every gene call method available.
+            self.method_combo_box = QComboBox()
+            for method in self.spot_data.keys():
+                self.method_combo_box.addItem(self._method_to_string[method])
+            self.method_combo_box.setCurrentText(self._method_to_string[self.selected_method])
+            self.method_combo_box.currentIndexChanged.connect(self.method_changed)
+            # Z thickness slider.
+            self.z_thick_slider = QDoubleSlider(Qt.Orientation.Horizontal)
+            self.z_thick_slider.setRange(0, max_yxz[2] - min_yxz[2])
+            self.z_thick_slider.setValue(self.z_thick)
+            self.z_thick_slider.sliderReleased.connect(self.z_thick_changed)
+            # Score slider. Keep a separate score threshold for each method.
+            self.score_slider = QDoubleRangeSlider(Qt.Orientation.Horizontal)
+            self.score_slider.setRange(0, max_score)
+            self.score_slider.setValue(self.score_threshs[self.selected_method])
+            self.score_slider.sliderReleased.connect(self.score_thresholds_changed)
+            # Intensity slider. Keep a separate intensity threshold for each method.
+            self.intensity_slider = QDoubleRangeSlider(Qt.Orientation.Horizontal)
+            self.intensity_slider.setRange(0, max_intensity)
+            self.intensity_slider.setValue(self.intensity_threshs[self.selected_method])
+            self.intensity_slider.sliderReleased.connect(self.intensity_thresholds_changed)
+            # Marker size slider. For visuals only.
+            self.marker_size_slider = QDoubleSlider(Qt.Orientation.Horizontal)
+            self.marker_size_slider.setRange(self.spot_size / 4, self.spot_size * 4)
+            self.marker_size_slider.setValue(self.spot_size)
+            self.marker_size_slider.sliderReleased.connect(self.marker_size_changed)
             self.viewer.window.add_dock_widget(self.method_combo_box, area="left", name="Gene Call Method")
             self.viewer.window.add_dock_widget(self.z_thick_slider, area="left", name="Z Thickness")
             self.viewer.window.add_dock_widget(self.score_slider, area="left", name="Score Thresholds")
@@ -686,16 +688,16 @@ class Viewer:
         if self.background_image is not None:
             # Background image contrast limits.
             self.contrast_limits = (np.min(self.background_image.data), np.max(self.background_image.data))
-            self.contrast_slider = QDoubleRangeSlider(Qt.Orientation.Horizontal)
-            self.contrast_slider.setRange(*self.contrast_limits)
-            self.contrast_slider.setValue(self.contrast_limits)
-            self.contrast_slider.sliderReleased.connect(self.contrast_limits_changed)
             if self.viewer_exists():
+                self.contrast_slider = QDoubleRangeSlider(Qt.Orientation.Horizontal)
+                self.contrast_slider.setRange(*self.contrast_limits)
+                self.contrast_slider.setValue(self.contrast_limits)
+                self.contrast_slider.sliderReleased.connect(self.contrast_limits_changed)
                 self.viewer.window.add_dock_widget(self.contrast_slider, area="left", name="Background Contrast")
-        # View hotkeys button.
-        self.view_hotkeys_button = QPushButton(text="Hotkeys")
-        self.view_hotkeys_button.clicked.connect(self.view_hotkeys)
         if self.viewer_exists():
+            # View hotkeys button.
+            self.view_hotkeys_button = QPushButton(text="Hotkeys")
+            self.view_hotkeys_button.clicked.connect(self.view_hotkeys)
             self.viewer.window.add_dock_widget(self.view_hotkeys_button, area="left", name="Help")
             # Hide the layer list and layer controls.
             # FIXME: This leads to a future deprecation warning. Napari will hopefully add a proper way of doing this in

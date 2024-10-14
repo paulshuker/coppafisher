@@ -4,8 +4,8 @@ import matplotlib
 import numpy as np
 import zarr
 
-from coppafish.setup.notebook_page import NotebookPage
 from coppafish.plot.results_viewer.base_new import Viewer
+from coppafish.setup.notebook_page import NotebookPage
 
 
 def test_Viewer() -> None:
@@ -201,4 +201,4 @@ def test_Viewer() -> None:
 
 
 if __name__ == "__main__":
-    test_Viewer(None)
+    test_Viewer()
