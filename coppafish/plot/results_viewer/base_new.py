@@ -1,7 +1,7 @@
 import importlib.resources as importlib_resources
 from os import path
 import time
-from typing import Callable, Optional
+from typing import Optional
 import warnings
 
 from PyQt5.QtWidgets import QComboBox, QPushButton
@@ -120,6 +120,7 @@ class Viewer:
         assert type(nbp_ref_spots) is NotebookPage or nbp_ref_spots is None
         assert type(nbp_call_spots) is NotebookPage or nbp_call_spots is None
         assert type(nbp_omp) is NotebookPage or nbp_omp is None
+        assert type(show) is bool
         self.show = show
         if nb is not None:
             if not all([nb.has_page(name) for name in self._required_page_names]):
@@ -614,7 +615,7 @@ class Viewer:
         del self.viewer
 
     def _place_background(self, background_image: Optional[str], background_image_colour: str) -> None:
-        # TODO: Place the background image layer.
+        # TODO: Support for other background types.
         self.background_image = None
         if not self.viewer_exists():
             return

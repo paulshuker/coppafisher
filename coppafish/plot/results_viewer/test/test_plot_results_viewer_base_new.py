@@ -10,8 +10,8 @@ from coppafish.setup.notebook_page import NotebookPage
 from coppafish.plot.results_viewer.base_new import Viewer
 
 
-@pytest.mark.fixture("make_napari_viewer")
-def test_Viewer(make_napari_viewer) -> None:
+@pytest.mark.fixture("qtbot")
+def test_Viewer(qtbot) -> None:
     plt.close("all")
     matplotlib.use("Agg")
 
@@ -87,6 +87,7 @@ def test_Viewer(make_napari_viewer) -> None:
         nbp_omp=nbp_omp,
         show=False,
     )
+    print("Viewer made")
     # Test every hotkey.
     for hotkey in viewer.hotkeys:
         viewer.selected_spot = 20
@@ -110,6 +111,7 @@ def test_Viewer(make_napari_viewer) -> None:
         nbp_omp=nbp_omp,
         show=False,
     )
+    print("Viewer made")
     # Test every hotkey.
     for hotkey in viewer.hotkeys:
         viewer.selected_spot = 20
@@ -165,6 +167,7 @@ def test_Viewer(make_napari_viewer) -> None:
         nbp_omp=nbp_omp,
         show=False,
     )
+    print("Viewer made")
     for method in ("prob", "anchor", "omp"):
         viewer.selected_method = method
         viewer.clear_spot_selections()
