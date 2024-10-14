@@ -137,7 +137,7 @@ def run_omp(
             normalisation_shift=config["lambda_d"],
         )
         n_subset_pixels = config["subset_pixels"]
-        index_subset, index_min = 0, 0
+        index_subset, index_min, index_max = 0, 0, 0
         solver = coefs.CoefficientSolverOMP()
         log.debug(f"OMP {max_genes=}")
         log.debug(f"OMP {n_subset_pixels=}")
