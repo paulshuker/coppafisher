@@ -52,8 +52,8 @@ def compute_mean_spot(
     given spot position. The mean spot is the mean of the image signs in the cuboid region.
 
     Args:
-        coefficients (`(n_pixels x n_genes) scipy.sparse.csr_array`): coefficient images. Any out of bounds
-            retrievals around spots are set to zero.
+        coefficients (list of `(n_subset_pixels x n_genes) scipy.sparse.csr_matrix[float32]`): coefficient images. Any
+            out of bounds retrievals around spots are set to zero.
         spot_positions_yxz (`(n_spots x 3) tensor`): every spot position to use to compute the spot. If n_spots is 0,
             a mean spot of zeros is returned.
         spot_positions_gene_no (`(n_spots) tensor[int]`): every spot position's gene number.
@@ -64,7 +64,7 @@ def compute_mean_spot(
     Returns:
         (`spot_shape tensor[float32]`) mean_spot: the mean of the signs of the coefficient.
     """
-    assert type(coefficients) is scipy.sparse.csr_matrix, f"Got type {type(coefficients)}"
+    assert type(coefficients) is list, f"Got type {type(coefficients)}"
     assert type(spot_positions_yxz) is torch.Tensor
     assert spot_positions_yxz.dim() == 2
     n_spots = int(spot_positions_yxz.shape[0])
@@ -75,7 +75,7 @@ def compute_mean_spot(
     assert spot_positions_yxz.shape[0] == spot_positions_gene_no.shape[0]
     assert type(tile_shape) is tuple
     assert len(tile_shape) == 3
-    assert coefficients.shape[0] == np.prod(tile_shape)
+    assert sum([coef_subset.shape[0] for coef_subset in coefficients]) == np.prod(tile_shape)
     assert type(spot_shape) is tuple
     assert len(spot_shape) == 3
     assert all([type(spot_shape[i]) is int for i in range(3)])
@@ -90,7 +90,8 @@ def compute_mean_spot(
     spots = torch.zeros((0, n_shifts)).float()
 
     for g in spot_positions_gene_no.unique():
-        g_coef_image = torch.asarray(coefficients[:, [g]].toarray().reshape(tile_shape, order="F")).float()
+        g_coef_image = np.vstack([coef_subset[:, [g]].toarray() for coef_subset in coefficients])
+        g_coef_image = torch.asarray(g_coef_image.reshape(tile_shape, order="F")).float()
         # Pad the coefficient image for out of bound cases.
         g_coef_image = torch.nn.functional.pad(g_coef_image, (0, spot_shape[2], 0, spot_shape[1], 0, spot_shape[0]))
         g_yxz = spot_positions_yxz[spot_positions_gene_no == g].int()

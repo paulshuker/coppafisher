@@ -45,8 +45,8 @@ def test_compute_spots_from() -> None:
     rng = np.random.RandomState(0)
     im_y, im_x, im_z = 10, 11, 12
     tile_shape = (im_y, im_x, im_z)
-    image = scipy.sparse.csr_matrix(rng.rand(im_y, im_x, im_z).astype(np.float32).reshape((-1, 1)))
-    image_numpy = image[:, [0]].toarray().reshape(tile_shape)
+    image = [scipy.sparse.csr_matrix(rng.rand(im_y, im_x, im_z).astype(np.float32).reshape((-1, 1)))]
+    image_numpy = image[0][:, [0]].toarray().reshape(tile_shape)
     # The most simple case possible.
     spot_positions_yxz = torch.zeros((1, 3)).int()
     spot_positions_yxz[0, 0] = 5

@@ -125,9 +125,10 @@ def run_omp(
         # Normalise the codes the same way as gene bled codes.
         bg_bled_codes /= np.linalg.norm(bg_bled_codes, axis=(1, 2))
         max_genes = config["max_genes"]
-        # The tile's coefficient results are stored into a scipy sparse matrix. Most coefficients in each row are
-        # zeroes, so a csr array is appropriate.
-        coefficients = scipy.sparse.csr_matrix((np.prod(tile_shape).item(), n_genes), dtype=np.float32)
+        # The tile's coefficient results are stored as a list of scipy sparse matrices. Each item is a specific subset
+        # that was run. Appending them all together is done on demand later as it is computationally expensive to do
+        # this while as a sparse matrix. Most coefficients in each row are zeroes, so a csr matrix is appropriate.
+        coefficients: list[scipy.sparse.csr_matrix] = []
         coefficient_kwargs = dict(
             bled_codes=bled_codes,
             background_codes=bg_bled_codes,
@@ -164,9 +165,7 @@ def run_omp(
                 # Add the subset coefficients to the sparse coefficients matrix.
                 log.debug(f"Adding results to sparse matrix")
                 coefficient_subset = scipy.sparse.csr_matrix(coefficient_subset)
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    coefficients[index_min:index_max] = coefficient_subset
+                coefficients.append(coefficient_subset.copy())
                 del coefficient_subset
                 pbar.update(n_subset_pixels)
                 index_min = index_max
@@ -185,7 +184,8 @@ def run_omp(
             isolated_yxz = torch.zeros((0, 3)).int()
             isolated_gene_no = torch.zeros(0).int()
             for g in range(n_genes):
-                g_coef_image = torch.asarray(coefficients[:, [g]].toarray().reshape(tile_shape, order="F")).float()
+                g_coef_image = np.vstack([coef_subset[:, [g]].toarray() for coef_subset in coefficients])
+                g_coef_image = torch.asarray(g_coef_image.reshape(tile_shape, order="F")).float()
                 if torch.allclose(g_coef_image, torch.zeros(1).float()):
                     log.warn(f"Tile {t} OMP coefficients for gene {nbp_call_spots.gene_names[g]} are all zero")
                 g_isolated_yxz, _ = find_spots.detect.detect_spots(
@@ -270,8 +270,8 @@ def run_omp(
         ]
         for gene_batch in tqdm.tqdm(gene_batches, desc=f"Scoring/detecting spots", unit="gene batch", postfix=postfix):
             # STEP 2: Score every gene's coefficient image.
-            g_coef_image = coefficients[:, gene_batch].toarray().T.reshape((len(gene_batch),) + tile_shape, order="F")
-            g_coef_image = torch.asarray(g_coef_image).float()
+            g_coef_image = np.vstack([coef_subset[:, gene_batch].toarray() for coef_subset in coefficients]).T
+            g_coef_image = torch.asarray(g_coef_image.reshape((len(gene_batch),) + tile_shape, order="F")).float()
             g_score_image = scores_torch.score_coefficient_image(g_coef_image, spot, mean_spot, config["force_cpu"])
             del g_coef_image
             g_score_image = g_score_image.to(dtype=torch.float16)
