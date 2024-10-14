@@ -610,6 +610,7 @@ class Viewer:
         """
         if not self.viewer_exists():
             return
+        self.close_all_subplots()
         self.closing = True
         self.viewer.close()
         del self.viewer
