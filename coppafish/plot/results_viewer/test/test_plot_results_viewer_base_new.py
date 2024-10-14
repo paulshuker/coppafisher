@@ -85,7 +85,7 @@ def test_Viewer(make_napari_viewer) -> None:
         nbp_ref_spots=nbp_ref_spots,
         nbp_call_spots=nbp_call_spots,
         nbp_omp=nbp_omp,
-        make_napari_viewer=make_napari_viewer,
+        show=False,
     )
     # Test every hotkey.
     for hotkey in viewer.hotkeys:
@@ -108,7 +108,7 @@ def test_Viewer(make_napari_viewer) -> None:
         nbp_ref_spots=nbp_ref_spots,
         nbp_call_spots=nbp_call_spots,
         nbp_omp=nbp_omp,
-        make_napari_viewer=make_napari_viewer,
+        show=False,
     )
     # Test every hotkey.
     for hotkey in viewer.hotkeys:
@@ -163,7 +163,7 @@ def test_Viewer(make_napari_viewer) -> None:
         nbp_ref_spots=nbp_ref_spots,
         nbp_call_spots=nbp_call_spots,
         nbp_omp=nbp_omp,
-        make_napari_viewer=make_napari_viewer,
+        show=False,
     )
     for method in ("prob", "anchor", "omp"):
         viewer.selected_method = method
