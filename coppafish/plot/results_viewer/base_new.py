@@ -46,7 +46,10 @@ class Viewer:
     nbp_ref_spots: NotebookPage
     nbp_call_spots: NotebookPage
     nbp_omp: NotebookPage | None
-    background_image: napari.layers.Image | None
+    background_image: np.ndarray | None
+    mip_background_image: np.ndarray | None
+    background_image_layer: napari.layers.Image | None
+    max_intensity_project: bool
     spot_data: dict[str, "Viewer.MethodData"]
     genes: tuple["Viewer.Gene"]
     selected_method: str
@@ -74,7 +77,6 @@ class Viewer:
         gene_marker_filepath: Optional[str] = None,
         background_image: Optional[str] = "dapi",
         background_image_colour: str = "gray",
-        background_image_max_intensity_projection: bool = False,
         nbp_basic: Optional[NotebookPage] = None,
         nbp_filter: Optional[NotebookPage] = None,
         nbp_register: Optional[NotebookPage] = None,
@@ -235,7 +237,7 @@ class Viewer:
         self._update_gene_legend()
 
         print("Placing background image")
-        self._place_background(background_image, background_image_colour, background_image_max_intensity_projection)
+        self._place_background(background_image, background_image_colour)
 
         print("Building UI")
         self._build_UI()
@@ -289,6 +291,14 @@ class Viewer:
                 False,
             ),
             Hotkey(
+                "Toggle max intensity projection (default: off)",
+                "o",
+                "Toggle the background image's max intensity projection along z",
+                self.toggle_max_intensity_project,
+                "Visual",
+                False,
+            ),
+            Hotkey(
                 "View spot colour and code",
                 "c",
                 "Show the selected spot's colour and predicted bled code",
@@ -304,7 +314,7 @@ class Viewer:
             ),
             Hotkey(
                 "View OMP Coefficients",
-                "o",
+                "v",
                 "Show the OMP coefficients around the selected spot's local region",
                 lambda _: self._add_subplot(self.view_omp_coefficients()),
                 "OMP",
@@ -446,10 +456,10 @@ class Viewer:
 
     def contrast_limits_changed(self) -> None:
         new_contrast_limits = self.contrast_slider.value()
-        if new_contrast_limits == self.contrast_limits:
+        if new_contrast_limits == self.contrast_limits[self.max_intensity_project]:
             return
-        self.contrast_limits = new_contrast_limits
-        self.background_image.contrast_limits = self.contrast_limits
+        self.contrast_limits[self.max_intensity_project] = new_contrast_limits
+        self.background_image_layer.contrast_limits = self.contrast_limits[self.max_intensity_project]
 
     def update_widget_values(self) -> None:
         """
@@ -597,9 +607,23 @@ class Viewer:
     def toggle_background(self, _=None) -> None:
         if not self.viewer_exists():
             return
-        if self.background_image is None:
+        if self.background_image_layer is None:
             return
-        self.background_image.visible = not self.background_image.visible
+        self.background_image_layer.visible = not self.background_image_layer.visible
+
+    def toggle_max_intensity_project(self, _=None) -> None:
+        if not self.viewer_exists():
+            return
+        if self.background_image_layer is None:
+            return
+        self.max_intensity_project = not self.max_intensity_project
+        data = self.background_image
+        if self.max_intensity_project:
+            data = self.mip_background_image
+        print(f"Max Intensity Projection: {self.max_intensity_project}")
+        self.background_image_layer.data = data
+        self.background_image_layer.contrast_limits = self.contrast_limits[self.max_intensity_project]
+        self.contrast_slider.setValue(self.background_image_layer.contrast_limits)
 
     # ======================================
 
@@ -624,43 +648,43 @@ class Viewer:
         self.viewer.close()
         del self.viewer
 
-    def _place_background(self, image: Optional[str], colour_map: str, max_intensity_project: bool) -> None:
+    def _place_background(self, image: Optional[str], colour_map: str) -> None:
         z_count = max(self.nbp_basic.use_z)
-        self.background_image = None
+        self.background_image_layer = None
+        self.max_intensity_project = False
         if image == "dapi":
-            background_image = self.nbp_stitch.dapi_image[:]
-            self.background_image = background_image
+            self.background_image = self.nbp_stitch.dapi_image[:]
+            self.background_image_layer = self.background_image
         elif type(image) is str and image.endswith(".npy"):
             if not path.isfile(image):
                 raise FileNotFoundError(f"Cannot find background image of file path: {image}")
-            background_image: np.ndarray = np.load(image)
-            if background_image.ndim not in (2, 3):
-                raise ValueError(f"Unexpected background image dimension count: {background_image.ndim}")
-            if background_image.ndim == 2:
-                background_image = background_image[None].repeat(z_count, 0)
-            self.background_image = background_image
+            self.background_image: np.ndarray = np.load(image)
+            if self.background_image.ndim not in (2, 3):
+                raise ValueError(f"Unexpected background image dimension count: {self.background_image.ndim}")
+            if self.background_image.ndim == 2:
+                self.background_image = self.background_image[None].repeat(z_count, 0)
+            self.background_image_layer = self.background_image
         elif type(image) is str and image.endswith(".npz"):
             if not path.isfile(image):
                 raise FileNotFoundError(f"Cannot find background image of file path: {image}")
-            background_image: np.ndarray = np.load(image)["arr_0"]
-            if background_image.ndim not in (2, 3):
-                raise ValueError(f"Unexpected background image dimension count: {background_image.ndim}")
-            if background_image.ndim == 2:
-                background_image = background_image[None].repeat(z_count, 0)
-            self.background_image = background_image
+            self.background_image: np.ndarray = np.load(image)["arr_0"]
+            if self.background_image.ndim not in (2, 3):
+                raise ValueError(f"Unexpected background image dimension count: {self.background_image.ndim}")
+            if self.background_image.ndim == 2:
+                self.background_image = self.background_image[None].repeat(z_count, 0)
+            self.background_image_layer = self.background_image
         elif type(image) is str:
             raise ValueError(
                 f"Unexpected background_image: {image}. " + "The image must end with .npy or .npz or be equal to dapi"
             )
-        if max_intensity_project:
-            z_count = background_image.shape[0]
-            background_image = background_image.max(0, keepdims=True).repeat(z_count, 0)
-        if not self.viewer_exists():
-            return
-        if self.background_image is not None:
-            self.background_image = self.viewer.add_image(
-                background_image, rgb=False, axis_labels=("Z", "Y", "X"), colormap=colour_map
+        if self.background_image_layer is not None:
+            self.background_image_layer = self.viewer.add_image(
+                self.background_image, rgb=False, axis_labels=("Z", "Y", "X"), colormap=colour_map
             )
+            z_count = self.background_image.shape[0]
+            self.mip_background_image = self.background_image.copy().max(0, keepdims=True).repeat(z_count, 0)
+            # Keep the max intensity projected background image in self.
+            self.mip_background_image = self.mip_background_image
         else:
             # Place a blank, 3D image to make the napari Viewer have the z slider.
             self.viewer.add_image(np.zeros((z_count, 1, 1), dtype=np.int8), rgb=False)
@@ -720,13 +744,14 @@ class Viewer:
             self.viewer.window.add_dock_widget(self.score_slider, area="left", name="Score Thresholds")
             self.viewer.window.add_dock_widget(self.intensity_slider, area="left", name="Intensity Thresholds")
             self.viewer.window.add_dock_widget(self.marker_size_slider, area="left", name="Marker Size")
-        if self.background_image is not None:
-            # Background image contrast limits.
-            self.contrast_limits = (np.min(self.background_image.data), np.max(self.background_image.data))
+        if self.background_image_layer is not None:
+            # Background image contrast limits for Max Intensity Projection (MIP) true and MIP false.
+            starting_limits = (self.background_image.min(), self.background_image.max())
+            self.contrast_limits = {False: starting_limits, True: starting_limits}
             if self.viewer_exists():
                 self.contrast_slider = QDoubleRangeSlider(Qt.Orientation.Horizontal)
-                self.contrast_slider.setRange(*self.contrast_limits)
-                self.contrast_slider.setValue(self.contrast_limits)
+                self.contrast_slider.setRange(*self.contrast_limits[self.max_intensity_project])
+                self.contrast_slider.setValue(self.contrast_limits[self.max_intensity_project])
                 self.contrast_slider.sliderReleased.connect(self.contrast_limits_changed)
                 self.viewer.window.add_dock_widget(self.contrast_slider, area="left", name="Background Contrast")
         if self.viewer_exists():
