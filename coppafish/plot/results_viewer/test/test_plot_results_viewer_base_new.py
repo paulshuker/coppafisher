@@ -71,6 +71,9 @@ def test_Viewer() -> None:
     nbp_call_spots.dot_product_gene_no = zarr.array(rng.randint(n_genes, size=n_ref_spots, dtype=np.int16))
     nbp_call_spots.dot_product_gene_score = zarr.array(rng.rand(n_ref_spots)).astype(np.float16)
     assert nbp_call_spots.gene_names.size == n_genes
+    nbp_call_spots.bleed_matrix_raw = rng.rand(n_channels_use, n_channels_use).astype(np.float32)
+    nbp_call_spots.bleed_matrix_initial = rng.rand(n_channels_use, n_channels_use).astype(np.float32)
+    nbp_call_spots.bleed_matrix = rng.rand(n_channels_use, n_channels_use).astype(np.float32)
     nbp_omp = None
 
     npy_filepath = os.path.join(tempfile.gettempdir(), "test_array.npy")
