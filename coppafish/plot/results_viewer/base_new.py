@@ -1,7 +1,7 @@
 import importlib.resources as importlib_resources
 from os import path
 import time
-from typing import Optional
+from typing import Literal, Optional
 import warnings
 
 from PyQt5.QtCore import QLoggingCategory
@@ -35,6 +35,7 @@ class Viewer:
     # Constants:
     _required_page_names: tuple[str] = ("basic_info", "filter", "register", "stitch", "ref_spots", "call_spots")
     _method_to_string: dict[str, str] = {"prob": "Probability", "anchor": "Anchor", "omp": "OMP"}
+    _gene_legend_order_by_options: tuple[str] = ("row", "colour")
     _starting_score_thresholds: dict[str, tuple[float]] = {"prob": (0.5, 1.0), "anchor": (0.5, 1.0), "omp": (0.4, 1.0)}
     _default_spot_size: float = 8.0
     _max_open_subplots: int = 5
@@ -76,6 +77,7 @@ class Viewer:
         self,
         nb: Optional[Notebook] = None,
         gene_marker_filepath: Optional[str] = None,
+        gene_legend_order_by: str = "colour",
         background_image: Optional[str] = "dapi",
         background_image_colour: str = "gray",
         nbp_basic: Optional[NotebookPage] = None,
@@ -96,15 +98,15 @@ class Viewer:
                 none, then all nbp_* notebook pages must be given except nbp_omp which is optional. Default: none.
             gene_marker_filepath (str, optional): the file path to the gene marker file. Default: use the default gene
                 marker at coppafish/plot/results_viewer/gene_color.csv.
+            gene_legend_order_by (str, optional): how to order the genes in the legend. Use "row" to order genes row by
+                row in the gene marker file. "colour" will group genes based on their colourRGB's. Each colour group is
+                sorted alphabetically. Default: "colour".
             background_image (str or none, optional): what to use as the background image, can be none, "dapi" or a
                 file path to a .npy file or .npz file. The array at a file path must be a numpy array of shape
                 `(im_y x im_x)` or `(im_z x im_y x im_x)` If set to a .npz file path, the background image must be
                 located at key 'arr_0'. Set to None for no background image. Default: "dapi".
             background_image_colour (str, optional): the napari colour mapping used for the background image.
                 Default: gray.
-            background_image_max_intensity_projection (bool, optional): use the Max Intensity Projection (MIP) of the
-                background image. In other words, place the maximum intensity found along the z axis for each x and y
-                position. Default: false.
             nbp_basic (NotebookPage, optional): `basic_info` notebook page. Default: not given.
             nbp_filter (NotebookPage, optional): `filter` notebook page. Default: not given.
             nbp_register (NotebookPage, optional): `register` notebook page. Default: not given.
@@ -118,6 +120,9 @@ class Viewer:
         assert type(gene_marker_filepath) is str or gene_marker_filepath is None
         if gene_marker_filepath is not None and not path.isfile(gene_marker_filepath):
             raise FileNotFoundError(f"Could not find gene marker filepath at {gene_marker_filepath}")
+        self.legend = legend_new.Legend()
+        if gene_legend_order_by not in self.legend.order_by_options:
+            raise ValueError(f"gene_legend_order_by must be one of {self.legend.order_by_options}")
         if background_image is not None and type(background_image) is not str:
             raise TypeError(f"background_image must be type str, got type {type(background_image)}")
         if background_image is not None and background_image not in ("dapi",) and type(background_image) is not str:
@@ -233,8 +238,7 @@ class Viewer:
             self.viewer = napari.Viewer(**viewer_kwargs)
 
         print("Building gene legend")
-        self.legend = legend_new.Legend()
-        self.legend.create_gene_legend(self.genes)
+        self.legend.create_gene_legend(self.genes, gene_legend_order_by)
         self.legend.canvas.mpl_connect("button_press_event", self.legend_clicked)
         if self.viewer_exists():
             self.viewer.window.add_dock_widget(self.legend.canvas, name="Gene Legend", area="left")
@@ -271,7 +275,7 @@ class Viewer:
                 self.point_layers[method].mode = "PAN_ZOOM"
                 # Know when a point is selected.
                 self.point_layers[method].events.current_symbol.connect(self.selected_spot_changed)
-        # Now display the correct spot data based on current thresholds.
+        # Display the correct spot data based on current thresholds.
         self.update_viewer_data()
         if self.viewer_exists():
             self.viewer.reset_view()
@@ -358,7 +362,6 @@ class Viewer:
                 print("Closing")
                 self.close()
                 raise exception
-            self.close()
 
     def selected_spot_changed(self) -> None:
         self._set_status_to("")
@@ -938,14 +941,12 @@ class Viewer:
             Instantiate data for a single gene.
 
             Args:
-                - name: (str) gene name.
-                - notebook_index: (int) index of the gene within the notebook.
-                - colour: (np.ndarray) of shape (3,) with the RGB colour of the gene. (int8) or None (if not in
-                    gene marker file).
-                - symbol_napari: (str) symbol used to plot in napari. (Used in the viewer) or None (if not in
-                    gene marker file).
-                - active: (bool, optional) whether the gene is currently visible in the Viewer. This allows the user to
-                    switch genes off by clicking on the gene legend. Default: true.
+                name: (str) gene name.
+                notebook_index: (int) index of the gene within the notebook.
+                colour: (np.ndarray) of shape (3,) with the RGB colour of the gene.
+                symbol_napari: (str) symbol used to plot in napari.
+                active: (bool, optional) whether the gene is currently visible in the Viewer. Used for toggling gene
+                    visibility.
             """
             self.name = name
             self.notebook_index = notebook_index

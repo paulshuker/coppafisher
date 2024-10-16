@@ -1,4 +1,4 @@
-from .call_spots import ViewBleedMatrix, view_bled_codes, ViewSpotColourAndCode, view_spot
+from .call_spots import ViewBleedMatrix, view_bled_codes, ViewSpotColourAndCode
 from .extract import view_extracted_images
 from .filter import view_filtered_images
 from .find_spots import n_spots_grid, view_find_spots

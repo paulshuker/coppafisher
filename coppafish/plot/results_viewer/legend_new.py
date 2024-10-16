@@ -32,6 +32,8 @@ class Legend:
     _unselected_opacity: float = 0.25
     _selected_opacity: float = 1.0
     _selection_radius: float = 0.25
+    _order_by_options: tuple[str] = ("row", "colour")
+    _plot_index_to_gene_index: np.ndarray[int]
     # A conversion from a napari marker to a matplotlib marker equivalent.
     _napari_to_mpl_marker: dict[str, str] = {
         "cross": "+",
@@ -49,10 +51,17 @@ class Legend:
         "diamond": "d",
     }
 
-    def create_gene_legend(self, genes: tuple):
+    def get_order_by_options(self) -> tuple[str]:
+        return self._order_by_options
+
+    order_by_options: tuple[str] = property(get_order_by_options)
+
+    def create_gene_legend(self, genes: tuple, order_by: str):
         """
         Create a new gene legend.
         """
+        assert order_by in self._order_by_options
+
         plt.style.use("dark_background")
 
         if matplotlib.get_backend() == "Agg":
@@ -64,8 +73,23 @@ class Legend:
         X, Y = [], []
         active_genes = [gene for gene in genes if gene.active]
         active_count = len(active_genes)
+        self._plot_index_to_gene_index = np.linspace(0, active_count - 1, active_count, dtype=int)
+        if order_by == "colour":
+            index_min = 0
+            active_colours = np.array([gene.colour for gene in genes if gene.active])
+            for unique_colour in self._hue_sort(np.unique(active_colours, axis=0)):
+                unique_colour_indices = (active_colours == unique_colour).all(1).nonzero()[0]
+                unique_colour_names = [active_genes[i].name for i in unique_colour_indices]
+                names_sorted_indices = np.argsort(unique_colour_names)
+                # The unique colour genes are then sorted by their names alphabetically.
+                unique_colour_indices = unique_colour_indices[names_sorted_indices]
+                index_max = index_min + len(unique_colour_names)
+                self._plot_index_to_gene_index[index_min:index_max] = unique_colour_indices
+                index_min = index_max
         row_count = maths.ceil(active_count / self._max_columns)
         text_kwargs = dict(fontsize=5 + 20 / maths.sqrt(active_count), ha="left", va="center", c="grey")
+        assert np.unique(self._plot_index_to_gene_index).size == self._plot_index_to_gene_index.size
+        active_genes = [active_genes[i] for i in self._plot_index_to_gene_index]
         for i, gene in enumerate(active_genes):
             x = (i % self._max_columns) * self._x_separation
             y = 1 - (i - (i % self._max_columns)) / row_count
@@ -92,7 +116,8 @@ class Legend:
         """
         Update which genes are currently selected in the viewer. A selected gene is given a high opacity.
         """
-        for scatter_ax, active in zip(self.scatter_axes, active_genes):
+        active_genes_sorted = [active_genes[i] for i in self._plot_index_to_gene_index]
+        for scatter_ax, active in zip(self.scatter_axes, active_genes_sorted):
             if active:
                 scatter_ax.set_alpha(self._selected_opacity)
             else:
@@ -113,5 +138,42 @@ class Legend:
         radii = (self.X - x) ** 2 + (self.Y - y) ** 2
         min_radius = np.min(radii)
         if min_radius <= self._selection_radius**2:
-            return np.argmin(radii).item()
+            plot_index = np.argmin(radii).item()
+            return self._plot_index_to_gene_index.tolist()[plot_index]
         return None
+
+    def _hue_sort(self, colours: np.ndarray[float]) -> np.ndarray[float]:
+        """
+        The given colours are sorted based on their hues.
+        """
+        assert colours.ndim == 2
+        assert colours.shape[0] > 0
+        assert colours.shape[1] == 3
+
+        hues = []
+        for colour in colours:
+            assert colour.shape == (3,)
+            hues.append(self._rgb_to_hue(colour[0].item(), colour[1].item(), colour[2].item()))
+        return colours[np.argsort(hues)]
+
+    def _rgb_to_hue(self, r: float, g: float, b: float):
+        # The hue is a value from 0 to 360. Near hues are a good indication of similar colours so they are sorted based
+        # on hue.
+        Cmax = max(r, g, b)
+        Cmin = min(r, g, b)
+        delta = Cmax - Cmin
+
+        if delta == 0:
+            hue = 0  # achromatic
+        elif Cmax == r:
+            hue = 60 * ((g - b) / delta % 6)
+        elif Cmax == g:
+            hue = 60 * ((b - r) / delta + 2)
+        elif Cmax == b:
+            hue = 60 * ((r - g) / delta + 4)
+
+        # Ensure hue is in the range [0, 360].
+        if hue < 0:
+            hue += 360
+
+        return hue
