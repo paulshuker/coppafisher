@@ -358,6 +358,7 @@ class Viewer:
                 print("Closing")
                 self.close()
                 raise exception
+            self.close()
 
     def selected_spot_changed(self) -> None:
         self._set_status_to("")
