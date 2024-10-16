@@ -89,6 +89,7 @@ def test_Viewer() -> None:
     for background_image in background_images:
         viewer = Viewer(
             background_image=background_image,
+            gene_legend_order_by="row",
             nbp_basic=nbp_basic,
             nbp_filter=nbp_filter,
             nbp_register=nbp_register,
@@ -184,9 +185,17 @@ def test_Viewer() -> None:
         viewer.selected_spot = 10
         viewer.clear_spot_selections()
         viewer.clear_spot_selections()
-        viewer.selected_spot = 21
         viewer.selected_spot = 10
-        # Clean up open subplots.
+        # Check clicking the gene legend.
+        for _ in range(100):
+            event = type("Event", (object,), {})()
+            event.inaxes = viewer.legend.canvas.axes
+            event.xdata = rng.rand()
+            event.ydata = rng.rand()
+            button = type("Button", (object,), {})()
+            button.name = "LEFT" if rng.randint(2) == 0 else "RIGHT"
+            event.button = button
+            viewer.legend_clicked(event)
         viewer.close_all_subplots()
         # Test every hotkey.
         for hotkey in viewer.hotkeys:

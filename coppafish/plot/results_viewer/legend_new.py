@@ -1,3 +1,4 @@
+import colorsys
 import math as maths
 
 import matplotlib
@@ -153,27 +154,5 @@ class Legend:
         hues = []
         for colour in colours:
             assert colour.shape == (3,)
-            hues.append(self._rgb_to_hue(colour[0].item(), colour[1].item(), colour[2].item()))
+            hues.append(colorsys.rgb_to_hsv(colour[0].item(), colour[1].item(), colour[2].item())[0])
         return colours[np.argsort(hues)]
-
-    def _rgb_to_hue(self, r: float, g: float, b: float):
-        # The hue is a value from 0 to 360. Near hues are a good indication of similar colours so they are sorted based
-        # on hue.
-        Cmax = max(r, g, b)
-        Cmin = min(r, g, b)
-        delta = Cmax - Cmin
-
-        if delta == 0:
-            hue = 0  # achromatic
-        elif Cmax == r:
-            hue = 60 * ((g - b) / delta % 6)
-        elif Cmax == g:
-            hue = 60 * ((b - r) / delta + 2)
-        elif Cmax == b:
-            hue = 60 * ((r - g) / delta + 4)
-
-        # Ensure hue is in the range [0, 360].
-        if hue < 0:
-            hue += 360
-
-        return hue

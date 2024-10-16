@@ -381,15 +381,14 @@ class Viewer:
         if event.inaxes != self.legend.canvas.axes:
             # Click event did not occur within the legend axes.
             return
-        left_click = event.button.name == "LEFT"
         closest_gene_index = self.legend.get_closest_gene_index_to(event.xdata, event.ydata)
         if closest_gene_index is None:
             return
         closest_gene = self.genes[closest_gene_index]
-        if left_click:
+        if event.button.name == "LEFT":
             # Toggle the gene on and off that was clicked on.
             closest_gene.active = not closest_gene.active
-        else:
+        elif event.button.name == "RIGHT":
             already_isolated = all([not gene.active for gene in self.genes if gene != closest_gene])
             if closest_gene.active:
                 if already_isolated:
@@ -402,6 +401,8 @@ class Viewer:
             else:
                 for gene in self.genes:
                     gene.active = True
+        else:
+            return
         self._update_gene_legend()
         self.update_viewer_data()
 
@@ -771,8 +772,8 @@ class Viewer:
             self.view_hotkeys_button.clicked.connect(self.view_hotkeys)
             self.viewer.window.add_dock_widget(self.view_hotkeys_button, area="left", name="Help")
             # Hide the layer list and layer controls.
-            # FIXME: This leads to a future deprecation warning. Napari will hopefully add a proper way of doing this in
-            # >= 0.6.0.
+            # FIXME: This leads to a future deprecation warning. Napari will hopefully add a proper way of doing this 
+            # in napari >= 0.6.0.
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", FutureWarning)
                 # Turn off layer list and layer controls.
