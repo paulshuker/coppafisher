@@ -36,7 +36,11 @@ class Viewer:
     _required_page_names: tuple[str] = ("basic_info", "filter", "register", "stitch", "ref_spots", "call_spots")
     _method_to_string: dict[str, str] = {"prob": "Probability", "anchor": "Anchor", "omp": "OMP"}
     _gene_legend_order_by_options: tuple[str] = ("row", "colour")
-    _starting_score_thresholds: dict[str, tuple[float]] = {"prob": (0.5, 1.0), "anchor": (0.5, 1.0), "omp": (0.4, 1.0)}
+    _starting_score_thresholds: dict[str, tuple[float, float | None]] = {
+        "prob": (0.5, None),
+        "anchor": (0.5, None),
+        "omp": (0.3, None),
+    }
     _default_spot_size: float = 8.0
     _max_open_subplots: int = 5
 
@@ -99,8 +103,8 @@ class Viewer:
             gene_marker_filepath (str, optional): the file path to the gene marker file. Default: use the default gene
                 marker at coppafish/plot/results_viewer/gene_color.csv.
             gene_legend_order_by (str, optional): how to order the genes in the legend. Use "row" to order genes row by
-                row in the gene marker file. "colour" will group genes based on their colourRGB's. Each colour group is
-                sorted alphabetically. Default: "colour".
+                row in the gene marker file. "colour" will group genes based on their colourRGB's, each colour group is
+                sorted by hue. Each gene name in a colour group is sorted alphabetically. Default: "colour".
             background_image (str or none, optional): what to use as the background image, can be none, "dapi" or a
                 file path to a .npy file or .npz file. The array at a file path must be a numpy array of shape
                 `(im_y x im_x)` or `(im_z x im_y x im_x)` If set to a .npz file path, the background image must be
@@ -721,6 +725,9 @@ class Viewer:
         # Initial UI Widget values.
         self.z_thick: float = 1.0
         self.score_threshs = {method: self._starting_score_thresholds[method] for method in self.spot_data.keys()}
+        for method, score_thresh in self.score_threshs.items():
+            if score_thresh[1] is None:
+                self.score_threshs[method] = (score_thresh[0], max_score)
         self.intensity_threshs = {method: (0.0, max_intensity) for method in self.spot_data.keys()}
         self.spot_size = self._default_spot_size
 
@@ -772,7 +779,7 @@ class Viewer:
             self.view_hotkeys_button.clicked.connect(self.view_hotkeys)
             self.viewer.window.add_dock_widget(self.view_hotkeys_button, area="left", name="Help")
             # Hide the layer list and layer controls.
-            # FIXME: This leads to a future deprecation warning. Napari will hopefully add a proper way of doing this 
+            # FIXME: This leads to a future deprecation warning. Napari will hopefully add a proper way of doing this
             # in napari >= 0.6.0.
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", FutureWarning)
