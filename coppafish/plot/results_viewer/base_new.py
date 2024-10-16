@@ -1,7 +1,7 @@
 import importlib.resources as importlib_resources
 from os import path
 import time
-from typing import Literal, Optional
+from typing import Optional
 import warnings
 
 from PyQt5.QtCore import QLoggingCategory
@@ -23,7 +23,7 @@ from superqt import QDoubleRangeSlider, QDoubleSlider
 
 from . import legend_new
 from .subplot import Subplot
-from ..call_spots import spot_colours
+from ..call_spots import bleed_matrix, spot_colours
 from ..omp import ViewOMPImage
 from ...omp import base as omp_base
 from ...setup.notebook import Notebook, NotebookPage
@@ -109,8 +109,8 @@ class Viewer:
                 file path to a .npy file or .npz file. The array at a file path must be a numpy array of shape
                 `(im_y x im_x)` or `(im_z x im_y x im_x)` If set to a .npz file path, the background image must be
                 located at key 'arr_0'. Set to None for no background image. Default: "dapi".
-            background_image_colour (str, optional): the napari colour mapping used for the background image.
-                Default: gray.
+            background_image_colour (str, optional): the napari colour mapping used for the background image. Default:
+                "gray".
             nbp_basic (NotebookPage, optional): `basic_info` notebook page. Default: not given.
             nbp_filter (NotebookPage, optional): `filter` notebook page. Default: not given.
             nbp_register (NotebookPage, optional): `register` notebook page. Default: not given.
@@ -171,6 +171,8 @@ class Viewer:
         assert self.nbp_ref_spots is not None
         assert self.nbp_call_spots is not None
         del nb
+
+        plt.style.use("dark_background")
 
         # Suppress any PyQt5 warnings.
         QLoggingCategory.setFilterRules("*.debug=false\n" + "*.warning=false\n" + "qt.qpa.*.warning=false")
@@ -311,6 +313,22 @@ class Viewer:
                 False,
             ),
             Hotkey(
+                "View Bleed Matrix",
+                "b",
+                "Display the bleed matrix. This is an estimation of how each dye expresses itself in each channel",
+                lambda _: self._add_subplot(self.view_bleed_matrix()),
+                "General Diagnostics",
+                requires_selection=False,
+            ),
+            Hotkey(
+                "View Gene Bled Codes",
+                "g",
+                "Display the gene bled codes. Choose gene by inputting gene index or name",
+                lambda _: self._add_subplot(self.view_gene_bled_codes()),
+                "General Diagnostics",
+                requires_selection=False,
+            ),
+            Hotkey(
                 "View spot colour and code",
                 "c",
                 "Show the selected spot's colour and predicted bled code",
@@ -331,13 +349,6 @@ class Viewer:
                 lambda _: self._add_subplot(self.view_omp_coefficients()),
                 "OMP",
             ),
-            # Hotkey("", "", ""),
-            # Hotkey("", "", ""),
-            # Hotkey("", "", ""),
-            # Hotkey("", "", ""),
-            # Hotkey("", "", ""),
-            # Hotkey("", "", ""),
-            # Hotkey("", "", ""),
         )
         # Hotkeys can be connected to a function when they occur.
         for hotkey in self.hotkeys:
@@ -535,7 +546,7 @@ class Viewer:
     # ========== HOTKEY FUNCTIONS ==========
     def view_hotkeys(self) -> Subplot:
         self._free_subplot_spaces()
-        fig, ax = plt.subplots(1, 1, figsize=(10, 8))
+        fig, ax = plt.subplots(1, 1, figsize=(12, 8))
         ax.set_title("Hotkeys", fontdict={"size": 20})
         ax.set_axis_off()
         text = ""
@@ -556,7 +567,7 @@ class Viewer:
             fig.show()
         return fig
 
-    def view_spot_colour_and_code(self) -> Subplot:
+    def view_spot_colour_and_code(self) -> Subplot | None:
         if self.selected_spot is None:
             return
         self._free_subplot_spaces()
@@ -575,7 +586,15 @@ class Viewer:
             show=self.show,
         )
 
-    def view_spot_colour_region(self) -> Subplot:
+    def view_bleed_matrix(self) -> Subplot:
+        self._free_subplot_spaces()
+        return bleed_matrix.ViewBleedMatrix(self.nbp_basic, self.nbp_call_spots, show=self.show)
+
+    def view_gene_bled_codes(self) -> Subplot:
+        self._free_subplot_spaces()
+        return bleed_matrix.ViewBledCodes(self.nbp_basic, self.nbp_call_spots, show=self.show)
+
+    def view_spot_colour_region(self) -> Subplot | None:
         if self.selected_spot is None:
             return
         self._free_subplot_spaces()
@@ -597,7 +616,7 @@ class Viewer:
             show=self.show,
         )
 
-    def view_omp_coefficients(self) -> Subplot:
+    def view_omp_coefficients(self) -> Subplot | None:
         if self.selected_spot is None:
             return
         if self.nbp_omp is None:

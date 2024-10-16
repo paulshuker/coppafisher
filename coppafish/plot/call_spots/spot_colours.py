@@ -11,7 +11,6 @@ import zarr
 
 from ..results_viewer.subplot import Subplot
 from ...call_spots.dot_product import gene_prob_score
-from ...omp import base as omp_base
 from ...setup.notebook import Notebook
 from ...spot_colours import base as spot_colours_base
 
@@ -264,8 +263,6 @@ class ViewSpotColourAndCode(Subplot):
         self.remove_background = True
         self.l2_normalise = True
 
-        plt.style.use("dark_background")
-
         self.spot_tile = spot_tile
         self.gene_bled_code = gene_bled_code.astype(np.float32).copy()
         self.colour_norm_factor = colour_norm_factor.astype(np.float32).copy()
@@ -438,8 +435,6 @@ class ViewSpotColourRegion(Subplot):
             yxz_local_region, filter_images, flow, affine, int(spot_tile), use_rounds, use_channels
         )
         self.colours = colours.reshape(self.local_region_shape_yx + (self.n_rounds, self.n_channels), order="F")
-
-        plt.style.use("dark_background")
 
         self.spot_tile = spot_tile
         self.colour_norm_factor = colour_norm_factor.astype(np.float32).copy()
