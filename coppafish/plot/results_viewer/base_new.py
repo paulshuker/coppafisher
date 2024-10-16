@@ -4,6 +4,7 @@ import time
 from typing import Optional
 import warnings
 
+from PyQt5.QtCore import QLoggingCategory
 from PyQt5.QtWidgets import QComboBox, QPushButton
 import matplotlib as mpl
 from matplotlib.figure import Figure
@@ -161,6 +162,9 @@ class Viewer:
         assert self.nbp_ref_spots is not None
         assert self.nbp_call_spots is not None
         del nb
+
+        # Suppress any PyQt5 warnings.
+        QLoggingCategory.setFilterRules("*.debug=false\n" + "*.warning=false\n" + "qt.qpa.*.warning=false")
 
         start_time = time.time()
 
@@ -474,6 +478,7 @@ class Viewer:
         Called when the viewed spot data has changed. This happens when the selected method, z thickness, intensity
         threshold, or score threshold changes. Called when the Viewer first opens too.
         """
+        self.clear_spot_selections()
         if not self.viewer_exists():
             return
         for method in self.spot_data.keys():
@@ -678,14 +683,16 @@ class Viewer:
                 f"Unexpected background_image: {image}. " + "The image must end with .npy or .npz or be equal to dapi"
             )
         if self.background_image_layer is not None:
-            self.background_image_layer = self.viewer.add_image(
-                self.background_image, rgb=False, axis_labels=("Z", "Y", "X"), colormap=colour_map
-            )
             z_count = self.background_image.shape[0]
             self.mip_background_image = self.background_image.copy().max(0, keepdims=True).repeat(z_count, 0)
             # Keep the max intensity projected background image in self.
             self.mip_background_image = self.mip_background_image
-        else:
+            if not self.viewer_exists():
+                return
+            self.background_image_layer = self.viewer.add_image(
+                self.background_image, rgb=False, axis_labels=("Z", "Y", "X"), colormap=colour_map
+            )
+        elif self.viewer_exists():
             # Place a blank, 3D image to make the napari Viewer have the z slider.
             self.viewer.add_image(np.zeros((z_count, 1, 1), dtype=np.int8), rgb=False)
 

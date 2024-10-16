@@ -420,8 +420,8 @@ class ViewSpotColourRegion(Subplot):
 
         self.local_region_shape_yx = (7, 15)
         self.use_colour_norm_factor = True
-        self.remove_background = True
-        self.l2_normalise = True
+        self.remove_background = False
+        self.l2_normalise = False
 
         self.n_rounds = len(use_rounds)
         self.n_channels = len(use_channels)
@@ -474,7 +474,7 @@ class ViewSpotColourRegion(Subplot):
                 ax.set_yticks([])
                 im = ax.imshow(plot_colours[:, :, r, c].T, cmap=self.cmap, norm=self.norm)
         # Colour bar on right.
-        cbar_pos = [0.88, 0.4, 0.06, 0.5]  # left, bottom, width, height
+        cbar_pos = [0.88, 0.4, 0.06, 0.85]  # left, bottom, width, height
         self.cbar_ax = self.fig.add_axes(cbar_pos)
         self.cbar = plt.colorbar(im, cax=self.cbar_ax, orientation="vertical", label="Intensity")
 
