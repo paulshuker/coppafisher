@@ -60,6 +60,7 @@ class ViewBledCodes(Subplot):
         assert type(nbp_call_spots) is NotebookPage
 
         self.gene_names: np.ndarray[str] = nbp_call_spots.gene_names
+        self.gene_names_lower: np.ndarray[str] = np.char.lower(nbp_call_spots.gene_names)
         self.bled_codes: np.ndarray[float] = nbp_call_spots.bled_codes
 
         self.fig, self.ax = plt.subplots(1, 1)
@@ -88,9 +89,15 @@ class ViewBledCodes(Subplot):
         except NameError or ValueError:
             gene_name = str(expression)
             gene_no = (self.gene_names == gene_name).nonzero()[0]
-            if gene_no.size == 0:
+            gene_no_2 = (self.gene_names == gene_name.lower()).nonzero()[0]
+            if gene_no.size == 0 and gene_no_2.size == 0:
                 return
-            gene_no = int(gene_no.item())
+            if gene_no.size == 1:
+                gene_no = int(gene_no.item())
+            elif gene_no_2.size == 1:
+                gene_no = int(gene_no_2.item())
+            else:
+                return
         if gene_no < 0 or gene_no >= self.bled_codes.shape[0]:
             return
         self.im.set_data(self.bled_codes[gene_no].T)
