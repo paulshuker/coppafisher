@@ -229,7 +229,7 @@ def run_omp(
                 log.warn(f"OMP mean spot computed with only {n_isolated_count} isolated spots")
             del shape_isolation_distance_z, n_isolated_count
             spot = torch.zeros_like(mean_spot, dtype=torch.int16)
-            spot[mean_spot >= config["shape_sign_thresh"]] = 1
+            spot[mean_spot >= config["mean_spot_thresh"]] = 1
             edge_counts = spots_torch.count_edge_ones(spot)
             if edge_counts >= 10:
                 log.warn(
@@ -238,8 +238,8 @@ def run_omp(
                 )
             n_positives = (spot == 1).sum()
             message = f"Computed spot contains {n_positives} strongly positive values."
-            if n_positives < 5:
-                message += f" You may need to reduce shape_sign_thresh in the OMP config"
+            if n_positives < 4:
+                message += f" You may need to reduce mean_spot_thresh in the OMP config"
                 if n_positives == 0:
                     raise ValueError(message)
                 log.warn(message)

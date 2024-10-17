@@ -49,7 +49,7 @@ def compute_mean_spot(
 ) -> torch.Tensor:
     """
     Compute the mean spot from the given positions on the coefficient images in a cuboid local region centred around each
-    given spot position. The mean spot is the mean of the image signs in the cuboid region.
+    given spot position. The mean spot is the mean of the image in the cuboid region.
 
     Args:
         coefficients (list of `(n_subset_pixels x n_genes) scipy.sparse.csr_matrix[float32]`): coefficient images. Any
@@ -62,7 +62,7 @@ def compute_mean_spot(
             around each spot position. This must be an odd number in each dimension so the spot position can be centred.
 
     Returns:
-        (`spot_shape tensor[float32]`) mean_spot: the mean of the signs of the coefficient.
+        (`spot_shape tensor[float32]`) mean_spot: the mean of the coefficients.
     """
     assert type(coefficients) is list, f"Got type {type(coefficients)}"
     assert type(spot_positions_yxz) is torch.Tensor
@@ -107,7 +107,7 @@ def compute_mean_spot(
 
     assert spots.shape == (n_spots, n_shifts)
     mean_spot = torch.zeros(spot_shape).float()
-    mean_spot[tuple(spot_shift_positions)] = spots.sign().mean(dim=0)
+    mean_spot[tuple(spot_shift_positions)] = spots.mean(dim=0)
 
     return mean_spot
 
