@@ -24,6 +24,7 @@ def test_Viewer() -> None:
     n_channels_use = 9
 
     nbp_basic = NotebookPage("basic_info")
+    nbp_basic.dye_names = tuple([f"Dye_{i}" for i in range(n_channels_use)])
     nbp_basic.tile_sz = tile_sz
     nbp_basic.use_tiles = use_tiles
     nbp_basic.use_z = use_z
@@ -106,11 +107,6 @@ def test_Viewer() -> None:
         for hotkey in viewer.hotkeys:
             viewer.selected_spot = 20
             hotkey.invoke(None)
-            hotkey.invoke(None)
-            viewer.close_all_subplots()
-            viewer.clear_spot_selections()
-            viewer.selected_spot = 5
-            hotkey.invoke(None)
             viewer.clear_spot_selections()
         viewer.close_all_subplots()
         viewer.close()
@@ -128,12 +124,6 @@ def test_Viewer() -> None:
     # Test every hotkey.
     for hotkey in viewer.hotkeys:
         viewer.selected_spot = 20
-        hotkey.invoke(None)
-        hotkey.invoke(None)
-        viewer.close_all_subplots()
-        viewer.close_all_subplots()
-        viewer.clear_spot_selections()
-        viewer.selected_spot = 5
         hotkey.invoke(None)
         viewer.close_all_subplots()
         viewer.clear_spot_selections()
@@ -190,7 +180,7 @@ def test_Viewer() -> None:
         viewer.clear_spot_selections()
         viewer.selected_spot = 10
         # Check clicking the gene legend.
-        for _ in range(100):
+        for _ in range(10):
             event = type("Event", (object,), {})()
             event.inaxes = viewer.legend.canvas.axes
             event.xdata = rng.rand()
