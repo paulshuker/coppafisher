@@ -10,6 +10,7 @@ from coppafish.setup.notebook_page import NotebookPage
 
 
 def test_Viewer() -> None:
+    # Using a headless backend to support headless unit testings of the Viewer..
     matplotlib.use("Agg")
 
     rng = np.random.RandomState(0)

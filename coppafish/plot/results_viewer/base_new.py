@@ -60,6 +60,10 @@ class Viewer:
     genes: tuple["Viewer.Gene"]
     selected_method: str
     selected_spot: int | None
+    keep_zs: np.ndarray[bool]
+    keep_scores: np.ndarray[bool]
+    keep_intensities: np.ndarray[bool]
+    keep_genes: np.ndarray[bool]
     z: int
     z_thick: float
     score_threshs: dict[str, tuple[float, float]]
@@ -143,6 +147,7 @@ class Viewer:
         assert type(show) is bool
         self.show = show
         self.closing = False
+        self.z = None
         if nb is not None:
             if not all([nb.has_page(name) for name in self._required_page_names]):
                 raise ValueError(f"The notebook requires pages {', '.join(self._required_page_names)}")
@@ -282,6 +287,9 @@ class Viewer:
                 # Know when a point is selected.
                 self.point_layers[method].events.current_symbol.connect(self.selected_spot_changed)
         # Display the correct spot data based on current thresholds.
+        if self.z is None:
+            self.z = 0
+        self._update_all_keep()
         self.update_viewer_data()
         if self.viewer_exists():
             self.viewer.reset_view()
@@ -418,8 +426,9 @@ class Viewer:
                     gene.active = True
         else:
             return
-        self._update_gene_legend()
+        self._update_gene_keep()
         self.update_viewer_data()
+        self._update_gene_legend()
 
     def z_slider_changed(self, _) -> None:
         # Called when the user changes the z slider in the napari viewer.
@@ -431,6 +440,8 @@ class Viewer:
         if new_z == self.z:
             return
         self.z = new_z
+        z_coords = self.spot_data[self.selected_method].local_yxz[:, 2]
+        self.keep_zs = ((self.z - self.z_thick) <= z_coords) & (z_coords <= (self.z + self.z_thick))
         self.update_viewer_data()
 
     def method_changed(self) -> None:
@@ -440,6 +451,7 @@ class Viewer:
             return
         self.selected_method = new_selected_method
         self.update_widget_values()
+        self._update_all_keep()
         self.update_viewer_data()
         self.clear_spot_selections()
         # Put the user back to pan/zoom mode.
@@ -452,6 +464,7 @@ class Viewer:
         if new_z_thickness == self.z_thick:
             return
         self.z_thick = new_z_thickness
+        self._update_z_keep()
         self.update_viewer_data()
         print(f"Z Thickness: {self.z_thick}")
 
@@ -460,6 +473,7 @@ class Viewer:
         if new_score_thresholds == self.score_threshs[self.selected_method]:
             return
         self.score_threshs[self.selected_method] = new_score_thresholds
+        self._update_score_keep()
         self.update_viewer_data()
         print(f"Score thresholds: {self.score_threshs[self.selected_method]}")
 
@@ -468,6 +482,7 @@ class Viewer:
         if new_intensity_thresholds == self.intensity_threshs[self.selected_method]:
             return
         self.intensity_threshs[self.selected_method] = new_intensity_thresholds
+        self._update_intensity_keep()
         self.update_viewer_data()
         print(f"Intensity thresholds: {self.intensity_threshs[self.selected_method]}")
 
@@ -505,23 +520,11 @@ class Viewer:
             if method != self.selected_method:
                 self.point_layers[method].visible = False
                 continue
-            scores = self.spot_data[method].score
-            intensities = self.spot_data[method].intensity
-            gene_numbers = self.spot_data[method].gene_no
-            score_threshs = self.score_threshs[method]
-            keep_score = (scores >= score_threshs[0]) & (scores <= score_threshs[1])
-            intensity_threshs = self.intensity_threshs[method]
-            keep_intensity = (intensities >= intensity_threshs[0]) & (intensities <= intensity_threshs[1])
-            z_coords = self.spot_data[method].yxz[:, 2]
-            min_z = self.z - self.z_thick
-            max_z = self.z + self.z_thick
-            keep_z = (z_coords >= min_z) & (z_coords <= max_z)
-            active_gene_numbers = np.array([gene.notebook_index for gene in self.genes if gene.active], np.int16)
-            keep_gene = (gene_numbers[:, np.newaxis] == active_gene_numbers[np.newaxis]).any(1)
-            keep = keep_score & keep_intensity & keep_z & keep_gene
-            self.point_layers[method].visible = True
+            keep = self.keep_scores & self.keep_intensities & self.keep_zs & self.keep_genes
             self.point_layers[method].shown = keep
-            # To allow the points on the method layer to be selectable, the layer must be selected.
+
+            self.point_layers[method].visible = True
+            # To allow points on the method layer to be selected, the layer must be selected.
             self.viewer.layers.selection.active = self.point_layers[method]
 
     def clear_spot_selections(self) -> None:
@@ -878,6 +881,33 @@ class Viewer:
             print(f"Gene(s) {gene_string} are not in the gene marker file and will not be plotted.")
 
         return tuple(genes)
+
+    def _update_all_keep(self) -> None:
+        self._update_z_keep()
+        self._update_score_keep()
+        self._update_intensity_keep()
+        self._update_gene_keep()
+
+    def _update_z_keep(self) -> None:
+        z_coords = self.spot_data[self.selected_method].yxz[:, 2]
+        min_z = self.z - self.z_thick
+        max_z = self.z + self.z_thick
+        self.keep_zs = (z_coords >= min_z) & (z_coords <= max_z)
+
+    def _update_score_keep(self) -> None:
+        scores = self.spot_data[self.selected_method].score
+        score_threshs = self.score_threshs[self.selected_method]
+        self.keep_scores = (scores >= score_threshs[0]) & (scores <= score_threshs[1])
+
+    def _update_intensity_keep(self) -> None:
+        intensities = self.spot_data[self.selected_method].intensity
+        intensity_threshs = self.intensity_threshs[self.selected_method]
+        self.keep_intensities = (intensities >= intensity_threshs[0]) & (intensities <= intensity_threshs[1])
+
+    def _update_gene_keep(self) -> None:
+        gene_numbers = self.spot_data[self.selected_method].gene_no
+        active_gene_numbers = np.array([gene.notebook_index for gene in self.genes if gene.active], np.int16)
+        self.keep_genes = (gene_numbers[:, np.newaxis] == active_gene_numbers[np.newaxis]).any(1)
 
     def _free_subplot_spaces(self, n_free_spaces: int = 1) -> None:
         """
