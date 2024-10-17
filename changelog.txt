@@ -61,6 +61,7 @@
  * OMP: Pixel colours are not background fitted before being run through OMP. OMP stops iterating on a pixel if a 
     background gene is assigned.
  * OMP: Better OMP mean spot computation.
+ * OMP: The mean spot is now truly the mean spot and not the mean of the coefficient signs.
  * OMP: Less memory intensive by saving each tile's results separately. Also, the results are compressed to disk.
  * OMP: New OMP subplots for the Viewer. Press "Shift + k" to bring up all subplot shortcuts.
  * OMP: Lower memory requirements.
