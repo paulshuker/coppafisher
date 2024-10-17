@@ -222,7 +222,7 @@ class Viewer:
             self.selected_method = "omp"
         for method in spot_data.keys():
             spot_data[method].indices = np.linspace(
-                0, spot_data[method].score.size - 1, spot_data[method].score.size, dtype=np.uint16
+                0, spot_data[method].score.size - 1, spot_data[method].score.size, dtype=np.uint32
             )
         self.spot_data = spot_data
         # Sanity check spot data.
@@ -948,15 +948,17 @@ class Viewer:
         # invisible genes to improve performance.
         indices: np.ndarray
 
-        def remove_data_at(self, mask: np.ndarray[bool]) -> None:
+        def remove_data_at(self, remove: np.ndarray[bool]) -> None:
             """
-            Delete the i'th spot data if mask[i] == True.
+            Delete the i'th spot data if remove[i] == True.
             """
-            assert type(mask) is np.ndarray
-            assert mask.ndim == 1
-            assert mask.size == self.tile.size
+            assert type(remove) is np.ndarray
+            assert remove.ndim == 1
+            assert remove.size == self.tile.size
+            keep_sum = (~remove).sum().item()
             for var_name in self._attribute_names:
-                self.__setattr__(var_name, self.__getattribute__(var_name)[~mask])
+                self.__setattr__(var_name, self.__getattribute__(var_name)[~remove])
+                assert self.__getattribute__(var_name).shape[0] == keep_sum
             self.check_variables()
 
         def check_variables(self) -> None:
