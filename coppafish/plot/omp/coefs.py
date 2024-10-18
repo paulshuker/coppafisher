@@ -126,9 +126,9 @@ class ViewOMPImage(Subplot):
         self.scores = []
         for g in range(coefficient_image.shape[0]):
             self.scores.append(
-                scores_torch.score_coefficient_image(
-                    coefficient_image[[g]], torch.asarray(nbp_omp.spot), torch.asarray(nbp_omp.mean_spot)
-                )[0][central_yxz].item()
+                scores_torch.score_coefficient_image(coefficient_image[[g]], torch.asarray(nbp_omp.mean_spot))[0][
+                    central_yxz
+                ].item()
             )
         self.scores = np.array(self.scores, np.float32)
 

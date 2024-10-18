@@ -134,14 +134,10 @@ def test_Viewer() -> None:
     n_omp_spots = 85 // n_tiles
     omp_config = {"omp": {"max_genes": 2, "dp_thresh": 0.01, "lambda_d": 0.001}}
     nbp_omp = NotebookPage("omp", omp_config)
-    nbp_omp.spot_tile = 1
     spot_shape = (9, 9, 5)
     mean_spot = rng.rand(*spot_shape).astype(np.float32)
     mean_spot[tuple([dim // 2 for dim in spot_shape])] = 1
     nbp_omp.mean_spot = mean_spot
-    spot = rng.randint(2, size=spot_shape).astype(np.int16)
-    spot[tuple([dim // 2 for dim in spot_shape])] = 1
-    nbp_omp.spot = spot
     temp_zgroup = tempfile.TemporaryDirectory()
     group = zarr.group(store=temp_zgroup.name, zarr_version=2)
     for t in use_tiles:
