@@ -61,13 +61,11 @@
  * OMP: After each tile, OMP saves the progress and can continue where it left off if OMP is not completed fully.
  * OMP: Pixel colours are not background fitted before being run through OMP. OMP stops iterating on a pixel if a 
     background gene is assigned.
- * OMP: Better OMP mean spot computation.
- * OMP: The mean spot is now truly the mean spot and not the mean of the coefficient signs.
+ * OMP: The mean spot is fixed and no longer computed.
  * OMP: Less memory intensive by saving each tile's results separately. Also, the results are compressed to disk.
  * OMP: New OMP subplots for the Viewer. Press "Shift + k" to bring up all subplot shortcuts.
  * OMP: Lower memory requirements.
  * OMP: Much faster compute times with and without cuda.
- * OMP: Scores now saved as float16, not int16.
 
 
 2024/05/15 Alpha Update (v0.10.6):
