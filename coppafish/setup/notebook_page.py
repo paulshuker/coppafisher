@@ -549,23 +549,10 @@ class NotebookPage:
             ],
         },
         "omp": {
-            "spot_tile": [
-                "int",
-                "`spot` was found from isolated spots detected on this tile.",
-            ],
             "mean_spot": [
                 "ndarray[float32]",
-                "Numpy float16 array [shape_max_size[0] x shape_max_size[1] x shape_max_size[2]] or None"
-                + "Mean of *OMP* coefficient sign in neighbourhood centred on detected isolated spot.",
-            ],
-            "spot": [
-                "ndarray[int16]",
-                "Numpy integer array [shape_size_y x shape_size_x x shape_size_z]"
-                + "Expected sign of *OMP* coefficient in neighbourhood centered on spot."
-                + ""
-                + "1 means expected positive coefficient."
-                + ""
-                + "0 means unsure of sign.",
+                "Numpy float16 array [im_y x im_x x im_z]"
+                + "Mean of *OMP* spots in neighbourhood centred on detected isolated spot.",
             ],
             "results": [
                 "zgroup",
