@@ -67,26 +67,14 @@ nb.find_spots.auto_thresh[t, r, c]
 
 A find spots viewer will help to understand the config parameters. Move sliders to adjust the find spots parameters and 
 see the spot detection results. You can select any tile/round/channel combination. By default, the first tile's anchor 
-round/channel is shown. To display the viewer, create a Python script with the following code and call it 
-`find_spots_plot.py`:
-
-```py
-from coppafish import Notebook
-from coppafish.plot import view_find_spots
-
-if __name__ == "__main__":
-    nb = Notebook("/path/to/notebook")
-    view_find_spots(nb)
-```
-
-Run the script from your coppafish environment
+round/channel is shown. To display the viewer, in the terminal
 
 ```terminal
-python find_spots_plot.py
+python -m coppafish -fs /path/to/notebook
 ```
 
-Open the [link](http://127.0.0.1:8050/) shown in the terminal on a modern browser to show and interact with the viewer. 
-Press Ctrl + C when in the terminal to close the viewer.
+and open the [link](http://127.0.0.1:8050/) shown in the terminal on a modern browser to show and interact with the 
+viewer. Press Ctrl + C in the terminal to close the viewer.
 
 Spot detection is most crucial for the anchor round/channel images. So, it is recommended to configure find spots 
 parameters based on one of these images.

@@ -1,6 +1,6 @@
 2024/mm/dd Version 1 Major Release (v1.0.0):
- * General: From version 1.0.0 onwards, coppafish will automatically detect incompatible notebook versions. A suggested 
-    course of action is given if a compatibility problem is found during runtime.
+ * General: Version 1.0.0 onwards automatically detects incompatible notebook versions. A suggested course of action is 
+    given if a compatibility problem is found during runtime.
  * General: Python 3.11 is now supported.
  * General: Python 3.9 is no longer supported.
  * General: Presequence channels are no longer supported.
@@ -10,6 +10,7 @@
  * General: Package versions are now logged in the pipeline.log file.
  * General: Incorrect numpy data types within the notebook fixed.
  * General: The notebook is now faster at saving/loading, saves zarr arrays/groups, and has overwrite protection.
+ * General: Better Command Line Interface (CLI)
  * General: Security patches for zipp, urllib3, scikit-learn, tornado, requests, and certifi.
  * General: Many package updates.
  * Documentation: New documentation for exporting data to pciSeq, skipping bad microscope images, running background 

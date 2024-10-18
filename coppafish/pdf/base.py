@@ -57,7 +57,7 @@ class BuildPDF:
         pbar = tqdm(desc="Creating Diagnostic PDFs", total=11, unit="section")
         pbar.set_postfix_str("Loading notebook")
         if type(nb) is str:
-            nb = Notebook(nb)
+            nb = Notebook(nb, must_exist=True)
         pbar.update()
         if output_dir is None:
             output_dir = nbp_file.output_dir
