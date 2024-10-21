@@ -3,7 +3,7 @@ import math as maths
 import os
 import pickle
 import platform
-from typing import Any, Dict, Tuple
+from typing import Tuple
 
 import numpy as np
 import scipy
@@ -18,7 +18,7 @@ from ..setup.notebook_page import NotebookPage
 
 
 def run_omp(
-    config: Dict[str, Any],
+    config: dict[str, any],
     nbp_file: NotebookPage,
     nbp_basic: NotebookPage,
     nbp_extract: NotebookPage,
@@ -185,80 +185,6 @@ def run_omp(
                 index_subset += 1
         del solver
         log.debug(f"Compute coefficients, tile {t} complete")
-
-        # # STEP 1.5: On the first tile, compute a mean OMP spot from coefficients for score calculations.
-        # if t == first_tile:
-        #     log.info("Computing OMP spot and mean spot")
-        #     shape_isolation_distance_z = config["shape_isolation_distance_z"]
-        #     if shape_isolation_distance_z is None:
-        #         shape_isolation_distance_z = maths.ceil(
-        #             config["shape_isolation_distance_yx"] * nbp_basic.pixel_size_xy / nbp_basic.pixel_size_z
-        #         )
-        #     isolated_yxz = torch.zeros((0, 3)).int()
-        #     isolated_gene_no = torch.zeros(0).int()
-        #     for g in range(n_genes):
-        #         g_coef_image = np.vstack([coef_subset[:, [g]].toarray() for coef_subset in coefficients])
-        #         g_coef_image = torch.asarray(g_coef_image.reshape(tile_shape, order="F")).float()
-        #         if torch.allclose(g_coef_image, torch.zeros(1).float()):
-        #             log.warn(f"Tile {t} OMP coefficients for gene {nbp_call_spots.gene_names[g]} are all zero")
-        #         g_isolated_yxz, _ = find_spots.detect.detect_spots(
-        #             g_coef_image,
-        #             config["shape_coefficient_threshold"],
-        #             remove_duplicates=True,
-        #             radius_xy=config["shape_isolation_distance_yx"],
-        #             radius_z=shape_isolation_distance_z,
-        #         )
-        #         g_isolated_yxz = torch.from_numpy(g_isolated_yxz)
-        #         g_gene_no = torch.full((g_isolated_yxz.shape[0],), g).int()
-        #         isolated_yxz = torch.cat((isolated_yxz, g_isolated_yxz), dim=0).int()
-        #         isolated_gene_no = torch.cat((isolated_gene_no, g_gene_no), dim=0)
-        #         log.debug(f"gene {g} isolated spots: {g_isolated_yxz.size(0)}")
-        #         if isolated_gene_no.size(0) > config["spot_shape_max_spots_considered"]:
-        #             # Detecting spots is slow, so we break out if we have lots of spots already.
-        #             break
-        #         del g_coef_image, g_isolated_yxz, g_gene_no
-        #     if isolated_yxz.size(0) == 0:
-        #         raise ValueError(
-        #             f"No local maxima found with OMP coefficients > {config['shape_coefficient_threshold']}. "
-        #             + f"The threshold may be too high, no non-zero coefficients were found, or the isolation distance "
-        #             + f"thresholds shape_isolation_distance_yx and shape_isolation_distance_z are too large."
-        #         )
-        #     true_isolated = find_spots.get_isolated_spots(
-        #         isolated_yxz, config["shape_isolation_distance_yx"], shape_isolation_distance_z
-        #     )
-        #     assert true_isolated.shape[0] == isolated_yxz.shape[0] == isolated_gene_no.shape[0]
-        #     isolated_yxz = isolated_yxz[true_isolated]
-        #     isolated_gene_no = isolated_gene_no[true_isolated]
-        #     n_isolated_count = isolated_gene_no.size(0)
-        #     if n_isolated_count == 0:
-        #         raise ValueError(
-        #             f"OMP failed to find any isolated spots on the coefficient images. "
-        #             + "Consider reducing shape_isolation_distance_* in the OMP config"
-        #         )
-        #     mean_spot = spots_torch.compute_mean_spot(
-        #         coefficients, isolated_yxz, isolated_gene_no, tile_shape, config["spot_shape"]
-        #     )
-        #     log.debug(f"OMP mean spot computed with {n_isolated_count} isolated spots")
-        #     if n_isolated_count < 10:
-        #         log.warn(f"OMP mean spot computed with only {n_isolated_count} isolated spots")
-        #     del shape_isolation_distance_z, n_isolated_count
-        #     spot = torch.zeros_like(mean_spot, dtype=torch.int16)
-        #     spot[mean_spot >= config["mean_spot_thresh"]] = 1
-        #     edge_counts = spots_torch.count_edge_ones(spot)
-        #     if edge_counts >= 10:
-        #         log.warn(
-        #             f"The spot contains {edge_counts} ones on the x/y edges. You may need to increase spot_shape in"
-        #             + " the OMP config to avoid spot cropping. See _omp.pdf for more detail."
-        #         )
-        #     n_positives = (spot == 1).sum()
-        #     message = f"Computed spot contains {n_positives} strongly positive values."
-        #     if n_positives < 4:
-        #         message += f" You may need to reduce mean_spot_thresh in the OMP config"
-        #         if n_positives == 0:
-        #             raise ValueError(message)
-        #         log.warn(message)
-        #     else:
-        #         log.debug(message)
 
         tile_results = results.create_group(f"tile_{t}", overwrite=True)
         n_chunk_max = 600_000
