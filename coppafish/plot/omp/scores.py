@@ -75,7 +75,6 @@ class ViewOMPDotProductScores(Subplot):
             return_dp_scores=True,
         )
         n_iterations = len(self.dp_scores)
-        print(f"{n_iterations=}")
         assert n_iterations > 0
         self.iteration = 1
         n_genes_all = self.dp_scores[0].shape[1]
