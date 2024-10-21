@@ -25,6 +25,7 @@ from . import legend_new
 from .subplot import Subplot
 from ..call_spots import bleed_matrix, spot_colours
 from ..omp import ViewOMPImage
+from ..omp.scores import ViewOMPDotProductScores
 from ...omp import base as omp_base
 from ...setup.notebook import Notebook, NotebookPage
 from ...utils import system as utils_system
@@ -357,6 +358,13 @@ class Viewer:
                 lambda _: self._add_subplot(self.view_omp_coefficients()),
                 "OMP",
             ),
+            Hotkey(
+                "View OMP Dot Product Scores",
+                "j",
+                "Show the OMP dot product scores for every gene on each iteration for a spot",
+                lambda _: self._add_subplot(self.view_omp_dot_product_scores()),
+                "OMP",
+            ),
         )
         # Hotkeys can be connected to a function when they occur.
         for hotkey in self.hotkeys:
@@ -640,6 +648,24 @@ class Viewer:
             show=self.show,
         )
 
+    def view_omp_dot_product_scores(self) -> Subplot | None:
+        if self.selected_spot is None:
+            return
+        if self.nbp_omp is None:
+            return
+        self._free_subplot_spaces()
+        spot_data = self.spot_data[self.selected_method]
+        return ViewOMPDotProductScores(
+            self.nbp_basic,
+            self.nbp_filter,
+            self.nbp_register,
+            self.nbp_call_spots,
+            self.nbp_omp,
+            spot_data.local_yxz[self.selected_spot],
+            spot_data.tile[self.selected_spot],
+            show=self.show,
+        )
+
     def toggle_background(self, _=None) -> None:
         if not self.viewer_exists():
             return
@@ -677,10 +703,11 @@ class Viewer:
         """
         Close the entire Viewer.
         """
+        self.close_all_subplots()
+        plt.close("all")
+        self.closing = True
         if not self.viewer_exists():
             return
-        self.close_all_subplots()
-        self.closing = True
         self.viewer.close()
         del self.viewer
 

@@ -135,9 +135,8 @@ def run_omp(
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
         assert np.isnan(bled_codes).sum() == 0, "bled codes cannot contain nan values"
         assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"
-        bg_bled_codes = np.eye(n_channels_use)[:, None, :].repeat(n_rounds_use, axis=1)
-        # Normalise the codes the same way as gene bled codes.
-        bg_bled_codes /= np.linalg.norm(bg_bled_codes, axis=(1, 2))
+        solver = coefs.CoefficientSolverOMP()
+        bg_bled_codes = solver.create_background_bled_codes(n_rounds_use, n_channels_use)
         max_genes = config["max_genes"]
         # The tile's coefficient results are stored as a list of scipy sparse matrices. Each item is a specific subset
         # that was run. Appending them all together is done on demand later as it is computationally expensive to do
@@ -153,7 +152,6 @@ def run_omp(
         )
         n_subset_pixels = config["subset_pixels"]
         index_subset, index_min, index_max = 0, 0, 0
-        solver = coefs.CoefficientSolverOMP()
         log.debug(f"OMP {max_genes=}")
         log.debug(f"OMP {n_subset_pixels=}")
 

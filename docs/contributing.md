@@ -33,6 +33,9 @@ Run unit tests requiring a notebook (~3s)
 pytest -m "notebook and not integration and not manual"
 ```
 
+Check the percentage code coverage of each set of tests by appending `--cov=coppafish --cov-report term` to each 
+command.
+
 ## Code Philosophy
 
 We follow basic rules when coding. Anyone can code something that works, but coding it in a scaleable, maintainable way 
