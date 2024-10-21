@@ -33,7 +33,7 @@ def run_omp(
     From the OMP coefficients, score every pixel using an expected spot shape. Detect spots using the image of spot
     scores and save all OMP spots with a large enough score.
 
-    See `'omp'` section of `notebook_comments.json` file for description of the variables in the omp page.
+    See `omp` section of file `coppafish/setup/notebook_page.py` for descriptions of the omp variables.
 
     Args:
         - config (dict): Dictionary obtained from `'omp'` section of config file.
