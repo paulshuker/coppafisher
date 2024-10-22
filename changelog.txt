@@ -7,8 +7,8 @@
  * General: Python 3.9 is no longer supported.
  * General: All output variables are now stored within the notebook except for extract images, PDF diagnostics, and 
     pipeline.log files.
- * General: The notebook is now faster at saving/loading, saves zarr arrays/groups, and has overwrite protection.
- * General: Better Command Line Interface (CLI)
+ * General: The notebook is now faster at saving/loading, supports zarr arrays/groups, and has overwrite protection.
+ * General: Better Command Line Interface (CLI).
  * General: Users can safely move the output directory and/or tiles directory mid-pipeline.
  * General: The notebook can be moved location without breaking diagnostics.
  * General: Incorrect numpy data types within the notebook fixed.
