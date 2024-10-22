@@ -114,14 +114,14 @@ nb = Notebook("/path/to/notebook")
 nb.delete_page("stitch")
 ```
 
-Any page's added after stitch are warned about. It is recommended to delete these by typing `y`.
+Any page's added after stitch are warned about. It is recommended to delete these pages as well by typing `y`.
 
 ## Email notification
 
 To be emailed when the pipeline crashes or finishes, under section `[notifications]` in the config, add the variable 
 `email_me` with your email address. You must have a sender email with SMTP support, this email's credentials must be 
 given in `[notifications]` under the variables `sender_email` and `sender_email_password`. The email may be flagged as 
-junk or not be sent altogether, depending on the email address to be sent to. This has only been tested for an 
+junk or not be sent altogether, depending on the email address you are sending to. This has only been tested for an 
 "outlook.com" Microsoft email.
 
 ## Generate gene codes

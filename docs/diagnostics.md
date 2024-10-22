@@ -1,4 +1,4 @@
-Diagnostics specific to the methods are found in the [method](stitch.md) tab.
+Diagnostics specific to a method are found in the [method](find_spots.md) tab.
 
 ## Viewer
 
