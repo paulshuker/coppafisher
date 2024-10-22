@@ -64,36 +64,12 @@ During a pipeline run, multiple .pdf files are created for different sections. T
 directory. If you want the PDFs to be created again, delete the old ones first, then 
 [run coppafish](basic_usage.md/#running) again.
 
-## Viewer2D
-
-To open
-```python
-from coppafish import Notebook, Viewer2D
-
-nb = Notebook("/path/to/notebook.npz")
-Viewer2D(nb)
-```
-
-The viewer is updated by typing commands in the terminal. To find out the available commands, type `help` or `h`.
-
 ## Viewing images
-
-### Raw images
-
-Raw images for particular tiles, round, and channels can be viewed with access to `input_dir` given in the config file:
-
-```python
-from coppafish import Notebook, plot
-
-nb = Notebook("/path/to/notebook.npz")
-plot.view_raw(nb, tiles, rounds, channels)
-```
-
-where `tiles`, `rounds`, and `channels` are lists of integers specifying which images to view.
 
 ### Extracted images
 
-Extracted images are identical to raw images, these are viewed by
+Extracted images are identical to raw images, but only gathered for the specified tiles, rounds, channels, and z planes.
+These can be viewed by
 
 ```python
 from coppafish import Notebook, plot
