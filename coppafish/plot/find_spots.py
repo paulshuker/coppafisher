@@ -289,10 +289,7 @@ def n_spots_grid(nb: Notebook, n_spots_thresh: Optional[int] = None):
     """
     if n_spots_thresh is None:
         config = nb.get_config()["find_spots"]
-        if nb.basic_info.is_3d:
-            n_spots_thresh = config["n_spots_warn_fraction"] * config["max_spots_3d"] * nb.basic_info.nz
-        else:
-            n_spots_thresh = config["n_spots_warn_fraction"] * config["max_spots_2d"]
+        n_spots_thresh = config["n_spots_warn_fraction"] * config["max_spots_3d"] * nb.basic_info.nz
         n_spots_thresh = int(np.ceil(n_spots_thresh))
     use_tiles = np.asarray(nb.basic_info.use_tiles)
     use_rounds = np.asarray(nb.basic_info.use_rounds)  # don't consider anchor in this analysis

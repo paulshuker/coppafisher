@@ -139,17 +139,16 @@ class Viewer:
         self.add_legend(gene_legend_info=gene_legend_info)
 
         # Z-thickness slider
-        if nb.basic_info.is_3d:
-            # connect a change in z-plane to the z-thickness slider
-            self.viewer.dims.events.current_step.connect(self.update_z_thick)
-            # connect the z-thickness slider to the update_z_thick function
-            self.add_slider(
-                name="z_thick",
-                value=1,
-                slider_range=(0, nb.basic_info.nz),
-                slider_mode="single",
-                slider_variable="z_thick",
-            )
+        # Connect a change in z-plane to the z-thickness slider
+        self.viewer.dims.events.current_step.connect(self.update_z_thick)
+        # connect the z-thickness slider to the update_z_thick function
+        self.add_slider(
+            name="z_thick",
+            value=1,
+            slider_range=(0, nb.basic_info.nz),
+            slider_mode="single",
+            slider_variable="z_thick",
+        )
 
         abs_intensity_thresh = np.percentile(self.spots["anchor"].intensity, 10)
         # set up sliders to adjust background images contrast
@@ -188,10 +187,7 @@ class Viewer:
         self.viewer.window.add_dock_widget(self.method["buttons"], area="left", name="Method")
 
         # label the axes
-        if nb.basic_info.is_3d:
-            self.viewer.dims.axis_labels = ["z", "y", "x"]
-        else:
-            self.viewer.dims.axis_labels = ["y", "x"]
+        self.viewer.dims.axis_labels = ["z", "y", "x"]
 
     def add_legend(self, gene_legend_info: pd.DataFrame) -> None:
         """

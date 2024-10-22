@@ -25,11 +25,6 @@ def run_extract(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) -
         - See `'extract'` sections in `coppafish/setup/notebook_page.py` file for description of the variables in each page.
     """
     # initialise notebook pages
-    if not nbp_basic.is_3d:
-        log.error(
-            NotImplementedError(f"coppafish 2d is not in a stable state, please contact a dev to add this. Sorry! ;(")
-        )
-
     nbp = NotebookPage("extract", {"extract": config})
     nbp.num_rotations = config["num_rotations"]
 

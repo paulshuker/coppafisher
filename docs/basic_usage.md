@@ -106,7 +106,6 @@ raw_extension = .npy
 raw_metadata = path/to/metadata.json
 
 [basic_info]
-is_3d = True
 dye_names = dye_0, dye_1, dye_2, dye_3
 use_rounds = 0, 1, 2, 3, 4, 5, 6
 use_z = 0, 1, 2, 3, 4

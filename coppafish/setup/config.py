@@ -44,7 +44,6 @@ _options = {
         "dapi_channel": "maybe_int",
         "tile_pixel_value_shift": "int",
         "dye_names": "tuple_str",
-        "is_3d": "bool",
         "ignore_first_z_plane": "bool",
         "bad_trc": "maybe_tuple_tuple_int",
         # From here onwards these are not compulsory to enter and will be taken from the metadata

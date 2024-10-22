@@ -28,7 +28,6 @@ def set_basic_info(config_file: dict, config_basic: dict, n_rounds: int = 7) -> 
         - `NotebookPage[basic_info]` - Page contains information that is used at all stages of the pipeline.
     """
     nbp = NotebookPage("basic_info")
-    nbp.is_3d = config_basic["is_3d"]
 
     # TODO: Get rid of this
     # First condition refers to situation where jobs not used, alternative if jobs is used
@@ -247,10 +246,7 @@ def set_basic_info(config_file: dict, config_basic: dict, n_rounds: int = 7) -> 
     nbp.n_dyes = n_dyes  # int, number of dyes
 
     # subtract tile_centre from local pixel coordinates to get centered local tile coordinates
-    if not nbp.is_3d:
-        nz = 1
-    else:
-        nz = nbp.nz
+    nz = nbp.nz
     nbp.tile_centre = (np.array([tile_sz, tile_sz, nz]) - 1) / 2
     nbp.pixel_size_xy = metadata["pixel_microns"]  # pixel size in microns in xy
     nbp.pixel_size_z = metadata["pixel_microns_z"]  # and z directions.

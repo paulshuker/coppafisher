@@ -40,7 +40,7 @@ def find_spots(
     auto_thresh_multiplier = config["auto_thresh_multiplier"]
     if auto_thresh_multiplier <= 0:
         raise ValueError(f"The auto_thresh_multiplier in 'find_spots' config must be positive")
-    n_z = np.max([1, nbp_basic.is_3d * nbp_basic.nz])
+    n_z = np.max([1, nbp_basic.nz])
     max_spots = maths.floor(config["max_spots_percent"] * nbp_basic.tile_sz**2 / 100)
     INVALID_AUTO_THRESH = -1
     auto_thresh = np.full(
