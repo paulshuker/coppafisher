@@ -3,6 +3,7 @@ import tempfile
 
 import matplotlib
 import numpy as np
+import tifffile
 import zarr
 
 from coppafish.plot.results_viewer.base_new import Viewer
@@ -84,6 +85,9 @@ def test_Viewer() -> None:
     npz_filepath = os.path.join(tempfile.gettempdir(), "test_array.npz")
     background_array = rng.randint(0, 100, size=(8, 25, 31))
     np.savez_compressed(npz_filepath, background_array)
+    tiff_filepath = os.path.join(tempfile.gettempdir(), "test_array.tif")
+    background_array = rng.randint(0, 100, size=(8, 25, 31), dtype=np.int8)
+    tifffile.imwrite(tiff_filepath, background_array)
 
     # Try different background image valid parameters.
     background_images = []
@@ -91,6 +95,7 @@ def test_Viewer() -> None:
     background_images.append(None)
     background_images.append(npy_filepath)
     background_images.append(npz_filepath)
+    background_images.append(tiff_filepath)
     for background_image in background_images:
         viewer = Viewer(
             background_image=background_image,

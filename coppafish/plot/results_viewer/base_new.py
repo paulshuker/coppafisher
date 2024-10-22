@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 from qtpy.QtCore import Qt
 from superqt import QDoubleRangeSlider, QDoubleSlider
+import tifffile
 
 from . import legend_new
 from .subplot import Subplot
@@ -111,9 +112,9 @@ class Viewer:
                 row in the gene marker file. "colour" will group genes based on their colourRGB's, each colour group is
                 sorted by hue. Each gene name in a colour group is sorted alphabetically. Default: "colour".
             background_image (str or none, optional): what to use as the background image, can be none, "dapi" or a
-                file path to a .npy file or .npz file. The array at a file path must be a numpy array of shape
-                `(im_y x im_x)` or `(im_z x im_y x im_x)` If set to a .npz file path, the background image must be
-                located at key 'arr_0'. Set to None for no background image. Default: "dapi".
+                file path to a .npy, .npz, or .tif file. The array at a file path must be a numpy array of shape 
+                `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the background image must be located at key 
+                'arr_0'. Set to None for no background image. Default: "dapi".
             background_image_colour (str, optional): the napari colour mapping used for the background image. Default:
                 "gray".
             nbp_basic (NotebookPage, optional): `basic_info` notebook page. Default: not given.
@@ -713,33 +714,34 @@ class Viewer:
 
     def _place_background(self, image: Optional[str], colour_map: str) -> None:
         z_count = max(self.nbp_basic.use_z)
+        self.background_image = None
         self.background_image_layer = None
         self.max_intensity_project = False
+        if image is not None and image != "dapi" and not path.isfile(image):
+            raise FileNotFoundError(f"Cannot find background image of file path: {image}")
         if image == "dapi":
             self.background_image = self.nbp_stitch.dapi_image[:]
             self.background_image_layer = self.background_image
         elif type(image) is str and image.endswith(".npy"):
-            if not path.isfile(image):
-                raise FileNotFoundError(f"Cannot find background image of file path: {image}")
             self.background_image: np.ndarray = np.load(image)
-            if self.background_image.ndim not in (2, 3):
-                raise ValueError(f"Unexpected background image dimension count: {self.background_image.ndim}")
             if self.background_image.ndim == 2:
                 self.background_image = self.background_image[None].repeat(z_count, 0)
             self.background_image_layer = self.background_image
         elif type(image) is str and image.endswith(".npz"):
-            if not path.isfile(image):
-                raise FileNotFoundError(f"Cannot find background image of file path: {image}")
             self.background_image: np.ndarray = np.load(image)["arr_0"]
-            if self.background_image.ndim not in (2, 3):
-                raise ValueError(f"Unexpected background image dimension count: {self.background_image.ndim}")
             if self.background_image.ndim == 2:
                 self.background_image = self.background_image[None].repeat(z_count, 0)
             self.background_image_layer = self.background_image
+        elif type(image) is str and image.endswith(".tif"):
+            with tifffile.TiffFile(image) as tif:
+                self.background_image = tif.asarray()
         elif type(image) is str:
-            raise ValueError(
-                f"Unexpected background_image: {image}. " + "The image must end with .npy or .npz or be equal to dapi"
-            )
+            raise ValueError( f"background_image must end with .npy, .npz, .tif or be equal to dapi, got {image}")
+
+        if self.background_image is not None:
+            if self.background_image.ndim not in (2, 3):
+                raise ValueError(f"background_image must have 2 or 3 dimensions, got {self.background_image.ndim}")
+
         if self.background_image_layer is not None:
             z_count = self.background_image.shape[0]
             self.mip_background_image = self.background_image.copy().max(0, keepdims=True).repeat(z_count, 0)

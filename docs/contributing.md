@@ -1,11 +1,11 @@
 ## The Algorithm
 
-Coppafish is built on the basis that an algorithm that performs well does not need to be changed. The algorithm is only 
+Coppafish is built on the basis that an algorithm that performs well does not need to be changed. Algorithms are only 
 updated when there is evidence that it can perform better and that the current algorithm is performing worse.
 
 Typically there is a protected staging branch, like `v1.0.0`, for a future release. This must be pull requested into 
-and must pass continuous integration tests. The `main` branch is kept as the latest version release and remains the 
-default branch when git cloning.
+and must pass continuous integration tests. The `main` branch remains the latest version release to be the default 
+branch when users git clone the software.
 
 ## Run Tests
 
@@ -33,8 +33,7 @@ Run unit tests requiring a notebook (~3s)
 pytest -m "notebook and not integration and not manual"
 ```
 
-Check the percentage code coverage of each set of tests by appending `--cov=coppafish --cov-report term` to each 
-command.
+Check the percentage code coverage by appending `--cov=coppafish --cov-report term` to each command.
 
 ## Code Philosophy
 
@@ -52,6 +51,7 @@ a new function.
 soon as possible through the use of keywords like `#!python continue`, `#!python break` and `#!python return`, whenever 
 feasible.
 * Do not over-shorten a variable or function name.
+* Variables and functions are not capitalised, classes are.
 * In most cases, a line of code should do only one operation.
 * Every docstring for a function must be complete so a developer can re-create the function without seeing any of the 
 existing source code.
