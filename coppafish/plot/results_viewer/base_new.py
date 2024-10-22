@@ -741,6 +741,8 @@ class Viewer:
         if self.background_image is not None:
             if self.background_image.ndim not in (2, 3):
                 raise ValueError(f"background_image must have 2 or 3 dimensions, got {self.background_image.ndim}")
+            if not np.issubdtype(self.background_image.dtype, np.number):
+                raise ValueError(f"background_image must have float or int dtype, got {self.background_image.dtype}")
 
         if self.background_image_layer is not None:
             z_count = self.background_image.shape[0]

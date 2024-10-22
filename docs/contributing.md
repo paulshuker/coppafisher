@@ -15,7 +15,7 @@ In your coppafish environment, install dev packages
 pip install -r requirements-dev.txt
 ```
 
-Run unit tests (~35s) 
+Run unit tests (~25s) 
 
 ```terminal
 pytest -m "not integration and not manual and not notebook"

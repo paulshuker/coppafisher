@@ -80,10 +80,10 @@ def test_Viewer() -> None:
     nbp_omp = None
 
     npy_filepath = os.path.join(tempfile.gettempdir(), "test_array.npy")
-    background_array = rng.rand(25, 31)
+    background_array = rng.rand(25, 31).astype(np.float16)
     np.save(npy_filepath, background_array)
     npz_filepath = os.path.join(tempfile.gettempdir(), "test_array.npz")
-    background_array = rng.randint(0, 100, size=(8, 25, 31))
+    background_array = rng.randint(0, 100, size=(8, 25, 31), dtype=np.int8)
     np.savez_compressed(npz_filepath, background_array)
     tiff_filepath = os.path.join(tempfile.gettempdir(), "test_array.tif")
     background_array = rng.randint(0, 100, size=(8, 25, 31), dtype=np.int8)
