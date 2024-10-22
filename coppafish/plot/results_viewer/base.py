@@ -21,7 +21,7 @@ from .. import call_spots as call_spots_plot
 from ...omp import base as omp_base
 from ...setup.notebook import Notebook
 from ..call_spots import (
-    GeneEfficiencyViewer,
+    ViewGeneEfficiencies,
     ViewBleedMatrix,
     ViewScalingAndBGRemoval,
     view_bled_codes,
@@ -803,7 +803,7 @@ class Viewer:
 
         @self.viewer.bind_key(Hotkeys.view_gene_efficiency)
         def call_to_view_gene_efficiency(viewer):
-            self.open_plot = GeneEfficiencyViewer(
+            self.open_plot = ViewGeneEfficiencies(
                 self.nb,
                 mode=self.method["names"][self.method["active"]],
                 score_threshold=self.sliders["score_range"].value()[0],

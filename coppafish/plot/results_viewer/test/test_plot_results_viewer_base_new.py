@@ -63,6 +63,7 @@ def test_Viewer() -> None:
         ["Snca", "Npy", "Chodl", "unknown", "Reln", "Map2", "Cdh13", "Plcg2", "Pld4", "Vim", "Fam19a1", "unknown_2"]
     )
     nbp_call_spots.colour_norm_factor = rng.rand(n_tiles, n_rounds_use, n_channels_use).astype(np.float32) + 1
+    nbp_call_spots.free_bled_codes_tile_independent = rng.rand(n_genes, n_rounds_use, n_channels_use).astype(np.float32)
     bled_codes = np.ones((n_genes, n_rounds_use, n_channels_use), np.float32)
     bled_codes[0] = 1.5
     bled_codes[9] = 4
@@ -206,3 +207,7 @@ def test_Viewer() -> None:
     viewer.close()
 
     temp_zgroup.cleanup()
+
+
+if __name__ == "__main__":
+    test_Viewer()

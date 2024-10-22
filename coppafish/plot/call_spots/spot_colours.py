@@ -11,7 +11,8 @@ import zarr
 
 from ..results_viewer.subplot import Subplot
 from ...call_spots.dot_product import gene_prob_score
-from ...setup.notebook import Notebook
+from ...omp import base as omp_base
+from ...setup.notebook import NotebookPage
 from ...spot_colours import base as spot_colours_base
 
 
@@ -483,42 +484,56 @@ class ViewSpotColourRegion(Subplot):
 
 # We are now going to create a new class that will allow us to view the spots used to calculate the gene efficiency
 # for a given gene. This will be useful for checking that the spots used are representative of the gene as a whole.
-class GeneEfficiencyViewer:
-    def __init__(self, nb: Notebook, mode: str = "prob", score_threshold: float = 0):
+class ViewGeneEfficiencies(Subplot):
+    def __init__(
+        self,
+        nbp_basic: NotebookPage,
+        nbp_ref_spots: NotebookPage,
+        nbp_call_spots: NotebookPage,
+        nbp_omp: NotebookPage,
+        mode: str = "prob",
+        score_threshold: float = 0,
+        show: bool = True,
+    ):
         """
         Diagnostic to show the n_genes x n_rounds gene efficiency matrix as a heatmap.
 
         Args:
-            nb: Notebook containing experiment details. Must have run at least as far as `call_reference_spots`.
+            nbp_basic (NotebookPage): `basic_info` notebook page.
+            nbp_ref_spots (NotebookPage): `ref_spots` notebook page.
+            nbp_call_spots (NotebookPage): `call_spots` notebook page.
+            nbp_omp (NotebookPage): `omp` notebook page.
         """
+        self.nbp_basic = nbp_basic
+        self.nbp_ref_spots = nbp_ref_spots
+        self.nbp_call_spots = nbp_call_spots
+        self.nbp_omp = nbp_omp
         plt.style.use("dark_background")
         # Get gene probabilities and number of spots for each gene
         if mode == "omp":
-            use_tiles = nb.basic_info.use_tiles
-            gene_no = np.concatenate([nb.omp.results[f"tile_{t}"].gene_no for t in use_tiles], axis=0)
-            score = np.concatenate([nb.omp.results[f"tile_{t}"].scores for t in use_tiles], axis=0)
+            gene_no = omp_base.get_all_gene_no(self.nbp_basic, self.nbp_omp)[0]
+            score = omp_base.get_all_scores(self.nbp_basic, self.nbp_omp)[0]
         elif mode == "anchor":
-            gene_no = nb.call_spots.dot_product_gene_no
-            score = nb.call_spots.dot_product_gene_score
+            gene_no = nbp_call_spots.dot_product_gene_no
+            score = nbp_call_spots.dot_product_gene_score
         else:
-            gene_no = np.argmax(nb.call_spots.gene_probabilities, axis=1)
-            score = np.max(nb.call_spots.gene_probabilities, axis=1)
+            gene_no = np.argmax(nbp_call_spots.gene_probabilities[:], axis=1)
+            score = np.max(nbp_call_spots.gene_probabilities[:], axis=1)
 
         # Count the number of spots for each gene
-        n_spots = np.zeros(nb.call_spots.gene_names.shape[0], dtype=int)
-        for i in range(nb.call_spots.gene_names.shape[0]):
-            n_spots[i] = np.sum((gene_no == i) & (score > score_threshold))
+        n_spots = np.zeros(nbp_call_spots.gene_names.shape[0], dtype=int)
+        for i in range(nbp_call_spots.gene_names.shape[0]):
+            n_spots[i] = np.sum((gene_no[:] == i) & (score[:] > score_threshold))
 
         # add attributes
-        self.nb = nb
-        self.n_genes = nb.call_spots.gene_names.shape[0]
+        self.n_genes = nbp_call_spots.gene_names.shape[0]
         self.mode = mode
         self.n_spots = n_spots
         self.fig, self.ax = plt.subplots(figsize=(10, 10))
 
         # set location of axes
         self.ax.set_position([0.1, 0.1, 0.7, 0.8])
-        gene_efficiency = np.linalg.norm(nb.call_spots.free_bled_codes_tile_independent, axis=2)
+        gene_efficiency = np.linalg.norm(nbp_call_spots.free_bled_codes_tile_independent, axis=2)
         self.ax.imshow(
             gene_efficiency, cmap="viridis", vmin=0, vmax=gene_efficiency.max(), aspect="auto", interpolation="none"
         )
@@ -538,14 +553,24 @@ class GeneEfficiencyViewer:
         mplcursors.cursor(self.ax, hover=True).connect("add", lambda sel: self.plot_gene_name(sel.index[0]))
         # 2. Allow genes to be selected by clicking on them
         mplcursors.cursor(self.ax, hover=False).connect(
-            "add", lambda sel: GeneSpotsViewer(nb, gene_index=sel.index[0], mode=mode, score_threshold=score_threshold)
+            "add",
+            lambda sel: GeneSpotsViewer(
+                nbp_basic,
+                nbp_ref_spots,
+                nbp_call_spots,
+                nbp_omp,
+                gene_index=sel.index[0],
+                mode=mode,
+                score_threshold=score_threshold,
+            ),
         )
         # 3. We would like to add a white rectangle around the observed spot when we hover over it. We will
         # use mplcursors to do this. We need to add a rectangle to the plot when hovering over a gene.
         # We also want to turn off annotation when hovering over a gene so we will use the `hover=False` option.
         mplcursors.cursor(self.ax, hover=2).connect("add", lambda sel: self.add_rectangle(sel.index[0]))
 
-        plt.show()
+        if show:
+            self.fig.show()
 
     def add_rectangle(self, index):
         # We need to remove any existing rectangles from the plot
@@ -554,7 +579,7 @@ class GeneEfficiencyViewer:
         for rectangle in self.ax.patches:
             rectangle.remove()
         # We can then add a new rectangle to the plot
-        self.ax.add_patch(Rectangle((-0.5, index - 0.5), self.nb.basic_info.n_rounds, 1, fill=False, edgecolor="white"))
+        self.ax.add_patch(Rectangle((-0.5, index - 0.5), self.nbp_basic.n_rounds, 1, fill=False, edgecolor="white"))
 
     def plot_gene_name(self, index):
         # We need to remove any existing gene names from the plot
@@ -566,7 +591,7 @@ class GeneEfficiencyViewer:
         self.ax.text(
             0.95,
             1.05,
-            self.nb.call_spots.gene_names[index] + f" ({self.n_spots[index]} spots)",
+            self.nbp_call_spots.gene_names[index] + f" ({self.n_spots[index]} spots)",
             transform=self.ax.transAxes,
             size=20,
             horizontalalignment="right",
@@ -576,7 +601,16 @@ class GeneEfficiencyViewer:
 
 
 class GeneSpotsViewer:
-    def __init__(self, nb: Notebook, gene_index: int = 0, mode: str = "prob", score_threshold: float = 0):
+    def __init__(
+        self,
+        nbp_basic: NotebookPage,
+        nbp_ref_spots: NotebookPage,
+        nbp_call_spots: NotebookPage,
+        nbp_omp: NotebookPage,
+        gene_index: int = 0,
+        mode: str = "prob",
+        score_threshold: float = 0,
+    ):
         """
         Diagnostic to show the spots used to calculate the gene efficiency for a given gene.
         Args:
@@ -589,10 +623,12 @@ class GeneSpotsViewer:
         """
         plt.style.use("dark_background")
         assert mode.lower() in ["prob", "anchor", "omp"], "mode must be 'prob', 'anchor' or 'omp'"
-        assert nb.has_page("call_spots"), "Notebook must have run at least as far as `call_spots`"
 
         # Add attributes
-        self.nb = nb
+        self.nbp_basic = nbp_basic
+        self.nbp_ref_spots = nbp_ref_spots
+        self.nbp_call_spots = nbp_call_spots
+        self.nbp_omp = nbp_omp
         self.mode = mode
         self.gene_index = gene_index
         self.score_threshold = score_threshold
@@ -608,37 +644,36 @@ class GeneSpotsViewer:
 
     def load_spots(self, gene_index: int):
         # initialise variables
-        nb = self.nb
-        colour_norm = nb.call_spots.colour_norm_factor
+        nbp_basic = self.nbp_basic
+        nbp_ref_spots = self.nbp_ref_spots
+        nbp_call_spots = self.nbp_call_spots
+        nbp_omp = self.nbp_omp
+        colour_norm = nbp_call_spots.colour_norm_factor
 
         # get spots for gene gene_index
         if self.mode == "omp":
-            use_tiles = nb.basic_info.use_tiles
-            spots = np.concatenate([nb.omp.results[f"tile_{t}"].colours for t in use_tiles], axis=0)
-            gene_no = np.concatenate([nb.omp.results[f"tile_{t}"].gene_no for t in use_tiles], axis=0)
-            score = np.concatenate([nb.omp.results[f"tile_{t}"].scores for t in use_tiles], axis=0)
-            tile = np.concatenate(
-                [t * np.ones(nb.omp.results[f"tile_{t}"].scores.shape[0], dtype=int) for t in use_tiles]
-            )
-            spot_index = np.concatenate([np.arange(nb.omp.results[f"tile_{t}"].scores.shape[0]) for t in use_tiles])
+            spots, tile = omp_base.get_all_colours(self.nbp_basic, self.nbp_omp)
+            gene_no = omp_base.get_all_gene_no(self.nbp_basic, self.nbp_omp)[0]
+            score = omp_base.get_all_scores(self.nbp_basic, self.nbp_omp)[0]
+            spot_index = np.arange(gene_no.size)
         elif self.mode == "anchor":
-            spots = nb.ref_spots.colours[:]
-            gene_no = nb.call_spots.dot_product_gene_no[:]
-            score = nb.call_spots.dot_product_gene_score[:]
-            tile = nb.ref_spots.tile[:]
-            spot_index = np.arange(nb.ref_spots.colours.shape[0])
+            spots = nbp_ref_spots.colours[:]
+            gene_no = nbp_call_spots.dot_product_gene_no[:]
+            score = nbp_call_spots.dot_product_gene_score[:]
+            tile = nbp_ref_spots.tile[:]
+            spot_index = np.arange(nbp_ref_spots.colours.shape[0])
         else:
-            spots = nb.ref_spots.colours[:]
-            gene_no = np.argmax(nb.call_spots.gene_probabilities[:], axis=1)
-            score = np.max(nb.call_spots.gene_probabilities[:], axis=1)
-            tile = nb.ref_spots.tile[:]
-            spot_index = np.arange(nb.ref_spots.colours.shape[0])
+            spots = nbp_ref_spots.colours[:]
+            gene_no = np.argmax(nbp_call_spots.gene_probabilities[:], axis=1)
+            score = np.max(nbp_call_spots.gene_probabilities[:], axis=1)
+            tile = nbp_ref_spots.tile[:]
+            spot_index = np.arange(nbp_ref_spots.colours.shape[0])
 
         # get spots for gene gene_index with score > score_threshold for current mode and valid spots
         invalid = np.any(np.isnan(spots), axis=(1, 2))
         mask = (gene_no == gene_index) & (score > self.score_threshold) & (~invalid)
         spots = spots[mask] * colour_norm[tile[mask]]
-        spots = spot_colours_base.remove_background(spots)[0]
+        spots -= np.percentile(spots, 25, axis=1, keepdims=True)
         score = score[mask]
         # order spots by scores
         permutation = np.argsort(score)[::-1]
@@ -650,7 +685,7 @@ class GeneSpotsViewer:
         # add attributes
         self.spots = spots.reshape(spots.shape[0], -1)
         self.score = score
-        self.bled_code = nb.call_spots.bled_codes[gene_index].reshape(1, -1)
+        self.bled_code = nbp_call_spots.bled_codes[gene_index].reshape(1, -1)
         self.spot_index = spot_index
         self.tile = tile
 
@@ -660,9 +695,9 @@ class GeneSpotsViewer:
         # Now we can plot the spots. We want to create 2 subplots. One with the spots observed and one with the expected
         # spots.
         vmin, vmax = np.percentile(self.spots, [3, 97])
-        gene_code = self.nb.call_spots.gene_codes[self.gene_index]
+        gene_code = self.nbp_call_spots.gene_codes[self.gene_index]
         # we are going to find the mean cosine angle between observed and expected spots in each round
-        n_rounds, n_channels = len(self.nb.basic_info.use_rounds), len(self.nb.basic_info.use_channels)
+        n_rounds, n_channels = len(self.nbp_basic.use_rounds), len(self.nbp_basic.use_channels)
         mean_cosine = np.zeros(n_rounds)
         for r in range(n_rounds):
             colours_r = self.spots[:, r * n_channels : (r + 1) * n_channels].copy()
@@ -682,33 +717,34 @@ class GeneSpotsViewer:
                 a.set_xlabel("Gene Colour")
             a.set_ylabel("Spot")
             # add x ticks of the round number
-            n_rounds, n_channels = len(self.nb.basic_info.use_rounds), len(self.nb.basic_info.use_channels)
+            n_rounds, n_channels = len(self.nbp_basic.use_rounds), len(self.nbp_basic.use_channels)
             x_tick_loc = np.arange(n_channels // 2, n_channels * n_rounds, n_channels)
             if i == 0:
-                x_tick_label = [f"R {r} \n {str(np.around(mean_cosine[r], 2))}" for r in self.nb.basic_info.use_rounds]
+                x_tick_label = [f"R {r} \n {str(np.around(mean_cosine[r], 2))}" for r in self.nbp_basic.use_rounds]
             else:
-                x_tick_label = [f"R {r}" for r in self.nb.basic_info.use_rounds]
+                x_tick_label = [f"R {r}" for r in self.nbp_basic.use_rounds]
             a.set_xticks(x_tick_loc, x_tick_label)
             a.set_yticks([])
 
         # We would like to add red vertical lines to show the start of each round.
         for j, a in enumerate(self.ax):
-            for i in range(self.nb.basic_info.n_rounds):
-                a.axvline(i * len(self.nb.basic_info.use_channels) - 0.5, color="r")
+            for i in range(self.nbp_basic.n_rounds):
+                a.axvline(i * len(self.nbp_basic.use_channels) - 0.5, color="r")
 
         # Set supertitle, colorbar and show plot
         self.fig.suptitle(
-            f"Method: {self.mode}, Gene: {self.nb.call_spots.gene_names[self.gene_index]}, "
+            f"Method: {self.mode}, Gene: {self.nbp_call_spots.gene_names[self.gene_index]}, "
             f"(Code: {gene_code}) \n Score Threshold: {self.score_threshold:.2f}, "
             f"N: {self.spots.shape[0]}"
         )
 
-        self.add_main_widgets()
+        # FIXME: Not working.
+        # self.add_main_widgets()
         plt.show()
 
-    def secondary_plot(self, event=None):
+    def secondary_plot(self, _=None):
         # calculate probability of gene assignment and plot this against the score
-        bled_codes = self.nb.call_spots.bled_codes
+        bled_codes = self.nbp_call_spots.bled_codes
         n_genes, n_rounds, n_channels = bled_codes.shape
         kappa = np.log(1 + n_genes // 75) + 2
         gene_probs = gene_prob_score(
@@ -721,12 +757,13 @@ class GeneSpotsViewer:
         self.ax_scatter.set_ylabel("Gene Score")
         self.ax_scatter.set_title(
             f"Gene Probability vs Gene Score ({self.mode}) for Gene "
-            f"{self.nb.call_spots.gene_names[self.gene_index]}"
+            f"{self.nbp_call_spots.gene_names[self.gene_index]}"
         )
         # add colorbar
         cbar = self.fig_scatter.colorbar(cm.ScalarMappable(norm=None, cmap="viridis"), ax=self.ax_scatter)
         cbar.set_label("Spot Brightness")
-        self.add_secondary_widgets(gene_probs)
+        # FIXME: Not working.
+        # self.add_secondary_widgets(gene_probs)
         plt.show()
 
     def add_main_widgets(self):
@@ -762,7 +799,7 @@ class GeneSpotsViewer:
         self.ax[0].add_patch(
             Rectangle(
                 (-0.5, index - 0.5),
-                self.nb.basic_info.n_rounds * len(self.nb.basic_info.use_channels),
+                self.nbp_basic.n_rounds * len(self.nbp_basic.use_channels),
                 1,
                 fill=False,
                 edgecolor="white",

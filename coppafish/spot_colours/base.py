@@ -2,7 +2,6 @@ from typing import Any, Optional, Tuple, Union
 
 import numpy as np
 import torch
-from tqdm import tqdm
 import zarr
 
 
@@ -131,27 +130,6 @@ def apply_affine(yxz: torch.Tensor, affine: torch.Tensor) -> torch.Tensor:
     yxz_transform = torch.cat([yxz, torch.ones(yxz.shape[0], 1)], dim=1).float()
     yxz_transform = yxz_transform @ affine
     return yxz_transform
-
-
-def remove_background(spot_colours: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Removes background from spot colours
-    Args:
-        spot_colours: 'float [n_spots x n_rounds x n_channels_use]' spot colours to remove background from.
-    Returns:
-        'spot_colours: [n_spots x n_rounds x n_channels_use]' spot colours with background removed.
-        background_noise: [n_spots x n_channels_use]' background noise for each spot and channel.
-    """
-    n_spots = spot_colours.shape[0]
-    background_noise = np.percentile(spot_colours, 25, axis=1)
-    # Loop through all channels and remove the background from each channel.
-    for c in tqdm(range(spot_colours.shape[2])):
-        background_code = np.zeros(spot_colours[0].shape)
-        background_code[:, c] = 1
-        # Remove the component of the background from the spot colour for each spot
-        spot_colours -= background_noise[:, c][:, None, None] * np.repeat(background_code[None], n_spots, axis=0)
-
-    return spot_colours, background_noise
 
 
 def get_spot_colours_new_safe(

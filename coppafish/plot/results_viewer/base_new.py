@@ -112,8 +112,8 @@ class Viewer:
                 row in the gene marker file. "colour" will group genes based on their colourRGB's, each colour group is
                 sorted by hue. Each gene name in a colour group is sorted alphabetically. Default: "colour".
             background_image (str or none, optional): what to use as the background image, can be none, "dapi" or a
-                file path to a .npy, .npz, or .tif file. The array at a file path must be a numpy array of shape 
-                `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the background image must be located at key 
+                file path to a .npy, .npz, or .tif file. The array at a file path must be a numpy array of shape
+                `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the background image must be located at key
                 'arr_0'. Set to None for no background image. Default: "dapi".
             background_image_colour (str, optional): the napari colour mapping used for the background image. Default:
                 "gray".
@@ -351,6 +351,13 @@ class Viewer:
                 "Show the selected spot's colour in a local region centred around it",
                 lambda _: self._add_subplot(self.view_spot_colour_region()),
                 "General Diagnostics",
+            ),
+            Hotkey(
+                "View Gene Efficiencies",
+                "e",
+                "Show the n_genes by n_rounds gene efficiencies as a heatmap",
+                lambda _: self._add_subplot(self.view_gene_efficiencies()),
+                "Call Spots",
             ),
             Hotkey(
                 "View OMP Coefficients",
@@ -628,6 +635,17 @@ class Viewer:
             show=self.show,
         )
 
+    def view_gene_efficiencies(self) -> Subplot:
+        self._free_subplot_spaces(2)
+        return spot_colours.ViewGeneEfficiencies(
+            self.nbp_basic,
+            self.nbp_ref_spots,
+            self.nbp_call_spots,
+            self.nbp_omp,
+            mode=self.selected_method,
+            score_threshold=self.score_threshs[self.selected_method][0],
+        )
+
     def view_omp_coefficients(self) -> Subplot | None:
         if self.selected_spot is None:
             return
@@ -736,7 +754,7 @@ class Viewer:
             with tifffile.TiffFile(image) as tif:
                 self.background_image = tif.asarray()
         elif type(image) is str:
-            raise ValueError( f"background_image must end with .npy, .npz, .tif or be equal to dapi, got {image}")
+            raise ValueError(f"background_image must end with .npy, .npz, .tif or be equal to dapi, got {image}")
 
         if self.background_image is not None:
             if self.background_image.ndim not in (2, 3):
