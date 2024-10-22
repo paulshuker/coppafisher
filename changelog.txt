@@ -18,9 +18,7 @@
     processes, deleting notebook pages, and retrieving config data from the notebook.
  * Documentation: Detailed method description for find spots, stitch, call spots, and OMP.
  * Viewer: The Viewer is now faster and more responsive.
- * Viewer: The Viewer is more customisable. Users can now toggle whether they want each image shown to be a max 
-    intensity projection or not, which is achieved by setting the max_intensity_projection variable in the viewer to 
-    True or False.
+ * Viewer: The user can toggle max intensity projection on/off on the background image.
  * Viewer: The user can adjust the size of spots using the marker size slider.
  * Viewer: Napari has been updated to version 0.5.4, improving stability.
  * Diagnostics: New find spots viewer.
