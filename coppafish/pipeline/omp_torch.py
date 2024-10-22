@@ -13,8 +13,9 @@ import zarr
 
 from .. import log, spot_colours, utils
 from .. import find_spots
-from ..omp import coefs, scores_torch, spots_torch
+from ..omp import coefs, scores, spots
 from ..setup.notebook_page import NotebookPage
+from ..utils import duplicates as utils_duplicates
 
 
 def run_omp(
@@ -221,7 +222,7 @@ def run_omp(
                     f"OMP failed to find any isolated spots on the coefficient images. "
                     + "Consider reducing shape_isolation_distance_* in the OMP config"
                 )
-            mean_spot = spots_torch.compute_mean_spot(
+            mean_spot = spots.compute_mean_spot(
                 coefficients, isolated_yxz, isolated_gene_no, tile_shape, config["spot_shape"]
             )
             log.debug(f"OMP mean spot computed with {n_isolated_count} isolated spots")
@@ -230,7 +231,7 @@ def run_omp(
             del shape_isolation_distance_z, n_isolated_count
             spot = torch.zeros_like(mean_spot, dtype=torch.int16)
             spot[mean_spot >= config["shape_sign_thresh"]] = 1
-            edge_counts = spots_torch.count_edge_ones(spot)
+            edge_counts = spots.count_edge_ones(spot)
             if edge_counts > 0:
                 log.warn(
                     f"The spot contains {edge_counts} ones on the x/y edges. You may need to increase spot_shape in"
@@ -271,7 +272,7 @@ def run_omp(
             # STEP 2: Score every gene's coefficient image.
             g_coef_image = coefficients[:, gene_batch].toarray().T.reshape((len(gene_batch),) + tile_shape, order="F")
             g_coef_image = torch.asarray(g_coef_image).float()
-            g_score_image = scores_torch.score_coefficient_image(g_coef_image, spot, mean_spot, config["force_cpu"])
+            g_score_image = scores.score_coefficient_image(g_coef_image, spot, mean_spot, config["force_cpu"])
             del g_coef_image
             g_score_image = g_score_image.to(dtype=torch.float16)
 
@@ -292,7 +293,7 @@ def run_omp(
                 # Delete any spot positions that are duplicates.
                 g_spot_global_positions = g_spot_local_positions.detach().clone().float()
                 g_spot_global_positions += tile_origins[[t]]
-                duplicates = spots_torch.is_duplicate_spot(g_spot_global_positions, t, tile_centres)
+                duplicates = utils_duplicates.is_duplicate_spot(g_spot_global_positions, t, tile_centres)
                 g_spot_local_positions = g_spot_local_positions[~duplicates]
                 g_spot_scores = g_spot_scores[~duplicates]
                 del g_spot_global_positions, duplicates

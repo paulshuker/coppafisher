@@ -6,7 +6,7 @@ from matplotlib.widgets import CheckButtons, Slider
 import numpy as np
 import torch
 
-from ...omp import coefs, scores_torch
+from ...omp import coefs, scores
 from ...omp import base as omp_base
 from ...setup.notebook import Notebook
 from ...spot_colours import base as spot_colours_base
@@ -117,7 +117,7 @@ class ViewOMPImage:
         self.scores = []
         for g in range(coefficient_image.shape[0]):
             self.scores.append(
-                scores_torch.score_coefficient_image(
+                scores.score_coefficient_image(
                     coefficient_image[[g]], torch.asarray(nb.omp.spot), torch.asarray(nb.omp.mean_spot)
                 )[0][central_yxz].item()
             )
