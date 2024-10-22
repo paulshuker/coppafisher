@@ -99,7 +99,7 @@ def call_reference_spots(
         colour_norm_factor_initial[colour_norm_factor_initial == np.inf] = 1
         spot_colours[spot_tile == t] *= colour_norm_factor_initial[t]
     # remove background as constant offset across different rounds of the same channel
-    spot_colours -= np.percentile(spot_colours, 25, axis=1)[:, None, :]
+    spot_colours -= np.percentile(spot_colours, 25, axis=1, keepdims=True)
 
     # 2. Compute gene probabilities for each spot
     bled_codes = raw_bleed_matrix[gene_codes]
@@ -155,7 +155,7 @@ def call_reference_spots(
         ) / np.sum(np.sqrt(n_spots_per_gene) * free_bled_codes_tile_indep[rc_genes, r, c] ** 2)
     bled_codes = free_bled_codes_tile_indep * rc_scale[None, :, :]
     # normalise the constrained bled codes
-    bled_codes /= np.linalg.norm(bled_codes, axis=(1, 2))[:, None, None]
+    bled_codes /= np.linalg.norm(bled_codes, axis=(1, 2), keepdims=True)
 
     # 6. Compute the scale factor Q_trc maximising the similarity between the tile independent codes and the
     # constrained bled codes.
@@ -191,11 +191,12 @@ def call_reference_spots(
         index_min = batch_i * n_max_score_pixels
         index_max = min(spot_colours.shape[0], (batch_i + 1) * n_max_score_pixels)
         gene_dot_products[index_min:index_max] = dot_product_score(
-            spot_colours=spot_colours[index_min:index_max].reshape((-1, n_rounds * n_channels_use)),
-            bled_codes=bled_codes.reshape((n_genes, n_rounds * n_channels_use)),
-        )[-1]
-    dp_mode, dp_score = np.argmax(gene_dot_products, axis=1).astype(np.int16), np.max(gene_dot_products, axis=1)
-    dp_mode = zarr.array(dp_mode, store=os.path.join(nbp_file.output_dir, "dp_mode.zarray"), **kwargs)
+            spot_colours=spot_colours[index_min:index_max],
+            bled_codes=bled_codes,
+            dot_product_weight=config["dot_product_weight"],
+        )
+    dp_gene, dp_score = np.argmax(gene_dot_products, axis=1).astype(np.int16), np.max(gene_dot_products, axis=1)
+    dp_gene = zarr.array(dp_gene, store=os.path.join(nbp_file.output_dir, "dp_mode.zarray"), **kwargs)
     dp_score = zarr.array(dp_score, store=os.path.join(nbp_file.output_dir, "dp_score.zarray"), **kwargs)
     # update bleed matrix
     good = prob_score > prob_threshold
@@ -204,7 +205,7 @@ def call_reference_spots(
 
     # 8. Save the results.
     nbp.intensity = zarr.array(intensity, store=os.path.join(nbp_file.output_dir, "intensity.zarray"), **kwargs)
-    nbp.dot_product_gene_no, nbp.dot_product_gene_score = dp_mode, dp_score
+    nbp.dot_product_gene_no, nbp.dot_product_gene_score = dp_gene, dp_score
     nbp.gene_probabilities_initial = gene_prob_initial
     nbp.gene_probabilities = gene_prob
     nbp.gene_names, nbp.gene_codes = gene_names, gene_codes

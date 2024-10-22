@@ -123,6 +123,7 @@ _options = {
         "kappa": "maybe_number",
         "concentration_parameter_parallel": "number",
         "concentration_parameter_perpendicular": "number",
+        "dot_product_weight": "number",
     },
     "omp": {
         "colour_normalise": "bool",

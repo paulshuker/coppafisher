@@ -87,6 +87,8 @@ def get_reference_spots(
             use_channels=use_channels,
         )
         valid = ~(np.isnan(colours).any(1).any(1))
+        # Zeros in all channels for any round is an invalid spot.
+        valid &= ~(np.isclose(colours, 0).all(2).any(1))
         log.debug(f"Valid ref pixel colours: {valid.sum()} out of {valid.size} for tile {t}")
         spot_colours = np.append(spot_colours, colours[valid], axis=0)
         local_yxz = np.append(local_yxz, nd_local_yxz[in_tile][valid], axis=0)
