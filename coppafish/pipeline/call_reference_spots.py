@@ -183,7 +183,7 @@ def call_reference_spots(
     gene_prob = zarr.array(gene_prob, store=os.path.join(nbp_file.output_dir, "gene_prob.zarray"), **kwargs)
     # Computing all dot product scores at once can take too much memory.
     gene_dot_products = np.zeros((n_spots, n_genes), np.float16)
-    n_max_score_pixels = 0.7 * system.get_available_memory() * 1e9 / (n_spots * n_genes * n_rounds * n_channels_use * 4)
+    n_max_score_pixels = 0.7 * system.get_available_memory() * 1e9 / (n_genes * n_rounds * n_channels_use * 4)
     n_max_score_pixels = int(max(1, n_max_score_pixels))
     n_batches = maths.ceil(n_spots / n_max_score_pixels)
     log.debug(f"{n_max_score_pixels=}")
