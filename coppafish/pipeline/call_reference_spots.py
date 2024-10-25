@@ -177,7 +177,8 @@ def call_reference_spots(
 
     # 7. Update the normalised spots and the bleed matrix, then do a second round of gene assignments with the new bled
     # codes.
-    spot_colours = spot_colours * tile_scale[spot_tile, :, :]  # update the spot colours
+    colour_norm_factor = colour_norm_factor_initial * tile_scale
+    spot_colours *= tile_scale[spot_tile, :, :]  # update the spot colours
     gene_prob = gene_prob_score(spot_colours=spot_colours, bled_codes=bled_codes, kappa=config["kappa"])  # update probs
     prob_mode, prob_score = np.argmax(gene_prob, axis=1), np.max(gene_prob, axis=1)
     gene_prob = zarr.array(gene_prob, store=os.path.join(nbp_file.output_dir, "gene_prob.zarray"), **kwargs)
@@ -193,16 +194,15 @@ def call_reference_spots(
         gene_dot_products[index_min:index_max] = dot_product_score(
             spot_colours=spot_colours[index_min:index_max],
             bled_codes=bled_codes,
-            intensity_threshold=config["dot_product_intensity_threshold"],
             dot_product_weight=config["dot_product_weight"],
         )
     dp_gene, dp_score = np.argmax(gene_dot_products, axis=1).astype(np.int16), np.max(gene_dot_products, axis=1)
     dp_gene = zarr.array(dp_gene, store=os.path.join(nbp_file.output_dir, "dp_mode.zarray"), **kwargs)
     dp_score = zarr.array(dp_score, store=os.path.join(nbp_file.output_dir, "dp_score.zarray"), **kwargs)
-    # update bleed matrix
+    # Update bleed matrix.
     good = prob_score > prob_threshold
     bleed_matrix = compute_bleed_matrix(spot_colours[good], prob_mode[good], gene_codes, n_dyes)
-    intensity = np.median(np.max(spot_colours, axis=-1), axis=-1)
+    intensity = np.abs(nbp_ref_spots.colours[:].astype(np.float32) * colour_norm_factor[spot_tile]).max(2).min(1)
 
     # 8. Save the results.
     nbp.intensity = zarr.array(intensity, store=os.path.join(nbp_file.output_dir, "intensity.zarray"), **kwargs)
@@ -211,7 +211,7 @@ def call_reference_spots(
     nbp.gene_probabilities = gene_prob
     nbp.gene_names, nbp.gene_codes = gene_names, gene_codes
     nbp.initial_scale, nbp.rc_scale, nbp.tile_scale = colour_norm_factor_initial, rc_scale, tile_scale
-    nbp.colour_norm_factor = colour_norm_factor_initial * tile_scale
+    nbp.colour_norm_factor = colour_norm_factor
     nbp.free_bled_codes, nbp.free_bled_codes_tile_independent = free_bled_codes, free_bled_codes_tile_indep
     nbp.bled_codes = bled_codes
     nbp.bleed_matrix_raw, nbp.bleed_matrix_initial, nbp.bleed_matrix = (

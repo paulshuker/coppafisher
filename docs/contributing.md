@@ -18,19 +18,19 @@ pip install -r requirements-dev.txt
 Run unit tests (~25s) 
 
 ```terminal
-pytest -m "not integration and not manual and not notebook"
+pytest -m "not integration and not notebook"
 ```
 
 Run integration tests (~50s) 
 
 ```terminal
-pytest -m "integration and not manual"
+pytest -m "integration"
 ```
 
 Run unit tests requiring a notebook (~3s) 
 
 ```terminal
-pytest -m "notebook and not integration and not manual"
+pytest -m "notebook"
 ```
 
 Check the percentage code coverage by appending `--cov=coppafish --cov-report term` to each command.

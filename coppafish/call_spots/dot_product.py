@@ -7,7 +7,6 @@ from .. import log
 def dot_product_score(
     spot_colours: np.ndarray | torch.Tensor,
     bled_codes: np.ndarray | torch.Tensor,
-    intensity_threshold: float,
     dot_product_weight: float,
 ) -> np.ndarray | torch.Tensor:
     """
@@ -17,11 +16,6 @@ def dot_product_score(
         spot_colours (`(n_spots x n_rounds x n_channels_use) ndarray[float]`): spot colours after call spots scaling
             has been applied. They must not be L2 normalised yet.
         bled_codes (`(n_genes x n_rounds x n_channels_use) ndarray[float]`): normalised bled codes.
-        intensity_threshold (float): a pixel's score is set to zero if x < intensity_threshold, where x is
-            abs(y).min(over rounds).max(over channels) is the the weakest round intensity, where y is spot_colours
-            divided by its total L2 norm for each pixel. At zero, there is no intensity threshold. The threshold is
-            important to cut out pixels/spots with missing round(s). There can be missing rounds due to different
-            reasons: 1) Trying to score dim noise. 2) Registration mistakes. 3) Experimental issues.
         dot_product_weight (float): how much the dot product score is a pure dot product score. 1 is a simple dot
             product score, 0 gives each round an equal weighting on the score. A value between 0 and 1 is somewhere in
             between the two.
@@ -33,8 +27,6 @@ def dot_product_score(
     """
     assert type(spot_colours) in (np.ndarray, torch.Tensor)
     assert type(bled_codes) in (np.ndarray, torch.Tensor)
-    assert type(intensity_threshold) is float
-    assert intensity_threshold >= 0 and intensity_threshold <= 1
     if dot_product_weight < 0 or dot_product_weight > 1:
         raise ValueError(f"dot_product_weight must be between 0 and 1, got {dot_product_weight}")
 
@@ -50,11 +42,6 @@ def dot_product_score(
     bled_codes_torch = bled_codes_torch.float()
     assert spot_colours_torch.ndim == bled_codes_torch.ndim == 3
     assert spot_colours_torch.shape[1:] == bled_codes_torch.shape[1:]
-
-    worst_intensity = spot_colours_torch.abs().max(2).values.min(1).values
-    is_dim = worst_intensity < intensity_threshold
-    log.debug(f"Found {is_dim.sum()}/{is_dim.size} weak spots")
-    del worst_intensity
 
     # L2 normalise the entire spot colour for each spot.
     spot_colours_torch /= torch.linalg.matrix_norm(spot_colours_torch, keepdim=True)
@@ -82,7 +69,6 @@ def dot_product_score(
     del spot_colours_norms
     scores /= (bled_code_norms ** (2 * dot_product_weight)).sum(1).sqrt()[np.newaxis]
     del bled_code_norms
-    scores[is_dim] = 0
     scores = scores.clip(0, 1)
 
     if type(spot_colours) is np.ndarray:

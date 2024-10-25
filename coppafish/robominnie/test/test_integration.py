@@ -55,9 +55,7 @@ def test_integration_small_two_tile():
     del robominnie
 
 
-@pytest.mark.notebook
-@pytest.mark.manual
-def test_viewers() -> None:
+def viewers_test() -> None:
     """
     Make sure the coppafish Viewer and RegistrationViewer is working without crashing.
 
@@ -87,4 +85,4 @@ def get_config_path() -> str:
 
 if __name__ == "__main__":
     test_integration_small_two_tile()
-    test_viewers()
+    viewers_test()

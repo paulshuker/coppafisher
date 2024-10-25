@@ -457,15 +457,18 @@ $$
 \sum_{rc} |\mathbf{F}_{src}|^2 = 1\text{,}\space\space\space\sum_{rc} |\mathbf{K}_{grc}|^2 = 1
 $$
 
-for all spots, $s$ and all genes, $g$. A spot score is set to zero if
+for all spots, $s$ and all genes, $g$.
+
+An intensity for each spot is saved to the notebook and used in the [Viewer](diagnostics.md#viewer). It is computed 
+from the final, scaled colours. No normalisation is applied to avoid boosting dim signal.
 
 $$
-\min_r(\max_c(\mathbf{F}_{src})) < \text{dot\_product\_intensity\_threshold}
+\text{intensity}_s = \min_r(\max_c(\mathbf{F}_{src}))
 $$
 
-where `dot_product_intensity_threshold` is a config parameter (typically 0.1) to eliminate colours that are too dim in 
-a sequencing round since we expect every gene to brightly express itself in every round in at least one channel. Note 
-that $F_{src}$ is not L2 normalised here as this would boost noise.
+This intensity should have a threshold when looking at gene results as it removes poor gene reads caused by colour that 
+is bright in only some of the rounds. From data, a value of 0.1 is reasonable. This is the default threshold for the 
+Viewer.
 
 ??? note "What could cause brightness in some rounds but not others?"
     There are many possible explanations: 1) A registration mistake has caused a misalignment in some pixels. 2) An 

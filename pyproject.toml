@@ -1,6 +1,5 @@
 [tool.pytest.ini_options]
 markers = [
-    "manual: tests only run manually",
     "integration: integration tests",
     "notebook: tests that can only run with a completed robominnie notebook (after an integration test)",
 ]

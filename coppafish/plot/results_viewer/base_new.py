@@ -43,6 +43,11 @@ class Viewer:
         "anchor": (0.5, None),
         "omp": (0.3, None),
     }
+    _starting_intensity_thresholds: dict[str, tuple[float, float | None]] = {
+        "prob": (0.1, None),
+        "anchor": (0.1, None),
+        "omp": (0.1, None),
+    }
     _default_spot_size: float = 8.0
     _max_open_subplots: int = 5
 
@@ -800,7 +805,10 @@ class Viewer:
         for method, score_thresh in self.score_threshs.items():
             if score_thresh[1] is None:
                 self.score_threshs[method] = (score_thresh[0], max_score)
-        self.intensity_threshs = {method: (0.0, max_intensity) for method in self.spot_data.keys()}
+        self.intensity_threshs = {method: self._starting_intensity_thresholds[method] for method in self.spot_data.keys()}
+        for method, intensity_thresh in self.intensity_threshs.items():
+            if intensity_thresh[1] is None:
+                self.intensity_threshs[method] = (intensity_thresh[0], max_intensity)
         self.spot_size = self._default_spot_size
 
         if self.viewer_exists():
