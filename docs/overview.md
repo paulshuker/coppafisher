@@ -48,8 +48,8 @@ pixels of the images. At each OMP iteration, a new gene is assigned to the pixel
 least squares. Background genes[^1] are considered valid genes in OMP. The iterations stop if:
 
 * `max_genes` in the `omp` config section is reached.
-* assigning the next best gene to the pixel does not have a dot product score above `dp_thresh` in the `omp` config.
-The dot product score is a dot product of the residual pixel intensity in every sequencing round/channel (known as its
+* assigning the next best gene to the pixel does not have a dot product score above `dp_thresh` in the `omp` config. 
+The dot product score is a dot product of the residual pixel intensity in every sequencing round/channel (known as its 
 colour) with the normalised bled codes (see [call spots](#call-spots)).
 
 <!-- TODO: Should expand more on the OMP gene scoring here -->

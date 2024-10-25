@@ -644,6 +644,7 @@ class Viewer:
             self.nbp_omp,
             mode=self.selected_method,
             score_threshold=self.score_threshs[self.selected_method][0],
+            show=self.show,
         )
 
     def view_omp_coefficients(self) -> Subplot | None:

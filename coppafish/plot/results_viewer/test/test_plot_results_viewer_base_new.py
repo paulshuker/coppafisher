@@ -138,7 +138,7 @@ def test_Viewer() -> None:
     viewer.close()
 
     n_omp_spots = 85 // n_tiles
-    omp_config = {"omp": {"max_genes": 2, "dp_thresh": 0.01, "lambda_d": 0.001}}
+    omp_config = {"omp": {"max_genes": 2, "dp_thresh": 0.01, "dot_product_weight": 0.4, "lambda_d": 0.001}}
     nbp_omp = NotebookPage("omp", omp_config)
     spot_shape = (9, 9, 5)
     mean_spot = rng.rand(*spot_shape).astype(np.float32)
@@ -207,7 +207,3 @@ def test_Viewer() -> None:
     viewer.close()
 
     temp_zgroup.cleanup()
-
-
-if __name__ == "__main__":
-    test_Viewer()

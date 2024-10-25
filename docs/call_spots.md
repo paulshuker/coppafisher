@@ -436,7 +436,8 @@ $$
 
 ### 6 and 7: Application of Scales, Computation of Final Scores and Bleed Matrix
 
-All that is left to do is multiply the spot colours $F_{src}$ by the updated normalisation factor $Q_{trc}$ to get the final spot colours: $F_{src} \mapsto Q_{trc} F_{src}$.
+All that is left to do is multiply the spot colours $F_{src}$ by the updated normalisation factor $Q_{trc}$ to get the 
+final spot colours: $F_{src} \mapsto Q_{trc} F_{src}$.
 
 We then compute a score between each spot colour $\mathbf{F_s}$ and each gene bled code $\mathbf{K_{grc}}$:
 
@@ -447,10 +448,32 @@ $$
 where
 
 $$
-\hat{\mathbf{F}}_{src} = \frac{\mathbf{F}_{src}}{||\mathbf{F}||_{sr.}}\text{,}\space\space\space\hat{\mathbf{K}}_{grc} = \frac{\mathbf{K}_{grc}}{||\mathbf{K}||_{gr.}}
+\hat{\mathbf{F}}_{src} = \frac{\mathbf{F}_{src}}{||\mathbf{F}||_{sr.}}\text{,}\space\space\space\hat{\mathbf{K}}_{grc} = \frac{\mathbf{K}_{grc}}{||\mathbf{K}||_{gr.}} \text{,}\space\space\space||\mathbf{F}||_{sr.} = \sqrt{\sum_c |\mathbf{F}_{src}|^2}
 $$
 
-and use the best gene score for each spot's assigned gene:
+and
+
+$$
+\sum_{rc} |\mathbf{F}_{src}|^2 = 1\text{,}\space\space\space\sum_{rc} |\mathbf{K}_{grc}|^2 = 1
+$$
+
+for all spots, $s$ and all genes, $g$. A spot score is set to zero if
+
+$$
+\min_r(\max_c(\mathbf{F}_{src})) < \text{dot\_product\_intensity\_threshold}
+$$
+
+where `dot_product_intensity_threshold` is a config parameter (typically 0.1) to eliminate colours that are too dim in 
+a sequencing round since we expect every gene to brightly express itself in every round in at least one channel. Note 
+that $F_{src}$ is not L2 normalised here as this would boost noise.
+
+??? note "What could cause brightness in some rounds but not others?"
+    There are many possible explanations: 1) A registration mistake has caused a misalignment in some pixels. 2) An 
+    experiment error has failed to light up a gene in a specific round. 3) An experiment error has caused bright 
+    artifacts to appear in specific rounds and not others. So we must be robust against missing round brightness. This 
+    is especially true for OMP as this runs on every image pixels, which will include background noise.
+
+Then use the best gene score for each spot's assigned gene:
 
 - `dot_product_gene_no[s]` = $\textrm{argmax}_g (\textrm{scores}(g))$
 - `dot_product_gene_score[s]` = $\textrm{max}_g (\textrm{scores}(g))$

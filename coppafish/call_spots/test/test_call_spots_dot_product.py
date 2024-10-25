@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 from coppafish.call_spots import dot_product
 
@@ -11,27 +12,32 @@ def test_dot_product():
     bled_codes = np.zeros((n_genes, n_rounds, n_channels_use))
     bled_codes[0, 0, 1] = np.sqrt(0.5)
     bled_codes[0, 1, 1] = np.sqrt(0.5)
+    intensity_threshold = 0.0
 
-    scores = dot_product.dot_product_score(spot_colours, bled_codes, 0)
+    scores = dot_product.dot_product_score(spot_colours, bled_codes, intensity_threshold, 0)
     assert type(scores) is np.ndarray
     assert scores.shape == (n_spots, n_genes)
     assert np.isclose(scores, 1)
     assert (scores >= 0).all()
     assert (scores <= 1).all()
-    scores = dot_product.dot_product_score(spot_colours, bled_codes, 1)
+    scores = dot_product.dot_product_score(spot_colours, bled_codes, 0.0, 1)
     assert type(scores) is np.ndarray
     assert scores.shape == (n_spots, n_genes)
-    assert np.isclose(scores, 0.8944, atol=1e-3)
+    assert np.isclose(scores, 0.8944, atol=1e-3), f"Got {scores}"
     assert (scores >= 0).all()
     assert (scores <= 1).all()
     lower_bound = scores.item()
     for dot_product_weight in [(10 - i - 1) / 10 for i in range(9)]:
-        scores = dot_product.dot_product_score(spot_colours, bled_codes, dot_product_weight)
+        scores = dot_product.dot_product_score(spot_colours, bled_codes, intensity_threshold, dot_product_weight)
+        scores_torch = dot_product.dot_product_score(
+            torch.from_numpy(spot_colours), torch.from_numpy(bled_codes), intensity_threshold, dot_product_weight
+        ).numpy()
         assert type(scores) is np.ndarray
         assert scores.shape == (n_spots, n_genes)
         assert (scores < 1).all() and (scores > lower_bound).all()
         assert (scores >= 0).all()
         assert (scores <= 1).all()
+        assert np.allclose(scores, scores_torch)
         lower_bound = scores.item()
 
 

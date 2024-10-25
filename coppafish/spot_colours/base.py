@@ -246,6 +246,7 @@ def get_spot_colours_new(
         affine_torch = torch.tensor(affine_torch)
     affine_torch = affine_torch.detach().clone().float()
 
+    # TODO: Vectorise applying flow and affine transforms.
     yxz_t = torch.full((len(use_rounds), len(use_channels), yxz.shape[0], 3), torch.nan, dtype=torch.float32)
     for r in use_rounds:
         # image_tr = np.zeros((len(use_channels), 1) + tile_shape, np.float32)

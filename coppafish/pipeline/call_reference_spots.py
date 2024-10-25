@@ -193,6 +193,7 @@ def call_reference_spots(
         gene_dot_products[index_min:index_max] = dot_product_score(
             spot_colours=spot_colours[index_min:index_max],
             bled_codes=bled_codes,
+            intensity_threshold=config["dot_product_intensity_threshold"],
             dot_product_weight=config["dot_product_weight"],
         )
     dp_gene, dp_score = np.argmax(gene_dot_products, axis=1).astype(np.int16), np.max(gene_dot_products, axis=1)
