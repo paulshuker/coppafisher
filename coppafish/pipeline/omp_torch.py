@@ -147,8 +147,9 @@ def run_omp(
             background_codes=bg_bled_codes,
             colour_norm_factor=nbp_call_spots.colour_norm_factor[[t]].astype(np.float32),
             maximum_iterations=max_genes,
-            dot_product_threshold=config["dp_thresh"],
-            normalisation_shift=config["lambda_d"],
+            dot_product_weight=config["dot_product_weight"],
+            dot_product_threshold=config["dot_product_threshold"],
+            normalisation_shift=config["coefficient_normalisation_shift"],
         )
         n_subset_pixels = config["subset_pixels"]
         index_subset, index_min, index_max = 0, 0, 0
@@ -173,8 +174,7 @@ def run_omp(
                 log.debug(f"Computing coefficients")
                 coefficient_subset = solver.compute_omp_coefficients(colour_subset, **coefficient_kwargs)
                 del colour_subset
-                # Add the subset coefficients to the sparse coefficients matrix.
-                log.debug(f"Adding results to sparse matrix")
+                log.debug(f"Appending results")
                 coefficient_subset = scipy.sparse.csr_matrix(coefficient_subset)
                 coefficients.append(coefficient_subset.copy())
                 del coefficient_subset

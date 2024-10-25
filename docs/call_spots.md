@@ -439,16 +439,16 @@ $$
 All that is left to do is multiply the spot colours $F_{src}$ by the updated normalisation factor $Q_{trc}$ to get the 
 final spot colours: $F_{src} \mapsto Q_{trc} F_{src}$.
 
-We then compute a score between each spot colour $\mathbf{F_s}$ and each gene bled code $\mathbf{K_{grc}}$:
+We then compute a score between each spot colour $\mathbf{F_s}$ and each gene bled code $K_{grc}$:
 
 $$
-\textrm{scores}(g) = \bigg(\frac{\sum_r\big[(||\mathbf{F}||_{sr.} ||\mathbf{K}||_{gr.})^\alpha \sum_c(\hat{\mathbf{F}}_{src}\hat{\mathbf{K}}_{grc})\big]}{\sqrt{\sum_r||\mathbf{F}||_{sr.}^{2\alpha}}\sqrt{\sum_r||\mathbf{K}||_{gr.}^{2\alpha}}} \bigg)
+\textrm{scores}(g) = \Bigg|\frac{\sum_r\big[(||\mathbf{F}||_{sr.} ||\mathbf{K}||_{gr.})^\alpha \sum_c(\hat{F}_{src}\hat{K}_{grc})\big]}{\sqrt{\sum_r||\mathbf{F}||_{sr.}^{2\alpha}}\sqrt{\sum_r||\mathbf{K}||_{gr.}^{2\alpha}}} \Bigg|
 $$
 
 where
 
 $$
-\hat{\mathbf{F}}_{src} = \frac{\mathbf{F}_{src}}{||\mathbf{F}||_{sr.}}\text{,}\space\space\space\hat{\mathbf{K}}_{grc} = \frac{\mathbf{K}_{grc}}{||\mathbf{K}||_{gr.}} \text{,}\space\space\space||\mathbf{F}||_{sr.} = \sqrt{\sum_c |\mathbf{F}_{src}|^2}
+\hat{F}_{src} = \frac{F_{src}}{||\mathbf{F}||_{sr.}}\text{,}\space\space\space\hat{K}_{grc} = \frac{K_{grc}}{||\mathbf{K}||_{gr.}}\text{,}\space\space\space||\mathbf{F}||_{sr.} = \sqrt{\sum_c |\mathbf{F}_{src}|^2}\text{,}\space\space\space||\mathbf{K}||_{gr.} = \sqrt{\sum_c |\mathbf{K}_{grc}|^2}
 $$
 
 and

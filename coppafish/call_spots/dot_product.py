@@ -69,7 +69,7 @@ def dot_product_score(
     del spot_colours_norms
     scores /= (bled_code_norms ** (2 * dot_product_weight)).sum(1).sqrt()[np.newaxis]
     del bled_code_norms
-    scores = scores.clip(0, 1)
+    scores = scores.abs().clip(0, 1)
 
     if type(spot_colours) is np.ndarray:
         scores = scores.numpy()

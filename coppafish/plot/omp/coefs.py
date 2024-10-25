@@ -114,8 +114,9 @@ class ViewOMPImage(Subplot):
             background_codes=bg_bled_codes,
             colour_norm_factor=nbp_call_spots.colour_norm_factor[[tile]].astype(np.float32),
             maximum_iterations=config["max_genes"],
-            dot_product_threshold=config["dp_thresh"],
-            normalisation_shift=config["lambda_d"],
+            dot_product_weight=config["dot_product_weight"],
+            dot_product_threshold=config["dot_product_threshold"],
+            normalisation_shift=config["coefficient_normalisation_shift"],
         )
         coefficient_image = torch.asarray(coefficient_image).T.reshape(
             (len(nbp_call_spots.gene_names),) + spot_shape_yxz

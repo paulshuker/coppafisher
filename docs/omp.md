@@ -8,7 +8,8 @@ between sequencing rounds and channels.
 ## Definitions
 
 - $r$ and $c$ represents sequencing rounds and channels respectively.
-- $\mathbf{B}_{grc}$ represents gene g's bled code in round $r$, channel $c$.
+- $\mathbf{B}_{grc}$ represents gene g's bled code in round $r$, channel $c$ saved at `nb.call_spots.bled_codes` from 
+call spots.
 - $\mathbf{S}_{prc}$ is pixel $p$'s colour in round $r$, channel $c$, after pre-processing is applied.
 - $\mathbf{c}_{pgi}$ is the OMP coefficient given to gene $g$ for image pixel $p$ on the $i$'th iteration. $i$ takes 
 values $1, 2, 3, ...$
@@ -16,8 +17,8 @@ values $1, 2, 3, ...$
 
 ## 0: Pre-processing
 
-All tile pixel colours are gathered using the results from register. Any out of bounds round/channel colour intensities 
-are set to zero. 
+All pixel colours are gathered using the results from register. Any out of bounds round/channel colour intensities are 
+set to zero. The pixel colours are multiplied by `nb.call_spots.colour_norm_factor` for the each tile.
 
 ## 1: Assigning the Next Gene
 
@@ -30,16 +31,25 @@ $$
 \mathbf{R}_{prci} = \mathbf{S}_{prc} - \sum_g(\mathbf{c}_{pg(i - 1)}\mathbf{B}_{grc})
 $$
 
-For the first iteration, $\mathbf{R}_{prc(i=1)} = \mathbf{S}_{prc}$. Using this residual, a dot product score is 
-computed for every gene and background gene $g$ as 
+For the first iteration, $\mathbf{R}_{prc(i=1)} = \mathbf{S}_{prc}$. Using this residual, a "semi dot product score" is 
+computed for every gene and background gene $g$ the same way as 
+[call spots](call_spots.md#6-and-7-application-of-scales-computation-of-final-scores-and-bleed-matrix)
 
 $$
-(\text{gene scores})_{pgi} = \frac{\sum_{rc}(\mathbf{B}_{grc}\mathbf{R}_{prci})}{||\mathbf{R}||_{p..i} + \lambda_d}
+\text{(gene scores)}_{pgi} = \Bigg|\frac{\sum_r\big[(||\mathbf{R}||_{pr.i} ||\mathbf{B}||_{gr.})^\alpha \sum_c(\hat{R}_{prci}\hat{B}_{grc})\big]}{\sqrt{\sum_r||\mathbf{R}||_{pr.i}^{2\alpha}}\sqrt{\sum_r||\mathbf{R}||_{gr.}^{2\alpha}}} \Bigg|
 $$
+
+where
+
+$$
+\hat{R}_{prci} = \frac{R_{prci}}{||\mathbf{R}||_{sr.i}}\text{,}\space\space\space\hat{B}_{grc} = \frac{B_{grc}}{||\mathbf{B}||_{gr.}}
+$$
+
+and $\alpha$ is the `dot_product_weight` config parameter (typically 0).
 
 A gene is successfully assigned to a pixel when all conditions are met:
 
-- The best gene score is above `dp_thresh` (typically 0.225).
+- The best gene score is above `dot_product_threshold` (typically 0.225).
 - The best gene is not already assigned to the pixel.
 - The best gene is not a background gene.
 
@@ -83,9 +93,10 @@ $$
 \mathbf{c}_{pg} \rightarrow \frac{\mathbf{c}_{pg}}{||\mathbf{S}||_{p..} + \lambda_d}
 $$
 
-$\lambda_d$ should be on the order of background signal, typically $0.4$. What is left is a coefficient image the shape 
-of a tile for every gene. Most of the coefficients will be zero and we should have spot-shaped non-zero coefficient 
-shapes representing real gene expressions. The coefficients are not saved as this would require a lot of disk space.
+$\lambda_d$ a config parameter (typically 0.4) and should be on the order of background signal. What is left is a 
+coefficient image the shape of a tile for every gene. Most of the coefficients will be zero and we should have 
+spot-shaped non-zero coefficient shapes representing real gene expressions. The coefficients are not saved as this 
+would require a lot of disk space.
 
 ## 4: Mean Spot Computation
 

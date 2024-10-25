@@ -595,7 +595,6 @@ class Robominnie:
         
         [omp]
         spot_shape = 13, 13, 1
-        pixel_max_percentile = 1
         score_threshold = 0.1
         subset_pixels = 10_000
         """

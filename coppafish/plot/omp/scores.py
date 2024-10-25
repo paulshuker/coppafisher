@@ -48,7 +48,7 @@ class ViewOMPDotProductScores(Subplot):
         config = nbp_omp.associated_configs["omp"]
         n_rounds_use = len(nbp_basic.use_rounds)
         n_channels_use = len(nbp_basic.use_channels)
-        self.dp_thresh = config["dp_thresh"]
+        self.dp_thresh = config["dot_product_threshold"]
 
         # image_colours has shape (1, n_rounds_use, n_channels_use).
         image_colours = spot_colours_base.get_spot_colours_new(
@@ -70,8 +70,9 @@ class ViewOMPDotProductScores(Subplot):
             background_codes=bg_bled_codes,
             colour_norm_factor=nbp_call_spots.colour_norm_factor[[spot_tile]].astype(np.float32),
             maximum_iterations=config["max_genes"],
+            dot_product_weight=config["dot_product_weight"],
             dot_product_threshold=self.dp_thresh,
-            normalisation_shift=config["lambda_d"],
+            normalisation_shift=config["coefficient_normalisation_shift"],
             return_dp_scores=True,
         )
         n_iterations = len(self.dp_scores)
