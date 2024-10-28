@@ -112,7 +112,6 @@ class ViewOMPImage(Subplot):
             pixel_colours=image_colours,
             bled_codes=bled_codes,
             background_codes=bg_bled_codes,
-            colour_norm_factor=nbp_call_spots.colour_norm_factor[[tile]].astype(np.float32),
             maximum_iterations=config["max_genes"],
             dot_product_weight=config["dot_product_weight"],
             dot_product_threshold=config["dot_product_threshold"],
