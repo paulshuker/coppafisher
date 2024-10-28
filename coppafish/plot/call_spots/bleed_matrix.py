@@ -70,7 +70,9 @@ class ViewBledCodes(Subplot):
         self.im = self.ax.imshow(np.zeros_like(self.bled_codes[0].T), cmap=cmap, norm=norm)
         self.fig.colorbar(self.im, ax=self.ax, orientation="vertical", fraction=0.03, pad=0.04)
         self.ax.set_xticks(list(range(self.bled_codes.shape[1])), nbp_basic_info.use_rounds)
-        self.ax.set_xticks(list(range(self.bled_codes.shape[2])), nbp_basic_info.use_channels)
+        self.ax.set_xlabel("Rounds")
+        self.ax.set_yticks(list(range(self.bled_codes.shape[2])), nbp_basic_info.use_channels)
+        self.ax.set_ylabel("Channels")
 
         # Text box for changing the gene to look at.
         axbox = self.fig.add_axes([0.2, 0.05, 0.6, 0.075])

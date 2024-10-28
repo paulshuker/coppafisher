@@ -413,10 +413,10 @@ class Viewer:
         self.selected_spot = selected_data.active
         if self.selected_spot is None:
             return
-        index, _, local_yxz, tile, gene_no, score, _ = self._get_selection_data()
+        index, _, local_yxz, tile, gene_no, score, _, intensity = self._get_selection_data()
         message = (
-            f"Selected spot: {index} at {tuple(local_yxz)}, tile {tile}, gene {gene_no}: "
-            + f"{self.nbp_call_spots.gene_names[gene_no]}, score {score}"
+            f"Selected {self.selected_method} spot: {index} at {tuple(local_yxz)}, tile {tile}, gene {gene_no}: "
+            + f"{self.nbp_call_spots.gene_names[gene_no]}, score {score}, intensity {intensity}"
         )
         print(message)
         self._set_status_to(message)
@@ -595,7 +595,7 @@ class Viewer:
         if self.selected_spot is None:
             return
         self._free_subplot_spaces()
-        index, _, _, tile, gene_no, score, colour = self._get_selection_data()
+        index, _, _, tile, gene_no, score, colour, _ = self._get_selection_data()
         return spot_colours.ViewSpotColourAndCode(
             index,
             score,
@@ -622,7 +622,7 @@ class Viewer:
         if self.selected_spot is None:
             return
         self._free_subplot_spaces()
-        index, _, local_yxz, tile, gene_no, score, _ = self._get_selection_data()
+        index, _, local_yxz, tile, gene_no, score, _, _ = self._get_selection_data()
         return spot_colours.ViewSpotColourRegion(
             index,
             score,
@@ -805,7 +805,9 @@ class Viewer:
         for method, score_thresh in self.score_threshs.items():
             if score_thresh[1] is None:
                 self.score_threshs[method] = (score_thresh[0], max_score)
-        self.intensity_threshs = {method: self._starting_intensity_thresholds[method] for method in self.spot_data.keys()}
+        self.intensity_threshs = {
+            method: self._starting_intensity_thresholds[method] for method in self.spot_data.keys()
+        }
         for method, intensity_thresh in self.intensity_threshs.items():
             if intensity_thresh[1] is None:
                 self.intensity_threshs[method] = (intensity_thresh[0], max_intensity)
@@ -887,8 +889,9 @@ class Viewer:
         gene_no = spot_data.gene_no[self.selected_spot]
         score = spot_data.score[self.selected_spot]
         colour = spot_data.colours[self.selected_spot]
+        intensity = spot_data.intensity[self.selected_spot]
 
-        return index, yxz, local_yxz, tile, gene_no, score, colour
+        return index, yxz, local_yxz, tile, gene_no, score, colour, intensity
 
     def _create_gene_list(self, gene_marker_filepath: Optional[str] = None) -> tuple["Viewer.Gene"]:
         """
