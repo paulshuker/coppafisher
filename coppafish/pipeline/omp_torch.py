@@ -11,10 +11,11 @@ import torch
 import tqdm
 import zarr
 
-from .. import log, spot_colours, utils
+from .. import log, utils
 from .. import find_spots
 from ..omp import coefs, scores_torch, spots_torch
 from ..setup.notebook_page import NotebookPage
+from ..spot_colours import base as spot_colours_base
 
 
 def run_omp(
@@ -145,7 +146,6 @@ def run_omp(
         coefficient_kwargs = dict(
             bled_codes=bled_codes,
             background_codes=bg_bled_codes,
-            colour_norm_factor=nbp_call_spots.colour_norm_factor[[t]].astype(np.float32),
             maximum_iterations=max_genes,
             dot_product_weight=config["dot_product_weight"],
             dot_product_threshold=config["dot_product_threshold"],
@@ -168,11 +168,19 @@ def run_omp(
                 log.debug(f"==== Subset {index_subset} ====")
                 log.debug(f"Getting spot colours")
                 index_max = index_min + n_subset_pixels
-                colour_subset = spot_colours.base.get_spot_colours_new_safe(
+                colour_subset = spot_colours_base.get_spot_colours_new_safe(
                     nbp_basic, yxz_all[index_min:index_max], **spot_colour_kwargs
                 )
+                colour_subset *= nbp_call_spots.colour_norm_factor[[t]].astype(np.float32)
+                intensity = colour_subset.max(2).min(1)
+                is_intense = (intensity >= config["minimum_intensity"]).nonzero()
+                del intensity
                 log.debug(f"Computing coefficients")
-                coefficient_subset = solver.compute_omp_coefficients(colour_subset, **coefficient_kwargs)
+                coefficient_subset = np.zeros((index_max - index_min, n_genes), np.float32)
+                if is_intense[0].size > 0:
+                    coefficient_subset[is_intense] = solver.compute_omp_coefficients(
+                        colour_subset[is_intense], **coefficient_kwargs
+                    )
                 del colour_subset
                 log.debug(f"Appending results")
                 coefficient_subset = scipy.sparse.csr_matrix(coefficient_subset)
@@ -202,8 +210,9 @@ def run_omp(
         ]
         for gene_batch in tqdm.tqdm(gene_batches, desc=f"Scoring/detecting spots", unit="gene batch", postfix=postfix):
             # STEP 2: Score every gene's coefficient image.
-            g_coef_image = np.vstack([coef_subset[:, gene_batch].toarray() for coef_subset in coefficients]).T
-            g_coef_image = torch.asarray(g_coef_image.reshape((len(gene_batch),) + tile_shape, order="F")).float()
+            g_coef_image = torch.full((len(gene_batch),) + tile_shape, torch.nan, dtype=torch.float32)
+            for g_i, g in enumerate(gene_batch):
+                g_coef_image[g_i] = torch.from_numpy(coefficients[:, [g]].toarray().reshape(tile_shape, order="F"))
             g_score_image = scores_torch.score_coefficient_image(g_coef_image, mean_spot, config["force_cpu"])
             del g_coef_image
             g_score_image = g_score_image.to(dtype=torch.float16)
@@ -258,7 +267,7 @@ def run_omp(
             chunks=(n_chunk_max, 1, 1),
             dtype=np.float16,
         )
-        t_spots_colours[:] = spot_colours.base.get_spot_colours_new_safe(
+        t_spots_colours[:] = spot_colours_base.get_spot_colours_new_safe(
             nbp_basic, t_local_yxzs, **spot_colour_kwargs
         ).astype(np.float16)
         del t_spots_local_yxz, t_spots_tile, t_spots_gene_no, t_spots_score, t_spots_colours, t_local_yxzs, tile_results

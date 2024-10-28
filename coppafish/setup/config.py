@@ -130,6 +130,7 @@ _options = {
         "fit_background": "bool",
         "weight_coef_fit": "bool",
         "max_genes": "int",
+        "minimum_intensity": "number",
         "coefficient_normalisation_shift": "number",
         "dot_product_weight": "number",
         "dot_product_threshold": "number",

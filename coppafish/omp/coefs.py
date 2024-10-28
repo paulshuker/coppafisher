@@ -21,7 +21,6 @@ class CoefficientSolverOMP:
         pixel_colours: np.ndarray[np.float16],
         bled_codes: np.ndarray[np.float32],
         background_codes: np.ndarray[np.float32],
-        colour_norm_factor: np.ndarray[np.float32],
         maximum_iterations: int,
         dot_product_weight: float,
         dot_product_threshold: float,
@@ -30,11 +29,11 @@ class CoefficientSolverOMP:
     ) -> np.ndarray | Tuple[np.ndarray, Tuple[np.ndarray]]:
         """
         Compute OMP coefficients for all pixel colours from the same tile. At each iteration of OMP, the next best gene
-        assignment is found from the residual spot colours divided by their L2 norm + normalisation_shift. A pixel is
-        stopped iterating on if gene assignment fails. See function `get_next_gene_assignments` below for details on
-        the stopping criteria and gene scoring. Pixels that are gene assigned are then fitted with the additional gene
-        to find updated coefficients. See function `get_next_gene_coefficients` for details on the coefficient
-        computation. All computations are run with 32-bit float precision.
+        assignment is found from the residual spot colours. A pixel is stopped iterating on if gene assignment fails.
+        See function `get_next_gene_assignments` below for details on the stopping criteria and gene scoring. Pixels
+        that are gene assigned are then fitted with the additional gene to find updated coefficients. See function
+        `get_next_gene_coefficients` for details on the coefficient computation. All computations are run with 32-bit
+        float precision.
 
         Args:
             pixel_colours (`(n_pixels x n_rounds_use x n_channels_use) ndarray[float]`): pixel intensity in each
@@ -43,8 +42,6 @@ class CoefficientSolverOMP:
             background_codes (`(n_channels_use x n_rounds_use x n_channels_use) tensor[float]`): the background bled
                 codes. These are simply uniform brightness in one channel for all rounds. background_codes[0] is the
                 first code, background_codes[1] is the second code, etc.
-            colour_norm_factor (`(1 x n_rounds_use x n_channels_use) ndarray[float32]`): colour scaling applied to each
-                round/channel, calculated during call spots.
             maximum_iterations (int): the maximum number of gene assignments allowed for one pixel.
             dot_product_weight (float): 0 means a pure dot product over pixel colour and bled code is done to compute
                 gene scores. 1 represents a dot product with equal round weighting. See OMP method documentation for
@@ -67,7 +64,6 @@ class CoefficientSolverOMP:
         assert type(pixel_colours) is np.ndarray
         assert type(bled_codes) is np.ndarray
         assert type(background_codes) is np.ndarray
-        assert type(colour_norm_factor) is np.ndarray
         assert type(maximum_iterations) is int
         assert type(dot_product_weight) is float
         assert type(dot_product_threshold) is float
@@ -80,15 +76,11 @@ class CoefficientSolverOMP:
         assert pixel_colours.ndim == 3
         assert bled_codes.ndim == 3
         assert background_codes.ndim == 3
-        assert colour_norm_factor.ndim == 3
-        assert colour_norm_factor.shape[0] == 1
         assert pixel_colours.size > 0, "pixel_colours cannot be empty"
         assert bled_codes.size > 0, "bled_codes cannot be empty"
         assert background_codes.size > 0, "background_codes cannot be empty"
-        assert colour_norm_factor.size > 0, "colour_norm_factor cannot be empty"
         assert bled_codes.shape == (n_genes, n_rounds_use, n_channels_use)
         assert background_codes.shape == (n_channels_use, n_rounds_use, n_channels_use)
-        assert colour_norm_factor.shape == (1, n_rounds_use, n_channels_use)
 
         dp_scores = []
         bled_codes_torch = torch.tensor(bled_codes, dtype=torch.float32)
@@ -96,9 +88,7 @@ class CoefficientSolverOMP:
         all_bled_codes = torch.concat((bled_codes_torch, background_codes_torch), dim=0)
 
         coefficients = torch.zeros((n_pixels, n_genes), dtype=torch.float32)
-        colours = pixel_colours.astype(np.float32)
-        colours *= colour_norm_factor
-        colours = torch.tensor(colours)
+        colours = torch.from_numpy(pixel_colours.astype(np.float32))
         # Remember the residual colour between iterations.
         residual_colours = colours.detach().clone()
         # Remember what pixels still need iterating on.
