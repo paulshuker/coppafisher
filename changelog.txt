@@ -56,17 +56,19 @@
  * Call spots: Some variables now saved as zarr arrays to reduce memory usage and notebook read speed.
  * Call spots: Config parameter bad_trc now works with the new colour normalisation factor computation fix.
  * Call spots: The final anchor gene scores is no longer a simple dot product. It is a "semi-dot product" based on new 
-    config parameter dot_product_weight to put more importance on each sequencing round matching.
+    config parameter dot_product_weight to put importance on multiple sequencing rounds matching the gene bled code.
  * OMP: OMP is now truly orthogonal fix. Before, the new gene was weighted using only the residual pixel colour. Now, 
     all genes are re-weighted using the full pixel colour and a new gene is found using the latest residual colour.
+ * OMP: Gene assignment now uses a dot product with equal round weighting. This is identical to the anchor method 
+    scoring. The scoring can be adjusted using scoring omp config parameter dot_product_weight.
  * OMP: After each tile, OMP saves the progress and can continue where it left off if OMP is not completed fully.
  * OMP: Pixel colours are not background fitted before being run through OMP. OMP stops iterating on a pixel if a 
     background gene is assigned.
  * OMP: The OMP mean spot used for scoring is fixed and no longer computed. It is less broad, leading to better results.
  * OMP: Less memory intensive by saving each tile's results separately. Also, the results are compressed to disk.
  * OMP: New OMP subplots for the Viewer. Press "Shift + k" to bring up all subplot shortcuts.
- * OMP: Lower memory requirements.
- * OMP: Much faster compute times with and without cuda.
+ * OMP: Robust memory requirements.
+ * OMP: Faster compute times with and without cuda.
 
 
 2024/05/15 Alpha Update (v0.10.6):

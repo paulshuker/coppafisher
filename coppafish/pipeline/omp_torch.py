@@ -176,11 +176,9 @@ def run_omp(
                 is_intense = (intensity >= config["minimum_intensity"]).nonzero()
                 del intensity
                 log.debug(f"Computing coefficients")
-                coefficient_subset = np.zeros((index_max - index_min, n_genes), np.float32)
+                coefficient_subset = np.zeros((colour_subset.shape[0], n_genes), np.float32)
                 if is_intense[0].size > 0:
-                    coefficient_subset[is_intense] = solver.compute_omp_coefficients(
-                        colour_subset[is_intense], **coefficient_kwargs
-                    )
+                    coefficient_subset[is_intense] = solver.solve(colour_subset[is_intense], **coefficient_kwargs)
                 del colour_subset
                 log.debug(f"Appending results")
                 coefficient_subset = scipy.sparse.csr_matrix(coefficient_subset)
@@ -212,7 +210,11 @@ def run_omp(
             # STEP 2: Score every gene's coefficient image.
             g_coef_image = torch.full((len(gene_batch),) + tile_shape, torch.nan, dtype=torch.float32)
             for g_i, g in enumerate(gene_batch):
-                g_coef_image[g_i] = torch.from_numpy(coefficients[:, [g]].toarray().reshape(tile_shape, order="F"))
+                g_coef_image[g_i] = torch.from_numpy(
+                    np.vstack([coef_subset[:, [g]].toarray() for coef_subset in coefficients]).reshape(
+                        tile_shape, order="F"
+                    )
+                )
             g_score_image = scores_torch.score_coefficient_image(g_coef_image, mean_spot, config["force_cpu"])
             del g_coef_image
             g_score_image = g_score_image.to(dtype=torch.float16)

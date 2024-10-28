@@ -30,10 +30,10 @@ reference.
 ### Prerequisites
 
 * Windows or Linux. MacOS is not tested.
-* At least 64GB of memory for tile sizes `64x2048x2048`.
 * Python 3.10 or 3.11.
-* Nvidia GPU with Cuda 12.4 support (optional).
 * [Git](https://git-scm.com/).
+* 64GB of memory for tile sizes `64x2048x2048` pixels (recommended).
+* Nvidia GPU with Cuda 12.4 support (optional).
 
 ### Environment
 
@@ -68,13 +68,20 @@ cd coppafish
 python -m pip install -r requirements.txt
 ```
 
-install [PyTorch](https://pytorch.org/) with CPU and Cuda 12.4 by 
+install [PyTorch](https://pytorch.org/) with both CPU and Cuda 12.4 support by 
 
 ```terminal
 python -m pip install -r requirements-torch.txt
 ```
 
-Finally, install coppafish by 
+You can check that a GPU is detected and working in the python terminal
+
+```py
+import torch
+torch.cuda.is_available()
+```
+
+which should give true. Finally, install coppafish by 
 
 ```terminal
 python -m pip install .

@@ -64,7 +64,7 @@ class ViewOMPDotProductScores(Subplot):
         omp_solver = coefs.CoefficientSolverOMP()
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
         bg_bled_codes = omp_solver.create_background_bled_codes(n_rounds_use, n_channels_use)
-        _, self.dp_scores = omp_solver.compute_omp_coefficients(
+        _, self.dp_scores = omp_solver.solve(
             pixel_colours=image_colours,
             bled_codes=bled_codes,
             background_codes=bg_bled_codes,

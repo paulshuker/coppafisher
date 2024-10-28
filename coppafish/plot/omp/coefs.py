@@ -108,7 +108,7 @@ class ViewOMPImage(Subplot):
         assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"
         omp_solver = coefs.CoefficientSolverOMP()
         bg_bled_codes = omp_solver.create_background_bled_codes(n_rounds_use, n_channels_use)
-        coefficient_image = omp_solver.compute_omp_coefficients(
+        coefficient_image = omp_solver.solve(
             pixel_colours=image_colours,
             bled_codes=bled_codes,
             background_codes=bg_bled_codes,

@@ -16,7 +16,7 @@ class CoefficientSolverOMP:
         """
         pass
 
-    def compute_omp_coefficients(
+    def solve(
         self,
         pixel_colours: np.ndarray[np.float16],
         bled_codes: np.ndarray[np.float32],
