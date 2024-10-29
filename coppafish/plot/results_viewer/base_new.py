@@ -80,7 +80,9 @@ class Viewer:
     spot_size: float
     hotkeys: tuple[Hotkey]
     open_subplots: list[Subplot | Figure]
-    closing: bool
+    # During opening and closing of the napari viewer, for whatever reasons linked events can be called. To stop this 
+    # breaking things when the viewer is half opened or half closed, this bool will tell Viewer to ignore them.
+    ignore_events: bool
 
     # UI variables:
     legend: legend_new.Legend
@@ -155,7 +157,7 @@ class Viewer:
         assert type(nbp_omp) is NotebookPage or nbp_omp is None
         assert type(show) is bool
         self.show = show
-        self.closing = False
+        self.ignore_events = True
         self.z = None
         if nb is not None:
             if not all([nb.has_page(name) for name in self._required_page_names]):
@@ -264,11 +266,14 @@ class Viewer:
             self.viewer.window.add_dock_widget(self.legend.canvas, name="Gene Legend", area="left")
         self._update_gene_legend()
 
-        print("Placing background image")
-        self._place_background(background_image, background_image_colour)
+        print("Loading background image")
+        self._load_background(background_image)
 
         print("Building UI")
         self._build_UI()
+
+        print("Placing background image")
+        self._place_background(background_image_colour)
 
         print("Placing spots")
         self.point_layers = {}
@@ -408,6 +413,7 @@ class Viewer:
         end_time = time.time()
         print(f"Viewer built in {'{:.1f}'.format(end_time - start_time)}s")
 
+        self.ignore_events = False
         if self.viewer_exists():
             self.viewer.show()
             try:
@@ -419,6 +425,8 @@ class Viewer:
                 raise exception
 
     def selected_spot_changed(self) -> None:
+        if self.ignore_events:
+            return
         self._set_status_to("")
         selected_data: Selection = self.point_layers[self.selected_method].selected_data
         self.selected_spot = selected_data.active
@@ -433,6 +441,8 @@ class Viewer:
         self._set_status_to(message)
 
     def legend_clicked(self, event: mpl.backend_bases.MouseEvent) -> None:
+        if self.ignore_events:
+            return
         if event.inaxes != self.legend.canvas.axes:
             # Click event did not occur within the legend axes.
             return
@@ -464,7 +474,7 @@ class Viewer:
 
     def z_slider_changed(self, _) -> None:
         # Called when the user changes the z slider in the napari viewer.
-        if self.closing:
+        if self.ignore_events:
             # For some god forsaken reason this function is sometimes called when closing the viewer...
             # This is probably an issue I should raise on napari's github if I can make it simple & reproducible.
             return
@@ -477,6 +487,8 @@ class Viewer:
         self.update_viewer_data()
 
     def method_changed(self) -> None:
+        if self.ignore_events:
+            return
         new_selected_method = list(self.spot_data.keys())[self.method_combo_box.currentIndex()]
         # Only update data if the method changed value.
         if new_selected_method == self.selected_method:
@@ -491,6 +503,8 @@ class Viewer:
         print(f"Method: {self.selected_method}")
 
     def z_thick_changed(self) -> None:
+        if self.ignore_events:
+            return
         new_z_thickness = self.z_thick_slider.value()
         # Only update data if the slider changed value.
         if new_z_thickness == self.z_thick:
@@ -501,6 +515,8 @@ class Viewer:
         print(f"Z Thickness: {self.z_thick}")
 
     def score_thresholds_changed(self) -> None:
+        if self.ignore_events:
+            return
         new_score_thresholds = self.score_slider.value()
         if new_score_thresholds == self.score_threshs[self.selected_method]:
             return
@@ -510,6 +526,8 @@ class Viewer:
         print(f"Score thresholds: {self.score_threshs[self.selected_method]}")
 
     def intensity_thresholds_changed(self) -> None:
+        if self.ignore_events:
+            return
         new_intensity_thresholds = self.intensity_slider.value()
         if new_intensity_thresholds == self.intensity_threshs[self.selected_method]:
             return
@@ -519,6 +537,8 @@ class Viewer:
         print(f"Intensity thresholds: {self.intensity_threshs[self.selected_method]}")
 
     def marker_size_changed(self) -> None:
+        if self.ignore_events:
+            return
         new_spot_size = self.marker_size_slider.value()
         if new_spot_size == self.spot_size:
             return
@@ -526,6 +546,8 @@ class Viewer:
         self.set_spot_size_to(self.spot_size)
 
     def contrast_limits_changed(self) -> None:
+        if self.ignore_events:
+            return
         new_contrast_limits = self.contrast_slider.value()
         if new_contrast_limits == self.contrast_limits[self.max_intensity_project]:
             return
@@ -748,15 +770,16 @@ class Viewer:
         """
         Close the entire Viewer.
         """
+        self.ignore_events = True
         self.close_all_subplots()
         plt.close("all")
-        self.closing = True
+        plt.style.use("default")
         if not self.viewer_exists():
             return
         self.viewer.close()
         del self.viewer
 
-    def _place_background(self, image: Optional[str], colour_map: str) -> None:
+    def _load_background(self, image: Optional[str]) -> None:
         z_count = max(self.nbp_basic.use_z)
         self.background_image = None
         self.background_image_layer = None
@@ -788,6 +811,7 @@ class Viewer:
             if not np.issubdtype(self.background_image.dtype, np.number):
                 raise ValueError(f"background_image must have float or int dtype, got {self.background_image.dtype}")
 
+    def _place_background(self, colour_map: str) -> None:
         if self.background_image_layer is not None:
             z_count = self.background_image.shape[0]
             self.mip_background_image = self.background_image.copy().max(0, keepdims=True).repeat(z_count, 0)
@@ -796,7 +820,11 @@ class Viewer:
             if not self.viewer_exists():
                 return
             self.background_image_layer = self.viewer.add_image(
-                self.background_image, rgb=False, axis_labels=("Z", "Y", "X"), colormap=colour_map
+                self.background_image,
+                rgb=False,
+                axis_labels=("Z", "Y", "X"),
+                colormap=colour_map,
+                contrast_limits=self.contrast_limits[self.max_intensity_project],
             )
         elif self.viewer_exists():
             # Place a blank, 3D image to make the napari Viewer have the z slider.
@@ -867,11 +895,12 @@ class Viewer:
             self.viewer.window.add_dock_widget(self.marker_size_slider, area="left", name="Marker Size")
         if self.background_image_layer is not None:
             # Background image contrast limits for Max Intensity Projection (MIP) true and MIP false.
-            starting_limits = (self.background_image.min(), self.background_image.max())
-            self.contrast_limits = {False: starting_limits, True: starting_limits}
+            contrast_range = (self.background_image.min(), self.background_image.max())
+            starting_value = (np.median(self.background_image) * 1, self.background_image.max())
+            self.contrast_limits = {False: starting_value, True: starting_value}
             if self.viewer_exists():
                 self.contrast_slider = QDoubleRangeSlider(Qt.Orientation.Horizontal)
-                self.contrast_slider.setRange(*self.contrast_limits[self.max_intensity_project])
+                self.contrast_slider.setRange(*contrast_range)
                 self.contrast_slider.setValue(self.contrast_limits[self.max_intensity_project])
                 self.contrast_slider.sliderReleased.connect(self.contrast_limits_changed)
                 self.viewer.window.add_dock_widget(self.contrast_slider, area="left", name="Background Contrast")
