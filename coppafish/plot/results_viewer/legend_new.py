@@ -80,7 +80,7 @@ class Legend:
             active_colours = np.array([gene.colour for gene in genes if gene.active])
             for unique_colour in self._hue_sort(np.unique(active_colours, axis=0)):
                 unique_colour_indices = (active_colours == unique_colour).all(1).nonzero()[0]
-                unique_colour_names = [active_genes[i].name for i in unique_colour_indices]
+                unique_colour_names = [active_genes[i].name.lower() for i in unique_colour_indices]
                 names_sorted_indices = np.argsort(unique_colour_names)
                 # The unique colour genes are then sorted by their names alphabetically.
                 unique_colour_indices = unique_colour_indices[names_sorted_indices]

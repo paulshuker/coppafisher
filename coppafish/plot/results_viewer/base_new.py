@@ -1,4 +1,5 @@
 import importlib.resources as importlib_resources
+import math as maths
 from os import path
 import time
 from typing import Optional
@@ -18,11 +19,12 @@ import napari.settings
 from napari.utils.events import Selection
 import numpy as np
 import pandas as pd
+import tabulate
 from qtpy.QtCore import Qt
 from superqt import QDoubleRangeSlider, QDoubleSlider
 import tifffile
 
-from . import legend_new
+from . import distribution, legend_new
 from .subplot import Subplot
 from ..call_spots import bleed_matrix, spot_colours
 from ..omp import ViewOMPImage
@@ -49,7 +51,7 @@ class Viewer:
         "omp": (0.1, None),
     }
     _default_spot_size: float = 8.0
-    _max_open_subplots: int = 5
+    _max_open_subplots: int = 7
 
     # Data:
     nbp_basic: NotebookPage
@@ -358,11 +360,20 @@ class Viewer:
                 "General Diagnostics",
             ),
             Hotkey(
+                "View Score/Intensity Distribution",
+                "t",
+                "Show scores and intensities as a heatmap",
+                lambda _: self._add_subplot(self.view_score_intensity_distributions()),
+                "General Diagnostics",
+                False,
+            ),
+            Hotkey(
                 "View Gene Efficiencies",
                 "e",
                 "Show the n_genes by n_rounds gene efficiencies as a heatmap",
                 lambda _: self._add_subplot(self.view_gene_efficiencies()),
                 "Call Spots",
+                False,
             ),
             Hotkey(
                 "View OMP Coefficients",
@@ -568,6 +579,7 @@ class Viewer:
             self.point_layers[method].size = new_size
 
     # ========== HOTKEY FUNCTIONS ==========
+
     def view_hotkeys(self) -> Subplot:
         self._free_subplot_spaces()
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
@@ -640,6 +652,13 @@ class Viewer:
             show=self.show,
         )
 
+    def view_score_intensity_distributions(self) -> Subplot:
+        self._free_subplot_spaces()
+        spot_data = self.spot_data[self.selected_method]
+        return distribution.ViewScoreIntensityDistributions(
+            self.selected_method, spot_data.score, spot_data.intensity, show=self.show
+        )
+
     def view_gene_efficiencies(self) -> Subplot:
         self._free_subplot_spaces(2)
         return spot_colours.ViewGeneEfficiencies(
@@ -656,6 +675,7 @@ class Viewer:
         if self.selected_spot is None:
             return
         if self.nbp_omp is None:
+            # TODO: Allow this subplot to run on non-omp method spots too.
             return
         self._free_subplot_spaces()
         spot_data = self.spot_data[self.selected_method]
@@ -938,8 +958,18 @@ class Viewer:
 
         # Warn if any genes are not in the gene marker file.
         if invisible_genes:
-            gene_string = "'" + "', '".join(invisible_genes) + "'"
-            print(f"Gene(s) {gene_string} are not in the gene marker file and will not be plotted.")
+            n_columns = min(4, len(invisible_genes))
+            print(f"Gene(s) shown below are not in the gene marker file and will not be plotted.")
+            table = []
+            for r in range(maths.ceil(len(invisible_genes) / n_columns)):
+                table_row = []
+                for c in range(n_columns):
+                    if r + c < len(invisible_genes):
+                        table_row.append(invisible_genes[r + c])
+                        continue
+                    table_row.append("")
+                table.append(table_row)
+            print(tabulate.tabulate(table, tablefmt="pretty"))
 
         return tuple(genes)
 

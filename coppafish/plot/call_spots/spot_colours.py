@@ -404,9 +404,10 @@ class ViewSpotColourRegion(Subplot):
             spot_tile (int): index of tile spot is on.
             gene_index (int): the spot's gene's index.
             gene_name (str): the spot's gene's name.
-            filter_images (`(n_tiles x n_rounds x n_channels) zarray`): the filtered images.
-            flow (): the register optical flow results.
-            affine (): the register affine corrections.
+            filter_images (`(n_tiles x n_rounds x n_channels) zarray[float16]`): the filtered images.
+            flow (`(n_tiles x n_rounds x 3 x tile_sz x tile_sz x len(use_z)) zarray[float16]`): the register optical
+                flow results.
+            affine (`(n_tiles x n_rounds x n_channels x 4 x 3) ndarray[float32]`): the register affine corrections.
             colour_norm_factor (`(n_tiles x n_rounds x n_channels_use) ndarray[float32]`): normalisation factor for
                 each tile, round, and channel that is applied to colours.
             use_rounds (list of int): sequencing rounds.
@@ -415,7 +416,7 @@ class ViewSpotColourRegion(Subplot):
             show (bool, optional): show the plot after creating. Turn off for unit testing. Default: true.
         """
         assert method.lower() in ["anchor", "omp", "prob"], "method must be 'anchor', 'omp' or 'prob'"
-        self.local_region_shape_yx = (7, 7)
+        self.local_region_shape_yx = (27, 27)
         assert all([shape % 2 == 1 for shape in self.local_region_shape_yx]), "Must be odd numbers only"
         self.use_colour_norm_factor = True
         self.remove_background = False
@@ -442,8 +443,8 @@ class ViewSpotColourRegion(Subplot):
 
         self.fig, self.axes = plt.subplots(self.n_channels, self.n_rounds, squeeze=False, sharex=True, sharey=True)
         self.fig.suptitle(
-            f"Spot Colour Region\n{method.capitalize()} index {spot_no}, gene {gene_index} {gene_name}, score: "
-            + f"{'{:.2f}'.format(spot_score)}"
+            f"Spot Colour Region, z={spot_local_yxz[2].item()}\n{method.capitalize()} index {spot_no}, gene "
+            + f"{gene_index} {gene_name}, score: {'{:.2f}'.format(spot_score)}"
         )
         self.fig.supxlabel("Round")
 
@@ -473,6 +474,21 @@ class ViewSpotColourRegion(Subplot):
                 ax.set_xticks([])
                 ax.set_yticks([])
                 im = ax.imshow(plot_colours[:, :, r, c].T, cmap=self.cmap, norm=self.norm)
+                # Two perpendicular lines to help see where the central pixel is.
+                ax.hlines(
+                    self.local_region_shape_yx[0] / 2,
+                    -1,
+                    self.local_region_shape_yx[0] + 1,
+                    colors="green",
+                    linewidth=0.3,
+                )
+                ax.vlines(
+                    self.local_region_shape_yx[1] / 2,
+                    -1,
+                    self.local_region_shape_yx[1] + 1,
+                    colors="green",
+                    linewidth=0.3,
+                )
         # Colour bar on right.
         cbar_pos = [0.88, 0.075, 0.06, 0.85]  # left, bottom, width, height
         self.cbar_ax = self.fig.add_axes(cbar_pos)
