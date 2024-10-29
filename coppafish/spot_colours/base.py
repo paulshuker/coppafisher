@@ -158,17 +158,19 @@ def get_spot_colours_new_safe(
     assert yxz.ndim == 2
     assert yxz.shape[1] == 3
 
+    first_compute = True
     z_coords = yxz[:, 2].detach().clone()
     # Sort yxz coordinates to gather based on z plane as we want to gather all of the same z plane at once.
     # This makes for faster disk reading and avoids memory crashing when yxz spans a lot of the tile space.
     _, yxz_sort_indices = z_coords.sort(stable=True)
     yxz_sorted = yxz[yxz_sort_indices]
-    for i, z in enumerate(z_coords.unique()):
+    for z in z_coords.unique():
         is_z = torch.isclose(yxz_sorted[:, 2], z).nonzero()
         index_min, index_max = is_z[0], is_z[-1] + 1
         i_colours = get_spot_colours_new(yxz=yxz_sorted[index_min:index_max], *args, **kwargs)
-        if i == 0:
+        if first_compute:
             colours = np.zeros((yxz.shape[0],) + i_colours.shape[1:], i_colours.dtype)
+            first_compute = False
         colours[yxz_sort_indices[index_min:index_max]] = i_colours
         del i_colours
     return colours
@@ -268,6 +270,7 @@ def get_spot_colours_new(
     yxz_t_min = yxz_t.min(0)[0].min(0)[0].min(0)[0].floor().clamp(min=0).int().tolist()
     yxz_t_max = (yxz_t.max(0)[0].max(0)[0].max(0)[0].ceil() + 1).clamp(max=torch.tensor(tile_shape)).int().tolist()
     subset_tile_shape: tuple[int] = tuple([yxz_t_max[i] - yxz_t_min[i] for i in range(3)])
+    subset_tile_shape = tuple([max(shape, 1) for shape in subset_tile_shape])
     image_t = torch.zeros((len(use_rounds), len(use_channels), 1) + subset_tile_shape, dtype=torch.float32)
     for r in use_rounds:
         for c_index, c in enumerate(use_channels):

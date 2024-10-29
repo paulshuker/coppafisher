@@ -165,6 +165,7 @@ def run_omp(
                         utils.system.get_available_memory(device) * 1e8 / (n_genes * n_rounds_use * n_channels_use)
                     )
                     n_subset_pixels = min(n_subset_pixels, yxz_all.shape[0] - index_max)
+                    n_subset_pixels = max(n_subset_pixels, 1)
                 log.debug(f"==== Subset {index_subset} ====")
                 log.debug(f"Getting spot colours")
                 index_max = index_min + n_subset_pixels
