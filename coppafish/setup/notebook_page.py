@@ -355,7 +355,7 @@ class NotebookPage:
                 + "image directions. 0 is the y shifts, 1 is the x shifts, 2 is the z shifts.",
             ],
             "icp_correction": [
-                "ndarray[float]",
+                "ndarray[float64]",
                 "Numpy float array [n_tiles x n_rounds x n_channels x 4 x 3]"
                 + "yxz affine corrections to be applied after the warp.",
             ],
