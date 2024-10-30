@@ -6,6 +6,7 @@ import mplcursors
 import numpy as np
 
 from coppafish.omp import coefs
+from coppafish.setup import config
 from coppafish.setup.notebook import NotebookPage
 from coppafish.spot_colours import base as spot_colours_base
 from coppafish.plot.results_viewer.subplot import Subplot
@@ -32,7 +33,7 @@ class ViewOMPDotProductScores(Subplot):
             nbp_filter (NotebookPage): `filter` notebook page.
             nbp_register (NotebookPage): `register` notebook page.
             nbp_call_spots (NotebookPage): `call_spots` notebook page.
-            nbp_omp (NotebookPage): `omp` notebook page.
+            nbp_omp (NotebookPage): `omp` notebook page or none.
             spot_local_yxz (`(3) ndarray[int]`): the spot's local position relative to its tile's bottom-left corner.
             spot_tile (int-like): the spot's tile index.
             show (bool, optional): display the plot once built. False is useful when unit testing. Default: true.
@@ -41,14 +42,23 @@ class ViewOMPDotProductScores(Subplot):
         assert type(nbp_filter) is NotebookPage
         assert type(nbp_register) is NotebookPage
         assert type(nbp_call_spots) is NotebookPage
-        assert type(nbp_omp) is NotebookPage
+        assert type(nbp_omp) is NotebookPage or nbp_omp is None
         assert type(spot_local_yxz) is np.ndarray
         assert spot_local_yxz.shape == (3,)
 
-        config = nbp_omp.associated_configs["omp"]
+        max_genes = config.get_default_for("omp", "max_genes")
+        dot_product_weight = config.get_default_for("omp", "dot_product_weight")
+        dot_product_threshold = config.get_default_for("omp", "dot_product_threshold")
+        norm_shift = config.get_default_for("omp", "coefficient_normalisation_shift")
+        if nbp_omp is not None:
+            omp_config = nbp_omp.associated_configs["omp"]
+            max_genes = int(omp_config["max_genes"])
+            dot_product_weight = float(omp_config["dot_product_weight"])
+            dot_product_threshold = float(omp_config["dot_product_threshold"])
+            norm_shift = float(omp_config["coefficient_normalisation_shift"])
         n_rounds_use = len(nbp_basic.use_rounds)
         n_channels_use = len(nbp_basic.use_channels)
-        self.dp_thresh = config["dot_product_threshold"]
+        self.dp_thresh = dot_product_threshold
 
         # image_colours has shape (1, n_rounds_use, n_channels_use).
         image_colours = spot_colours_base.get_spot_colours_new(
@@ -61,6 +71,7 @@ class ViewOMPDotProductScores(Subplot):
             use_channels=nbp_basic.use_channels,
             out_of_bounds_value=0,
         )
+        image_colours *= nbp_call_spots.colour_norm_factor[[spot_tile]]
         omp_solver = coefs.CoefficientSolverOMP()
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
         bg_bled_codes = omp_solver.create_background_bled_codes(n_rounds_use, n_channels_use)
@@ -68,16 +79,16 @@ class ViewOMPDotProductScores(Subplot):
             pixel_colours=image_colours,
             bled_codes=bled_codes,
             background_codes=bg_bled_codes,
-            maximum_iterations=config["max_genes"],
-            dot_product_weight=config["dot_product_weight"],
+            maximum_iterations=max_genes,
+            dot_product_weight=dot_product_weight,
             dot_product_threshold=self.dp_thresh,
-            normalisation_shift=config["coefficient_normalisation_shift"],
+            normalisation_shift=norm_shift,
             return_dp_scores=True,
         )
-        n_iterations = len(self.dp_scores)
+        n_iterations = self.dp_scores.shape[0]
         assert n_iterations > 0
         self.iteration = 1
-        n_genes_all = self.dp_scores[0].shape[1]
+        n_genes_all = self.dp_scores.shape[2]
         self.gene_names_all: list[str] = nbp_call_spots.gene_names.tolist()
         for i in range(n_genes_all - len(self.gene_names_all)):
             self.gene_names_all.append(f"bg_{i}")
@@ -104,9 +115,7 @@ class ViewOMPDotProductScores(Subplot):
             + f"background genes"
         )
         self.plot_ax.set_ylabel("Gene Score")
-        max_score = 1
-        for dp_scores in self.dp_scores:
-            max_score = np.max([max_score, dp_scores.max()])
+        max_score = max(1, self.dp_scores.max().item())
         self.plot_ax.set_ylim(0, max_score)
         slider_ax: plt.Axes = axes[1]
         with warnings.catch_warnings():
@@ -126,7 +135,7 @@ class ViewOMPDotProductScores(Subplot):
             self.fig.show()
 
     def draw_data(self) -> None:
-        dp_scores = self.dp_scores[self.iteration - 1][0]
+        dp_scores = self.dp_scores[self.iteration - 1, 0]
         for bar, score in zip(self.bars, dp_scores):
             bar.set_height(score)
             bar.set_color(self.bar_colour)

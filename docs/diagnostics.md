@@ -44,7 +44,7 @@ see [here](https://github.com/paulshuker/coppafish/raw/HEAD/coppafish/plot/resul
 default gene marker file.
 
 You can specify a custom background image in the python terminal. The default is a dapi image over all tiles produced 
-during register.
+during stitch.
 
 ```py
 from coppafish import Notebook, Viewer
@@ -57,6 +57,8 @@ The background image must be of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` 
 .npz file with image at key `"arr_0"`, or a .tif file (based on package 
 [tifffile](https://github.com/cgohlke/tifffile)). For further customisation, see the Viewer docstring in the 
 [source code](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/plot/results_viewer/base.py).
+
+Gracefully close the Viewer and subplots by pressing Ctrl + C in the terminal.
 
 ### Description
 

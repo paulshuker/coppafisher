@@ -1,6 +1,7 @@
 import importlib.resources as importlib_resources
 import math as maths
 from os import path
+import sys
 import time
 from typing import Optional
 import warnings
@@ -158,7 +159,6 @@ class Viewer:
         assert type(show) is bool
         self.show = show
         self.ignore_events = True
-        self.z = None
         if nb is not None:
             if not all([nb.has_page(name) for name in self._required_page_names]):
                 raise ValueError(f"The notebook requires pages {', '.join(self._required_page_names)}")
@@ -277,6 +277,9 @@ class Viewer:
 
         print("Placing spots")
         self.point_layers = {}
+        # Display the correct spot data based on current thresholds.
+        self.z = self.background_image.shape[0] // 2 - 1 if self.background_image is not None else 0
+        self._update_all_keep()
         for method in self.spot_data.keys():
             spot_gene_numbers = self.spot_data[method].gene_no.copy()
             gene_indices = np.array([g.notebook_index for g in self.genes])
@@ -285,6 +288,9 @@ class Viewer:
             saved_gene_indices = (spot_gene_numbers[:, None] == gene_indices[None]).nonzero()[1]
             spot_symbols = gene_symbols[saved_gene_indices]
             spot_colours = gene_colours[saved_gene_indices]
+            shown = True
+            if method == self.selected_method:
+                shown = self.keep_scores & self.keep_intensities & self.keep_zs & self.keep_genes
             if self.viewer_exists():
                 # Points are 2D to improve performance.
                 self.point_layers[method] = self.viewer.add_points(
@@ -293,20 +299,14 @@ class Viewer:
                     face_color=spot_colours,
                     size=self.spot_size,
                     name=self._method_to_string[method],
+                    shown=shown,
                     ndim=2,
                     out_of_slice_display=False,
-                    visible=False,
+                    visible=method == self.selected_method,
                 )
                 self.point_layers[method].mode = "PAN_ZOOM"
                 # Know when a point is selected.
                 self.point_layers[method].events.current_symbol.connect(self.selected_spot_changed)
-        # Display the correct spot data based on current thresholds.
-        if self.z is None:
-            self.z = 0
-        self._update_all_keep()
-        self.update_viewer_data()
-        if self.viewer_exists():
-            self.viewer.reset_view()
 
         print(f"Connecting hotkeys")
         self.hotkeys = (
@@ -418,11 +418,11 @@ class Viewer:
             self.viewer.show()
             try:
                 napari.run()
-            except KeyboardInterrupt as exception:
-                # When keyboard interrupted, close the viewer down properly before interrupting.
+            except KeyboardInterrupt:
+                # When keyboard interrupted, close the viewer down properly.
                 print("Closing")
                 self.close()
-                raise exception
+                sys.exit()
 
     def selected_spot_changed(self) -> None:
         if self.ignore_events:
@@ -696,9 +696,6 @@ class Viewer:
     def view_omp_coefficients(self) -> Subplot | None:
         if self.selected_spot is None:
             return
-        if self.nbp_omp is None:
-            # TODO: Allow this subplot to run on non-omp method spots too.
-            return
         self._free_subplot_spaces()
         spot_data = self.spot_data[self.selected_method]
         return ViewOMPImage(
@@ -711,14 +708,13 @@ class Viewer:
             spot_data.tile[self.selected_spot],
             spot_data.indices[self.selected_spot],
             spot_data.gene_no[self.selected_spot],
+            spot_data.colours[self.selected_spot],
             self.selected_method,
             show=self.show,
         )
 
     def view_omp_dot_product_scores(self) -> Subplot | None:
         if self.selected_spot is None:
-            return
-        if self.nbp_omp is None:
             return
         self._free_subplot_spaces()
         spot_data = self.spot_data[self.selected_method]

@@ -18,7 +18,7 @@ class CoefficientSolverOMP:
 
     def solve(
         self,
-        pixel_colours: np.ndarray[np.float16],
+        pixel_colours: np.ndarray[np.float32],
         bled_codes: np.ndarray[np.float32],
         background_codes: np.ndarray[np.float32],
         maximum_iterations: int,
@@ -26,7 +26,7 @@ class CoefficientSolverOMP:
         dot_product_threshold: float,
         normalisation_shift: float,
         return_dp_scores: bool = False,
-    ) -> np.ndarray | Tuple[np.ndarray, Tuple[np.ndarray]]:
+    ) -> np.ndarray | Tuple[np.ndarray, np.ndarray]:
         """
         Compute OMP coefficients for all pixel colours from the same tile. At each iteration of OMP, the next best gene
         assignment is found from the residual spot colours. A pixel is stopped iterating on if gene assignment fails.
@@ -54,9 +54,9 @@ class CoefficientSolverOMP:
 
         Returns:
             - (`(n_pixels x n_genes) ndarray[float32]`) coefficients: each gene's final coefficient on every pixel.
-            - (tuple of `(n_pixels x n_genes_all) ndarray[float32]`) dp_scores: the dot product score is every gene on
-                each iteration. The length of dp_scores is the number of iterations that passed. Only returned if
-                return_dp_scores is true.
+            - (`(n_iterations x n_pixels x n_genes_all) ndarray[float32]`) dp_scores: the dot product score for every
+                gene on each iteration. The length of dp_scores is the number of iterations that passed. Only returned
+                if return_dp_scores is true.
         """
         n_pixels, n_rounds_use, n_channels_use = pixel_colours.shape
         n_rounds_channels_use = n_rounds_use * n_channels_use
@@ -114,7 +114,9 @@ class CoefficientSolverOMP:
             )
             if return_dp_scores:
                 genes_selected[pixels_to_continue, iteration] = gene_assigment_results[0]
-                dp_scores.append(gene_assigment_results[1].numpy())
+                dp_score = torch.zeros((n_pixels, n_genes + n_channels_use), dtype=torch.float32)
+                dp_score[pixels_to_continue] = gene_assigment_results[1].cpu()
+                dp_scores.append(dp_score)
             else:
                 genes_selected[pixels_to_continue, iteration] = gene_assigment_results
             del gene_assigment_results, fail_gene_indices
@@ -146,7 +148,7 @@ class CoefficientSolverOMP:
         coefficients /= torch.linalg.matrix_norm(colours)[:, np.newaxis] + normalisation_shift
         coefficients = coefficients.cpu().numpy()
         if return_dp_scores:
-            return coefficients, tuple(dp_scores)
+            return coefficients, np.array([score.numpy() for score in dp_scores])
         return coefficients
 
     def create_background_bled_codes(self, n_rounds_use: int, n_channels_use: int) -> np.ndarray:

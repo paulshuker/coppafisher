@@ -241,8 +241,28 @@ class InvalidConfigError(Exception):
         super().__init__(error)
 
 
+def get_default_config_file_path() -> str:
+    return str(importlib_resources.files("coppafish.setup").joinpath("settings.default.ini"))
+
+
+def get_default_for(section: str, name: str) -> Any:
+    """
+    Get the default configuration value within given section with variable name. No validation of the value is done, so
+    this must not be used by the pipeline, only for diagnostics.
+    """
+    _parser = configparser.ConfigParser()
+    _parser.optionxform = str  # Make names case-sensitive
+    ini_file_default = get_default_config_file_path()
+    with open(ini_file_default, "r") as f:
+        _parser.read_string(f.read())
+    value = _option_formatters[_options[section][name]](_parser[section][name])
+    return value
+
+
 def get_config(ini_file) -> Dict[str, Any]:
-    """Return the configuration as a dictionary"""
+    """
+    Return the configuration as a dictionary
+    """
     if not os.path.isfile(ini_file):
         raise FileNotFoundError(f"Failed to find config file at {ini_file}")
 
@@ -251,7 +271,7 @@ def get_config(ini_file) -> Dict[str, Any]:
     # add the section (named "config") manually.
     _parser = configparser.ConfigParser()
     _parser.optionxform = str  # Make names case-sensitive
-    ini_file_default = str(importlib_resources.files("coppafish.setup").joinpath("settings.default.ini"))
+    ini_file_default = get_default_config_file_path()
     with open(ini_file_default, "r") as f:
         _parser.read_string(f.read())
     # Try to autodetect whether the user has passed a config file or the full
