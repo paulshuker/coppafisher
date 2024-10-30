@@ -261,7 +261,7 @@ class ViewSpotColourAndCode(Subplot):
         assert method.lower() in ["anchor", "omp", "prob"], "method must be 'anchor', 'omp' or 'prob'"
 
         self.use_colour_norm_factor = True
-        self.remove_background = True
+        self.remove_background = method != "omp"
         self.l2_normalise = True
 
         self.spot_tile = spot_tile
