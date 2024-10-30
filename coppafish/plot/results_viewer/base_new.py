@@ -80,7 +80,7 @@ class Viewer:
     spot_size: float
     hotkeys: tuple[Hotkey]
     open_subplots: list[Subplot | Figure]
-    # During opening and closing of the napari viewer, for whatever reasons linked events can be called. To stop this 
+    # During opening and closing of the napari viewer, for whatever reasons linked events can be called. To stop this
     # breaking things when the viewer is half opened or half closed, this bool will tell Viewer to ignore them.
     ignore_events: bool
 
@@ -785,7 +785,7 @@ class Viewer:
         self.background_image_layer = None
         self.max_intensity_project = False
         if image is not None and image != "dapi" and not path.isfile(image):
-            raise FileNotFoundError(f"Cannot find background image of file path: {image}")
+            raise FileNotFoundError(f"Cannot find background image at given file path: {image}")
         if image == "dapi":
             self.background_image = self.nbp_stitch.dapi_image[:]
             self.background_image_layer = self.background_image
@@ -970,13 +970,13 @@ class Viewer:
         gene_legend_info = pd.read_csv(gene_marker_filepath)
         legend_gene_names = gene_legend_info["GeneNames"].values
         genes: list[Viewer.Gene] = []
-        invisible_genes = []
+        invisible_gene_names = []
 
         # Create a list of genes with the relevant information. If the gene is not in the gene marker file, it will not
         # be added to the list.
         for i, g in enumerate(self.nbp_call_spots.gene_names):
             if g not in legend_gene_names:
-                invisible_genes.append(g)
+                invisible_gene_names.append(g)
                 continue
             colour = gene_legend_info[gene_legend_info["GeneNames"] == g][["ColorR", "ColorG", "ColorB"]].values[0]
             symbol_napari = gene_legend_info[gene_legend_info["GeneNames"] == g]["napari_symbol"].values[0]
@@ -986,15 +986,17 @@ class Viewer:
             genes.append(new_gene)
 
         # Warn if any genes are not in the gene marker file.
-        if invisible_genes:
-            n_columns = min(4, len(invisible_genes))
+        invisible_gene_names = sorted([g.lower() for g in invisible_gene_names])
+        if invisible_gene_names:
+            n_columns = min(4, len(invisible_gene_names))
             print(f"Gene(s) shown below are not in the gene marker file and will not be plotted.")
             table = []
-            for r in range(maths.ceil(len(invisible_genes) / n_columns)):
+            n_rows = maths.ceil(len(invisible_gene_names) / n_columns)
+            for r in range(n_rows):
                 table_row = []
                 for c in range(n_columns):
-                    if r + c < len(invisible_genes):
-                        table_row.append(invisible_genes[r + c])
+                    if r + c < len(invisible_gene_names):
+                        table_row.append(invisible_gene_names[r + c * n_rows])
                         continue
                     table_row.append("")
                 table.append(table_row)
