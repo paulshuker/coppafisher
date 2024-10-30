@@ -1,8 +1,11 @@
 ## Input data
 
-Coppafish requires raw, `uint16` microscope images, metadata, and a configuration file. We currently only support raw 
-data in ND2, JOBs, or numpy format. If your data is not already in one of these formats, we recommend configuring your 
+Coppafish requires raw, `uint16` microscope images, metadata, and a configuration file. We currently only support raw
+data in ND2, JOBs, or numpy format. If your data is not already in one of these formats, we recommend configuring your
 data into [numpy](#numpy) format.
+
+There must be an anchor round. There must be a dapi channel in every sequencing round and the anchor round. The tiles 
+must have at least four z planes. Use a number of z planes that is a multiple of two.
 
 ### ND2
 
@@ -82,10 +85,10 @@ gene_2 2301230
 gene_3 3012301
 ```
 
-the names (`gene_0`, `gene_1`, ...) can be changed. Do not assign any genes a constant gene code like `0000000`. To 
-learn how the codes can be generated, see [advanced usage](advanced_usage.md#). For details on how the codes are 
-best generated, see `reed_solomon_codes` in 
-[`coppafish/utils/base.py`](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/utils/base.py). See 
+the names (`gene_0`, `gene_1`, ...) can be changed. Do not assign any genes a constant gene code like `0000000` as 
+these are background genes. To learn how the codes can be generated, see [advanced usage](advanced_usage.md#). For 
+details on how the codes are best generated, see `reed_solomon_codes` in the 
+[source code](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/utils/base.py). See 
 [Wikipedia](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction) for algorithmic details on how gene 
 codes are best selected.
 
@@ -135,7 +138,7 @@ at <a href="https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/setup/se
 
 ## Running
 
-Coppafish must be run with a [configuration](basic_usage.md#configuration) file. In the terminal
+Coppafish must be run with a [configuration](basic_usage.md#configuration) file. In the command line
 
 ```terminal
 python3 -m coppafish /path/to/config.ini
@@ -149,7 +152,7 @@ from coppafish import run_pipeline
 run_pipeline("/path/to/config.ini")
 ```
 
-which can then be run from the terminal
+which can then be run from the command line
 
 ```bash
 python3 coppafish_script_name.py

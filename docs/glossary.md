@@ -1,6 +1,6 @@
-* Anchor round - A one-time round taken, usually on a chosen "anchor channel" that has a high Signal-to-Noise Ratio 
-(SNR). All genes of interest are given the same fluorescing dye probe. The anchor round is essential for detecting all 
-spots at once in the same microscope image.
+* Anchor round - A single round taken, usually on a chosen "anchor channel" that has a high Signal-to-Noise Ratio 
+(SNR). All genes of interest are given the same fluorescing dye probe so that every spot lights up. The anchor round is 
+essential for detecting all spots at once in the same microscope image.
 
 * Channel - A combination of excitation light of a certain wavelength and specific emission filter. We use multiple 
 channels to distinguish every dye colour (almost always the number of channels is equal to the number of unique dyes). 

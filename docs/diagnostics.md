@@ -17,7 +17,7 @@ nb = Notebook("/path/to/notebook")
 Viewer(nb)
 ```
 
-or from the terminal
+or from the command line
 
 ```terminal
 python -m coppafish -v /path/to/notebook
@@ -37,7 +37,7 @@ Viewer(nb, gene_marker_file="/path/to/custom/gene_marker_file.csv")
 or by the terminal
 
 ```terminal
-python -m coppafish -v /path/to/notebook --gene_marker /path/to/custom/gene_marker_file.csv
+python -m coppafish -v /path/to/notebook --gene_marker /path/to/gene_marker.csv
 ```
 
 see [here](https://github.com/paulshuker/coppafish/raw/HEAD/coppafish/plot/results_viewer/gene_color.csv) for the 
@@ -53,8 +53,10 @@ nb = Notebook("/path/to/notebook")
 Viewer(nb, background_image="/path/to/custom/background_image.npy")
 ```
 
-The background image must be of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` and can be a .npy file or a compressed 
-.npz file with the image at key `"arr_0"`.
+The background image must be of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` and can be a .npy file, a compressed 
+.npz file with image at key `"arr_0"`, or a .tif file (based on package 
+[tifffile](https://github.com/cgohlke/tifffile)). For further customisation, see the Viewer docstring in the 
+[source code](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/plot/results_viewer/base.py).
 
 ### Description
 
