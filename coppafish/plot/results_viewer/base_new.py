@@ -995,7 +995,7 @@ class Viewer:
             for r in range(n_rows):
                 table_row = []
                 for c in range(n_columns):
-                    if r + c < len(invisible_gene_names):
+                    if (r + c * n_rows) < len(invisible_gene_names):
                         table_row.append(invisible_gene_names[r + c * n_rows])
                         continue
                     table_row.append("")
