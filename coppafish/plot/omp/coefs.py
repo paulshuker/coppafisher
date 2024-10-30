@@ -70,7 +70,6 @@ class ViewOMPImage(Subplot):
         norm_shift = config.get_default_for("omp", "coefficient_normalisation_shift")
         mean_spot_filepath = importlib_resources.files("coppafish.omp").joinpath("mean_spot.npy")
         mean_spot: np.ndarray = np.load(mean_spot_filepath).astype(np.float32)
-        mean_spot = torch.from_numpy(mean_spot).float()
         if nbp_omp is not None:
             min_intensity = float(nbp_omp.associated_configs["omp"]["minimum_intensity"])
             max_genes = int(nbp_omp.associated_configs["omp"]["max_genes"])
