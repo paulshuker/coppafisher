@@ -442,25 +442,22 @@ final spot colours: $F_{src} \mapsto Q_{trc} F_{src}$.
 We then compute a score between each spot colour $\mathbf{F_s}$ and each gene bled code $K_{grc}$:
 
 $$
-\textrm{scores}(g) = \Bigg|\frac{\sum_r\big[(||\mathbf{F}||_{sr.} ||\mathbf{K}||_{gr.})^\alpha \sum_c(\hat{F}_{src}\hat{K}_{grc})\big]}{\sqrt{\sum_r||\mathbf{F}||_{sr.}^{2\alpha}}\sqrt{\sum_r||\mathbf{K}||_{gr.}^{2\alpha}}} \Bigg|
+\text{scores}(g) = \Bigg|\frac{\sum_{rc}(\hat{F}_{src}\hat{K}_{grc})}{N_r}\Bigg|
 $$
 
 where
 
 $$
-\hat{F}_{src} = \frac{F_{src}}{||\mathbf{F}||_{sr.}}\text{,}\space\space\space\hat{K}_{grc} = \frac{K_{grc}}{||\mathbf{K}||_{gr.}}\text{,}\space\space\space||\mathbf{F}||_{sr.} = \sqrt{\sum_c |\mathbf{F}_{src}|^2}\text{,}\space\space\space||\mathbf{K}||_{gr.} = \sqrt{\sum_c |\mathbf{K}_{grc}|^2}
+\hat{F}_{src} = \frac{F_{src}}{\sqrt{\sum_c |F_{src}|^2}}\text{,}\space\space\space
+\hat{K}_{grc} = \frac{K_{grc}}{\sqrt{\sum_c|K_{grc}|^2}}\text{,}\space\space\space N_r=\sum_r1
 $$
 
-and
-
-$$
-\sum_{rc} |\mathbf{F}_{src}|^2 = 1\text{,}\space\space\space\sum_{rc} |\mathbf{K}_{grc}|^2 = 1
-$$
-
-for all spots, $s$ and all genes, $g$.
+The score rewards spots matching to the bled code in many rounds. If a spot's colour is missing $x$ rounds, then the 
+score can be no larger than $(N_r - x) / N_r$.
 
 An intensity for each spot is saved to the notebook and used in the [Viewer](diagnostics.md#viewer). It is computed 
-from the final, scaled colours. No normalisation is applied to avoid boosting dim signal.
+from the final, scaled colours. No normalisation is applied to avoid boosting dim signal. Only the final scaling is 
+applied to the colours.
 
 $$
 \text{intensity}_s = \min_r(\max_c(\mathbf{F}_{src}))
@@ -474,20 +471,12 @@ Viewer.
     There are many possible explanations: 1) A registration mistake has caused a misalignment in some pixels. 2) An 
     experiment error has failed to light up a gene in a specific round. 3) An experiment error has caused bright 
     artifacts to appear in specific rounds and not others. So we must be robust against missing round brightness. This 
-    is especially true for OMP as this runs on every image pixels, which will include background noise.
+    is especially true for OMP as this runs on every image pixel, which will include background noise.
 
 Then use the best gene score for each spot's assigned gene:
 
 - `dot_product_gene_no[s]` = $\textrm{argmax}_g (\textrm{scores}(g))$
 - `dot_product_gene_score[s]` = $\textrm{max}_g (\textrm{scores}(g))$
-
-$\alpha$ is the config parameter dot_product_weight (typically 0) that can range from 0 to 1. dot_product_weight = 1 
-causes the score to be purely a dot product over each round/channel. $\alpha=0$ forces an equal weighting contribution 
-for each round separately. All scores range from 0 to 1.
-
-??? note "Why is dot_product_weight required?"
-    There is evidence of single dye appearing in data in only a single round. This can be detected as gene reads if 
-    there is no dot_product_weight parameter to add importance to matching brightness in other rounds.
 
 We also compute probabilities for each spot $s$ being assigned to gene $g$ as
 

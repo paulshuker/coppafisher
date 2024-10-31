@@ -123,7 +123,6 @@ _options = {
         "kappa": "maybe_number",
         "concentration_parameter_parallel": "number",
         "concentration_parameter_perpendicular": "number",
-        "dot_product_weight": "number",
     },
     "omp": {
         "colour_normalise": "bool",
@@ -132,7 +131,6 @@ _options = {
         "max_genes": "int",
         "minimum_intensity": "number",
         "coefficient_normalisation_shift": "number",
-        "dot_product_weight": "number",
         "dot_product_threshold": "number",
         "subset_pixels": "maybe_int",
         "force_cpu": "bool",

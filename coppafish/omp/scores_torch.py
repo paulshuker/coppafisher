@@ -26,7 +26,7 @@ def score_coefficient_image(
     assert type(mean_spot) is torch.Tensor
     assert coefficient_image.dim() == 4
     assert coefficient_image.shape[0] < 2_000, "More than 2,000 batches given"
-    assert torch.logical_and(mean_spot >= -1, mean_spot <= 1).all()
+    assert (mean_spot >= 0).all()
 
     run_on = torch.device("cpu")
     if not force_cpu and torch.cuda.is_available():

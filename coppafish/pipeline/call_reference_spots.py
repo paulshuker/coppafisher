@@ -192,9 +192,7 @@ def call_reference_spots(
         index_min = batch_i * n_max_score_pixels
         index_max = min(spot_colours.shape[0], (batch_i + 1) * n_max_score_pixels)
         gene_dot_products[index_min:index_max] = dot_product_score(
-            spot_colours=spot_colours[index_min:index_max],
-            bled_codes=bled_codes,
-            dot_product_weight=config["dot_product_weight"],
+            spot_colours=spot_colours[index_min:index_max], bled_codes=bled_codes
         )
     dp_gene, dp_score = np.argmax(gene_dot_products, axis=1).astype(np.int16), np.max(gene_dot_products, axis=1)
     dp_gene = zarr.array(dp_gene, store=os.path.join(nbp_file.output_dir, "dp_mode.zarray"), **kwargs)

@@ -147,7 +147,6 @@ def run_omp(
             bled_codes=bled_codes,
             background_codes=bg_bled_codes,
             maximum_iterations=max_genes,
-            dot_product_weight=config["dot_product_weight"],
             dot_product_threshold=config["dot_product_threshold"],
             normalisation_shift=config["coefficient_normalisation_shift"],
         )

@@ -47,13 +47,11 @@ class ViewOMPDotProductScores(Subplot):
         assert spot_local_yxz.shape == (3,)
 
         max_genes = config.get_default_for("omp", "max_genes")
-        dot_product_weight = config.get_default_for("omp", "dot_product_weight")
         dot_product_threshold = config.get_default_for("omp", "dot_product_threshold")
         norm_shift = config.get_default_for("omp", "coefficient_normalisation_shift")
         if nbp_omp is not None:
             omp_config = nbp_omp.associated_configs["omp"]
             max_genes = int(omp_config["max_genes"])
-            dot_product_weight = float(omp_config["dot_product_weight"])
             dot_product_threshold = float(omp_config["dot_product_threshold"])
             norm_shift = float(omp_config["coefficient_normalisation_shift"])
         n_rounds_use = len(nbp_basic.use_rounds)
@@ -80,7 +78,6 @@ class ViewOMPDotProductScores(Subplot):
             bled_codes=bled_codes,
             background_codes=bg_bled_codes,
             maximum_iterations=max_genes,
-            dot_product_weight=dot_product_weight,
             dot_product_threshold=self.dp_thresh,
             normalisation_shift=norm_shift,
             return_dp_scores=True,

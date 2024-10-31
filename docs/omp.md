@@ -36,16 +36,16 @@ computed for every gene and background gene $g$ the same way as
 [call spots](call_spots.md#6-and-7-application-of-scales-computation-of-final-scores-and-bleed-matrix)
 
 $$
-\text{(gene scores)}_{pgi} = \Bigg|\frac{\sum_r\big[(||\mathbf{R}||_{pr.i} ||\mathbf{B}||_{gr.})^\alpha \sum_c(\hat{R}_{prci}\hat{B}_{grc})\big]}{\sqrt{\sum_r||\mathbf{R}||_{pr.i}^{2\alpha}}\sqrt{\sum_r||\mathbf{R}||_{gr.}^{2\alpha}}} \Bigg|
+\text{(gene scores)}_{pgi} = \Bigg|\frac{\sum_{rc}(\hat{R}_{prci}\hat{B}_{grc})}{N_r}\Bigg|
 $$
 
 where
 
 $$
-\hat{R}_{prci} = \frac{R_{prci}}{||\mathbf{R}||_{sr.i}}\text{,}\space\space\space\hat{B}_{grc} = \frac{B_{grc}}{||\mathbf{B}||_{gr.}}
+\hat{R}_{prci} = \frac{R_{prci}}{||\mathbf{R}||_{sr.i}}\text{,}\space\space\space
+\hat{B}_{grc} = \frac{B_{grc}}{||\mathbf{B}||_{gr.}}\text{,}\space\space\space
+N_r=\sum_r1
 $$
-
-and $\alpha$ is the `dot_product_weight` config parameter (typically 0).
 
 A gene is successfully assigned to a pixel when all conditions are met:
 
@@ -98,60 +98,33 @@ coefficient image the shape of a tile for every gene. Most of the coefficients w
 spot-shaped non-zero coefficient shapes representing real gene expressions. The coefficients are not saved as this 
 would require a lot of disk space.
 
-## 4: Mean Spot Computation
+## 4: Pixel Scoring and Spot Detection
 
-OMP requires a good estimation of the average spot seen in the OMP coefficient images for spot scoring in the next 
-step. To do this, isolated spots are found on gene coefficient images. The isolated spots are found using the 
-[find_spots](find_spots.md) algorithm. `radius_yx` and `radius_z` are set by config variables 
-`shape_isolation_distance_yx` (typically `10`) and `shape_isolation_distance_z` (default 
-$\text{ceil}(\text{shape\_isolation\_distance\_yx}\times\frac{\text{pixel\_size\_xy}}{\text{pixel\_size\_z}})$). 
-Instead of an automatic threshold, the coefficient detection threshold is set to `shape_coefficient_threshold` 
-(typically `0.8`).
-
-Once at least `spot_shape_max_spots_considered` (typically `100,000`) isolated spots are found (or there are no more 
-isolated spots found), many are removed if they are too close to another isolated spot, even if they are for a 
-different gene. This leaves highly quality spots that are well isolated from all genes.
-
-With the remaining isolated spots, a 3D local coefficient region centred around each of them of shape `spot_shape` 
-(typically `9x9x5`) is gathered. `spot_shape` must have an odd numbers of pixels so that a single pixel is centred. 
-
-The mean spot is the mean over all isolated spots for each local region position to get a mean spot of shape 
-`spot_shape`. The mean spot can be seen in the `_omp.pdf` file produced at the end of the coppafish pipeline in the 
-output directory.
+The gene coefficient images are converted to gene score images using the mean spot given as a numpy .npy file by file 
+path `mean_spot_filepath`, if not given, the default mean spot is used (shown below). A kernel is created as mean spot 
+/ sum(mean spot). Then, the coefficient images are convolved with said kernel to give every pixel for every gene a 
+"spot-likeliness score" to create a score image. Therefore, spot-shaped/high coefficient regions result in higher score 
+maxima. Scores can be $\geq 0$. But, in practice, scores are rarely greater than $0.7$.
 
 <figure markdown="span">
-  ![Image title](images/algorithm/omp/omp_mean_spot_example.png){ width="700" }
-  <figcaption>Mean spot example from real data.</figcaption>
+  ![Image title](images/algorithm/omp/omp_mean_spot_example.png){ width="776" }
+  <figcaption>The default mean spot. The middle image is the central z plane.</figcaption>
 </figure>
-
-A spot is also created as just ones in every position where the mean spot is above `shape_sign_thresh` (typically 
-`0.1`). This acts as a mask to only consider strong and positive mean spot expression during the scoring step.
-
-<figure markdown="span">
-  ![Image title](images/algorithm/omp/omp_spot_example.png){ width="700" }
-  <figcaption>Spot example from real data.</figcaption>
-</figure>
-
-## 5: Pixel Scoring and Spot Detection
-
-The gene coefficient images are converted to gene score images using the computed mean spot and spot from 
-[step 4](#4-mean-spot-computation). A spot kernel is created of shape `spot_shape`. Each pixel is set to zero if the 
-spot at that position is zero, otherwise it is set to the mean spot value. The kernel is divided by its sum. Then, the 
-coefficient images are convolved with said kernel to give every pixel for every gene a "spot-likeliness score" to 
-create a score image. Therefore, spot-shaped/high coefficient regions result in higher score maxima. Scores can be 
-$\geq 0$, but, in practice, they are rarely greater than $0.7$.
 
 Using the new spot score images, each gene's spots are detected using the [find spots](find_spots.md) algorithm to find 
 score local maxima using config parameters `radius_xy` (typically `3`) and `radius_z` (typically `2`) respectively with 
 a score threshold set by `score_threshold` (typically `0.1`). These are the final OMP gene reads shown in the 
 [Viewer](diagnostics.md#viewer).
 
-??? note "Why not score using only the coefficient values?"
+??? note "Why not score each spot using a single coefficient value?"
 
     Coefficients can be inflated by single overly-bright round/channel anomalies since they are computed using a 
     non-robust least squares calculation. This could be from real autofluorescence or from mistakes in registration. 
     For this reason, a spot's score is better represented by using coefficient data from its neighbourhood. The mean 
     spot is an estimation of how much care to put in the local, spatial neighbourhood.
+
+    If you still wanted to score each spot by a single coefficient value, create your own 1x1x1 mean spot with value 
+    $>0$ and run OMP again.
 
 ## Diagnostics
 

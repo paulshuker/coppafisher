@@ -22,7 +22,6 @@ class CoefficientSolverOMP:
         bled_codes: np.ndarray[np.float32],
         background_codes: np.ndarray[np.float32],
         maximum_iterations: int,
-        dot_product_weight: float,
         dot_product_threshold: float,
         normalisation_shift: float,
         return_dp_scores: bool = False,
@@ -43,9 +42,6 @@ class CoefficientSolverOMP:
                 codes. These are simply uniform brightness in one channel for all rounds. background_codes[0] is the
                 first code, background_codes[1] is the second code, etc.
             maximum_iterations (int): the maximum number of gene assignments allowed for one pixel.
-            dot_product_weight (float): 0 means a pure dot product over pixel colour and bled code is done to compute
-                gene scores. 1 represents a dot product with equal round weighting. See OMP method documentation for
-                scoring details.
             dot_product_threshold (float): a gene must have a dot product score above this value on the residual spot
                 colour to be assigned the gene. If more than one gene is above this threshold, the top score is used.
             normalisation_shift (float): the final coefficients are divided by L2 norm of pixel colours +
@@ -65,12 +61,10 @@ class CoefficientSolverOMP:
         assert type(bled_codes) is np.ndarray
         assert type(background_codes) is np.ndarray
         assert type(maximum_iterations) is int
-        assert type(dot_product_weight) is float
         assert type(dot_product_threshold) is float
         assert type(normalisation_shift) is float
         assert type(return_dp_scores) is bool
         assert maximum_iterations > 0
-        assert dot_product_weight >= 0 and dot_product_weight <= 1
         assert dot_product_threshold >= 0
         assert normalisation_shift >= 0
         assert pixel_colours.ndim == 3
@@ -107,7 +101,6 @@ class CoefficientSolverOMP:
                 residual_colours,
                 all_bled_codes,
                 fail_gene_indices,
-                dot_product_weight,
                 dot_product_threshold,
                 maximum_pass_count=maximum_iterations - iteration,
                 return_scores=return_dp_scores,
@@ -169,14 +162,14 @@ class CoefficientSolverOMP:
         residual_colours: torch.Tensor,
         all_bled_codes: torch.Tensor,
         fail_gene_indices: torch.Tensor,
-        dot_product_weight: float,
         dot_product_threshold: float,
         maximum_pass_count: int,
         return_scores: bool = False,
     ) -> torch.Tensor | tuple[torch.Tensor, torch.Tensor]:
         """
         Get the next best gene assignment for each residual colour. Each gene is scored to each pixel using a dot
-        product scoring. A pixel fails gene assignment if one or more of the conditions is met:
+        product scoring where each round has an equal contribution. A pixel fails gene assignment if one or more of the
+        conditions is met:
 
         - The top gene dot product score is below the dot_product_threshold.
         - The next best gene is in the fail_gene_indices list.
@@ -194,9 +187,6 @@ class CoefficientSolverOMP:
                 background genes appended.
             fail_gene_indices (`(n_pixels x n_genes_fail) tensor[int32]`): if the next gene assignment for a pixel is
                 included on the list of fail gene indices, consider gene assignment a fail.
-            dot_product_weight (float): 0 represents a pure dot product of each round/channel image intensity with bled
-                code. 1 represents a dot product with each round given an equal weighting to the scores. > 0 and < 1 is
-                somewhere in between the two. See OMP method documentation for equation details.
             dot_product_threshold (float): a gene can only be assigned if the dot product score is above this threshold.
             maximum_pass_count (int): if a pixel has more than maximum_pass_count dot product scores above the
                 dot_product_threshold, then gene assignment has failed.
@@ -211,7 +201,6 @@ class CoefficientSolverOMP:
         assert type(residual_colours) is torch.Tensor
         assert type(all_bled_codes) is torch.Tensor
         assert type(fail_gene_indices) is torch.Tensor
-        assert type(dot_product_weight) is float
         assert type(dot_product_threshold) is float
         assert type(maximum_pass_count) is int
         assert residual_colours.ndim == 3
@@ -223,11 +212,10 @@ class CoefficientSolverOMP:
         assert all_bled_codes.shape[0] > 0, "Require at least one bled code"
         assert fail_gene_indices.shape[0] == residual_colours.shape[0]
         assert (fail_gene_indices >= 0).all() and (fail_gene_indices < all_bled_codes.shape[0]).all()
-        assert dot_product_weight >= 0 and dot_product_weight <= 1
         assert dot_product_threshold >= 0
         assert maximum_pass_count > 0
 
-        all_gene_scores = dot_product.dot_product_score(residual_colours, all_bled_codes, dot_product_weight)
+        all_gene_scores = dot_product.dot_product_score(residual_colours, all_bled_codes)
 
         _, next_best_genes = torch.max(all_gene_scores, dim=1)
         next_best_genes = next_best_genes.int()
@@ -242,11 +230,6 @@ class CoefficientSolverOMP:
         in_fail_gene_indices = (fail_gene_indices == next_best_genes[:, np.newaxis]).any(1)
         log.debug(f"Pixels in failing gene index: {in_fail_gene_indices.sum()} out of {in_fail_gene_indices.shape}")
         pixels_passed = pixels_passed & (~in_fail_gene_indices)
-
-        # # Too many high scoring genes on a single pixel causes a fail.
-        # too_many_high_scores = genes_passed.sum(1) > maximum_pass_count
-        # log.debug(f"Pixels with too many high scores: {too_many_high_scores.sum()} out of {too_many_high_scores.shape}")
-        # pixels_passed = pixels_passed & (~too_many_high_scores)
 
         log.debug(f"So total pixels passed: {pixels_passed.sum()} out of {pixels_passed.shape}")
         next_best_genes[~pixels_passed] = self.NO_GENE_ASSIGNMENT

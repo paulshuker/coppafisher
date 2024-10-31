@@ -1,41 +1,34 @@
 import numpy as np
 import torch
 
-from .. import log
-
 
 def dot_product_score(
     spot_colours: np.ndarray | torch.Tensor,
     bled_codes: np.ndarray | torch.Tensor,
-    dot_product_weight: float,
 ) -> np.ndarray | torch.Tensor:
     """
-    Score each spot to each gene. The maximum score is the assigned gene for said spot. The scores range from 0 to 1.
+    Score each spot to each gene. The score is a dot product of each round separately, giving each round an equal
+    contribution. The maximum score is the assigned gene for said spot. The scores range from 0 to 1.
 
     Args:
         spot_colours (`(n_spots x n_rounds x n_channels_use) ndarray[float]`): spot colours after call spots scaling
             has been applied. They must not be L2 normalised yet.
         bled_codes (`(n_genes x n_rounds x n_channels_use) ndarray[float]`): normalised bled codes.
-        dot_product_weight (float): how much the dot product score is a pure dot product score. 1 is a simple dot
-            product score, 0 gives each round an equal weighting on the score. A value between 0 and 1 is somewhere in
-            between the two.
 
     Returns:
         (`(n_spots x n_genes) ndarray[float32] or tensor[float32]`): score. score such that `score[d, c]` gives a
-            "semi-dot product" between `spot_colours` vector `d` with `bled_codes` vector `c`. Returns a tensor if
+            "round dot product" between `spot_colours` vector `d` with `bled_codes` vector `c`. Returns a tensor if
             spot_colours is a tensor.
     """
     assert type(spot_colours) in (np.ndarray, torch.Tensor)
     assert type(bled_codes) in (np.ndarray, torch.Tensor)
-    if dot_product_weight < 0 or dot_product_weight > 1:
-        raise ValueError(f"dot_product_weight must be between 0 and 1, got {dot_product_weight}")
 
     if type(spot_colours) is np.ndarray:
-        spot_colours_torch = torch.from_numpy(spot_colours)
+        spot_colours_torch = torch.from_numpy(spot_colours.copy())
     else:
         spot_colours_torch = spot_colours.detach().clone()
     if type(bled_codes) is np.ndarray:
-        bled_codes_torch = torch.from_numpy(bled_codes)
+        bled_codes_torch = torch.from_numpy(bled_codes.copy())
     else:
         bled_codes_torch = bled_codes.detach().clone()
     spot_colours_torch = spot_colours_torch.float()
@@ -43,32 +36,18 @@ def dot_product_score(
     assert spot_colours_torch.ndim == bled_codes_torch.ndim == 3
     assert spot_colours_torch.shape[1:] == bled_codes_torch.shape[1:]
 
-    # L2 normalise the entire spot colour for each spot.
-    spot_colours_torch /= torch.linalg.matrix_norm(spot_colours_torch, keepdim=True)
-    bled_codes_torch /= torch.linalg.matrix_norm(bled_codes_torch, keepdim=True)
+    n_rounds = spot_colours_torch.shape[1]
 
-    # L2 norms of the spot colour and bled code for each round separately.
-    spot_colours_norms = torch.linalg.vector_norm(spot_colours_torch, dim=2)
-    bled_code_norms = torch.linalg.vector_norm(bled_codes_torch, dim=2)
-    # F hat as defined in the docs, has shape (n_spots x n_rounds x n_channels).
-    f_hat = spot_colours_torch.detach().clone()
-    del spot_colours_torch
-    f_hat /= spot_colours_norms[:, :, np.newaxis]
-    # K hat as defined in the docs, has shape (n_genes x n_rounds x n_channels).
-    k_hat = bled_codes_torch.detach().clone()
-    del bled_codes_torch
-    k_hat /= bled_code_norms[:, :, np.newaxis]
+    # L2 normalise over each round separately.
+    spot_colours_torch /= torch.linalg.vector_norm(spot_colours_torch, dim=2, keepdim=True)
+    bled_codes_torch /= torch.linalg.vector_norm(bled_codes_torch, dim=2, keepdim=True)
 
-    # Has shape (n_spots x n_genes x n_rounds).
-    scores = (spot_colours_norms[:, np.newaxis] * bled_code_norms[np.newaxis]) ** dot_product_weight
-    scores *= (f_hat[:, np.newaxis] * k_hat[np.newaxis]).sum(3)
-    del f_hat, k_hat
+    # Has shape (n_spots x n_genes x n_rounds x n_channels).
+    scores = spot_colours_torch[:, np.newaxis] * bled_codes_torch[np.newaxis]
+    # Sum over rounds and channels
+    scores = scores.sum((2, 3))
+    scores /= n_rounds
     # Has shape (n_spots x n_genes).
-    scores = scores.sum(2)
-    scores /= (spot_colours_norms ** (2 * dot_product_weight)).sum(1).sqrt()[:, np.newaxis]
-    del spot_colours_norms
-    scores /= (bled_code_norms ** (2 * dot_product_weight)).sum(1).sqrt()[np.newaxis]
-    del bled_code_norms
     scores = scores.abs().clip(0, 1)
 
     if type(spot_colours) is np.ndarray:

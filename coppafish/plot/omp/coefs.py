@@ -66,7 +66,6 @@ class ViewOMPImage(Subplot):
         n_rounds_use, n_channels_use = len(nbp_basic.use_rounds), len(nbp_basic.use_channels)
         min_intensity = config.get_default_for("omp", "minimum_intensity")
         max_genes = config.get_default_for("omp", "max_genes")
-        dot_product_weight = config.get_default_for("omp", "dot_product_weight")
         dot_product_threshold = config.get_default_for("omp", "dot_product_threshold")
         norm_shift = config.get_default_for("omp", "coefficient_normalisation_shift")
         mean_spot_filepath = importlib_resources.files("coppafish.omp").joinpath("mean_spot.npy")
@@ -74,7 +73,6 @@ class ViewOMPImage(Subplot):
         if nbp_omp is not None:
             min_intensity = float(nbp_omp.associated_configs["omp"]["minimum_intensity"])
             max_genes = int(nbp_omp.associated_configs["omp"]["max_genes"])
-            dot_product_weight = float(nbp_omp.associated_configs["omp"]["dot_product_weight"])
             dot_product_threshold = float(nbp_omp.associated_configs["omp"]["dot_product_threshold"])
             norm_shift = float(nbp_omp.associated_configs["omp"]["coefficient_normalisation_shift"])
             mean_spot = nbp_omp.mean_spot
@@ -108,7 +106,6 @@ class ViewOMPImage(Subplot):
             bled_codes,
             solver.create_background_bled_codes(n_rounds_use, n_channels_use),
             max_genes,
-            dot_product_weight,
             dot_product_threshold,
             norm_shift,
             return_dp_scores=True,
