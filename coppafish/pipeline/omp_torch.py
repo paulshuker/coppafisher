@@ -37,17 +37,17 @@ def run_omp(
     See `omp` section of file `coppafish/setup/notebook_page.py` for descriptions of the omp variables.
 
     Args:
-        - config (dict): Dictionary obtained from `'omp'` section of config file.
-        - nbp_file (NotebookPage): `file_names` notebook page.
-        - nbp_basic (NotebookPage): `basic_info` notebook page.
-        - nbp_extract (NotebookPage): `extract` notebook page.
-        - nbp_filter (NotebookPage): `filter` notebook page.
-        - nbp_register (NotebookPage): `register` notebook page.
-        - nbp_stitch (NotebookPage): `stitch` notebook page.
-        - nbp_call_spots (NotebookPage): `call_spots` notebook page.
+        config (dict): Dictionary obtained from `'omp'` section of config file.
+        nbp_file (NotebookPage): `file_names` notebook page.
+        nbp_basic (NotebookPage): `basic_info` notebook page.
+        nbp_extract (NotebookPage): `extract` notebook page.
+        nbp_filter (NotebookPage): `filter` notebook page.
+        nbp_register (NotebookPage): `register` notebook page.
+        nbp_stitch (NotebookPage): `stitch` notebook page.
+        nbp_call_spots (NotebookPage): `call_spots` notebook page.
 
     Returns:
-        `NotebookPage[omp]` nbp_omp: page containing gene assignments and info for OMP spots.
+        `NotebookPage[omp]`: nbp_omp. Page containing gene assignments and info for OMP spots.
     """
     assert type(config) is dict
     assert type(nbp_file) is NotebookPage
@@ -110,10 +110,15 @@ def run_omp(
     # Each tile's results are appended to the zarr.Group.
     group_path = os.path.join(nbp_file.output_dir, "results.zgroup")
     results = zarr.group(store=group_path, zarr_version=2)
-    saved_tiles = [f"tile_{t}" in results and "colours" in results[f"tile_{t}"] for t in nbp_basic.use_tiles]
+    tile_exists = [
+        f"tile_{t}" in results
+        and "colours" in results[f"tile_{t}"]
+        and utils.system.get_software_version() == results[f"tile_{t}"].attrs["software_version"]
+        for t in nbp_basic.use_tiles
+    ]
 
     for t_index, t in enumerate(nbp_basic.use_tiles):
-        if saved_tiles[t_index] and config_unchanged:
+        if tile_exists[t_index] and config_unchanged:
             log.info(f"OMP is skipping tile {t}, results already found at {nbp_file.output_dir}")
             continue
 
@@ -148,7 +153,6 @@ def run_omp(
             background_codes=bg_bled_codes,
             maximum_iterations=max_genes,
             dot_product_threshold=config["dot_product_threshold"],
-            normalisation_shift=config["coefficient_normalisation_shift"],
         )
         n_subset_pixels = config["subset_pixels"]
         index_subset, index_min, index_max = 0, 0, 0
@@ -191,6 +195,7 @@ def run_omp(
         log.debug(f"Compute coefficients, tile {t} complete")
 
         tile_results = results.create_group(f"tile_{t}", overwrite=True)
+        tile_results.attrs["software_version"] = utils.system.get_software_version()
         n_chunk_max = 600_000
         t_spots_local_yxz = tile_results.zeros(
             "local_yxz", overwrite=True, shape=(0, 3), chunks=(n_chunk_max, 3), dtype=np.int16

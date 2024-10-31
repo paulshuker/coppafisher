@@ -8,21 +8,21 @@ from coppafish.robominnie.robominnie import Robominnie
 
 
 def get_robominnie_scores(rm: Robominnie) -> None:
-    tile_scores = rm.score_tiles("prob", score_threshold=0.9)
+    tile_scores = rm.score_tiles("prob", score_threshold=0.9, intensity_threshold=0.4)
     print(f"Prob scores for each tile: {tile_scores}")
     if any([score < 75 for score in tile_scores]):
         warnings.warn(f"Anchor method contains tile score < 75%")
     if any([score < 40 for score in tile_scores]):
         raise ValueError(f"Anchor method has a tile score < 40%. This can be a sign of a pipeline bug")
 
-    tile_scores = rm.score_tiles("anchor", score_threshold=0.5)
+    tile_scores = rm.score_tiles("anchor", score_threshold=0.5, intensity_threshold=0.4)
     print(f"Anchor scores for each tile: {tile_scores}")
     if any([score < 75 for score in tile_scores]):
         warnings.warn(f"Anchor method contains tile score < 75%")
     if any([score < 40 for score in tile_scores]):
         raise ValueError(f"Anchor method has a tile score < 40%. This can be a sign of a pipeline bug")
 
-    tile_scores = rm.score_tiles("omp", score_threshold=0.4)
+    tile_scores = rm.score_tiles("omp", score_threshold=0.4, intensity_threshold=0.4)
     print(f"OMP scores for each tile: {tile_scores}")
     if any([score < 75 for score in tile_scores]):
         warnings.warn(f"OMP method contains tile score < 75%")

@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 from coppafish.omp import coefs
@@ -104,19 +103,23 @@ def test_get_next_gene_assignments() -> None:
     fail_gene_indices = torch.ones((n_pixels, 1), dtype=torch.int32)
     fail_gene_indices[:, 0] = 3
     dot_product_threshold = 0.5
-    maximum_pass_count = 2
 
     residual_colours_previous = residual_colours.detach().clone()
     all_bled_codes_previous = all_bled_codes.detach().clone()
     fail_gene_indices_previous = fail_gene_indices.detach().clone()
-    omp_solver = coefs.CoefficientSolverOMP()
-    best_genes = omp_solver.get_next_gene_assignments(
+    kwargs = dict(
         residual_colours=residual_colours,
         all_bled_codes=all_bled_codes,
         fail_gene_indices=fail_gene_indices,
         dot_product_threshold=dot_product_threshold,
-        maximum_pass_count=maximum_pass_count,
     )
+    omp_solver = coefs.CoefficientSolverOMP()
+    best_genes, _ = omp_solver.get_next_gene_assignments(**kwargs)
+    kwargs["return_all_scores"] = True
+    other_result = omp_solver.get_next_gene_assignments(**kwargs)
+    assert type(other_result) is tuple
+    assert len(other_result) == 3
+    assert all([type(result) is torch.Tensor for result in other_result])
     assert type(best_genes) is torch.Tensor
     assert best_genes.shape == (n_pixels,), f"Got shape {best_genes.shape}"
     assert best_genes[0] == 0, f"Got {best_genes[0]}"
@@ -131,7 +134,7 @@ def test_get_next_gene_assignments() -> None:
     assert torch.allclose(fail_gene_indices_previous, fail_gene_indices)
 
 
-def test_get_next_gene_coefficients() -> None:
+def test_get_next_residual_colours() -> None:
     n_pixels = 3
     n_genes_added = 2
     n_rounds_channels_use = 4
@@ -155,21 +158,14 @@ def test_get_next_gene_coefficients() -> None:
     pixel_colours_previous = pixel_colours.detach().clone()
     bled_codes_previous = bled_codes.detach().clone()
     omp_solver = coefs.CoefficientSolverOMP()
-    coefficients, residuals = omp_solver.get_next_gene_coefficients(pixel_colours=pixel_colours, bled_codes=bled_codes)
+    residuals = omp_solver.get_next_residual_colours(pixel_colours=pixel_colours, bled_codes=bled_codes)
 
-    assert type(coefficients) is torch.Tensor
     assert type(residuals) is torch.Tensor
-    assert coefficients.shape == (n_pixels, n_genes_added)
     assert residuals.shape == (n_pixels, n_rounds_channels_use)
     abs_tol = 1e-6
-    assert torch.isclose(coefficients[0, 0], torch.tensor(1.3).float(), atol=abs_tol)
-    assert torch.isclose(coefficients[0, 1], torch.tensor(2).float(), atol=abs_tol)
     assert torch.allclose(residuals[0], torch.tensor(0).float(), atol=abs_tol)
-    assert torch.isclose(coefficients[1, 0], torch.tensor(0.4).float(), atol=abs_tol)
     assert torch.isclose(residuals[1, 3], torch.tensor(4).float(), atol=abs_tol)
     assert torch.isclose(residuals[1], torch.tensor(0).float(), atol=abs_tol).sum() == (n_rounds_channels_use - 1)
-    assert torch.isclose(coefficients[2, 0], torch.tensor(0.74).float(), atol=abs_tol)
-    assert coefficients[2, 1] > 2
     assert residuals[2, 1] < 0
     assert residuals[2, 2] > 0
 

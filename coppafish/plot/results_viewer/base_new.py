@@ -227,9 +227,7 @@ class Viewer:
             spot_data["omp"].gene_no = omp_base.get_all_gene_no(self.nbp_basic, self.nbp_omp)[0].astype(np.int16)
             spot_data["omp"].score = omp_base.get_all_scores(self.nbp_basic, self.nbp_omp)[0]
             spot_data["omp"].colours = omp_base.get_all_colours(self.nbp_basic, self.nbp_omp)[0].astype(np.float32)
-            # OMP's intensity will be a similar scale to prob and anchor if the spot colours are colour normalised too.
-            colours_normed = spot_data["omp"].colours * self.nbp_call_spots.colour_norm_factor[spot_data["omp"].tile]
-            spot_data["omp"].intensity = np.abs(colours_normed).max(2).min(1)
+            spot_data["omp"].intensity = omp_base.get_all_intensities(self.nbp_basic, self.nbp_call_spots, self.nbp_omp)
             self.selected_method = "omp"
         for method in spot_data.keys():
             spot_data[method].indices = np.linspace(

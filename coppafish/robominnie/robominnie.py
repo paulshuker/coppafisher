@@ -594,6 +594,7 @@ class Robominnie:
         d_max = {", ".join(np.argmax(self.bleed_matrix, axis=1).astype(str))}
         
         [omp]
+        minimum_intensity = 0.2
         spot_shape = 13, 13, 1
         score_threshold = 0.1
         subset_pixels = 10_000
@@ -661,11 +662,13 @@ class Robominnie:
 
         self.prob_spots_positions = nb.ref_spots.local_yxz[:].astype(np.float32)
         self.prob_spots_scores = nb.call_spots.gene_probabilities[:].max(1)
+        self.prob_spots_intensities = nb.call_spots.intensity[:]
         self.prob_spots_gene_indices = np.argmax(nb.call_spots.gene_probabilities[:], 1)
         self.prob_spots_tile = nb.ref_spots.tile[:]
 
         self.ref_spots_local_positions_yxz = nb.ref_spots.local_yxz[:].astype(np.float32)
         self.ref_spots_scores = nb.call_spots.dot_product_gene_score[:]
+        self.ref_spots_intensities = nb.call_spots.intensity[:]
         self.ref_spots_gene_indices = nb.call_spots.dot_product_gene_no[:]
         self.ref_spots_tile = nb.ref_spots.tile[:]
 
@@ -679,6 +682,7 @@ class Robominnie:
         # Keep the OMP spot intensities, assigned gene, assigned tile number and the spot positions in the robominnie
         # class
         self.omp_spot_scores = omp_base.get_all_scores(nb.basic_info, nb.omp)[0]
+        self.omp_spot_intensities = omp_base.get_all_intensities(nb.basic_info, nb.call_spots, nb.omp)
         self.omp_gene_numbers, self.omp_tile_number = omp_base.get_all_gene_no(nb.basic_info, nb.omp)
         self.omp_spot_local_positions = omp_base.get_all_local_yxz(nb.basic_info, nb.omp)[0].astype(np.float32)
         self.omp_spot_count = self.omp_gene_numbers.shape[0]
@@ -688,7 +692,7 @@ class Robominnie:
 
         return nb
 
-    def score_tiles(self, method: str, score_threshold: float = 0.0) -> Tuple[float]:
+    def score_tiles(self, method: str, score_threshold: float = 0.0, intensity_threshold: float = 0.0) -> Tuple[float]:
         """
         Computes the overall score as true positives / (true positives + wrong positives + false positives + false
         negatives) for each tile. This is done by comparing known spot locations to the spot locations from coppafish
@@ -707,14 +711,16 @@ class Robominnie:
         assert score_threshold >= 0
         assert method not in self.coppafish_spot_assignments
 
-        spot_positions, spot_tiles, spot_scores, spot_gene_indices = self._get_results_for_method(method)
+        spot_positions, spot_tiles, spot_scores, spot_intensities, spot_gene_indices = self._get_results_for_method(
+            method
+        )
 
-        tile_origins = np.array(self._get_tile_bounds()[2]).astype(np.float32)
         tile_scores = []
         for t in range(self.n_tiles):
             in_tile = spot_tiles == t
             within_score_threshold = spot_scores >= score_threshold
-            keep = in_tile & within_score_threshold
+            within_intensity_threshold = spot_intensities >= intensity_threshold
+            keep = in_tile & within_score_threshold & within_intensity_threshold
             t_spot_positions = spot_positions[keep]
             t_spot_gene_indices = spot_gene_indices[keep]
             # Cut out spot positions near the edge where there could be tile overlap.
@@ -758,7 +764,7 @@ class Robominnie:
         )
         last_i = len(self._get_methods()) - 1
         for i, method in enumerate(self._get_methods()):
-            spot_positions, spot_tiles, _, _ = self._get_results_for_method(method)
+            spot_positions, spot_tiles, _, _, _ = self._get_results_for_method(method)
             assignments = self.coppafish_spot_assignments[method]
             global_positions = spot_positions + self.stitch_tile_origins[spot_tiles]
             global_positions += np.array(self.image_padding, np.float32)[np.newaxis]
@@ -900,19 +906,22 @@ class Robominnie:
             spot_positions = self.prob_spots_positions
             spot_tiles = self.prob_spots_tile
             spot_scores = self.prob_spots_scores
+            spot_intensities = self.prob_spots_intensities
             spot_gene_indices = self.prob_spots_gene_indices
         elif method == "anchor":
             spot_positions = self.ref_spots_local_positions_yxz
             spot_tiles = self.ref_spots_tile
             spot_scores = self.ref_spots_scores
+            spot_intensities = self.ref_spots_intensities
             spot_gene_indices = self.ref_spots_gene_indices
         elif method == "omp":
             spot_positions = self.omp_spot_local_positions
             spot_tiles = self.omp_tile_number
             spot_scores = self.omp_spot_scores
+            spot_intensities = self.omp_spot_intensities
             spot_gene_indices = self.omp_gene_numbers
 
-        return spot_positions, spot_tiles, spot_scores, spot_gene_indices
+        return spot_positions, spot_tiles, spot_scores, spot_intensities, spot_gene_indices
 
     def _get_methods(self) -> Tuple[str]:
         return ("prob", "anchor", "omp")

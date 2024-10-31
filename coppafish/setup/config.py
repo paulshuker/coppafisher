@@ -125,12 +125,9 @@ _options = {
         "concentration_parameter_perpendicular": "number",
     },
     "omp": {
-        "colour_normalise": "bool",
-        "fit_background": "bool",
         "weight_coef_fit": "bool",
         "max_genes": "int",
         "minimum_intensity": "number",
-        "coefficient_normalisation_shift": "number",
         "dot_product_threshold": "number",
         "subset_pixels": "maybe_int",
         "force_cpu": "bool",
