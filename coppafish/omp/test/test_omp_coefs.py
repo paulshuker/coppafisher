@@ -114,7 +114,6 @@ def test_get_next_gene_assignments() -> None:
         residual_colours=residual_colours,
         all_bled_codes=all_bled_codes,
         fail_gene_indices=fail_gene_indices,
-        dot_product_weight=1.0,
         dot_product_threshold=dot_product_threshold,
         maximum_pass_count=maximum_pass_count,
     )
