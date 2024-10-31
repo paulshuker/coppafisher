@@ -2,6 +2,7 @@ import enum
 import importlib.resources as importlib_resources
 import itertools
 from typing import Tuple
+import warnings
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -170,14 +171,16 @@ class ViewOMPImage(Subplot):
             ax: plt.Axes = self.axes[1, c]
             ax.spines.clear()
 
-        self.gene_slider = Slider(
-            self.axes[1, 0],
-            label="Gene",
-            valmin=min(all_assigned_genes),
-            valmax=max(all_assigned_genes),
-            valstep=list(all_assigned_genes),
-            valinit=self.selected_gene,
-        )
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
+            self.gene_slider = Slider(
+                self.axes[1, 0],
+                label="Gene",
+                valmin=min(all_assigned_genes),
+                valmax=max(all_assigned_genes),
+                valstep=list(all_assigned_genes),
+                valinit=self.selected_gene,
+            )
         self.gene_slider.on_changed(self.gene_selected_updated)
         self.button_colour = "red"
         self.button_colour_press = "green"
