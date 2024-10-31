@@ -278,7 +278,8 @@ class Viewer:
         print("Placing spots")
         self.point_layers = {}
         # Display the correct spot data based on current thresholds.
-        self.z = self.background_image.shape[0] // 2 - 1 if self.background_image is not None else 0
+        n_z_planes = self.background_image.shape[0] if self.background_image is not None else 1
+        self.z = n_z_planes // 2 - int(n_z_planes % 2 == 0)
         self._update_all_keep()
         for method in self.spot_data.keys():
             spot_gene_numbers = self.spot_data[method].gene_no.copy()
