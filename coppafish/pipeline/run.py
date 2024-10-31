@@ -17,6 +17,7 @@ from ..setup import file_names
 from ..setup.notebook import Notebook
 from ..setup.notebook_page import NotebookPage
 from ..utils import system as utils_system
+from ..utils import tiles_io as utils_tiles_io
 from ..utils import version as utils_version
 from ..utils import warnings as utils_warnings
 
@@ -32,6 +33,7 @@ def run_pipeline(config_file: str) -> Notebook:
         Notebook: notebook containing all information gathered during the pipeline.
     """
     # TODO: We do not need so many functions for running the pipeline.
+    utils_tiles_io.set_zarr_global_configs()
     nb, nbp_file = initialize_nb(config_file)
     log.error_catch(run_extract, nb, nbp_file)
     log.error_catch(BuildPDF, nb, nbp_file)
