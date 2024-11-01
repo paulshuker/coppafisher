@@ -13,9 +13,10 @@ import zarr
 
 from .. import log, utils
 from .. import find_spots
-from ..omp import coefs, scores, spots
+from ..omp import coefs, scores
 from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
+from ..utils import duplicates
 
 
 def run_omp(
@@ -74,12 +75,8 @@ def run_omp(
     n_rounds_use = len(nbp_basic.use_rounds)
     n_channels_use = len(nbp_basic.use_channels)
     tile_shape: Tuple[int] = nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z)
-    tile_centres = nbp_stitch.tile_origin.astype(np.float32)
-    # Invalid tiles are sent far away to avoid mistaken duplicate spot detection.
-    tile_centres[np.isnan(tile_centres)] = 1e20
-    tile_centres = torch.asarray(tile_centres)
-    tile_origins = tile_centres.detach().clone()
-    tile_centres += torch.asarray(tile_shape).float() / 2
+    tile_origins = nbp_stitch.tile_origin.astype(np.float32)
+    tile_centres = duplicates.get_tile_centres(nbp_basic.tile_sz, len(nbp_basic.use_z), tile_origins)
 
     last_omp_config = omp_config.copy()
     config_path = os.path.join(nbp_file.output_dir, "omp_last_config.pkl")
@@ -238,13 +235,14 @@ def run_omp(
                 n_g_spots = g_spot_scores.size(0)
                 if n_g_spots == 0:
                     continue
+
                 # Delete any spot positions that are duplicates.
                 g_spot_global_positions = g_spot_local_positions.detach().clone().float()
                 g_spot_global_positions += tile_origins[[t]]
-                duplicates = spots.is_duplicate_spot(g_spot_global_positions, t, tile_centres)
-                g_spot_local_positions = g_spot_local_positions[~duplicates]
-                g_spot_scores = g_spot_scores[~duplicates]
-                del g_spot_global_positions, duplicates
+                is_duplicate = duplicates.is_duplicate_spot(g_spot_global_positions, t, tile_centres)
+                g_spot_local_positions = g_spot_local_positions[~is_duplicate]
+                g_spot_scores = g_spot_scores[~is_duplicate]
+                del g_spot_global_positions, is_duplicate
 
                 g_spot_local_positions = g_spot_local_positions.to(torch.int16)
                 g_spot_scores = g_spot_scores.to(torch.float16)
