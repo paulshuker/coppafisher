@@ -47,7 +47,7 @@ class Legend:
         "star": "*",
         "arrow": ">",
         "ring": "o",  # A ring is the same as disc but the face colour is set to None with only an edge colour.
-        "clobber": "$\clubsuit$",
+        "clobber": r"$\clubsuit$",
         "x": "x",
         "diamond": "d",
     }

@@ -10,7 +10,8 @@ from matplotlib.widgets import Button, Slider
 import numpy as np
 import torch
 
-from coppafish.omp import coefs, scores
+from coppafish.omp import coefs
+from coppafish.omp import scores as omp_scores
 from coppafish.setup import config
 from coppafish.setup.notebook import NotebookPage
 from coppafish.spot_colours import base as spot_colours_base
@@ -121,7 +122,7 @@ class ViewOMPImage(Subplot):
         coefficients = coefficients.transpose((3, 0, 1, 2))
         self.coefficients = coefficients
         self.iteration_counts = iteration_counts
-        scores = scores.score_coefficient_image(torch.from_numpy(coefficients), torch.from_numpy(mean_spot))[
+        scores = omp_scores.score_coefficient_image(torch.from_numpy(coefficients), torch.from_numpy(mean_spot))[
             :, image_shape[0] // 2, image_shape[1] // 2, image_shape[2] // 2
         ]
         self.scores = scores.numpy()
