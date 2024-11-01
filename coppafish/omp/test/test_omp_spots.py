@@ -1,6 +1,6 @@
 import torch
 
-from coppafish.omp.spots_torch import is_duplicate_spot
+from coppafish.omp.spots import is_duplicate_spot
 
 
 def test_is_duplicate_spot() -> None:

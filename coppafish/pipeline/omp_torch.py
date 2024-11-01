@@ -13,7 +13,7 @@ import zarr
 
 from .. import log, utils
 from .. import find_spots
-from ..omp import coefs, scores_torch, spots_torch
+from ..omp import coefs, scores, spots
 from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
 
@@ -220,7 +220,7 @@ def run_omp(
                         tile_shape, order="F"
                     )
                 )
-            g_score_image = scores_torch.score_coefficient_image(g_coef_image, mean_spot, config["force_cpu"])
+            g_score_image = scores.score_coefficient_image(g_coef_image, mean_spot, config["force_cpu"])
             del g_coef_image
             g_score_image = g_score_image.to(dtype=torch.float16)
 
@@ -241,7 +241,7 @@ def run_omp(
                 # Delete any spot positions that are duplicates.
                 g_spot_global_positions = g_spot_local_positions.detach().clone().float()
                 g_spot_global_positions += tile_origins[[t]]
-                duplicates = spots_torch.is_duplicate_spot(g_spot_global_positions, t, tile_centres)
+                duplicates = spots.is_duplicate_spot(g_spot_global_positions, t, tile_centres)
                 g_spot_local_positions = g_spot_local_positions[~duplicates]
                 g_spot_scores = g_spot_scores[~duplicates]
                 del g_spot_global_positions, duplicates
