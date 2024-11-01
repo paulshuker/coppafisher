@@ -4,18 +4,18 @@ Coppafish requires raw, `uint16` microscope images, metadata, and a configuratio
 data in ND2, JOBs, or numpy format. If your data is not already in one of these formats, we recommend configuring your
 data into [numpy](#numpy) format.
 
-There must be an anchor round. There must be a dapi channel in every sequencing round and the anchor round. The tiles 
-must have at least four z planes. Use a number of z planes that is a multiple of two.
+There must be an anchor round. There must be an anchor channel (this can be a sequencing channel). There must be a dapi
+channel in every sequencing round and the anchor round. The tiles must have at least four z planes. Use a number of z
+planes that is a multiple of two.
 
 ### ND2
 
 ND2 files index tiles differently to coppafish. The difference is illustrated below on a 2x3 grid.
 
 <figure markdown="span">
-  ![Image title](images/coppafish_and_nd2_tile_indices.png){ width="400" }
+  ![Image title](images/coppafish_and_nd2_tile_indices.svg){ width="600" }
   <figcaption>How six tiles are indexed.</figcaption>
 </figure>
-
 
 ### Numpy
 

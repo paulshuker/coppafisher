@@ -99,20 +99,20 @@ $\text{max\_genes}$.
 
 ## 3: Pixel Scoring and Spot Detection
 
-The gene coefficient images are converted to gene score images using the mean spot given as a numpy .npy file by file 
-path `mean_spot_filepath`, if not given, the default mean spot is used (shown below). A kernel is created as mean spot 
-/ sum(mean spot). Then, the coefficient images are convolved with said kernel to give every pixel for every gene a 
-"spot-likeliness score" to create a score image. Therefore, spot-shaped/high coefficient regions result in higher score 
-maxima. Scores can be $\geq 0$. But, in practice, scores are rarely greater than $0.7$.
+The gene coefficient images are converted to gene score images by convolving with the mean spot given as a numpy .npy 
+file at file path `mean_spot_filepath`. If `mean_spot_filepath` is not given, the default mean spot is used (shown 
+below). The mean spot is divided by its sum then used. This gives a score for every pixel for every gene. Spot-shaped 
+and high coefficient regions result in higher score maxima. Scores can be $\geq 0$. But, in practice, scores are rarely 
+greater than $0.7$.
 
 <figure markdown="span">
   ![Image title](images/algorithm/omp/omp_mean_spot_example.png){ width="776" }
   <figcaption>The default mean spot. The middle image is the central z plane.</figcaption>
 </figure>
 
-Using the new spot score images, each gene's spots are detected using the [find spots](find_spots.md) algorithm to find 
-score local maxima using config parameters `radius_xy` (typically `3`) and `radius_z` (typically `2`) respectively with 
-a score threshold set by `score_threshold` (typically `0.1`). These are the final OMP gene reads shown in the 
+Using the score images, each gene's spots are detected using the [find spots](find_spots.md) algorithm to find score 
+local maxima using config parameters `radius_xy` (typically `3`) and `radius_z` (typically `2`) respectively with a 
+score threshold set by `score_threshold` (typically `0.1`). These are the final OMP gene reads shown in the 
 [Viewer](diagnostics.md#viewer).
 
 ??? note "Why not score each spot using a single coefficient value?"
