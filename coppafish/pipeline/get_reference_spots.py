@@ -5,7 +5,6 @@ import torch
 import zarr
 
 from .. import log
-from ..call_spots import base as call_spots_base
 from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
 from ..utils import duplicates
