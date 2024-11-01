@@ -56,6 +56,7 @@ class ViewScoreIntensityDistributions(Subplot):
 
     def draw_data(self) -> None:
         ax: plt.Axes = self.axes[0]
+        ax.clear()
         ax.grid(False)
         ax.set_xlim(*self.score_range)
         ax.set_xlabel("Score")
@@ -64,7 +65,6 @@ class ViewScoreIntensityDistributions(Subplot):
         data = self.H
         if self.log_counts:
             data = self.H_log
-        ax.clear()
         # We allow non-square pixels so the subplot can correctly fill the plot space even if intensity has many more
         # bins than score for example.
         im = ax.imshow(
