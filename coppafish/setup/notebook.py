@@ -89,10 +89,10 @@ class Notebook:
         Load the notebook found at the given directory. Or, if the directory does not exist, create the directory.
 
         Args:
-            - notebook_dir (str): the notebook directory to write into and/or load from.
-            - config_path (str, optional): path to the pipeline's config file. This must be given for new pages to be
+            notebook_dir (str): the notebook directory to write into and/or load from.
+            config_path (str, optional): path to the pipeline's config file. This must be given for new pages to be
                 added, i.e. during the pipeline runtime. Default: not given.
-            - must_exists (bool, optional): crash if the notebook does not already exist. Default: false.
+            must_exists (bool, optional): crash if the notebook does not already exist. Default: false.
         """
         assert type(notebook_dir) is str
         assert config_path is None or type(config_path) is str
