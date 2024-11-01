@@ -30,9 +30,6 @@ def run_filter(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) ->
     Notes:
         - See `'filter'` and `'filter_debug'` sections of `notebook_page.py` file for description of variables.
     """
-    if not nbp_basic.is_3d:
-        NotImplementedError(f"2d coppafish is not stable, very sorry! :9")
-
     nbp = NotebookPage("filter", {"filter": config})
     nbp_debug = NotebookPage("filter_debug", {"filter": config})
 

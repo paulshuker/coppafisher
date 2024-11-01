@@ -44,7 +44,7 @@ compatible csv file by
 
 ```py
 from coppafish import Notebook
-from coppafish.utils import export_to_pciseq
+from coppafish.pciseq import export_to_pciseq
 
 nb = Notebook("/path/to/notebook")
 export_to_pciseq(nb, method)

@@ -5,10 +5,28 @@ import dask.array
 from tqdm import tqdm
 from typing import List, Optional, Tuple, Union
 
-from .errors import OutOfBoundsError
+from . import nd2
 from .. import log
-from ..utils import nd2
 from ..setup.notebook_page import NotebookPage
+
+
+class OutOfBoundsError(Exception):
+    def __init__(self, var_name: str, oob_val: float, min_allowed: float, max_allowed: float):
+        """
+        Error raised because `oob_val` is outside expected range between
+        `min_allowed` and `max_allowed` inclusive.
+
+        Args:
+            var_name: Name of variable testing.
+            oob_val: Value in array that is not in expected range.
+            min_allowed: Smallest allowed value i.e. `>= min_allowed`.
+            max_allowed: Largest allowed value i.e. `<= max_allowed`.
+        """
+        self.message = (
+            f"\n{var_name} contains the value {oob_val}."
+            f"\nThis is outside the expected inclusive range between {min_allowed} and {max_allowed}"
+        )
+        super().__init__(self.message)
 
 
 def get_tile_indices(folder: str) -> List:
@@ -56,7 +74,7 @@ def metadata_sanity_check(metadata: dict, round_folder_path: str) -> List:
     """
     tiles = get_tile_indices(round_folder_path)
     if max(tiles) >= metadata["sizes"]["t"]:
-        log.error(OutOfBoundsError("tiles", max(tiles), 0, metadata["sizes"]["t"] - 1))
+        raise OutOfBoundsError("tiles", max(tiles), 0, metadata["sizes"]["t"] - 1)
     file_names = os.listdir(round_folder_path)
     raw_data_0_path = os.path.join(round_folder_path, file_names[0])
     raw_data_0 = np.load(raw_data_0_path, mmap_mode="r")  # mmap as don't need actual data

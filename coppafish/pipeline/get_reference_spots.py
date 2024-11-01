@@ -1,12 +1,13 @@
 import os
 
 import numpy as np
+import torch
 import zarr
 
 from .. import log
-from ..call_spots import base as call_spots_base
 from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
+from ..utils import duplicates
 
 
 def get_reference_spots(
@@ -37,10 +38,12 @@ def get_reference_spots(
     nbp = NotebookPage("ref_spots")
     # The code is going to loop through all tiles, as we expect some anchor spots on each tile but r and c should stay
     # fixed as the value of the reference round and reference channel
-    tile_origin = nbp_stitch.tile_origin
     r = nbp_basic.anchor_round
     c = nbp_basic.anchor_channel
     use_tiles, use_rounds, use_channels = np.array(nbp_basic.use_tiles), nbp_basic.use_rounds, nbp_basic.use_channels
+
+    tile_origins = nbp_stitch.tile_origin.astype(np.float32)
+    tile_centres = duplicates.get_tile_centres(nbp_basic.tile_sz, len(nbp_basic.use_z), tile_origins)
 
     # all means all spots found on the reference round / channel
     all_local_yxz = np.zeros((0, 3), dtype=np.int16)
@@ -52,17 +55,17 @@ def get_reference_spots(
         t_local_yxz = nbp_find_spots.spot_yxz[f"t{t}r{r}c{c}"][:]
         if np.shape(t_local_yxz)[0] == 0:
             continue
+
+        # Find duplicate spots as those detected with closest tile centre not the tile they are assigned to.
+        t_global_yxz = torch.from_numpy(t_local_yxz).to(torch.float32)
+        t_global_yxz += tile_origins[[t]]
+        is_duplicate = duplicates.is_duplicate_spot(t_global_yxz, t, tile_centres).numpy()
+        del t_global_yxz
+        log.debug(f"{is_duplicate.sum()} duplicate spots found on tile {t}")
+        t_local_yxz = t_local_yxz[~is_duplicate]
+
         all_local_yxz = np.append(all_local_yxz, t_local_yxz, axis=0)
         all_local_tile = np.append(all_local_tile, np.full(t_local_yxz.shape[0], t, dtype=np.int16))
-
-    # find duplicate spots as those detected on a tile which is not tile centre they are closest to
-    not_duplicate = call_spots_base.get_non_duplicate(
-        tile_origin, list(nbp_basic.use_tiles), nbp_basic.tile_centre, all_local_yxz, all_local_tile
-    )
-
-    # nd means all spots that are not duplicate
-    nd_local_yxz = all_local_yxz[not_duplicate]
-    nd_local_tile = all_local_tile[not_duplicate]
 
     # Only save used rounds/channels initially
     n_use_rounds, n_use_channels, n_use_tiles = len(use_rounds), len(use_channels), len(use_tiles)
@@ -71,18 +74,18 @@ def get_reference_spots(
     tile = np.zeros(0, dtype=np.int16)
     log.info("Reading in spot_colours for ref_round spots")
     for t in nbp_basic.use_tiles:
-        in_tile = nd_local_tile == t
+        in_tile = all_local_tile == t
         if np.sum(in_tile) == 0:
             continue
         log.info(f"Tile {np.where(use_tiles==t)[0][0]+1}/{n_use_tiles}")
-        log.debug(f"Tile {t} has {nd_local_yxz[in_tile].shape[0]} reference spots")
+        log.debug(f"Tile {t} has {all_local_yxz[in_tile].shape[0]} reference spots")
         colours = spot_colours_base.get_spot_colours_new_safe(
             nbp_basic,
             image=nbp_filter.images,
             flow=nbp_register.flow,
             affine=nbp_register.icp_correction,
             tile=t,
-            yxz=nd_local_yxz[in_tile],
+            yxz=all_local_yxz[in_tile],
             use_rounds=use_rounds,
             use_channels=use_channels,
         )
@@ -91,7 +94,7 @@ def get_reference_spots(
         valid &= ~(np.isclose(colours, 0).all(2).any(1))
         log.debug(f"Valid ref pixel colours: {valid.sum()} out of {valid.size} for tile {t}")
         spot_colours = np.append(spot_colours, colours[valid], axis=0)
-        local_yxz = np.append(local_yxz, nd_local_yxz[in_tile][valid], axis=0)
+        local_yxz = np.append(local_yxz, all_local_yxz[in_tile][valid], axis=0)
         tile = np.append(tile, np.ones(valid.sum(), dtype=np.int16) * t)
 
     # Convert the numpy results to zarrays for saving.

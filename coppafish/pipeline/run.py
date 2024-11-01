@@ -18,7 +18,7 @@ from ..setup.notebook import Notebook
 from ..setup.notebook_page import NotebookPage
 from ..utils import system as utils_system
 from ..utils import tiles_io as utils_tiles_io
-from ..utils import version as utils_version
+from ..compatibility import base as utils_version
 from ..utils import warnings as utils_warnings
 
 

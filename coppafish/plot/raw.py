@@ -5,25 +5,11 @@ import napari
 import numpy as np
 from tqdm import tqdm
 
-from ..pipeline.basic_info import set_basic_info
+from ..extract import raw
+
 from ..setup import file_names
 from ..setup.notebook import Notebook
-from ..utils import nd2, raw
-
-
-def add_basic_info_no_save(nb: Notebook):
-    """
-    This adds the `basic_info` page to the notebook without saving the notebook.
-
-    Args:
-        nb: Notebook with no `basic_info` page.
-
-    """
-    if not nb.has_page("basic_info"):
-        nb._no_save_pages["basic_info"] = {}  # don't save if add basic_info page
-        config = nb.get_config()
-        nbp_basic = set_basic_info(config["file_names"], config["basic_info"])
-        nb += nbp_basic
+from ..extract import nd2
 
 
 def get_raw_images(
@@ -92,66 +78,6 @@ def number_to_list(var_list: List) -> Tuple:
         if isinstance(var_list[i], numbers.Number):
             var_list[i] = [var_list[i]]
     return tuple(var_list)
-
-
-def view_raw(
-    nb: Optional[Notebook] = None,
-    config_path: str = None,
-    tiles: Union[int, List[int]] = 0,
-    rounds: Union[int, List[int]] = 0,
-    channels: Optional[Union[int, List[int]]] = None,
-    use_z: Optional[Union[int, List[int]]] = None,
-    config_file: Optional[str] = None,
-):
-    """
-    Function to view raw data in napari.
-    There will upto 4 scrollbars for each image to change tile, round, channel and z-plane.
-
-    !!! warning "Requires access to `input_dir` given in the config file"
-
-    Args:
-        nb: *Notebook* for experiment. If no *Notebook* exists, pass `config_file` instead.
-        tiles: npy (as opposed to nd2 fov) tile indices to view.
-            For an experiment where the tiles are arranged in a 4 x 3 (ny x nx) grid, tile indices are indicated as
-            below:
-
-            | 2  | 1  | 0  |
-
-            | 5  | 4  | 3  |
-
-            | 8  | 7  | 6  |
-
-            | 11 | 10 | 9  |
-        rounds: rounds to view (`anchor` will be `nb.basic_info.n_rounds` i.e. the last round.)
-        channels: Channels to view. If `None`, will load all channels.
-        use_z: Which z-planes to load in from raw data. If `None`, will use load all z-planes (except from first
-            one if `config['basic_info']['ignore_first_z_plane'] == True`).
-        config_file: path to config file for experiment.
-    """
-    if nb is None:
-        nb = Notebook(config_file=config_file)
-
-    add_basic_info_no_save(nb)  # deal with case where there is no notebook yet
-    if channels is None:
-        channels = np.arange(nb.basic_info.n_channels)
-    if use_z is None:
-        use_z = nb.basic_info.use_z
-    tiles, rounds, channels, use_z = number_to_list([tiles, rounds, channels, use_z])
-
-    raw_images = get_raw_images(nb, config_path, tiles, rounds, channels, use_z)
-    viewer = napari.Viewer()
-    viewer.add_image(np.moveaxis(raw_images, -1, 3), name="Raw Images")
-
-    @viewer.dims.events.current_step.connect
-    def update_slider(event):
-        viewer.status = (
-            f"Tile: {tiles[event.value[0]]}, Round: {rounds[event.value[1]]}, "
-            f"Channel: {channels[event.value[2]]}, Z: {use_z[event.value[3]]}"
-        )
-
-    viewer.dims.axis_labels = ["Tile", "Round", "Channel", "z", "y", "x"]
-    viewer.dims.set_point([0, 1, 2], [0, 0, 0])  # set to first tile, round and channel initially
-    napari.run()
 
 
 def view_tile_layout(

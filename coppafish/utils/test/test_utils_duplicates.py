@@ -1,6 +1,6 @@
 import torch
 
-from coppafish.omp.spots_torch import is_duplicate_spot
+from coppafish.utils import duplicates
 
 
 def test_is_duplicate_spot() -> None:
@@ -27,7 +27,7 @@ def test_is_duplicate_spot() -> None:
     tile_centres[3, 0] = 99_999
     tile_centres[3, 1] = 99_999
     tile_centres[3, 2] = 99_999
-    is_duplicate = is_duplicate_spot(yxz_global_positions, tile_number, tile_centres)
+    is_duplicate = duplicates.is_duplicate_spot(yxz_global_positions, tile_number, tile_centres)
     assert type(is_duplicate) is torch.Tensor
     assert is_duplicate.shape == (yxz_global_positions.shape[0],)
     assert not is_duplicate[0]

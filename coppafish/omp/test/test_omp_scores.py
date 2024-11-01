@@ -2,7 +2,7 @@ import torch
 
 
 def test_score_coefficient_image() -> None:
-    from coppafish.omp import scores_torch
+    from coppafish.omp import scores
 
     im_y, im_x, im_z = 4, 5, 6
     spot_shape = 1, 3, 5
@@ -14,7 +14,7 @@ def test_score_coefficient_image() -> None:
     mean_spot[0, 2, 2] = 0.9
     mean_spot[0, 1, 3] = 0.1
 
-    scores = scores_torch.score_coefficient_image(coefficient_image, mean_spot)
+    scores = scores.score_coefficient_image(coefficient_image, mean_spot)
 
     assert scores.shape == coefficient_image.shape
     assert torch.allclose(scores[0], torch.zeros(1).float())

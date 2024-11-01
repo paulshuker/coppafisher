@@ -571,9 +571,8 @@ class BuildPDF:
         output += (
             "...\n".join(
                 textwrap.wrap(
-                    f"{3 if basic_info_page.is_3d else 2}D, tile dimensions: "
-                    + f"{basic_info_page.nz if basic_info_page.is_3d else 1}x{basic_info_page.tile_sz}x"
-                    + f"{basic_info_page.tile_sz}",
+                    f"3D tile dimensions: "
+                    + f"{basic_info_page.nz}x{basic_info_page.tile_sz}x{basic_info_page.tile_sz}",
                     85,
                 )
             )

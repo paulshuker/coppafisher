@@ -9,13 +9,25 @@ import numpy_indexed
 from tqdm import tqdm
 
 from . import raw
-from . import errors
+from ..utils import errors
 from .. import log, setup
 from ..setup import tile_details
 
 
 # bioformats ssl certificate error solution:
 # https://stackoverflow.com/questions/35569042/ssl-certificate-verify-failed-with-python3
+
+
+class NoFileError(Exception):
+    def __init__(self, file_path: str):
+        """
+        Error raised because `file_path` does not exist.
+
+        Args:
+            file_path: Path to file of interest.
+        """
+        self.message = f"\nNo file with the following path:\n{file_path}\nexists"
+        super().__init__(self.message)
 
 
 # nd2 library Does not work with Mac M1
@@ -30,7 +42,7 @@ def load(file_path: str) -> Tuple[np.ndarray, dict]:
         Dask array indices in order `fov`, `channel`, `y`, `x`, `z`.
     """
     if not os.path.isfile(file_path):
-        log.error(errors.NoFileError(file_path))
+        raise NoFileError(file_path)
     with nd2.ND2File(file_path) as images:
         images = images.to_dask()
     # images = nd2.imread(file_name, dask=True)  # get python crashing with this in get_image for some reason
@@ -83,7 +95,7 @@ def get_metadata(file_path: str, config: dict) -> dict:
     """
 
     if not os.path.isfile(file_path):
-        log.error(errors.NoFileError(file_path))
+        raise NoFileError(file_path)
 
     with nd2.ND2File(file_path) as images:
         metadata = {
@@ -141,7 +153,7 @@ def get_all_metadata(file_path: str) -> dict:
         dict: dictionary containing all found metadata for given ND2 file.
     """
     if not os.path.isfile(file_path):
-        log.error(errors.NoFileError(file_path))
+        raise NoFileError(file_path)
 
     with nd2.ND2File(file_path) as images:
         metadata = images.unstructured_metadata()
