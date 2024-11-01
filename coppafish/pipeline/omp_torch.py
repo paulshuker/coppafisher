@@ -176,7 +176,7 @@ def run_omp(
                     nbp_basic, yxz_all[index_min:index_max], **spot_colour_kwargs
                 )
                 colour_subset *= nbp_call_spots.colour_norm_factor[[t]].astype(np.float32)
-                intensity = colour_subset.max(2).min(1)
+                intensity = np.abs(colour_subset.copy()).max(2).min(1)
                 is_intense = (intensity >= config["minimum_intensity"]).nonzero()
                 del intensity
                 log.debug(f"Computing coefficients")
