@@ -3,8 +3,10 @@ import os
 
 import numpy as np
 
-from .. import log, utils
+from .. import log
 from ..setup.notebook_page import NotebookPage
+from ..utils import base as utils_base
+from ..extract import nd2
 
 
 def set_basic_info_new(config: dict) -> NotebookPage:
@@ -33,7 +35,7 @@ def set_basic_info_new(config: dict) -> NotebookPage:
     nbp = NotebookPage("basic_info", associated_configs)
 
     # Stage 1: Compute metadata. This is done slightly differently in the 3 cases of different raw extensions
-    raw_extension = utils.nd2.get_raw_extension(config_file["input_dir"])
+    raw_extension = nd2.get_raw_extension(config_file["input_dir"])
     all_files = []
     for root, _, filenames in os.walk(config_file["input_dir"]):
         for filename in filenames:
@@ -48,7 +50,7 @@ def set_basic_info_new(config: dict) -> NotebookPage:
             first_round_raw = os.path.join(config_file["input_dir"], config_file["round"][0])
         else:
             first_round_raw = os.path.join(config_file["input_dir"], config_file["anchor"])
-        metadata = utils.nd2.get_metadata(first_round_raw + raw_extension, config=config)
+        metadata = nd2.get_metadata(first_round_raw + raw_extension, config=config)
 
     elif raw_extension == ".npy":
         # Load in metadata as dictionary from a json file
@@ -63,7 +65,7 @@ def set_basic_info_new(config: dict) -> NotebookPage:
         metadata = json.load(open(metadata_file))
 
     elif raw_extension == "jobs":
-        metadata = utils.nd2.get_jobs_metadata(all_files, config_file["input_dir"], config=config)
+        metadata = nd2.get_jobs_metadata(all_files, config_file["input_dir"], config=config)
     else:
         log.error(
             ValueError(
@@ -150,7 +152,7 @@ def set_basic_info_new(config: dict) -> NotebookPage:
 
     if nbp.use_dyes is None:
         del nbp.use_dyes
-        nbp.use_dyes = utils.base.deep_convert(np.arange(len(nbp.dye_names)).tolist())
+        nbp.use_dyes = utils_base.deep_convert(np.arange(len(nbp.dye_names)).tolist())
         nbp.n_dyes = len(nbp.use_dyes)
 
     return nbp

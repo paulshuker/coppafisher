@@ -5,9 +5,11 @@ import napari
 import numpy as np
 from tqdm import tqdm
 
+from ..extract import raw
+
 from ..setup import file_names
 from ..setup.notebook import Notebook
-from ..utils import nd2, raw
+from ..extract import nd2
 
 
 def get_raw_images(

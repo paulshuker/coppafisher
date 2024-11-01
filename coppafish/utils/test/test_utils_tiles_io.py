@@ -5,7 +5,6 @@ from coppafish.utils import tiles_io
 
 
 def test_save_load_image():
-    file_type = ".zarr"
     directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), "unit_test_dir")
 
     if not os.path.isdir(directory):

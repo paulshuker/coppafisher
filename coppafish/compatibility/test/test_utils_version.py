@@ -1,5 +1,5 @@
 from coppafish.utils import system
-from coppafish.utils.version import CompatibilityTracker
+from coppafish.compatibility import CompatibilityTracker
 
 
 def test_CompatibilityTracker() -> None:

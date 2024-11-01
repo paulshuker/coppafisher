@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 from ..setup.notebook import Notebook
-from . import system
+from ..utils import system
 from .. import log
 
 
