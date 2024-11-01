@@ -3,7 +3,8 @@ import os
 import numpy as np
 from tqdm import tqdm
 
-from .. import log, utils
+from .. import log
+from ..extract import raw
 from ..setup.notebook_page import NotebookPage
 from ..utils import indexing, tiles_io, system
 
@@ -67,7 +68,7 @@ def run_extract(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) -
                     pbar.update()
                     continue
 
-                channel_images = utils.raw.load_image(nbp_file, nbp_basic, t=t, c=channels, r=r, use_z=nbp_basic.use_z)
+                channel_images = raw.load_image(nbp_file, nbp_basic, t=t, c=channels, r=r, use_z=nbp_basic.use_z)
                 for im, c, file_path, file_exists in zip(channel_images, channels, file_paths, files_exist):
                     if file_exists:
                         continue
