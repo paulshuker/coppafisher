@@ -111,7 +111,7 @@ class CompatibilityTracker:
         self.print_start_from(earliest_stage)
         log.info(
             "To delete notebook pages, see Usage -> Advanced Usage at "
-            + "https://paulshuker.github.io/coppafish/advanced_usage/#delete-notebook-page in the online documentation"
+            + "https://paulshuker.github.io/coppafish/advanced_usage/#delete-notebook-page in the documentation"
         )
 
     def notebook_is_compatible(self, nb: Notebook) -> bool:
@@ -139,7 +139,7 @@ class CompatibilityTracker:
                 # The notebook has backwards incompatibilities.
                 log.warn(
                     f"The existing notebook contains backwards incompatibility on page {page_name} at version "
-                    + f"{page_version} compared to current version {system.get_software_version()}."
+                    + f"{page_version} compared to current version {current_version}."
                 )
                 log.warn(f"The suggested course of action is:")
                 self.print_start_from(earliest_stage)
