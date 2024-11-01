@@ -63,8 +63,6 @@ class Legend:
         """
         assert order_by in self._order_by_options
 
-        plt.style.use("dark_background")
-
         if matplotlib.get_backend() == "Agg":
             self.canvas = MplCanvasHeadless()
         else:

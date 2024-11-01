@@ -54,7 +54,7 @@ class Viewer:
     _default_spot_size: float = 8.0
     _max_open_subplots: int = 7
 
-    # Data:
+    # Attributes:
     nbp_basic: NotebookPage
     nbp_filter: NotebookPage
     nbp_register: NotebookPage
@@ -249,7 +249,6 @@ class Viewer:
             spot_is_invisible = (spot_gene_numbers[:, None] != gene_indices[None]).all(1)
             self.spot_data[method].remove_data_at(spot_is_invisible)
 
-        plt.style.use("dark_background")
         # + 1 for the gene legend.
         plt.rcParams["figure.max_open_warning"] = self._max_open_subplots + 1
         self.viewer = None
@@ -983,7 +982,7 @@ class Viewer:
         # Warn if any genes are not in the gene marker file.
         invisible_gene_names = sorted([g.lower() for g in invisible_gene_names])
         if invisible_gene_names:
-            n_columns = min(4, len(invisible_gene_names))
+            n_columns = min(8, len(invisible_gene_names))
             print(f"Gene(s) shown below are not in the gene marker file and will not be plotted.")
             table = []
             n_rows = maths.ceil(len(invisible_gene_names) / n_columns)
