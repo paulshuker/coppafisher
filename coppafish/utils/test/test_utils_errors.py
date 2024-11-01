@@ -147,7 +147,3 @@ def test_compare_spots() -> None:
     assert WPs == 0
     assert FPs == 3
     assert FNs == 0
-
-
-if __name__ == "__main__":
-    test_compare_spots()

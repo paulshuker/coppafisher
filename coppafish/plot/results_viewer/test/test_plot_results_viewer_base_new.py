@@ -215,7 +215,3 @@ def test_Viewer() -> None:
     viewer.close()
 
     temp_zgroup.cleanup()
-
-
-if __name__ == "__main__":
-    test_Viewer()

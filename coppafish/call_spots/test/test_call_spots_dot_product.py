@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 from coppafish.call_spots import dot_product
 
@@ -51,7 +50,3 @@ def test_gene_prob_score():
     assert isinstance(probabilities_2, np.ndarray), "Expected ndarray as output"
     assert probabilities_1.shape == probabilities_2.shape == (n_spots, n_genes), "Expected shape (n_spots, n_genes)"
     assert not np.allclose(probabilities_1, probabilities_2), "Gene probabilities should change as kappa varies"
-
-
-if __name__ == "__main__":
-    test_dot_product()
