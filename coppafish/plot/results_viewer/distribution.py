@@ -31,22 +31,16 @@ class ViewScoreIntensityDistributions(Subplot):
         self.log_counts = True
         self.fig, self.axes = plt.subplots(1, 2, gridspec_kw={"width_ratios": [5, 1]})
         self.fig.suptitle(f"{method.capitalize()} Score/Intensity Distributions")
-        score_range = [0.0, 1.0]
-        score_bins = maths.ceil((score_range[1] - score_range[0]) * self._bin_density)
-        intensity_range = [0.0, max(intensities.max().item(), 1.0)]
-        intensity_bins = maths.ceil((intensity_range[1] - intensity_range[0]) * self._bin_density)
+        self.score_range = [0.0, 1.0]
+        score_bins = maths.ceil((self.score_range[1] - self.score_range[0]) * self._bin_density)
+        self.intensity_range = [0.0, max(intensities.max().item(), 1.0)]
+        intensity_bins = maths.ceil((self.intensity_range[1] - self.intensity_range[0]) * self._bin_density)
         H, self.xedges, self.yedges = np.histogram2d(
-            scores, intensities, bins=(score_bins, intensity_bins), range=[score_range, intensity_range]
+            scores, intensities, bins=(score_bins, intensity_bins), range=[self.score_range, self.intensity_range]
         )
         self.H = H.T
         # Logarithmic scaling to help see low count features in the plot.
         self.H_log = np.log1p(self.H)
-        ax: plt.Axes = self.axes[0]
-        ax.grid(False)
-        ax.set_xlim(*score_range)
-        ax.set_xlabel("Score")
-        ax.set_ylim(*intensity_range)
-        ax.set_ylabel("Intensity")
         self.draw_data()
 
         # Check box to toggle logarithmic counting.
@@ -62,15 +56,23 @@ class ViewScoreIntensityDistributions(Subplot):
 
     def draw_data(self) -> None:
         ax: plt.Axes = self.axes[0]
+        ax.grid(False)
+        ax.set_xlim(*self.score_range)
+        ax.set_xlabel("Score")
+        ax.set_ylim(*self.intensity_range)
+        ax.set_ylabel("Intensity")
         data = self.H
         if self.log_counts:
             data = self.H_log
         ax.clear()
+        # We allow non-square pixels so the subplot can correctly fill the plot space even if intensity has many more
+        # bins than score for example.
         im = ax.imshow(
             data,
             interpolation="nearest",
             origin="lower",
             extent=(self.xedges[0], self.xedges[-1], self.yedges[0], self.yedges[-1]),
+            aspect="auto",
         )
         cbar_ax: plt.Axes = self.axes[1]
         cbar_ax.clear()

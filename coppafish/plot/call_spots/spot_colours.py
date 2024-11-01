@@ -103,15 +103,15 @@ class ViewSpotColourAndCode(Subplot):
         self.button_colour_pressed = "green"
         self.use_colour_norm_button_ax = self.fig.add_axes([0.85, 0.25, 0.1, 0.05])
         self.use_colour_norm_button = Button(self.use_colour_norm_button_ax, "Colour Norm Factor", hovercolor="0.275")
-        self.use_colour_norm_button.label.set_color(self.button_colour_pressed)
+        self.use_colour_norm_button.label.set_color(self.get_colour_of_button(self.use_colour_norm_factor))
         self.use_colour_norm_button.on_clicked(self.change_use_colour_norm)
         self.background_button_ax = self.fig.add_axes([0.85, 0.05, 0.1, 0.05])
         self.background_button = Button(self.background_button_ax, "Background", hovercolor="0.275")
-        self.background_button.label.set_color(self.button_colour_pressed)
+        self.background_button.label.set_color(self.get_colour_of_button(self.remove_background))
         self.background_button.on_clicked(self.change_background)
         self.norm_button_ax = self.fig.add_axes([0.85, 0.15, 0.1, 0.05])
         self.norm_button = Button(self.norm_button_ax, "L2 Normalise", hovercolor="0.275")
-        self.norm_button.label.set_color(self.button_colour_pressed)
+        self.norm_button.label.set_color(self.get_colour_of_button(self.l2_normalise))
         self.norm_button.on_clicked(self.change_norm)
 
         self.plot_colour()
@@ -139,10 +139,7 @@ class ViewSpotColourAndCode(Subplot):
         spot_colour
         """
         self.use_colour_norm_factor = not self.use_colour_norm_factor
-        if self.use_colour_norm_factor:
-            self.use_colour_norm_button.label.set_color(self.button_colour_pressed)
-        else:
-            self.use_colour_norm_button.label.set_color(self.button_colour_not_pressed)
+        self.use_colour_norm_button.label.set_color(self.get_colour_of_button(self.use_colour_norm_factor))
         self.plot_colour()
 
     def change_background(self, _=None) -> None:
@@ -150,10 +147,7 @@ class ViewSpotColourAndCode(Subplot):
         Function triggered on press of background button. Will either remove/add background contribution to spot_colour
         """
         self.remove_background = not self.remove_background
-        if self.remove_background:
-            self.background_button.label.set_color(self.button_colour_pressed)
-        else:
-            self.background_button.label.set_color(self.button_colour_not_pressed)
+        self.background_button.label.set_color(self.get_colour_of_button(self.remove_background))
         self.plot_colour()
 
     def change_norm(self, _=None) -> None:
@@ -161,11 +155,11 @@ class ViewSpotColourAndCode(Subplot):
         Function triggered on press of l2 normalise button. Will either remove/add l2 normalisation of spot_colour.
         """
         self.l2_normalise = not self.l2_normalise
-        if self.l2_normalise:
-            self.norm_button.label.set_color(self.button_colour_pressed)
-        else:
-            self.norm_button.label.set_color(self.button_colour_not_pressed)
+        self.norm_button.label.set_color(self.get_colour_of_button(self.l2_normalise))
         self.plot_colour()
+
+    def get_colour_of_button(self, enabled: bool) -> str:
+        return self.button_colour_pressed if enabled else self.button_colour_not_pressed
 
 
 class ViewSpotColourRegion(Subplot):

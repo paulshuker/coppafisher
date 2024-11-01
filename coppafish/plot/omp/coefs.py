@@ -117,6 +117,7 @@ class ViewOMPImage(Subplot):
         self.spot_gene_no = spot_gene_no
         selectable_genes.add(self.spot_gene_no)
         self.selected_gene = spot_gene_no
+        self.gene_names = nbp_call_spots.gene_names
         coefficients = coefficients.transpose((3, 0, 1, 2))
         self.coefficients = coefficients
         self.iteration_counts = iteration_counts
@@ -160,9 +161,9 @@ class ViewOMPImage(Subplot):
             self.fig.show()
 
     def draw_data(self) -> None:
-        title = "OMP Coefficients end_msg"
+        title = f"OMP {self.gene_names[self.selected_gene].item()} Coefficients end_msg"
         if self.selected_button == self.Options.ITERATIONS:
-            title = "OMP Iteration Count"
+            title = "OMP Iteration Counts"
         score_str = "{:.3f}".format(self.scores[self.selected_gene])
         title = title.replace("end_msg", f"near {self.method.capitalize()} Spot {self.spot_no}, Score {score_str}")
         self.fig.suptitle(title)
