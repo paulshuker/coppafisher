@@ -8,21 +8,21 @@ from coppafish.robominnie.robominnie import Robominnie
 
 
 def get_robominnie_scores(rm: Robominnie) -> None:
-    tile_scores = rm.score_tiles("prob", score_threshold=0.9)
+    tile_scores = rm.score_tiles("prob", score_threshold=0.9, intensity_threshold=0.4)
     print(f"Prob scores for each tile: {tile_scores}")
     if any([score < 75 for score in tile_scores]):
         warnings.warn(f"Anchor method contains tile score < 75%")
     if any([score < 40 for score in tile_scores]):
         raise ValueError(f"Anchor method has a tile score < 40%. This can be a sign of a pipeline bug")
 
-    tile_scores = rm.score_tiles("anchor", score_threshold=0.5)
+    tile_scores = rm.score_tiles("anchor", score_threshold=0.5, intensity_threshold=0.4)
     print(f"Anchor scores for each tile: {tile_scores}")
     if any([score < 75 for score in tile_scores]):
         warnings.warn(f"Anchor method contains tile score < 75%")
     if any([score < 40 for score in tile_scores]):
         raise ValueError(f"Anchor method has a tile score < 40%. This can be a sign of a pipeline bug")
 
-    tile_scores = rm.score_tiles("omp", score_threshold=0.4)
+    tile_scores = rm.score_tiles("omp", score_threshold=0.4, intensity_threshold=0.4)
     print(f"OMP scores for each tile: {tile_scores}")
     if any([score < 75 for score in tile_scores]):
         warnings.warn(f"OMP method contains tile score < 75%")
@@ -55,9 +55,7 @@ def test_integration_small_two_tile():
     del robominnie
 
 
-@pytest.mark.notebook
-@pytest.mark.manual
-def test_viewers() -> None:
+def viewers_test() -> None:
     """
     Make sure the coppafish Viewer and RegistrationViewer is working without crashing.
 
@@ -69,7 +67,7 @@ def test_viewers() -> None:
         return
     gene_colours_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), ".integration_dir/gene_colours.csv")
     notebook = Notebook(notebook_path)
-    Viewer(notebook, gene_marker_file=gene_colours_path)
+    Viewer(notebook, gene_marker_filepath=gene_colours_path)
     RegistrationViewer(notebook, get_config_path())
 
 
@@ -87,4 +85,4 @@ def get_config_path() -> str:
 
 if __name__ == "__main__":
     test_integration_small_two_tile()
-    test_viewers()
+    viewers_test()

@@ -148,15 +148,3 @@ def add_legend(
         return None
     plt.style.use("dark_background")
     return mpl_widget, ax, n_gene_label_letters
-
-
-if __name__ == "__main__":
-    # Load files
-    legend_folder = os.path.dirname(os.path.realpath(__file__))
-    genes = pd.read_csv(importlib_resources.files("coppafish.plot.results_viewer").joinpath("gene_color.csv"))
-    cells = pd.read_csv(importlib_resources.files("coppafish.plot.results_viewer").joinpath("cell_color.csv"))
-
-    viewer = napari.Viewer()
-    fig, ax, _ = add_legend(gene_legend_info=genes, cell_legend_info=cells)
-    viewer.window.add_dock_widget(fig, area="right", name="Genes")
-    napari.run()

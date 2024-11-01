@@ -25,7 +25,3 @@ def Viewer2D_test() -> None:
     assert os.path.isfile(gene_colours_path), "Failed to find gene markers at\n" + gene_colours_path
     # Viewer2D(notebook_path, gene_marker_file=gene_colours_path)
     Viewer2D(r"C:\Users\Paul\Downloads\notebook.npz")
-
-
-if __name__ == "__main__":
-    Viewer2D_test()

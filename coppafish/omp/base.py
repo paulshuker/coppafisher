@@ -32,6 +32,23 @@ def get_all_scores(
     return all_scores, all_tiles
 
 
+def get_all_intensities(
+    nbp_basic: NotebookPage, nbp_call_spots: NotebookPage, nbp_omp: NotebookPage
+) -> npt.NDArray[np.float16]:
+    """
+    Get all spot intensities for all tiles, concatenated together.
+
+    Returns:
+        `(n_spots) ndarray[float16]`: intensities. Every spot's intensity.
+    """
+    colours, tile_numbers = get_all_colours(nbp_basic, nbp_omp)
+    colours = colours.astype(np.float32)
+    # OMP's intensity will be a similar scale to prob and anchor if the spot colours are colour normalised too.
+    colours *= nbp_call_spots.colour_norm_factor[tile_numbers].astype(np.float32)
+    intensities = np.abs(colours).max(2).min(1).astype(np.float16)
+    return intensities
+
+
 def get_all_gene_no(
     nbp_basic: NotebookPage, nbp_omp: NotebookPage
 ) -> Tuple[npt.NDArray[np.int16], npt.NDArray[np.int16]]:
@@ -39,12 +56,13 @@ def get_all_gene_no(
     Get gene numbers for every tile, concatenated together.
 
     Args:
-        - nbp_basic (notebook page): `basic_info` notebook page.
-        - nbp_omp (notebook page): `omp` notebook page.
+        nbp_basic (notebook page): `basic_info` notebook page.
+        nbp_omp (notebook page): `omp` notebook page.
 
     Returns:
-        - (`(n_spots) ndarray[int16]`) all_gene_no: all gene numbers.
-        - (`(n_spots) ndarray[int16]`) all_tiles: the tile for each spot.
+        Tuple containing:
+            - `(n_spots) ndarray[int16]`: all_gene_no. All gene numbers.
+            - `(n_spots) ndarray[int16]`: all_tiles. The tile for each spot.
     """
     assert type(nbp_basic) is NotebookPage
     assert type(nbp_omp) is NotebookPage
@@ -106,7 +124,7 @@ def get_all_colours(
     for t in nbp_basic.use_tiles:
         t_colours: np.ndarray = nbp_omp.results[f"tile_{t}/colours"][:]
         all_colours = np.append(all_colours, t_colours, 0)
-        all_tiles = np.append(all_tiles, np.full(t_colours.size, t, np.int16))
+        all_tiles = np.append(all_tiles, np.full(t_colours.shape[0], t, np.int16))
     return all_colours, all_tiles
 
 

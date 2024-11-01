@@ -1,18 +1,21 @@
 ## Input data
 
-Coppafish requires raw, `uint16` microscope images, metadata, and a configuration file. We currently only support raw 
-data in ND2, JOBs, or numpy format. If your data is not already in one of these formats, we recommend configuring your 
+Coppafish requires raw, `uint16` microscope images, metadata, and a configuration file. We currently only support raw
+data in ND2, JOBs, or numpy format. If your data is not already in one of these formats, we recommend configuring your
 data into [numpy](#numpy) format.
+
+There must be an anchor round. There must be an anchor channel (this can be a sequencing channel). There must be a dapi
+channel in every sequencing round and the anchor round. The tiles must have at least four z planes. Use a number of z
+planes that is a multiple of two.
 
 ### ND2
 
 ND2 files index tiles differently to coppafish. The difference is illustrated below on a 2x3 grid.
 
 <figure markdown="span">
-  ![Image title](images/coppafish_and_nd2_tile_indices.png){ width="400" }
+  ![Image title](images/coppafish_and_nd2_tile_indices.svg){ width="600" }
   <figcaption>How six tiles are indexed.</figcaption>
 </figure>
-
 
 ### Numpy
 
@@ -82,10 +85,10 @@ gene_2 2301230
 gene_3 3012301
 ```
 
-the names (`gene_0`, `gene_1`, ...) can be changed. Do not assign any genes a constant gene code like `0000000`. To 
-learn how the codes can be generated, see [advanced usage](advanced_usage.md#). For details on how the codes are 
-best generated, see `reed_solomon_codes` in 
-[`coppafish/utils/base.py`](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/utils/base.py). See 
+the names (`gene_0`, `gene_1`, ...) can be changed. Do not assign any genes a constant gene code like `0000000` as 
+these are background genes. To learn how the codes can be generated, see [advanced usage](advanced_usage.md#). For 
+details on how the codes are best generated, see `reed_solomon_codes` in the 
+[source code](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/utils/base.py). See 
 [Wikipedia](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction) for algorithmic details on how gene 
 codes are best selected.
 
@@ -95,18 +98,19 @@ There are configuration variables used throughout the coppafish pipeline. Most o
 but some must be set by the user and you may wish to tweak other values for better performance. Save the config text 
 file, like `dataset_name.ini`. The config file should contain, at the minimum:
 
-```text
+```ini
 [file_names]
-input_dir = path/to/input/data
-output_dir = path/to/output/directory
-tile_dir = path/to/tile/directory
-round = 0, 1, 2, 3, 4, 5, 6 ; Go up to the number of sequencing rounds used
+input_dir = /path/to/input/data
+output_dir = /path/to/output/directory
+tile_dir = /path/to/tile/directory
+; Go up to the number of sequencing rounds used.
+round = round0, round1, round2, round3, round4, round5, round6
+; 'anchor' given here since the anchor file is called anchor.npy.
 anchor = anchor
 raw_extension = .npy
-raw_metadata = path/to/metadata.json
+raw_metadata = /path/to/metadata.json
 
 [basic_info]
-is_3d = True
 dye_names = dye_0, dye_1, dye_2, dye_3
 use_rounds = 0, 1, 2, 3, 4, 5, 6
 use_z = 0, 1, 2, 3, 4
@@ -134,21 +138,21 @@ at <a href="https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/setup/se
 
 ## Running
 
-Coppafish must be run with a [configuration](basic_usage.md#configuration) file. In the terminal
+Coppafish must be run with a [configuration](basic_usage.md#configuration) file. In the command line
 
-```console
+```terminal
 python3 -m coppafish /path/to/config.ini
 ```
 
 Or programmatically, using a python script
 
-``` python
+```py
 from coppafish import run_pipeline
 
 run_pipeline("/path/to/config.ini")
 ```
 
-which can then be run from the terminal
+which can then be run from the command line
 
 ```bash
 python3 coppafish_script_name.py

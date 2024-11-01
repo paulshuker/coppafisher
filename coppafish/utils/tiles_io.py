@@ -7,7 +7,7 @@ import numpy as np
 import numpy.typing as npt
 import zarr
 
-from .. import utils
+from ..utils import system
 
 
 EXTRACT_IMAGE_DTYPE = np.uint16
@@ -17,6 +17,14 @@ FILTER_IMAGE_DTYPE = np.float16
 class OptimisedFor(enum.Enum):
     FULL_READ_AND_WRITE = enum.auto()
     Z_PLANE_READ = enum.auto()
+
+
+def set_zarr_global_configs() -> None:
+    """
+    Set any zarr global configurations before being used to optimise disk reading/writing.
+    """
+    blosc.use_threads = True
+    blosc.set_nthreads(16)
 
 
 def add_suffix_to_path(file_path: str, suffix: str) -> str:
@@ -107,7 +115,7 @@ def _save_image(
         optimised_for = OptimisedFor.FULL_READ_AND_WRITE
 
     blosc.use_threads = True
-    blosc.set_nthreads(utils.system.get_core_count())
+    blosc.set_nthreads(system.get_core_count())
     compressor, chunks = get_compressor_and_chunks(optimised_for, image.shape)
     zarray = zarr.open(
         store=file_path,

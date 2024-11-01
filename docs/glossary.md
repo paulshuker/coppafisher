@@ -1,6 +1,6 @@
-* Anchor round - A one-time round taken, usually on a chosen "anchor channel" that has a high Signal-to-Noise Ratio 
-(SNR). All genes of interest are given the same fluorescing dye probe. The anchor round is essential for detecting all 
-spots at once in the same microscope image.
+* Anchor round - A single round taken, usually on a chosen "anchor channel" that has a high Signal-to-Noise Ratio 
+(SNR). All genes of interest are given the same fluorescing dye probe so that every spot lights up. The anchor round is 
+essential for detecting all spots at once in the same microscope image.
 
 * Channel - A combination of excitation light of a certain wavelength and specific emission filter. We use multiple 
 channels to distinguish every dye colour (almost always the number of channels is equal to the number of unique dyes). 
@@ -16,7 +16,7 @@ code. For example, if the dyes are labelled `0, 1, 2` and there are 2 sequencing
 * Notebook - A write-once[^1] compressed file that stores all important outputs from coppafish. The notebook is used 
 to plot many [diagnostics](diagnostics.md). The notebook contains notebook pages. There is a notebook page for each 
 [method](overview.md) section. A notebook can be loaded by 
-`#!python from coppafish import Notebook; nb = Notebook("path/to/notebook.npz")`. Variables from the notebook can be 
+`#!python from coppafish import Notebook; nb = Notebook("path/to/notebook")`. Variables from the notebook can be 
 directly read. For example, you can read the `use_tiles` variable from the `basic_info` page by 
 `#!python print(nb.basic_info.use_tiles)`. Each variable has a description, which can be printed. For example, 
 `#!python nb.basic_info > "use_tiles"`.

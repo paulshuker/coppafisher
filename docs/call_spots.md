@@ -436,12 +436,47 @@ $$
 
 ### 6 and 7: Application of Scales, Computation of Final Scores and Bleed Matrix
 
-All that is left to do is multiply the spot colours $F_{src}$ by the updated normalisation factor $Q_{trc}$ to get the final spot colours: $F_{src} \mapsto Q_{trc} F_{src}$.
+All that is left to do is multiply the spot colours $F_{src}$ by the updated normalisation factor $Q_{trc}$ to get the 
+final spot colours: $F_{src} \mapsto Q_{trc} F_{src}$.
 
-We then compute the cosine similarity between each spot colour $\mathbf{F_s}$ and each bled code $\mathbf{K_{grc}}$ to get the two variables
+We then compute a score between each spot colour $\mathbf{F_s}$ and each gene bled code $K_{grc}$:
 
-- `dot_product_gene_no[s]` = $\textrm{argmax}_g \bigg( \dfrac{\mathbf{F_s \cdot K_{g}}}{\| \mathbf{F_s} \| \| \mathbf{K_{g}} \|} \bigg)$,
-- `dot_product_gene_score[s]` = $\textrm{max}_g \bigg( \dfrac{\mathbf{F_s \cdot K_{g}}}{\| \mathbf{F_s} \| \| \mathbf{K_{g}} \|} \bigg)$.
+$$
+\text{scores}(g) = \Bigg|\frac{\sum_{rc}(\hat{F}_{src}\hat{K}_{grc})}{N_r}\Bigg|
+$$
+
+where
+
+$$
+\hat{F}_{src} = \frac{F_{src}}{\sqrt{\sum_c |F_{src}|^2}}\text{,}\space\space\space
+\hat{K}_{grc} = \frac{K_{grc}}{\sqrt{\sum_c|K_{grc}|^2}}\text{,}\space\space\space N_r=\sum_r1
+$$
+
+The score rewards spots matching to the bled code in many rounds. If a spot's colour is missing $x$ rounds, then the 
+score can be no larger than $(N_r - x) / N_r$.
+
+An intensity for each spot is saved to the notebook and used in the [Viewer](diagnostics.md#viewer). It is computed 
+from the final, scaled colours. No normalisation is applied to avoid boosting dim signal. Only the final scaling is 
+applied to the colours.
+
+$$
+\text{intensity}_s = \min_r(\max_c(\mathbf{F}_{src}))
+$$
+
+This intensity should have a threshold when looking at gene results as it removes poor gene reads caused by colour that 
+is bright in only some of the rounds. From data, a value of 0.1 is reasonable. This is the default threshold for the 
+Viewer.
+
+??? note "What could cause brightness in some rounds but not others?"
+    There are many possible explanations: 1) A registration mistake has caused a misalignment in some pixels. 2) An 
+    experiment error has failed to light up a gene in a specific round. 3) An experiment error has caused bright 
+    artifacts to appear in specific rounds and not others. So we must be robust against missing round brightness. This 
+    is especially true for OMP as this runs on every image pixel, which will include background noise.
+
+Then use the best gene score for each spot's assigned gene:
+
+- `dot_product_gene_no[s]` = $\textrm{argmax}_g (\textrm{scores}(g))$
+- `dot_product_gene_score[s]` = $\textrm{max}_g (\textrm{scores}(g))$
 
 We also compute probabilities for each spot $s$ being assigned to gene $g$ as
 

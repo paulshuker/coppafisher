@@ -1,48 +1,59 @@
-from typing import Tuple
 import numpy as np
+import torch
 
 
 def dot_product_score(
-    spot_colours: np.ndarray, bled_codes: np.ndarray, variance: np.ndarray = None, norm_shift: float = 0
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    spot_colours: np.ndarray | torch.Tensor,
+    bled_codes: np.ndarray | torch.Tensor,
+) -> np.ndarray | torch.Tensor:
     """
-    Simple dot product score assigning each spot to the gene with the highest score.
+    Score each spot to each gene. The score is a dot product of each round separately, giving each round an equal
+    contribution. The maximum score is the assigned gene for said spot. The scores range from 0 to 1.
 
     Args:
-        spot_colours (`[n_spots x (n_rounds * n_channels_use)] ndarray[float]`): spot colours.
-        bled_codes (`[n_genes x (n_rounds * n_channels_use)] ndarray[float]`): normalised bled codes.
-        variance (`[n_spots x (n_rounds * n_channels_use)] ndarray[float]`, optional): array of variances. Default:
-            all ones.
-        norm_shift (float, optional): added to the norm of each spot colour to avoid boosting weak spots too much.
-            Default: 0.
+        spot_colours (`(n_spots x n_rounds x n_channels_use) ndarray[float]`): spot colours after call spots scaling
+            has been applied. They must not be L2 normalised yet.
+        bled_codes (`(n_genes x n_rounds x n_channels_use) ndarray[float]`): normalised bled codes.
 
     Returns:
-        - gene_no: np.ndarray of gene numbers [n_spots]
-        - gene_score: np.ndarray of gene scores [n_spots]
-        - gene_score_second: np.ndarray of second-best gene scores [n_spots]
-        - `[n_spots x n_genes] ndarray[float]`: `score` such that `score[d, c]` gives dot product between
-            `spot_colours` vector `d` with `bled_codes` vector `c`.
+        (`(n_spots x n_genes) ndarray[float32] or tensor[float32]`): score. score such that `score[d, c]` gives a
+            "round dot product" between `spot_colours` vector `d` with `bled_codes` vector `c`. Returns a tensor if
+            spot_colours is a tensor.
     """
-    variance = np.ones_like(spot_colours, spot_colours.dtype) if variance is None else variance
-    assert spot_colours.shape == variance.shape, f"{spot_colours.shape=}, {variance.shape=}"
-    n_genes = bled_codes.shape[0]
-    # If no variance is provided, we assume all spots are equally reliable
-    # Normalise spot colours
-    spot_colours = spot_colours / (np.linalg.norm(spot_colours, axis=1)[:, None] + norm_shift)
+    assert type(spot_colours) in (np.ndarray, torch.Tensor)
+    assert type(bled_codes) in (np.ndarray, torch.Tensor)
 
-    # z-score spot colours and bled codes by dividing by the standard deviation
-    # we want these to both have shape [n_spots, n_genes, n_rounds * n_channels_use]
-    spot_colours_z_scored = np.repeat((spot_colours / np.sqrt(variance))[:, None, :], n_genes, axis=1)
-    bled_codes_z_scored = bled_codes[None, :, :] / np.sqrt(variance)[:, None, :]
+    if type(spot_colours) is np.ndarray:
+        spot_colours_torch = torch.from_numpy(spot_colours.copy())
+    else:
+        spot_colours_torch = spot_colours.detach().clone()
+    if type(bled_codes) is np.ndarray:
+        bled_codes_torch = torch.from_numpy(bled_codes.copy())
+    else:
+        bled_codes_torch = bled_codes.detach().clone()
+    spot_colours_torch = spot_colours_torch.float()
+    bled_codes_torch = bled_codes_torch.float()
+    assert spot_colours_torch.ndim == bled_codes_torch.ndim == 3
+    assert spot_colours_torch.shape[1:] == bled_codes_torch.shape[1:]
 
-    # Now we can obtain the dot product score for each spot and each gene
-    all_score = np.sum(spot_colours_z_scored * bled_codes_z_scored, axis=2) / np.sum(bled_codes_z_scored**2, axis=2)
-    gene_no = np.argmax(all_score, axis=1)
-    all_score_sorted = np.sort(all_score, axis=1)
-    gene_score = all_score_sorted[:, -1]
-    gene_score_second = all_score_sorted[:, -2]
+    n_rounds = spot_colours_torch.shape[1]
 
-    return gene_no, gene_score, gene_score_second, all_score
+    # L2 normalise over each round separately.
+    spot_colours_torch /= torch.linalg.vector_norm(spot_colours_torch, dim=2, keepdim=True)
+    bled_codes_torch /= torch.linalg.vector_norm(bled_codes_torch, dim=2, keepdim=True)
+
+    # Has shape (n_spots x n_genes x n_rounds x n_channels).
+    scores = spot_colours_torch[:, np.newaxis] * bled_codes_torch[np.newaxis]
+    # Sum over rounds and channels
+    scores = scores.sum((2, 3))
+    scores /= n_rounds
+    # Has shape (n_spots x n_genes).
+    scores = scores.abs().clip(0, 1)
+
+    if type(spot_colours) is np.ndarray:
+        scores = scores.numpy()
+
+    return scores
 
 
 def gene_prob_score(spot_colours: np.ndarray, bled_codes: np.ndarray, kappa: float = 2) -> np.ndarray:
