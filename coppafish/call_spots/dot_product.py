@@ -7,8 +7,9 @@ def dot_product_score(
     bled_codes: np.ndarray | torch.Tensor,
 ) -> np.ndarray | torch.Tensor:
     """
-    Score each spot to each gene. The score is a dot product of each round separately, giving each round an equal
-    contribution. The maximum score is the assigned gene for said spot. The scores range from 0 to 1.
+    Score each spot to each gene. The score is a dot product of each round separately, giving each round a similar
+    contribution. The maximum score is the assigned gene for said spot. A score is reduced by 1 / n_rounds when the
+    spot colour is zero in said round. The scores range from 0 to infinity.
 
     Args:
         spot_colours (`(n_spots x n_rounds x n_channels_use) ndarray[float]`): spot colours after call spots scaling
@@ -38,8 +39,9 @@ def dot_product_score(
 
     n_rounds = spot_colours_torch.shape[1]
 
-    # L2 normalise over each round separately.
-    spot_colours_torch /= torch.linalg.vector_norm(spot_colours_torch, dim=2, keepdim=True)
+    # Spot colours are divided by their maximum for each round separately.
+    spot_colours_torch /= spot_colours_torch.max(2, keepdim=True).values
+    # Bled codes are L2 normalised.
     bled_codes_torch /= torch.linalg.vector_norm(bled_codes_torch, dim=2, keepdim=True)
 
     # Has shape (n_spots x n_genes x n_rounds x n_channels).
@@ -48,7 +50,7 @@ def dot_product_score(
     scores = scores.sum((2, 3))
     scores /= n_rounds
     # Has shape (n_spots x n_genes).
-    scores = scores.abs().clip(0, 1)
+    scores = scores.abs()
 
     if type(spot_colours) is np.ndarray:
         scores = scores.numpy()

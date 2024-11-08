@@ -105,6 +105,7 @@ class ViewOMPImage(Subplot):
             solver.create_background_bled_codes(n_rounds_use, n_channels_use),
             max_genes,
             dot_product_threshold,
+            min_intensity,
         )
         shape = image_shape + (-1,)
         shape_kwargs = dict(order="F")
@@ -223,12 +224,14 @@ class ViewOMPImage(Subplot):
         self.draw_data()
         self.coef_button.label.set_color(self.button_colour_press)
         self.iter_count_button.label.set_color(self.button_colour)
+        self.gene_slider.set_active(True)
 
     def pressed_iter_button(self, _=None) -> None:
         self.selected_button = self.Options.ITERATIONS
         self.draw_data()
         self.coef_button.label.set_color(self.button_colour)
         self.iter_count_button.label.set_color(self.button_colour_press)
+        self.gene_slider.set_active(False)
 
     def pressed_reset_gene(self, _=None) -> None:
         self.gene_slider.set_val(self.spot_gene_no)

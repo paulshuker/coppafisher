@@ -150,6 +150,7 @@ def run_omp(
             background_codes=bg_bled_codes,
             maximum_iterations=max_genes,
             dot_product_threshold=config["dot_product_threshold"],
+            minimum_intensity=config["minimum_intensity"],
         )
         n_subset_pixels = config["subset_pixels"]
         index_subset, index_min, index_max = 0, 0, 0

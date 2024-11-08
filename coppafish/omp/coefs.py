@@ -23,6 +23,7 @@ class CoefficientSolverOMP:
         background_codes: np.ndarray[np.float32],
         maximum_iterations: int,
         dot_product_threshold: float,
+        minimum_intensity: float,
         return_all_scores: bool = False,
     ) -> np.ndarray | Tuple[np.ndarray, np.ndarray]:
         """
@@ -43,6 +44,8 @@ class CoefficientSolverOMP:
             maximum_iterations (int): the maximum number of gene assignments allowed for one pixel.
             dot_product_threshold (float): a gene must have a dot product score above this value on the residual spot
                 colour to be assigned the gene. If more than one gene is above this threshold, the top score is used.
+            minimum_intensity (float): a pixel's residual intensity must be above minimum_intensity to pass gene
+                assignment.
             return_all_scores (bool, optional): return all gene round dot product scores on each iteration. Default:
                 false.
 
@@ -52,7 +55,6 @@ class CoefficientSolverOMP:
                 - `(n_iterations x n_pixels x n_genes_all) ndarray[float32]`: dp_scores. The dot product score for
                     every gene on each iteration. The length of dp_scores is the number of iterations that passed. Only
                     returned if return_dp_scores is true.
-
 
         Notes:
             - All computations are run with 32-bit float precision.
@@ -65,9 +67,11 @@ class CoefficientSolverOMP:
         assert type(background_codes) is np.ndarray
         assert type(maximum_iterations) is int
         assert type(dot_product_threshold) is float
+        assert type(minimum_intensity) is float
         assert type(return_all_scores) is bool
         assert maximum_iterations > 0
         assert dot_product_threshold >= 0
+        assert minimum_intensity >= 0
         assert pixel_colours.ndim == 3
         assert bled_codes.ndim == 3
         assert background_codes.ndim == 3
@@ -104,6 +108,7 @@ class CoefficientSolverOMP:
                 all_bled_codes,
                 fail_gene_indices,
                 dot_product_threshold,
+                minimum_intensity,
                 return_all_scores=return_all_scores,
             )
             del fail_gene_indices
@@ -118,7 +123,7 @@ class CoefficientSolverOMP:
             if pixels_to_continue.sum() == 0:
                 break
 
-            # Update the coefficients on the pixels that passed.
+            # Update coefficients on the pixels that passed.
             log.debug(f"Assigning new coefficients")
             coefficients[pixels_to_continue, genes_selected[pixels_to_continue, iteration]] = gene_assigment_results[1][
                 ~torch.isnan(gene_assigment_results[1])
@@ -165,6 +170,7 @@ class CoefficientSolverOMP:
         all_bled_codes: torch.Tensor,
         fail_gene_indices: torch.Tensor,
         dot_product_threshold: float,
+        minimum_intensity: float,
         return_all_scores: bool = False,
     ) -> tuple[torch.Tensor, torch.Tensor] | tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """
@@ -174,11 +180,13 @@ class CoefficientSolverOMP:
 
         - The top gene dot product score is below the dot_product_threshold.
         - The next best gene is in the fail_gene_indices list.
+        - The intensity of the colour is below the minimum intensity.
 
         The reason for each of these conditions is:
 
-        - to cut out dim background and bad gene reads.
+        - to cut out unconfident gene reads.
         - to not doubly assign a gene and avoid assigning background genes.
+        - to cut out dim colour.
 
         respectively.
 
@@ -189,6 +197,8 @@ class CoefficientSolverOMP:
             fail_gene_indices (`(n_pixels x n_genes_fail) tensor[int32]`): if the next gene assignment for a pixel is
                 included on the list of fail gene indices, consider gene assignment a fail.
             dot_product_threshold (float): a gene can only be assigned if the dot product score is above this threshold.
+            minimum_intensity (float): a colour's intensity must be above minimum_intensity to pass gene assignment.
+                The intensity is defined as min_r (max_c abs(residual_colour)).
             return_all_scores (bool, optional): return the dot product scores for every gene. Default: false.
 
         Returns:
@@ -205,6 +215,7 @@ class CoefficientSolverOMP:
         assert type(all_bled_codes) is torch.Tensor
         assert type(fail_gene_indices) is torch.Tensor
         assert type(dot_product_threshold) is float
+        assert type(minimum_intensity) is float
         assert residual_colours.ndim == 3
         assert all_bled_codes.ndim == 3
         assert fail_gene_indices.ndim == 2
@@ -215,6 +226,7 @@ class CoefficientSolverOMP:
         assert fail_gene_indices.shape[0] == residual_colours.shape[0]
         assert (fail_gene_indices >= 0).all() and (fail_gene_indices < all_bled_codes.shape[0]).all()
         assert dot_product_threshold >= 0
+        assert minimum_intensity >= 0
 
         all_gene_scores = dot_product.dot_product_score(residual_colours, all_bled_codes)
 
@@ -229,6 +241,11 @@ class CoefficientSolverOMP:
         in_fail_gene_indices = (fail_gene_indices == next_best_genes[:, np.newaxis]).any(1)
         log.debug(f"Pixels in failing gene index: {in_fail_gene_indices.sum()} out of {in_fail_gene_indices.shape}")
         pixels_passed = pixels_passed & (~in_fail_gene_indices)
+
+        # An intensity below the minimum_intensity means assignment failed.
+        intensity_is_low = residual_colours.abs().max(2).values.min(1).values < minimum_intensity
+        log.debug(f"Pixels too dim: {intensity_is_low.sum()} out of {intensity_is_low.shape}")
+        pixels_passed = pixels_passed & (~intensity_is_low)
 
         log.debug(f"So total pixels passed: {pixels_passed.sum()} out of {pixels_passed.shape}")
         next_best_genes[~pixels_passed] = self.NO_GENE_ASSIGNMENT

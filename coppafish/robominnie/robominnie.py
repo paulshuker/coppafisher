@@ -574,7 +574,7 @@ class Robominnie:
 
         [extract]
         num_rotations = 0
-        
+
         [filter]
         wiener_pad_shape = 40, 40, 9
 
@@ -588,15 +588,14 @@ class Robominnie:
 
         [register]
         icp_min_spots = 10
-        
+
         [call_spots]
         target_values = {", ".join(["1" for _ in range(self.n_channels)])}
         d_max = {", ".join(np.argmax(self.bleed_matrix, axis=1).astype(str))}
-        
+
         [omp]
         minimum_intensity = 0.2
         spot_shape = 13, 13, 1
-        score_threshold = 0.1
         subset_pixels = 10_000
         """
         # Remove large spaces in the config contents

@@ -55,12 +55,12 @@
     for each tile.
  * Call spots: Some variables are now saved as zarr arrays to reduce memory usage and notebook read time.
  * Call spots: Config parameter bad_trc now works with new colour normalisation computation fix.
- * Call spots: The anchor gene scores are no longer a dot product. They are now a "round dot product" to put equal
-    importance on multiple sequencing rounds matching the gene bled code.
+ * Call spots: The anchor gene scores are no longer a dot product. They are now a "round dot product" to put similar
+    importance on each sequencing round matching the gene bled code.
  * OMP: OMP is now truly orthogonal fix. Before, the new gene was weighted using only the residual pixel colour. Now,
     all genes are re-weighted using the full pixel colour and a new gene is found using the latest residual colour.
- * OMP: Gene assignment now uses a dot product with equal round weighting. This is identical to the anchor method
-    scoring. This score is now used for the final OMP coefficients instead of the gene weightings.
+ * OMP: Gene assignment now uses a dot product with similar round contribution. This is identical to the anchor method
+    scoring. This score is now used for the final OMP coefficients instead of gene weightings.
  * OMP: A pixel is not run through OMP if its intensity is below minimum_intensity in the omp config (default 0.05). A
     pixel's intensity is defined as `min over rounds (max over channels (I_rc))`, where I_rc is the pixel's image
     intensity in sequencing round r, sequencing channel c after image registration and after call spot scaling.

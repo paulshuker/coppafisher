@@ -37,13 +37,13 @@ computed for every gene and background gene $g$ the same way as
 [call spots](call_spots.md#6-and-7-application-of-scales-computation-of-final-scores-and-bleed-matrix)
 
 $$
-\text{(gene scores)}_{pgi} = \Bigg|\frac{\sum_{rc}(\hat{R}_{prci}\hat{B}_{grc})}{N_r}\Bigg|
+\text{(gene scores)}_{pgi} = \frac{1}{N_r}\Bigg|\sum_{rc}(\hat{R}_{prci}\hat{B}_{grc})\Bigg|
 $$
 
 where
 
 $$
-\hat{R}_{prci} = \frac{R_{prci}}{||\mathbf{R}||_{sr.i}}\text{,}\space\space\space
+\hat{R}_{prci} = \frac{R_{prci}}{|\max_c R_{prci}|}\text{,}\space\space\space
 \hat{B}_{grc} = \frac{B_{grc}}{||\mathbf{B}||_{gr.}}\text{,}\space\space\space
 N_r=\sum_r1
 $$
@@ -53,12 +53,15 @@ A gene is successfully assigned to a pixel when all conditions are met:
 - The best gene score is above `dot_product_threshold` (typically 0.4).
 - The best gene is not already assigned to the pixel.
 - The best gene is not a background gene.
+- The residual colour's intensity is at least `minimum_intensity` (typically 0.05). The intensity is defined as
+$\min_r(\max_c(|R_{prci}|))$.
 
 The reasons for each of these conditions is:
 
-- to remove poor gene reads and dim pixels.
+- to remove unconfident gene reads.
 - to not double assign genes.
 - to avoid over-fitting on high-background pixel colour.
+- to remove dim colours.
 
 respectively. If a pixel fails to meet one or more of these conditions, then no more genes are assigned to it and the 
 pixel's coefficients will be final.

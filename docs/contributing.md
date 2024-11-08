@@ -9,7 +9,7 @@ branch when users git clone the software.
 
 ## Run Tests
 
-In your coppafish environment, install dev packages 
+In the coppafish environment, install dev packages 
 
 ```terminal
 pip install -r requirements-dev.txt
@@ -18,7 +18,7 @@ pip install -r requirements-dev.txt
 Run unit tests (~25s) 
 
 ```terminal
-pytest -m "not integration and not notebook"
+pytest
 ```
 
 Run integration tests (~50s) 

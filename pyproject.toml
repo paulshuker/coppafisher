@@ -1,9 +1,3 @@
-[tool.pytest.ini_options]
-markers = [
-    "integration: integration tests",
-    "notebook: tests that can only run with a completed robominnie notebook (after an integration test)",
-]
-
 [tool.black]
 line-length = 120
 

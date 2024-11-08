@@ -112,6 +112,7 @@ def test_get_next_gene_assignments() -> None:
         all_bled_codes=all_bled_codes,
         fail_gene_indices=fail_gene_indices,
         dot_product_threshold=dot_product_threshold,
+        minimum_intensity=0.0,
     )
     omp_solver = coefs.CoefficientSolverOMP()
     best_genes, _ = omp_solver.get_next_gene_assignments(**kwargs)

@@ -442,13 +442,13 @@ final spot colours: $F_{src} \mapsto Q_{trc} F_{src}$.
 We then compute a score between each spot colour $\mathbf{F_s}$ and each gene bled code $K_{grc}$:
 
 $$
-\text{scores}(g) = \Bigg|\frac{\sum_{rc}(\hat{F}_{src}\hat{K}_{grc})}{N_r}\Bigg|
+\text{scores}(g) = \frac{1}{N_r}\Bigg|\sum_{rc}(\hat{F}_{src}\hat{K}_{grc})\Bigg|
 $$
 
 where
 
 $$
-\hat{F}_{src} = \frac{F_{src}}{\sqrt{\sum_c |F_{src}|^2}}\text{,}\space\space\space
+\hat{F}_{src} = \frac{F_{src}}{|\max_c(F_{src})|}\text{,}\space\space\space
 \hat{K}_{grc} = \frac{K_{grc}}{\sqrt{\sum_c|K_{grc}|^2}}\text{,}\space\space\space N_r=\sum_r1
 $$
 
