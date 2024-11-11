@@ -117,7 +117,7 @@ class Viewer:
             nb (Notebook, optional): the notebook to visualise. Must have completed up to `call_spots` at least. If
                 none, then all nbp_* notebook pages must be given except nbp_omp which is optional. Default: none.
             gene_marker_filepath (str, optional): the file path to the gene marker file. Default: use the default gene
-                marker at coppafish/plot/results_viewer/gene_color.csv.
+                marker at coppafish/plot/results_viewer/gene_colour.csv.
             gene_legend_order_by (str, optional): how to order the genes in the legend. Use "row" to order genes row by
                 row in the gene marker file. "colour" will group genes based on their colourRGB's, each colour group is
                 sorted by hue. Each gene name in a colour group is sorted alphabetically. Default: "colour".
@@ -952,13 +952,14 @@ class Viewer:
                     * ColorB - float, rgB color for plotting
                     * napari_symbol - str, symbol used to plot in napari
                 All RGB values must be between 0 and 1. The first line must be the heading names. Default: use the
-                default gene marker file found at coppafish/plot/results_viewer/gene_color.csv.
+                default gene marker file found at coppafish/plot/results_viewer/gene_colour.csv.
 
         Returns:
             (tuple of Viewer.Gene) genes: every genes Gene object.
         """
         if gene_marker_filepath is None:
-            gene_marker_filepath = importlib_resources.files("coppafish.plot.results_viewer").joinpath("gene_color.csv")
+            gene_marker_filepath = importlib_resources.files("coppafish.plot.results_viewer")
+            gene_marker_filepath = gene_marker_filepath.joinpath("gene_colour.csv")
         if not path.isfile(gene_marker_filepath):
             raise FileNotFoundError(f"Could not find gene marker file at {gene_marker_filepath}")
         gene_legend_info = pd.read_csv(gene_marker_filepath)
