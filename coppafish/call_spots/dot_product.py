@@ -40,7 +40,7 @@ def dot_product_score(
     n_rounds = spot_colours_torch.shape[1]
 
     # Spot colours are divided by their maximum for each round separately.
-    spot_colours_torch /= spot_colours_torch.max(2, keepdim=True).values
+    spot_colours_torch /= spot_colours_torch.abs().max(2, keepdim=True).values
     # Bled codes are L2 normalised.
     bled_codes_torch /= torch.linalg.vector_norm(bled_codes_torch, dim=2, keepdim=True)
 
