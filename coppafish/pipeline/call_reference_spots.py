@@ -192,7 +192,6 @@ def call_reference_spots(
         index_min = batch_i * n_max_score_pixels
         index_max = min(spot_colours.shape[0], (batch_i + 1) * n_max_score_pixels)
         batch_scores = dot_product_score(spot_colours=spot_colours[index_min:index_max], bled_codes=bled_codes)
-        batch_scores = batch_scores.clip(max=np.finfo(np.float16).max)
         gene_dot_products[index_min:index_max] = batch_scores
         del batch_scores
     dp_gene, dp_score = np.argmax(gene_dot_products, axis=1).astype(np.int16), np.max(gene_dot_products, axis=1)
