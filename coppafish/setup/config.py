@@ -42,17 +42,16 @@ _options = {
         "anchor_round": "maybe_int",
         "anchor_channel": "maybe_int",
         "dapi_channel": "maybe_int",
-        "tile_pixel_value_shift": "int",
         "dye_names": "tuple_str",
         "is_3d": "bool",
-        "ignore_first_z_plane": "bool",
         "bad_trc": "maybe_tuple_tuple_int",
+        "ignore_first_z_plane": "bool",
+        "reverse_tile_positions_x": "bool",
+        "reverse_tile_positions_y": "bool",
         # From here onwards these are not compulsory to enter and will be taken from the metadata
         # Only leaving them here to have backwards compatibility as Max thinks the user should influence these
         "channel_camera": "maybe_tuple_int",
         "channel_laser": "maybe_tuple_int",
-        "ref_round": "maybe_int",
-        "ref_channel": "maybe_int",
     },
     "file_names": {
         "notebook_name": "str",

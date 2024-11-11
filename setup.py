@@ -36,7 +36,7 @@ setup(
         "mplcursors",
         "napari[pyqt5]",
         "nd2",
-        "numpy<2.0.0",
+        "numpy<2.1",
         "numpy_indexed",
         "opencv-python-headless",
         "pandas",

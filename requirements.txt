@@ -82,7 +82,7 @@ networkx==3.3
 npe2==0.7.7
 numba==0.60.0
 numcodecs==0.13.0
-numpy==1.26.4
+numpy==2.0.1
 numpy-indexed==0.3.7
 numpydoc==1.8.0
 ome-types==0.5.2
@@ -129,7 +129,7 @@ rpds-py==0.20.0
 scikit-image==0.24.0
 scikit-learn==1.5.2
 scipy==1.14.1
-setuptools==75.1.0
+setuptools==75.3.0
 shellingham==1.5.4
 six==1.16.0
 snowballstemmer==2.2.0

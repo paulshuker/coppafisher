@@ -1,15 +1,11 @@
-from typing import List, Optional, Union
-
 import numpy as np
-import numpy.typing as npt
 
 from .. import log
 from ..omp import base as omp_base
 from ..setup.notebook import Notebook
-from ..setup.notebook_page import NotebookPage
 
 
-def get_spot_intensity(spot_colors: npt.NDArray[np.float_]) -> npt.NDArray[np.float_]:
+def get_spot_intensity(spot_colors: np.ndarray[float]) -> np.ndarray[float]:
     """
     Finds the max intensity for each imaging round across all imaging channels for each spot.
     Then median of these max round intensities is returned.

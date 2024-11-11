@@ -77,6 +77,7 @@ def run_omp(
     tile_shape: Tuple[int] = nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z)
     tile_origins = nbp_stitch.tile_origin.astype(np.float32)
     tile_centres = duplicates.get_tile_centres(nbp_basic.tile_sz, len(nbp_basic.use_z), tile_origins)
+    tile_origins = torch.from_numpy(tile_origins)
 
     last_omp_config = omp_config.copy()
     config_path = os.path.join(nbp_file.output_dir, "omp_last_config.pkl")

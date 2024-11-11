@@ -1,14 +1,13 @@
 from typing import Tuple
 
 import numpy as np
-import numpy.typing as npt
 
 from ..setup.notebook_page import NotebookPage
 
 
 def get_all_scores(
     nbp_basic: NotebookPage, nbp_omp: NotebookPage
-) -> Tuple[npt.NDArray[np.float16], npt.NDArray[np.int16]]:
+) -> Tuple[np.ndarray[np.float16], np.ndarray[np.int16]]:
     """
     Get gene scores for every tile, concatenated together.
 
@@ -34,7 +33,7 @@ def get_all_scores(
 
 def get_all_intensities(
     nbp_basic: NotebookPage, nbp_call_spots: NotebookPage, nbp_omp: NotebookPage
-) -> npt.NDArray[np.float16]:
+) -> np.ndarray[np.float16]:
     """
     Get all spot intensities for all tiles, concatenated together.
 
@@ -51,7 +50,7 @@ def get_all_intensities(
 
 def get_all_gene_no(
     nbp_basic: NotebookPage, nbp_omp: NotebookPage
-) -> Tuple[npt.NDArray[np.int16], npt.NDArray[np.int16]]:
+) -> Tuple[np.ndarray[np.int16], np.ndarray[np.int16]]:
     """
     Get gene numbers for every tile, concatenated together.
 
@@ -78,7 +77,7 @@ def get_all_gene_no(
 
 def get_all_local_yxz(
     nbp_basic: NotebookPage, nbp_omp: NotebookPage
-) -> Tuple[npt.NDArray[np.int16], npt.NDArray[np.int16]]:
+) -> Tuple[np.ndarray[np.int16], np.ndarray[np.int16]]:
     """
     Get spot local positions for every tile, concatenated together.
 
@@ -104,7 +103,7 @@ def get_all_local_yxz(
 
 def get_all_colours(
     nbp_basic: NotebookPage, nbp_omp: NotebookPage
-) -> Tuple[npt.NDArray[np.float16], npt.NDArray[np.int16]]:
+) -> Tuple[np.ndarray[np.float16], np.ndarray[np.int16]]:
     """
     Get spot local positions for every tile, concatenated together.
 
