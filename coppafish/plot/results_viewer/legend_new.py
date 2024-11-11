@@ -5,7 +5,6 @@ import matplotlib
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvasHeadless
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -51,6 +50,9 @@ class Legend:
         "x": "x",
         "diamond": "d",
     }
+
+    def __init__(self) -> None:
+        self._selection_radius_squared = self._selection_radius**2
 
     def get_order_by_options(self) -> tuple[str]:
         return self._order_by_options
@@ -128,15 +130,15 @@ class Legend:
         Find the gene index of the closest gene to the given 2d position.
 
         Args:
-            - x (float-like): x position.
-            - y (float-like): y position.
+            x (float-like): x position.
+            y (float-like): y position.
 
         Returns:
-            (int or none) gene_index: the closest gene index. None if no gene is nearby.
+            (int or none): gene_index. The closest gene index. None if no gene is nearby.
         """
         radii = (self.X - x) ** 2 + (self.Y - y) ** 2
         min_radius = np.min(radii)
-        if min_radius <= self._selection_radius**2:
+        if min_radius <= self._selection_radius_squared:
             plot_index = np.argmin(radii).item()
             return self._plot_index_to_gene_index.tolist()[plot_index]
         return None
@@ -144,7 +146,14 @@ class Legend:
     def _hue_sort(self, colours: np.ndarray[float]) -> np.ndarray[float]:
         """
         The given colours are sorted based on their hues.
+
+        Args:
+            colours (`(n_colours x 3) ndarray[float]`): each colours RGB value, ranging from 0 to 1.
+
+        Returns:
+            (`(n_colours x 3) ndarray[float]`): Each colour, now sorted by hue from lowest to highest.
         """
+        assert type(colours) is np.ndarray
         assert colours.ndim == 2
         assert colours.shape[0] > 0
         assert colours.shape[1] == 3

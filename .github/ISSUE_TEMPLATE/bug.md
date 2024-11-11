@@ -7,6 +7,7 @@ assignees: ''
 
 ---
 
-- **Python Version**: 
+- **Python Version**:
 - **Coppafish Version**:
-- **Error output**: 
+- **Error output**:
+- **Attached `pipeline.log` file**

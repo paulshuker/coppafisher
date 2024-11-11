@@ -474,7 +474,7 @@ class Viewer:
         # Called when the user changes the z slider in the napari viewer.
         if self.ignore_events:
             # For some god forsaken reason this function is sometimes called when closing the viewer...
-            # This is probably an issue I should raise on napari's github if I can make it simple & reproducible.
+            # This is an issue I raised on napari's github.
             return
         new_z = self.viewer.dims.current_step[0]
         if new_z == self.z:

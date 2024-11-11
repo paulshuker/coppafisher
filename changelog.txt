@@ -1,5 +1,5 @@
 2024/mm/dd Version 1 Major Release (v1.0.0):
- * General: Version 1.0.0 onwards automatically detects incompatible notebook versions. An automatic suggested course 
+ * General: Version 1.0.0 onwards automatically detects incompatible notebook versions. An automatic suggested course
     of action is given if a compatibility problem is found during runtime.
  * General: Presequence channels are no longer supported.
  * General: Many package updates.
@@ -68,7 +68,7 @@
  * OMP: Pixel colours are no longer background fitted before being run through OMP. OMP stops iterating on a pixel if a
     background gene is assigned.
  * OMP: The OMP mean spot is fixed and no longer computed. It is less broad, leading to better results.
- * OMP: Less memory intensive by saving each tile's results separately. 
+ * OMP: Less memory intensive by saving each tile's results separately.
  * OMP: Results are now compressed.
  * OMP: New subplots for the Viewer. Press "h" to show all subplot shortcuts.
  * OMP: Faster compute times with and without cuda.
