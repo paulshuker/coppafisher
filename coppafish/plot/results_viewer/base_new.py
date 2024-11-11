@@ -20,20 +20,20 @@ import napari.settings
 from napari.utils.events import Selection
 import numpy as np
 import pandas as pd
-import tabulate
 from qtpy.QtCore import Qt
 from superqt import QDoubleRangeSlider, QDoubleSlider
+import tabulate
 import tifffile
 
 from . import distribution, legend_new
-from .subplot import Subplot
-from ..call_spots import bleed_matrix, spot_colours
-from ..omp import ViewOMPImage
-from ..omp.scores import ViewOMPDotProductScores
 from ...omp import base as omp_base
 from ...setup.notebook import Notebook, NotebookPage
 from ...utils import system as utils_system
+from ..call_spots import bleed_matrix, spot_colours
+from ..omp import ViewOMPImage
+from ..omp.scores import ViewOMPDotProductScores
 from .hotkeys_new import Hotkey
+from .subplot import Subplot
 
 
 class Viewer:
