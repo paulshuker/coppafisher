@@ -228,6 +228,8 @@ class CoefficientSolverOMP:
         assert dot_product_threshold >= 0
         assert minimum_intensity >= 0
 
+        intensity_is_low = residual_colours.clone().abs().max(2).values.min(1).values < minimum_intensity
+
         all_gene_scores = dot_product.dot_product_score(residual_colours, all_bled_codes)
 
         next_best_gene_scores, next_best_genes = torch.max(all_gene_scores, dim=1)
@@ -243,7 +245,6 @@ class CoefficientSolverOMP:
         pixels_passed = pixels_passed & (~in_fail_gene_indices)
 
         # An intensity below the minimum_intensity means assignment failed.
-        intensity_is_low = residual_colours.abs().max(2).values.min(1).values < minimum_intensity
         log.debug(f"Pixels too dim: {intensity_is_low.sum()} out of {intensity_is_low.shape}")
         pixels_passed = pixels_passed & (~intensity_is_low)
 
