@@ -47,9 +47,9 @@ class Viewer:
         "omp": (0.3, None),
     }
     _starting_intensity_thresholds: dict[str, tuple[float, float | None]] = {
-        "prob": (0.1, None),
-        "anchor": (0.1, None),
-        "omp": (0.1, None),
+        "prob": (0.15, None),
+        "anchor": (0.15, None),
+        "omp": (0.15, None),
     }
     _default_spot_size: float = 8.0
     _max_open_subplots: int = 7
