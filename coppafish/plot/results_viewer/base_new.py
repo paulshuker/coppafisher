@@ -230,6 +230,9 @@ class Viewer:
             spot_data["omp"].intensity = omp_base.get_all_intensities(self.nbp_basic, self.nbp_call_spots, self.nbp_omp)
             self.selected_method = "omp"
         for method in spot_data.keys():
+            method_count = spot_data[method].score.size
+            if method_count > np.iinfo(np.uint32).max:
+                raise ValueError(f"Too many spots in {method} to index with uint32")
             spot_data[method].indices = np.linspace(
                 0, spot_data[method].score.size - 1, spot_data[method].score.size, dtype=np.uint32
             )
