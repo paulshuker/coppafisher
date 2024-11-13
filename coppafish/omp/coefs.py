@@ -259,11 +259,7 @@ class CoefficientSolverOMP:
 
         return output
 
-    def get_next_residual_colours(
-        self,
-        pixel_colours: torch.Tensor,
-        bled_codes: torch.Tensor,
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def get_next_residual_colours(self, pixel_colours: torch.Tensor, bled_codes: torch.Tensor) -> torch.Tensor:
         """
         Compute gene weights for each given pixel colour by least squares with the gene bled codes. These weighted bled
         codes are then subtracted off the pixel colour to get the minimised residual colour for each pixel.
@@ -274,8 +270,8 @@ class CoefficientSolverOMP:
                 added gene for each pixel.
 
         Returns:
-            - (`(n_pixels x n_rounds_channels_use)`) residuals: the residual colour after subtracting off the assigned
-                weighted gene bled codes.
+            - (`(n_pixels x n_rounds_channels_use) tensor[float32]`) residuals: the residual colour after subtracting
+                off the assigned weighted gene bled codes.
         """
         assert type(pixel_colours) is torch.Tensor
         assert type(bled_codes) is torch.Tensor

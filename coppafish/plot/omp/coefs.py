@@ -61,7 +61,6 @@ class ViewOMPImage(Subplot):
             show (bool, optional): display the plot once built. False is useful when unit testing. Default: true.
         """
         assert len(z_planes) > 3
-        n_genes = nbp_call_spots.gene_names.size
         n_rounds_use, n_channels_use = len(nbp_basic.use_rounds), len(nbp_basic.use_channels)
         min_intensity = config.get_default_for("omp", "minimum_intensity")
         max_genes = config.get_default_for("omp", "max_genes")
@@ -92,14 +91,10 @@ class ViewOMPImage(Subplot):
             out_of_bounds_value=0,
         )
         colours *= nbp_call_spots.colour_norm_factor[[spot_tile]].astype(np.float32)
-        intensity = np.abs(colours.copy()).max(2).min(1)
-        is_intense = (intensity >= min_intensity).nonzero()
-        del intensity
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
         solver = coefs.CoefficientSolverOMP()
-        coefficients = np.zeros((colours.shape[0], n_genes), np.float32)
-        coefficients[is_intense] = solver.solve(
-            colours[is_intense],
+        coefficients = solver.solve(
+            colours,
             bled_codes,
             solver.create_background_bled_codes(n_rounds_use, n_channels_use),
             max_genes,
@@ -107,8 +102,7 @@ class ViewOMPImage(Subplot):
             min_intensity,
         )
         shape = image_shape + (-1,)
-        shape_kwargs = dict(order="F")
-        coefficients = coefficients.reshape(shape, **shape_kwargs)
+        coefficients = coefficients.reshape(shape, order="F")
         selectable_genes = set(((~np.isclose(coefficients, 0)).sum((0, 1, 2)) > 3).nonzero()[0].tolist())
         iteration_counts = (~np.isclose(coefficients, 0)).sum(3)
         self.method = method
