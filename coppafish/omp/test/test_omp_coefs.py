@@ -138,23 +138,24 @@ def test_get_next_gene_assignments() -> None:
 def test_get_next_residual_colours() -> None:
     n_pixels = 3
     n_genes_added = 2
-    n_rounds_channels_use = 4
-    pixel_colours = torch.zeros((n_pixels, n_rounds_channels_use, 1), dtype=torch.float32)
+    n_rounds_use = 1
+    n_channels_use = 4
+    pixel_colours = torch.zeros((n_pixels, n_rounds_use, n_channels_use), dtype=torch.float32)
     pixel_colours[0, 0, 0] = 1.3
-    pixel_colours[0, 1, 0] = 0.4
-    pixel_colours[0, 2, 0] = 0.6
+    pixel_colours[0, 0, 1] = 0.4
+    pixel_colours[0, 0, 2] = 0.6
     # The second pixel will have a non-zero residual after genes are fitted.
     pixel_colours[1, 0, 0] = 1 * 0.4
-    pixel_colours[1, 3, 0] = 4
+    pixel_colours[1, 0, 3] = 4
     # The third pixel does not quite fit on the second gene.
     pixel_colours[2, 0, 0] = 1 * 0.74
-    pixel_colours[2, 1, 0] = 0.4
-    pixel_colours[2, 2, 0] = 0.8
+    pixel_colours[2, 0, 1] = 0.4
+    pixel_colours[2, 0, 2] = 0.8
 
-    bled_codes = torch.zeros((n_pixels, n_rounds_channels_use, n_genes_added))
-    bled_codes[:, 0, 0] = 1
-    bled_codes[:, 1, 1] = 0.2
-    bled_codes[:, 2, 1] = 0.3
+    bled_codes = torch.zeros((n_pixels, n_rounds_use, n_channels_use, n_genes_added))
+    bled_codes[:, 0, 0, 0] = 1
+    bled_codes[:, 0, 1, 1] = 0.2
+    bled_codes[:, 0, 2, 1] = 0.3
 
     pixel_colours_previous = pixel_colours.detach().clone()
     bled_codes_previous = bled_codes.detach().clone()
@@ -162,13 +163,13 @@ def test_get_next_residual_colours() -> None:
     residuals = omp_solver.get_next_residual_colours(pixel_colours=pixel_colours, bled_codes=bled_codes)
 
     assert type(residuals) is torch.Tensor
-    assert residuals.shape == (n_pixels, n_rounds_channels_use)
+    assert residuals.shape == (n_pixels, n_rounds_use, n_channels_use)
     abs_tol = 1e-6
-    assert torch.allclose(residuals[0], torch.tensor(0).float(), atol=abs_tol)
-    assert torch.isclose(residuals[1, 3], torch.tensor(4).float(), atol=abs_tol)
-    assert torch.isclose(residuals[1], torch.tensor(0).float(), atol=abs_tol).sum() == (n_rounds_channels_use - 1)
-    assert residuals[2, 1] < 0
-    assert residuals[2, 2] > 0
+    assert torch.allclose(residuals[0, 0], torch.tensor(0).float(), atol=abs_tol)
+    assert torch.isclose(residuals[1, 0, 3], torch.tensor(4).float(), atol=abs_tol)
+    assert torch.isclose(residuals[1, 0], torch.tensor(0).float(), atol=abs_tol).sum() == (n_channels_use - 1)
+    assert residuals[2, 0, 1] < 0
+    assert residuals[2, 0, 2] > 0
 
     # Since tensors are mutable, check that the parameter tensors have not changed.
     assert torch.allclose(pixel_colours_previous, pixel_colours)

@@ -74,7 +74,7 @@ class ViewOMPColourSum(Subplot):
             return
         self.assigned_bled_codes = nbp_call_spots.bled_codes[self.assigned_genes]
         # Weight the bled codes.
-        self.assigned_bled_codes *= self.gene_weight[:, np.newaxis, np.newaxis]
+        self.assigned_bled_codes *= self.gene_weight[:, :, np.newaxis]
         self.residual_colour = self.colour - self.assigned_bled_codes.sum(0)
         abs_max = np.abs(self.assigned_bled_codes).max()
         abs_max = np.max([abs_max, np.abs(self.colour).max()])
@@ -97,7 +97,7 @@ class ViewOMPColourSum(Subplot):
                 spine.set_visible(False)
 
         for i, g in enumerate(self.assigned_genes):
-            w_str = "{:.3f}".format(self.gene_weight[i])
+            w_str = ",".join(["{:.3f}".format(r_weight) for r_weight in self.gene_weight[i]])
             c_str = "{:.3f}".format(self.coefficient[i])
             self.axes[0, i].set_title(f"{g}: {self.gene_names[g]}\nweight: {w_str}\ncoefficient: {c_str}")
             self.axes[0, i].imshow(self.assigned_bled_codes[i].T, cmap=self.cmap, norm=self.norm)

@@ -107,7 +107,7 @@ class CoefficientSolverOMP:
         bg_gene_indices = bg_gene_indices[np.newaxis].repeat_interleave(n_pixels, dim=0)
         if return_all_weights:
             # Remember the gene weightings given to each pixel.
-            all_weights = torch.full_like(coefficients, torch.nan, dtype=torch.float32)
+            all_weights = torch.full((n_pixels, n_genes, n_rounds_use), torch.nan, dtype=torch.float32)
 
         for iteration in range(maximum_iterations):
             log.debug(f"Iteration: {iteration}")
@@ -146,13 +146,13 @@ class CoefficientSolverOMP:
             # next iteration.
             log.debug(f"Computing residual colours")
             latest_gene_selections = genes_selected[pixels_to_continue, : iteration + 1]
+            # Has shape (n_pixels_continue, iteration + 1, n_rounds_use, n_channels_use).
             bled_codes_to_continue = bled_codes_torch[latest_gene_selections]
-            # Flatten rounds/channels.
-            bled_codes_to_continue = bled_codes_to_continue.reshape((-1, iteration + 1, n_rounds_channels_use))
-            # Change to shape (n_pixels_continue, n_rounds_channels_use, iteration + 1).
+            # Change to shape (n_pixels_continue, n_rounds_use, n_channels_use, iteration + 1).
+            bled_codes_to_continue = bled_codes_to_continue.swapaxes(1, 3)
             bled_codes_to_continue = bled_codes_to_continue.swapaxes(1, 2)
             residual_colours = self.get_next_residual_colours(
-                colours[pixels_to_continue].reshape((-1, n_rounds_channels_use))[:, :, np.newaxis],
+                colours[pixels_to_continue],
                 bled_codes_to_continue,
                 return_weights=return_all_weights,
             )
@@ -160,7 +160,6 @@ class CoefficientSolverOMP:
                 all_weights[pixels_to_continue, latest_gene_selections] = residual_colours[1]
                 residual_colours = residual_colours[0]
             del latest_gene_selections, bled_codes_to_continue
-            residual_colours = residual_colours.reshape((-1, n_rounds_use, n_channels_use))
 
         result = (coefficients.cpu().numpy(),)
         if return_all_scores:
@@ -283,49 +282,51 @@ class CoefficientSolverOMP:
         self, pixel_colours: torch.Tensor, bled_codes: torch.Tensor, return_weights: bool = False
     ) -> torch.Tensor | Tuple[torch.Tensor, torch.Tensor]:
         """
-        Compute gene weights for each given pixel colour by least squares with the gene bled codes. These weighted bled
-        codes are then subtracted off the pixel colour to get the minimised residual colour for each pixel.
+        For each pixel, compute a weight for every gene and round by least squares. These weighted bled codes are then
+        subtracted off the pixel colour to get the minimised residual colour for each pixel.
 
         Args:
-            pixel_colours (`(n_pixels x n_rounds_channels_use x 1) tensor[float32]`): each pixel's colour.
-            bled_codes (`(n_pixels x n_rounds_channels_use x n_genes_added) tensor[float32]`): the bled code for each
-                added gene for each pixel.
+            pixel_colours (`(n_pixels x n_rounds_use x n_channels_use) tensor[float32]`): each pixel's colour.
+            bled_codes (`(n_pixels x n_rounds_use x n_channels_use x n_genes_added) tensor[float32]`): the bled code for
+                each added gene for each pixel.
             return_weights (bool, optional): return the weightings given to each assigned gene.
 
         Returns:
             Tuple (unravelled if the tuple is of length 1) containing:
-                - (`(n_pixels x n_rounds_channels_use) tensor[float32]`) residuals: the residual colour after
+                - (`(n_pixels x n_rounds_use x n_channels_use) tensor[float32]`) residuals: the residual colour after
                     subtracting the assigned, weighted gene bled codes.
-                - (`(n_pixels x n_genes_added) tensor[float32]`): gene_weights. The weight given to every gene bled
-                    code.
+                - (`(n_pixels x n_genes_added x n_rounds_use) tensor[float32]`): gene_weights. The weight given to every
+                    gene bled code for every round.
         """
         assert type(pixel_colours) is torch.Tensor
         assert type(bled_codes) is torch.Tensor
         assert type(return_weights) is bool
         assert pixel_colours.ndim == 3
-        assert bled_codes.ndim == 3
+        assert bled_codes.ndim == 4
         assert pixel_colours.shape[0] == bled_codes.shape[0]
         assert pixel_colours.shape[1] == bled_codes.shape[1]
-        assert pixel_colours.shape[2] == 1
+        assert pixel_colours.shape[2] == bled_codes.shape[2]
         assert bled_codes.shape[0] > 0, "Require at least one pixel to run on"
-        assert bled_codes.shape[1] > 0, "Require at least one round and channel"
-        assert bled_codes.shape[2] > 0, "Require at least one gene assigned"
+        assert bled_codes.shape[1] > 0, "Require at least one round"
+        assert bled_codes.shape[2] > 0, "Require at least one channel"
+        assert bled_codes.shape[3] > 0, "Require at least one gene assigned"
 
         # Compute least squares for gene weights.
-        # First parameter A has shape (n_pixels x n_rounds_channels_use x n_genes_added)
-        # Second parameter B has shape (n_pixels x n_rounds_channels_use x 1)
-        # So, the resulting weights has shape (n_pixels x n_genes_added x 1)
+        # First parameter A has shape (n_pixels x n_rounds_use x n_channels_use x n_genes_added)
+        # Second parameter B has shape (n_pixels x n_rounds_use x n_channels_use x 1)
+        # So, the resulting weights has shape (n_pixels x n_rounds_use x n_genes_added x 1)
         # The least squares is minimising || A @ coefficients - B || ^ 2
-        weights = torch.linalg.lstsq(bled_codes, pixel_colours, rcond=-1, driver="gels")[0]
-        # Squeeze shape to (n_pixels x n_genes_added).
-        weights: torch.Tensor = weights[..., 0]
+        weights = torch.linalg.lstsq(bled_codes, pixel_colours[..., np.newaxis], rcond=-1, driver="gels")[0]
+        # Squeeze shape to (n_pixels x n_rounds_use x n_genes_added).
+        weights: torch.Tensor = weights[:, :, :, 0]
 
         # From the new weights, find the residual spot colours.
-        pixel_residuals = pixel_colours[..., 0] - (weights[:, np.newaxis] * bled_codes).sum(2)
+        pixel_residuals = pixel_colours - (weights[:, :, np.newaxis] * bled_codes).sum(3)
 
         result = pixel_residuals
 
         if return_weights:
+            weights = weights.swapaxes(1, 2)
             result = (result, weights)
 
         return result
