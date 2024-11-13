@@ -61,20 +61,21 @@ class ViewOMPColourSum(Subplot):
             minimum_intensity=min_intensity,
             return_all_weights=True,
         )
-        coefficient = coefficients[0]
-        gene_weight = gene_weights[0]
-        self.assigned_genes: np.ndarray[int] = (~np.isnan(gene_weight)).nonzero()[0]
-        gene_weight = gene_weight[self.assigned_genes]
-        coefficient = coefficient[self.assigned_genes]
+        self.coefficient = coefficients[0]
+        self.gene_weight = gene_weights[0]
+        self.assigned_genes: np.ndarray[int] = (~np.isnan(self.gene_weight)).nonzero()[0]
+        self.gene_weight = self.gene_weight[self.assigned_genes]
+        self.coefficient = self.coefficient[self.assigned_genes]
         n_iterations = self.assigned_genes.size
 
-        self.fig, self.axes = plt.subplots(2, max(2, self.assigned_genes.size))
+        column_count = max(2, self.assigned_genes.size)
+        self.fig, self.axes = plt.subplots(2, column_count, figsize=(column_count * 2.7, 5.5))
         if n_iterations == 0:
             return
         self.assigned_bled_codes = nbp_call_spots.bled_codes[self.assigned_genes]
         # Weight the bled codes.
-        self.assigned_bled_codes *= gene_weight
-        self.residual_colour = self.colour - self.assigned_bled_codes
+        self.assigned_bled_codes *= self.gene_weight[:, np.newaxis, np.newaxis]
+        self.residual_colour = self.colour - self.assigned_bled_codes.sum(0)
         abs_max = np.abs(self.assigned_bled_codes).max()
         abs_max = np.max([abs_max, np.abs(self.colour).max()])
         abs_max = np.max([abs_max, np.abs(self.residual_colour).max()]).item()
@@ -83,21 +84,27 @@ class ViewOMPColourSum(Subplot):
         self.norm = mpl.colors.Normalize(vmin=-abs_max, vmax=abs_max)
         self.draw_data()
         self.fig.suptitle(f"{method.capitalize()} spot at {tuple(local_yxz)} OMP colour sum")
+        self.fig.tight_layout()
         if show:
             self.fig.show()
 
     def draw_data(self) -> None:
         for ax in self.axes.ravel():
             ax.clear()
-            ax.spines.set_visible(False)
+            ax.set_xticks([])
+            ax.set_yticks([])
+            for spine in ax.spines.values():
+                spine.set_visible(False)
 
         for i, g in enumerate(self.assigned_genes):
-            self.axes[0, i].set_title(f"{self.gene_names[g]}")
-            self.axes[0, i].imshow(self.assigned_bled_codes.T, cmap=self.cmap, norm=self.norm)
+            w_str = "{:.3f}".format(self.gene_weight[i])
+            c_str = "{:.3f}".format(self.coefficient[i])
+            self.axes[0, i].set_title(f"{g}: {self.gene_names[g]}\nweight: {w_str}\ncoefficient: {c_str}")
+            self.axes[0, i].imshow(self.assigned_bled_codes[i].T, cmap=self.cmap, norm=self.norm)
 
         self.axes[1, -1].set_title(f"Total colour")
-        self.axes[1, -1].imshow(self.colour, cmap=self.cmap, norm=self.norm)
+        self.axes[1, -1].imshow(self.colour.T, cmap=self.cmap, norm=self.norm)
         self.axes[1, -2].set_title(f"Residual colour")
-        self.axes[1, -2].imshow(self.residual_colour, cmap=self.cmap, norm=self.norm)
+        self.axes[1, -2].imshow(self.residual_colour.T, cmap=self.cmap, norm=self.norm)
 
         self.fig.canvas.draw_idle()
