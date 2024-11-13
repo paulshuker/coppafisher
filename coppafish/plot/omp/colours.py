@@ -48,7 +48,7 @@ class ViewOMPColourSum(Subplot):
             dot_product_threshold = float(nbp_omp.associated_configs["omp"]["dot_product_threshold"])
 
         self.colour = spot_colour.copy().astype(np.float32)
-        self.colour *= nbp_call_spots.colour_norm_factor[[spot_tile]].astype(np.float32)
+        self.colour *= nbp_call_spots.colour_norm_factor[spot_tile].astype(np.float32)
         omp_solver = CoefficientSolverOMP()
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
         bg_bled_codes = omp_solver.create_background_bled_codes(n_rounds_use, n_channels_use)
@@ -67,7 +67,10 @@ class ViewOMPColourSum(Subplot):
         gene_weight = gene_weight[self.assigned_genes]
         coefficient = coefficient[self.assigned_genes]
         n_iterations = self.assigned_genes.size
-        assert n_iterations > 0
+
+        self.fig, self.axes = plt.subplots(2, max(2, self.assigned_genes.size))
+        if n_iterations == 0:
+            return
         self.assigned_bled_codes = nbp_call_spots.bled_codes[self.assigned_genes]
         # Weight the bled codes.
         self.assigned_bled_codes *= gene_weight
@@ -76,7 +79,6 @@ class ViewOMPColourSum(Subplot):
         abs_max = np.max([abs_max, np.abs(self.colour).max()])
         abs_max = np.max([abs_max, np.abs(self.residual_colour).max()]).item()
 
-        self.fig, self.axes = plt.subplots(2, max(2, self.assigned_genes.size))
         self.cmap = mpl.cm.seismic
         self.norm = mpl.colors.Normalize(vmin=-abs_max, vmax=abs_max)
         self.draw_data()
