@@ -1,6 +1,5 @@
 import enum
 import importlib.resources as importlib_resources
-import itertools
 from typing import Tuple
 import warnings
 
@@ -12,10 +11,10 @@ import torch
 
 from coppafish.omp import coefs
 from coppafish.omp import scores as omp_scores
+from coppafish.plot.results_viewer.subplot import Subplot
 from coppafish.setup import config
 from coppafish.setup.notebook import NotebookPage
 from coppafish.spot_colours import base as spot_colours_base
-from coppafish.plot.results_viewer.subplot import Subplot
 
 
 class ViewOMPImage(Subplot):
@@ -93,7 +92,7 @@ class ViewOMPImage(Subplot):
             out_of_bounds_value=0,
         )
         colours *= nbp_call_spots.colour_norm_factor[[spot_tile]].astype(np.float32)
-        intensity = colours.max(2).min(1)
+        intensity = np.abs(colours.copy()).max(2).min(1)
         is_intense = (intensity >= min_intensity).nonzero()
         del intensity
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
