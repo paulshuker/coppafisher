@@ -157,7 +157,7 @@ class CoefficientSolverOMP:
                 return_weights=return_all_weights,
             )
             if return_all_weights:
-                all_weights[pixels_to_continue][:, latest_gene_selections] = residual_colours[1]
+                all_weights[pixels_to_continue, latest_gene_selections] = residual_colours[1]
                 residual_colours = residual_colours[0]
             del latest_gene_selections, bled_codes_to_continue
             residual_colours = residual_colours.reshape((-1, n_rounds_use, n_channels_use))
