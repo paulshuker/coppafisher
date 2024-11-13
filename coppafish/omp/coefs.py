@@ -25,7 +25,8 @@ class CoefficientSolverOMP:
         dot_product_threshold: float,
         minimum_intensity: float,
         return_all_scores: bool = False,
-    ) -> np.ndarray | Tuple[np.ndarray, np.ndarray]:
+        return_all_weights: bool = False,
+    ) -> np.ndarray | Tuple[np.ndarray, np.ndarray] | Tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Compute OMP coefficients for all pixel colours from the same tile. At each iteration of OMP, the next best gene
         assignment is found from the residual spot colours. A pixel is stopped iterating on if gene assignment fails.
@@ -48,13 +49,20 @@ class CoefficientSolverOMP:
                 assignment.
             return_all_scores (bool, optional): return all gene round dot product scores on each iteration. Default:
                 false.
+            return_all_weights (bool, optional): return all gene bled code weights for every gene that was assigned.
+                Default: false.
 
         Returns:
-            Tuple containing:
-                - `(n_pixels x n_genes) ndarray[float32]`: coefficients. Each gene's final coefficient for every pixel.
-                - `(n_iterations x n_pixels x n_genes_all) ndarray[float32]`: dp_scores. The dot product score for
-                    every gene on each iteration. The length of dp_scores is the number of iterations that passed. Only
-                    returned if return_dp_scores is true.
+            Tuple (tensor if only one tensor is returned) containing the following:
+                - (`(n_pixels x n_genes) ndarray[float32]`): coefficients. Each gene's final coefficient for every
+                    pixel.
+                - (`((n_iterations + 1) x n_pixels x n_genes_all) ndarray[float32]`): dp_scores. The dot product
+                    score for every gene on each iteration. This even includes the iteration that did not assign any new
+                    genes so you can see what the final gene scores were before stopping. Only returned if
+                    return_dp_scores is true.
+                - (`(n_pixels x n_genes) ndarray[float32]`): gene_weights. The gene weights given to each gene on all
+                    pixels on their final iteration. For genes that were not assigned on a pixel, nan is placed. Only
+                    returned if return_all_weights is true.
 
         Notes:
             - All computations are run with 32-bit float precision.
@@ -69,6 +77,7 @@ class CoefficientSolverOMP:
         assert type(dot_product_threshold) is float
         assert type(minimum_intensity) is float
         assert type(return_all_scores) is bool
+        assert type(return_all_weights) is bool
         assert maximum_iterations > 0
         assert dot_product_threshold >= 0
         assert minimum_intensity >= 0
@@ -96,6 +105,9 @@ class CoefficientSolverOMP:
         genes_selected = torch.full((n_pixels, maximum_iterations), self.NO_GENE_ASSIGNMENT, dtype=torch.int32)
         bg_gene_indices = torch.linspace(n_genes, n_genes + n_channels_use - 1, n_channels_use, dtype=torch.int32)
         bg_gene_indices = bg_gene_indices[np.newaxis].repeat_interleave(n_pixels, dim=0)
+        if return_all_weights:
+            # Remember the gene weightings given to each pixel.
+            all_weights = torch.full_like(coefficients, torch.nan, dtype=torch.float32)
 
         for iteration in range(maximum_iterations):
             log.debug(f"Iteration: {iteration}")
@@ -142,14 +154,22 @@ class CoefficientSolverOMP:
             residual_colours = self.get_next_residual_colours(
                 colours[pixels_to_continue].reshape((-1, n_rounds_channels_use))[:, :, np.newaxis],
                 bled_codes_to_continue,
+                return_weights=return_all_weights,
             )
+            if return_all_weights:
+                all_weights[pixels_to_continue][:, latest_gene_selections] = residual_colours[1]
+                residual_colours = residual_colours[0]
             del latest_gene_selections, bled_codes_to_continue
             residual_colours = residual_colours.reshape((-1, n_rounds_use, n_channels_use))
 
-        coefficients = coefficients.cpu().numpy()
+        result = (coefficients.cpu().numpy(),)
         if return_all_scores:
-            return coefficients, np.array([score.numpy() for score in dp_scores])
-        return coefficients
+            result += (np.array([score.cpu().numpy() for score in dp_scores]),)
+        if return_all_weights:
+            result += (all_weights.cpu().numpy(),)
+        if len(result) == 1:
+            result = result[0]
+        return result
 
     def create_background_bled_codes(self, n_rounds_use: int, n_channels_use: int) -> np.ndarray:
         """
@@ -259,7 +279,9 @@ class CoefficientSolverOMP:
 
         return output
 
-    def get_next_residual_colours(self, pixel_colours: torch.Tensor, bled_codes: torch.Tensor) -> torch.Tensor:
+    def get_next_residual_colours(
+        self, pixel_colours: torch.Tensor, bled_codes: torch.Tensor, return_weights: bool = False
+    ) -> torch.Tensor | Tuple[torch.Tensor, torch.Tensor]:
         """
         Compute gene weights for each given pixel colour by least squares with the gene bled codes. These weighted bled
         codes are then subtracted off the pixel colour to get the minimised residual colour for each pixel.
@@ -268,13 +290,18 @@ class CoefficientSolverOMP:
             pixel_colours (`(n_pixels x n_rounds_channels_use x 1) tensor[float32]`): each pixel's colour.
             bled_codes (`(n_pixels x n_rounds_channels_use x n_genes_added) tensor[float32]`): the bled code for each
                 added gene for each pixel.
+            return_weights (bool, optional): return the weightings given to each assigned gene.
 
         Returns:
-            - (`(n_pixels x n_rounds_channels_use) tensor[float32]`) residuals: the residual colour after subtracting
-                off the assigned weighted gene bled codes.
+            Tuple (unravelled if the tuple is of length 1) containing:
+                - (`(n_pixels x n_rounds_channels_use) tensor[float32]`) residuals: the residual colour after
+                    subtracting the assigned, weighted gene bled codes.
+                - (`(n_pixels x n_genes_added) tensor[float32]`): gene_weights. The weight given to every gene bled
+                    code.
         """
         assert type(pixel_colours) is torch.Tensor
         assert type(bled_codes) is torch.Tensor
+        assert type(return_weights) is bool
         assert pixel_colours.ndim == 3
         assert bled_codes.ndim == 3
         assert pixel_colours.shape[0] == bled_codes.shape[0]
@@ -291,9 +318,14 @@ class CoefficientSolverOMP:
         # The least squares is minimising || A @ coefficients - B || ^ 2
         weights = torch.linalg.lstsq(bled_codes, pixel_colours, rcond=-1, driver="gels")[0]
         # Squeeze shape to (n_pixels x n_genes_added).
-        weights = weights[..., 0]
+        weights: torch.Tensor = weights[..., 0]
 
         # From the new weights, find the residual spot colours.
         pixel_residuals = pixel_colours[..., 0] - (weights[:, np.newaxis] * bled_codes).sum(2)
 
-        return pixel_residuals
+        result = pixel_residuals
+
+        if return_weights:
+            result = (result, weights)
+
+        return result

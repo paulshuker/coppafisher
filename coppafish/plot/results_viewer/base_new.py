@@ -30,7 +30,8 @@ from ...omp import base as omp_base
 from ...setup.notebook import Notebook, NotebookPage
 from ...utils import system as utils_system
 from ..call_spots import bleed_matrix, spot_colours
-from ..omp import ViewOMPImage
+from ..omp.coefs import ViewOMPImage
+from ..omp.colours import ViewOMPColourSum
 from ..omp.scores import ViewOMPDotProductScores
 from .hotkeys_new import Hotkey
 from .subplot import Subplot
@@ -395,6 +396,13 @@ class Viewer:
                 lambda _: self._add_subplot(self.view_omp_dot_product_scores()),
                 "OMP",
             ),
+            Hotkey(
+                "View OMP Colours",
+                "j",
+                "Show the OMP weighted gene bled codes on the top row that try to sum to the spot colour",
+                lambda _: self._add_subplot(self.view_omp_dot_product_scores()),
+                "OMP",
+            ),
         )
         # Hotkeys can be connected to a function when they occur.
         for hotkey in self.hotkeys:
@@ -727,6 +735,22 @@ class Viewer:
             self.nbp_omp,
             spot_data.local_yxz[self.selected_spot],
             spot_data.tile[self.selected_spot],
+            show=self.show,
+        )
+
+    def view_omp_colours(self) -> Subplot | None:
+        if self.selected_spot is None:
+            return
+        self._free_subplot_spaces()
+        spot_data = self.spot_data[self.selected_method]
+        return ViewOMPColourSum(
+            self.nbp_basic,
+            self.nbp_call_spots,
+            self.nbp_omp,
+            self.selected_method,
+            spot_data.local_yxz[self.selected_spot],
+            spot_data.tile[self.selected_spot],
+            spot_data.colours[self.selected_spot],
             show=self.show,
         )
 

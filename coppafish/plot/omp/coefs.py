@@ -47,7 +47,7 @@ class ViewOMPImage(Subplot):
             nbp_filter (NotebookPage): `filter` notebook page.
             nbp_register (NotebookPage): `register` notebook page.
             nbp_call_spots (NotebookPage): `call_spots` notebook page.
-            nbp_omp (NotebookPage): `omp` notebook page or none.
+            nbp_omp (NotebookPage or none): `omp` notebook page or none.
             local_yxz (`(3) ndarray[int]`): the pixel position relative to its tile's bottom-left corner.
             spot_tile (int-like): tile index the pixel is on.
             spot_no (int-like or none): spot index to be plotted.
