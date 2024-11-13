@@ -398,9 +398,9 @@ class Viewer:
             ),
             Hotkey(
                 "View OMP Colours",
-                "j",
+                "k",
                 "Show the OMP weighted gene bled codes on the top row that try to sum to the spot colour",
-                lambda _: self._add_subplot(self.view_omp_dot_product_scores()),
+                lambda _: self._add_subplot(self.view_omp_colours()),
                 "OMP",
             ),
         )
