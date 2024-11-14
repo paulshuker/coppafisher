@@ -49,7 +49,7 @@
  * Stitch: The shifts computed are now given a score, which is the squared pearson correlation of the shifted image
     and the reference image in the overlapping region. This score is then used in the computation of the final shifts,
     where we deal with the fact that our problem is over-specified. The scoring is used as a weight and the results are
-    much better than before.
+    better than before.
  * Stitch: The stitching diagnostics have been replaced with 2 new viewers, one for viewing the image as a checker-
     board patten in green and red, with overlapping regions in yellow, and the other for viewing the shifts computed
     for each tile.
