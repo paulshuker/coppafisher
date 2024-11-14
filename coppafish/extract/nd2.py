@@ -9,7 +9,6 @@ import numpy_indexed
 from tqdm import tqdm
 
 from . import raw
-from ..utils import errors
 from .. import log, setup
 from ..setup import tile_details
 

@@ -40,14 +40,18 @@ class ConfigSection:
         for name, val in values.items():
             self._attributes[name] = val
 
-    def __getitem__(self, name: str) -> Any:
-        if type(name) is not str:
-            raise TypeError(f"Config section parameters must be accessed individually by a str, got {type(name)}")
-        if name not in self._attributes:
-            raise ValueError(f"Could not find parameter {name} in {self.name} config section")
+    def __getitem__(self, param_name: str) -> Any:
+        """
+        Allows a config parameter to be gathered by config_section["param_name"].
+        """
+        if type(param_name) is not str:
+            raise TypeError(f"Config section parameters must be accessed individually by a str, got {type(param_name)}")
+        if param_name not in self._attributes:
+            raise ValueError(f"Could not find parameter {param_name} in {self.name} config section")
 
-        self._retrieval_counts[name] += 1
-        return self._attributes[name]
+        self._retrieval_counts[param_name] += 1
+
+        return self._attributes[param_name]
 
     def items(self) -> Iterable[Tuple[str, Any]]:
         """
@@ -56,6 +60,9 @@ class ConfigSection:
         Returns:
             (iterable[tuple[str, any]]): items. All config section parameter names and values.
         """
+        # TODO: Do this counting better using a yield.
+        for name in self._retrieval_counts.keys():
+            self._retrieval_counts[name] += 1
         return self._attributes.items()
 
     def list_redundant_params(self) -> list[str]:

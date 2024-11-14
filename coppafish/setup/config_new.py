@@ -1,13 +1,13 @@
 from collections.abc import Callable
 import configparser
 import importlib.resources as importlib_resources
-import os
+from io import DEFAULT_BUFFER_SIZE
 from os import path
 import re
-from typing import Any
+from typing import Any, Tuple
 
-from .config_section import ConfigSection
 from .. import log
+from .config_section import ConfigSection
 
 
 class Config:
@@ -69,7 +69,7 @@ class Config:
         "email-address": (lambda x: re.match(r"^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$", x), "a valid email address"),
         # Tuple checks.
         "tup-not-empty": (lambda x: len(x) > 0, "a non empty tuple"),
-        "len-multiple-3": (lambda x: len(x) % 3 == 0, "have length as a multiple of 3"),
+        "len-multiple-3": (lambda x: len(x) % 3 == 0, "a length as a multiple of 3"),
     }
     _format_separator = "_"
     _checker_separator = "_"
@@ -203,35 +203,43 @@ class Config:
     def __init__(self) -> None:
         pass
 
-    def __getitem__(self, name: str) -> None:
-        if type(name) is not str:
-            raise TypeError(f"Config sections must be accessed through a string, got type {type(name)}")
+    def __getitem__(self, section_name: str) -> None:
+        """
+        Allows a config section to be gathered by config["section_name"].
+        """
+        if type(section_name) is not str:
+            raise TypeError(f"Config sections must be accessed through a string, got type {type(section_name)}")
 
         for section in self._sections:
-            if section.name == name:
+            if section.name == section_name:
                 return section
 
-        raise ValueError(f"No config section named {name}")
+        raise ValueError(f"No config section named {section_name}")
 
-    def load(self, file_path: str) -> None:
+    def load(self, file_path: str, default_file_path: str | None = None) -> None:
         """
         Load the configuration file from the given file path. Any unset configuration values are set to their default
         value specified in file coppafish/setup/settings.default.ini.
 
         Args:
             file_path (str): the file path to the custom configuration file set by the user.
+            default_file_path (str or none, optional): the default config values for every parameter. If None, then the
+                default config file path at coppafish/setup/default.ini is used.
         """
         assert type(file_path) is str
-        if not path.isfile(file_path):
-            raise FileNotFoundError(f"Could not find config file at {file_path}")
+        if default_file_path is None:
+            default_file_path = self._get_default_file_path()
+        assert type(default_file_path) is str
+        for config_path in (file_path, default_file_path):
+            if not path.isfile(config_path):
+                raise FileNotFoundError(f"Could not find config file at {path}")
 
         parser = configparser.ConfigParser()
         # Make parameter names case-sensitive
         parser.optionxform = str
 
         # Load the default settings first.
-        default_path = self.get_default_config_file_path()
-        with open(default_path, "r") as f:
+        with open(default_file_path, "r") as f:
             parser.read_string(f.read())
 
         # Overwrite the default settings if the user has specified them.
@@ -245,33 +253,47 @@ class Config:
 
         # Ensure there are no additional sections in the config files.
         for section in parser.keys():
-            if section == "DEFAULT":
+            if section == configparser.DEFAULTSECT:
                 continue
             if section not in self._options.keys():
                 raise self.SectionError(f"Unexpected config section {section} that is not in _options.")
 
-        param_msg = f"parameter {param_name} in section {section}"
+        param_msg = "parameter {} in section {}"
         # Ensure every expected config parameter exists in the config files.
         for section in self._options.keys():
             for param_name in self._options[section].keys():
                 if param_name not in parser[section].keys():
-                    raise self.MissingParamError(f"Expected {param_msg}")
+                    raise self.MissingParamError(f"Expected {param_msg.format(param_name, section)}")
 
-        # Run pre-checks on the parameters.
+        # Run pre-checks then format the config parameters.
         for section in self._options.keys():
             for param_name, param_value in parser[section].items():
                 if param_name not in self._options[section].keys():
-                    log.warn(f"Unexpected config {param_msg}")
+                    log.warn(f"Unknown config {param_msg.format(param_name, section)}, ignoring it")
                     parser[section].__delitem__(param_name)
                     continue
                 pre_checker_str = self._options[section][param_name][0]
                 if not self.pre_check_param(param_name, section, param_value, pre_checker_str):
                     raise self.ParamError(
-                        f"Failed check on {param_msg}, expected type "
+                        f"Failed check on {param_msg.format(param_name, section)}, expected type "
                         + f"{self.convert_pre_check_to_readable(pre_checker_str)} but got {param_value}"
                     )
 
-        # TODO: Run parameter formatting.
+        # Format then run post-checks on the config parameters.
+        for section in self._options.keys():
+            section_values = {}
+
+            for param_name, param_value in parser[section].items():
+                value = self.format_param(param_name, section, param_value, pre_checker_str)
+
+                post_checker_str = self._options[section][param_name][1]
+                check_passed, msg = self.post_check_param(param_name, section, value, post_checker_str)
+                if not check_passed:
+                    raise self.ParamError(f"Expected {param_msg} to be {msg}, but got {value}")
+
+                section_values[param_name] = value
+
+            self._sections.append(ConfigSection(section, section_values))
 
     def pre_check_param(self, name: str, section: str, value: Any, checker_str: str) -> bool:
         """
@@ -294,10 +316,10 @@ class Config:
             return True
 
         for check_name in checker_str.split(self._checker_separator):
-            if check_name not in self._param_post_checks.keys():
+            if check_name not in self._param_pre_checks.keys():
                 raise ValueError(f"Unknown check {check_name} given to parameter {name} in {section} in _options")
 
-            if not self._param_post_checks[check_name][0](value):
+            if not self._param_pre_checks[check_name](value):
                 return False
         return True
 
@@ -381,7 +403,7 @@ class Config:
             formatted_value = formatted_value[0]
         return formatted_value
 
-    def post_check_param(self, name: str, section: str, value: Any, checker_str: str) -> bool:
+    def post_check_param(self, name: str, section: str, value: Any, checker_str: str) -> Tuple[bool, str | None]:
         """
         Check if the given parameter value is valid based on its post-check string.
 
@@ -393,21 +415,23 @@ class Config:
                 "positive_lt1" to be positive and less than 1.
 
         Returns:
-            (bool): valid. Whether the parameter is valid or not.
+            Tuple containing two items:
+                (bool): valid. Whether the parameter is valid or not.
+                (str or none): message. A description of what condition the parameter failed to meet. None if no fail.
         """
         assert type(checker_str) is str
         assert checker_str
 
         if not checker_str:
-            return True
+            return True, None
 
         for check_name in checker_str.split(self._checker_separator):
             if check_name not in self._param_post_checks.keys():
                 raise ValueError(f"Unknown check {check_name} given to parameter {name} in {section} in _options")
 
             if not self._param_post_checks[check_name][0](value):
-                return False
-        return True
+                return False, self._param_post_checks[check_name][1]
+        return True, None
 
     def _get_default_file_path(self) -> str:
         return str(importlib_resources.files("coppafish.setup").joinpath("default.ini"))

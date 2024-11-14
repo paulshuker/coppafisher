@@ -14,9 +14,11 @@
  * General: Incorrect numpy data types within the notebook fixed.
  * General: New basic_info config parameters reverse_tile_positions_x and reverse_tile_positions_y to reverse the tile
    positions if they are in the wrong places.
+ * General: Clearer config warnings/errors.
  * General: Security patches for zipp, urllib3, scikit-learn, tornado, requests, and certifi.
  * General: Package versions are now logged in the pipeline.log file.
- * General: Numpy versions >2.0, <2.1 now supported.
+ * General: Numpy versions >=2.0, <2.1 now supported.
+ * General: Improved config parameter validation
  * Documentation: New documentation for exporting data to pciSeq, skipping bad microscope images, running background
     processes, deleting notebook pages, and retrieving config data from the notebook.
  * Documentation: Detailed method description for find spots, stitch, call spots, and OMP.
