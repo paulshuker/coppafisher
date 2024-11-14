@@ -48,8 +48,10 @@ class ViewOMPDotProductScores(Subplot):
 
         max_genes = config.get_default_for("omp", "max_genes")
         dot_product_threshold = config.get_default_for("omp", "dot_product_threshold")
+        min_intensity = config.get_default_for("omp", "minimum_intensity")
         if nbp_omp is not None:
             omp_config = nbp_omp.associated_configs["omp"]
+            min_intensity = float(omp_config["minimum_intensity"])
             max_genes = int(omp_config["max_genes"])
             dot_product_threshold = float(omp_config["dot_product_threshold"])
         n_rounds_use = len(nbp_basic.use_rounds)
@@ -77,6 +79,7 @@ class ViewOMPDotProductScores(Subplot):
             background_codes=bg_bled_codes,
             maximum_iterations=max_genes,
             dot_product_threshold=self.dp_thresh,
+            minimum_intensity=min_intensity,
             return_all_scores=True,
         )
         n_iterations = self.dp_scores.shape[0]
@@ -133,7 +136,7 @@ class ViewOMPDotProductScores(Subplot):
         for bar, score in zip(self.bars, dp_scores):
             bar.set_height(score)
             bar.set_color(self.bar_colour)
-            if score >= dp_scores.max() and score > self.dp_thresh:
+            if score >= dp_scores.max() and score > self.dp_thresh and self.iteration != self.dp_scores.shape[0]:
                 bar.set_color("green")
         self.fig.canvas.draw_idle()
 

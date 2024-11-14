@@ -122,7 +122,7 @@ class Viewer2D:
         }
 
         if gene_marker_file is None:
-            gene_marker_file = importlib_resources.files("coppafish.plot.results_viewer").joinpath("gene_color.csv")
+            gene_marker_file = importlib_resources.files("coppafish.plot.results_viewer").joinpath("gene_colour.csv")
         gene_legend_info = pd.read_csv(gene_marker_file)
         # Remove any genes from the legend which were not used in this notebook
         n_legend_genes = len(gene_legend_info["GeneNames"])

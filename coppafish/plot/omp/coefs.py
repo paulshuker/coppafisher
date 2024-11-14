@@ -1,6 +1,5 @@
 import enum
 import importlib.resources as importlib_resources
-import itertools
 from typing import Tuple
 import warnings
 
@@ -12,10 +11,10 @@ import torch
 
 from coppafish.omp import coefs
 from coppafish.omp import scores as omp_scores
+from coppafish.plot.results_viewer.subplot import Subplot
 from coppafish.setup import config
 from coppafish.setup.notebook import NotebookPage
 from coppafish.spot_colours import base as spot_colours_base
-from coppafish.plot.results_viewer.subplot import Subplot
 
 
 class ViewOMPImage(Subplot):
@@ -48,7 +47,7 @@ class ViewOMPImage(Subplot):
             nbp_filter (NotebookPage): `filter` notebook page.
             nbp_register (NotebookPage): `register` notebook page.
             nbp_call_spots (NotebookPage): `call_spots` notebook page.
-            nbp_omp (NotebookPage): `omp` notebook page or none.
+            nbp_omp (NotebookPage or none): `omp` notebook page or none.
             local_yxz (`(3) ndarray[int]`): the pixel position relative to its tile's bottom-left corner.
             spot_tile (int-like): tile index the pixel is on.
             spot_no (int-like or none): spot index to be plotted.
@@ -62,7 +61,6 @@ class ViewOMPImage(Subplot):
             show (bool, optional): display the plot once built. False is useful when unit testing. Default: true.
         """
         assert len(z_planes) > 3
-        n_genes = nbp_call_spots.gene_names.size
         n_rounds_use, n_channels_use = len(nbp_basic.use_rounds), len(nbp_basic.use_channels)
         min_intensity = config.get_default_for("omp", "minimum_intensity")
         max_genes = config.get_default_for("omp", "max_genes")
@@ -93,22 +91,18 @@ class ViewOMPImage(Subplot):
             out_of_bounds_value=0,
         )
         colours *= nbp_call_spots.colour_norm_factor[[spot_tile]].astype(np.float32)
-        intensity = colours.max(2).min(1)
-        is_intense = (intensity >= min_intensity).nonzero()
-        del intensity
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
         solver = coefs.CoefficientSolverOMP()
-        coefficients = np.zeros((colours.shape[0], n_genes), np.float32)
-        coefficients[is_intense] = solver.solve(
-            colours[is_intense],
+        coefficients = solver.solve(
+            colours,
             bled_codes,
             solver.create_background_bled_codes(n_rounds_use, n_channels_use),
             max_genes,
             dot_product_threshold,
+            min_intensity,
         )
         shape = image_shape + (-1,)
-        shape_kwargs = dict(order="F")
-        coefficients = coefficients.reshape(shape, **shape_kwargs)
+        coefficients = coefficients.reshape(shape, order="F")
         selectable_genes = set(((~np.isclose(coefficients, 0)).sum((0, 1, 2)) > 3).nonzero()[0].tolist())
         iteration_counts = (~np.isclose(coefficients, 0)).sum(3)
         self.method = method
@@ -223,12 +217,14 @@ class ViewOMPImage(Subplot):
         self.draw_data()
         self.coef_button.label.set_color(self.button_colour_press)
         self.iter_count_button.label.set_color(self.button_colour)
+        self.gene_slider.set_active(True)
 
     def pressed_iter_button(self, _=None) -> None:
         self.selected_button = self.Options.ITERATIONS
         self.draw_data()
         self.coef_button.label.set_color(self.button_colour)
         self.iter_count_button.label.set_color(self.button_colour_press)
+        self.gene_slider.set_active(False)
 
     def pressed_reset_gene(self, _=None) -> None:
         self.gene_slider.set_val(self.spot_gene_no)

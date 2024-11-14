@@ -20,20 +20,21 @@ import napari.settings
 from napari.utils.events import Selection
 import numpy as np
 import pandas as pd
-import tabulate
 from qtpy.QtCore import Qt
 from superqt import QDoubleRangeSlider, QDoubleSlider
+import tabulate
 import tifffile
 
 from . import distribution, legend_new
-from .subplot import Subplot
-from ..call_spots import bleed_matrix, spot_colours
-from ..omp import ViewOMPImage
-from ..omp.scores import ViewOMPDotProductScores
 from ...omp import base as omp_base
 from ...setup.notebook import Notebook, NotebookPage
 from ...utils import system as utils_system
+from ..call_spots import bleed_matrix, spot_colours
+from ..omp.coefs import ViewOMPImage
+from ..omp.colours import ViewOMPColourSum
+from ..omp.scores import ViewOMPDotProductScores
 from .hotkeys_new import Hotkey
+from .subplot import Subplot
 
 
 class Viewer:
@@ -44,12 +45,12 @@ class Viewer:
     _starting_score_thresholds: dict[str, tuple[float, float | None]] = {
         "prob": (0.5, None),
         "anchor": (0.5, None),
-        "omp": (0.3, None),
+        "omp": (0.4, None),
     }
     _starting_intensity_thresholds: dict[str, tuple[float, float | None]] = {
-        "prob": (0.1, None),
-        "anchor": (0.1, None),
-        "omp": (0.1, None),
+        "prob": (0.15, None),
+        "anchor": (0.15, None),
+        "omp": (0.15, None),
     }
     _default_spot_size: float = 8.0
     _max_open_subplots: int = 7
@@ -117,7 +118,7 @@ class Viewer:
             nb (Notebook, optional): the notebook to visualise. Must have completed up to `call_spots` at least. If
                 none, then all nbp_* notebook pages must be given except nbp_omp which is optional. Default: none.
             gene_marker_filepath (str, optional): the file path to the gene marker file. Default: use the default gene
-                marker at coppafish/plot/results_viewer/gene_color.csv.
+                marker at coppafish/plot/results_viewer/gene_colour.csv.
             gene_legend_order_by (str, optional): how to order the genes in the legend. Use "row" to order genes row by
                 row in the gene marker file. "colour" will group genes based on their colourRGB's, each colour group is
                 sorted by hue. Each gene name in a colour group is sorted alphabetically. Default: "colour".
@@ -230,6 +231,9 @@ class Viewer:
             spot_data["omp"].intensity = omp_base.get_all_intensities(self.nbp_basic, self.nbp_call_spots, self.nbp_omp)
             self.selected_method = "omp"
         for method in spot_data.keys():
+            method_count = spot_data[method].score.size
+            if method_count > np.iinfo(np.uint32).max:
+                raise ValueError(f"Too many spots in {method} to index with uint32")
             spot_data[method].indices = np.linspace(
                 0, spot_data[method].score.size - 1, spot_data[method].score.size, dtype=np.uint32
             )
@@ -392,6 +396,13 @@ class Viewer:
                 lambda _: self._add_subplot(self.view_omp_dot_product_scores()),
                 "OMP",
             ),
+            Hotkey(
+                "View OMP Colours",
+                "k",
+                "Show the OMP weighted gene bled codes on the top row that try to sum to the spot colour",
+                lambda _: self._add_subplot(self.view_omp_colours()),
+                "OMP",
+            ),
         )
         # Hotkeys can be connected to a function when they occur.
         for hotkey in self.hotkeys:
@@ -474,7 +485,7 @@ class Viewer:
         # Called when the user changes the z slider in the napari viewer.
         if self.ignore_events:
             # For some god forsaken reason this function is sometimes called when closing the viewer...
-            # This is probably an issue I should raise on napari's github if I can make it simple & reproducible.
+            # This is an issue I raised on napari's github.
             return
         new_z = self.viewer.dims.current_step[0]
         if new_z == self.z:
@@ -727,6 +738,22 @@ class Viewer:
             show=self.show,
         )
 
+    def view_omp_colours(self) -> Subplot | None:
+        if self.selected_spot is None:
+            return
+        self._free_subplot_spaces()
+        spot_data = self.spot_data[self.selected_method]
+        return ViewOMPColourSum(
+            self.nbp_basic,
+            self.nbp_call_spots,
+            self.nbp_omp,
+            self.selected_method,
+            spot_data.local_yxz[self.selected_spot],
+            spot_data.tile[self.selected_spot],
+            spot_data.colours[self.selected_spot],
+            show=self.show,
+        )
+
     def toggle_background(self, _=None) -> None:
         if not self.viewer_exists():
             return
@@ -952,13 +979,14 @@ class Viewer:
                     * ColorB - float, rgB color for plotting
                     * napari_symbol - str, symbol used to plot in napari
                 All RGB values must be between 0 and 1. The first line must be the heading names. Default: use the
-                default gene marker file found at coppafish/plot/results_viewer/gene_color.csv.
+                default gene marker file found at coppafish/plot/results_viewer/gene_colour.csv.
 
         Returns:
             (tuple of Viewer.Gene) genes: every genes Gene object.
         """
         if gene_marker_filepath is None:
-            gene_marker_filepath = importlib_resources.files("coppafish.plot.results_viewer").joinpath("gene_color.csv")
+            gene_marker_filepath = importlib_resources.files("coppafish.plot.results_viewer")
+            gene_marker_filepath = gene_marker_filepath.joinpath("gene_colour.csv")
         if not path.isfile(gene_marker_filepath):
             raise FileNotFoundError(f"Could not find gene marker file at {gene_marker_filepath}")
         gene_legend_info = pd.read_csv(gene_marker_filepath)

@@ -16,8 +16,8 @@ def test_deep_convert():
 
 
 def test_reed_solomon_codes():
-    n_channels_try = [3, 4]
+    n_dyes_try = [3, 4]
     n_rounds_try = [3, 4, 5, 6]
-    for n_channels, n_rounds in itertools.product(n_channels_try, n_rounds_try):
-        codes = base.reed_solomon_codes(4, n_rounds, n_channels)
-        assert len(codes) == len(set(codes)), "All reed solomon codes must be unique"
+    for n_dyes, n_rounds in itertools.product(n_dyes_try, n_rounds_try):
+        codes = base.reed_solomon_codes(4, n_rounds, n_dyes)
+        assert len(codes) == len(set(codes)), "All Reed Solomon codes must be unique"

@@ -150,6 +150,7 @@ def run_omp(
             background_codes=bg_bled_codes,
             maximum_iterations=max_genes,
             dot_product_threshold=config["dot_product_threshold"],
+            minimum_intensity=config["minimum_intensity"],
         )
         n_subset_pixels = config["subset_pixels"]
         index_subset, index_min, index_max = 0, 0, 0
@@ -217,6 +218,7 @@ def run_omp(
                         tile_shape, order="F"
                     )
                 )
+            log.debug("Scoring coefficient image(s)")
             g_score_image = scores.score_coefficient_image(g_coef_image, mean_spot, config["force_cpu"])
             del g_coef_image
             g_score_image = g_score_image.to(dtype=torch.float16)
@@ -230,7 +232,7 @@ def run_omp(
                     radius_z=config["radius_z"],
                     remove_duplicates=True,
                 )
-                g_spot_local_positions = torch.from_numpy(g_spot_local_positions)
+                g_spot_local_positions = torch.from_numpy(g_spot_local_positions).to(torch.int16)
                 g_spot_scores = torch.from_numpy(g_spot_scores)
                 n_g_spots = g_spot_scores.size(0)
                 if n_g_spots == 0:
@@ -244,19 +246,23 @@ def run_omp(
                 g_spot_scores = g_spot_scores[~is_duplicate]
                 del g_spot_global_positions, is_duplicate
 
-                g_spot_local_positions = g_spot_local_positions.to(torch.int16)
                 g_spot_scores = g_spot_scores.to(torch.float16)
                 n_g_spots = g_spot_scores.size(0)
                 if n_g_spots == 0:
                     continue
+                log.debug(f"{n_g_spots=}")
                 g_spots_tile = torch.full((n_g_spots,), t).to(torch.int16)
                 g_spots_gene_no = torch.full((n_g_spots,), g).to(torch.int16)
 
                 # Append new results.
-                t_spots_local_yxz.append(g_spot_local_positions.numpy(), axis=0)
-                t_spots_score.append(g_spot_scores.numpy(), axis=0)
-                t_spots_tile.append(g_spots_tile.numpy(), axis=0)
-                t_spots_gene_no.append(g_spots_gene_no.numpy(), axis=0)
+                g_spot_local_positions = g_spot_local_positions.numpy()
+                g_spot_scores = g_spot_scores.numpy()
+                g_spots_tile = g_spots_tile.numpy()
+                g_spots_gene_no = g_spots_gene_no.numpy()
+                t_spots_local_yxz.append(g_spot_local_positions, axis=0)
+                t_spots_score.append(g_spot_scores, axis=0)
+                t_spots_tile.append(g_spots_tile, axis=0)
+                t_spots_gene_no.append(g_spots_gene_no, axis=0)
                 del g_spot_local_positions, g_spot_scores, g_spots_tile, g_spots_gene_no
         if t_spots_tile.size == 0:
             raise ValueError(
