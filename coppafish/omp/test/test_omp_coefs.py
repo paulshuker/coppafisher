@@ -138,7 +138,7 @@ def test_get_next_gene_assignments() -> None:
 def test_get_next_residual_colours() -> None:
     n_pixels = 3
     n_genes_added = 2
-    n_rounds_channels_use = 1
+    n_rounds_channels_use = 4
     pixel_colours = torch.zeros((n_pixels, n_rounds_channels_use, 1), dtype=torch.float32)
     pixel_colours[0, 0, 0] = 1.3
     pixel_colours[0, 1, 0] = 0.4
