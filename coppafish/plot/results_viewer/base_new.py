@@ -45,7 +45,7 @@ class Viewer:
     _starting_score_thresholds: dict[str, tuple[float, float | None]] = {
         "prob": (0.5, None),
         "anchor": (0.5, None),
-        "omp": (0.3, None),
+        "omp": (0.4, None),
     }
     _starting_intensity_thresholds: dict[str, tuple[float, float | None]] = {
         "prob": (0.15, None),
