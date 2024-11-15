@@ -5,10 +5,13 @@ from tqdm import tqdm
 import zarr
 
 from .. import log, stitch as stitch_base
+from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 
 
-def stitch(config: dict, nbp_basic: NotebookPage, nbp_file: NotebookPage, nbp_filter: NotebookPage) -> NotebookPage:
+def stitch(
+    config: ConfigSection, nbp_basic: NotebookPage, nbp_file: NotebookPage, nbp_filter: NotebookPage
+) -> NotebookPage:
     """
     Run tile stitching. Tiles are shifted to better align using the DAPI images.
 
@@ -22,7 +25,7 @@ def stitch(config: dict, nbp_basic: NotebookPage, nbp_file: NotebookPage, nbp_fi
         new `stitch` notebook page.
     """
     log.debug("Stitch started")
-    nbp = NotebookPage("stitch", {"stitch": config})
+    nbp = NotebookPage("stitch", {config.name: config.to_dict()})
 
     # TODO: Make non-adjacent tiles have shifts and scores of nan instead of zero to distinguish from true zero
     # shift/scores.

@@ -1,6 +1,5 @@
 import enum
 import importlib.resources as importlib_resources
-import itertools
 from typing import Tuple
 import warnings
 
@@ -12,10 +11,10 @@ import torch
 
 from coppafish.omp import coefs
 from coppafish.omp import scores as omp_scores
-from coppafish.setup import config
+from coppafish.plot.results_viewer.subplot import Subplot
+from coppafish.setup.config import Config
 from coppafish.setup.notebook import NotebookPage
 from coppafish.spot_colours import base as spot_colours_base
-from coppafish.plot.results_viewer.subplot import Subplot
 
 
 class ViewOMPImage(Subplot):
@@ -64,9 +63,9 @@ class ViewOMPImage(Subplot):
         assert len(z_planes) > 3
         n_genes = nbp_call_spots.gene_names.size
         n_rounds_use, n_channels_use = len(nbp_basic.use_rounds), len(nbp_basic.use_channels)
-        min_intensity = config.get_default_for("omp", "minimum_intensity")
-        max_genes = config.get_default_for("omp", "max_genes")
-        dot_product_threshold = config.get_default_for("omp", "dot_product_threshold")
+        min_intensity = Config.get_default_for("omp", "minimum_intensity")
+        max_genes = Config.get_default_for("omp", "max_genes")
+        dot_product_threshold = Config.get_default_for("omp", "dot_product_threshold")
         mean_spot_filepath = importlib_resources.files("coppafish.omp").joinpath("mean_spot.npy")
         mean_spot: np.ndarray = np.load(mean_spot_filepath).astype(np.float32)
         if nbp_omp is not None:

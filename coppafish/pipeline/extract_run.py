@@ -5,17 +5,18 @@ from tqdm import tqdm
 
 from .. import log
 from ..extract import raw
+from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
-from ..utils import indexing, tiles_io, system
+from ..utils import indexing, system, tiles_io
 
 
-def run_extract(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) -> NotebookPage:
+def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: NotebookPage) -> NotebookPage:
     """
     This reads in images from the raw `nd2` files, filters them and then saves them as zarr array files in the tile
     directory.
 
     Args:
-        config (dict): dictionary obtained from 'extract' section of config file.
+        config (ConfigSection): dictionary obtained from 'extract' section of config file.
         nbp_file (NotebookPage): 'file_names' notebook page.
         nbp_basic (NotebookPage): 'basic_info' notebook page.
 
@@ -25,7 +26,7 @@ def run_extract(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) -
     Notes:
         - See `'extract'` sections in `coppafish/setup/notebook_page.py` file for description of the variables in each page.
     """
-    nbp = NotebookPage("extract", {"extract": config})
+    nbp = NotebookPage("extract", {config.name: config.to_dict()})
     nbp.num_rotations = config["num_rotations"]
 
     log.debug("Extraction started")

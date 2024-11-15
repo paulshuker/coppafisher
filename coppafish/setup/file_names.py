@@ -2,7 +2,7 @@ import importlib.resources as importlib_resources
 import os
 
 from .. import log
-from .. import setup
+from ..setup.config import Config
 from .. import utils
 from ..setup.notebook_page import NotebookPage
 from .tile_details import get_tile_file_names
@@ -21,8 +21,10 @@ def get_file_names(nbp_basic_info: NotebookPage, config_path: str):
         - nbp_basic_info (NotebookPage): `basic_info` notebook page.
         - config_path (str): file path to the config.
     """
-    config = setup.config.get_config(config_path)["file_names"]
-    nbp = NotebookPage("file_names", {"file_names": config})
+    config = Config()
+    config.load(config_path)
+    config = config["file_names"]
+    nbp = NotebookPage("file_names", {config.name: config.to_dict()})
     # Copy some variables that are in config to page.
     nbp.input_dir = config["input_dir"]
     nbp.output_dir = config["output_dir"]

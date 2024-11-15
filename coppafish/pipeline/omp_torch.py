@@ -14,13 +14,14 @@ import zarr
 from .. import log, utils
 from .. import find_spots
 from ..omp import coefs, scores
+from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
 from ..utils import duplicates
 
 
 def run_omp(
-    config: dict[str, any],
+    config: ConfigSection,
     nbp_file: NotebookPage,
     nbp_basic: NotebookPage,
     nbp_extract: NotebookPage,
@@ -38,7 +39,7 @@ def run_omp(
     See `omp` section of file `coppafish/setup/notebook_page.py` for descriptions of the omp variables.
 
     Args:
-        config (dict): Dictionary obtained from `'omp'` section of config file.
+        config (ConfigSection): config section for `omp`.
         nbp_file (NotebookPage): `file_names` notebook page.
         nbp_basic (NotebookPage): `basic_info` notebook page.
         nbp_extract (NotebookPage): `extract` notebook page.
@@ -50,7 +51,7 @@ def run_omp(
     Returns:
         `NotebookPage[omp]`: nbp_omp. Page containing gene assignments and info for OMP spots.
     """
-    assert type(config) is dict
+    assert type(config) is ConfigSection
     assert type(nbp_file) is NotebookPage
     assert type(nbp_basic) is NotebookPage
     assert type(nbp_extract) is NotebookPage
@@ -63,7 +64,7 @@ def run_omp(
     log.debug(f"{torch.cuda.is_available()=}")
     log.debug(f"{config['force_cpu']=}")
 
-    omp_config = {"omp": config}
+    omp_config = {config.name: config.to_dict()}
     nbp = NotebookPage("omp", omp_config)
 
     torch.backends.cudnn.deterministic = True

@@ -9,12 +9,13 @@ import zarr
 from .. import find_spots as fs
 from .. import log
 from ..find_spots import detect
+from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..utils import indexing
 
 
 def find_spots(
-    config: dict,
+    config: ConfigSection,
     nbp_basic: NotebookPage,
     nbp_file: NotebookPage,
     nbp_filter: NotebookPage,
@@ -36,7 +37,7 @@ def find_spots(
     log.info("Find spots started")
 
     # Phase 0: Initialisation
-    nbp = NotebookPage("find_spots", {"find_spots": config})
+    nbp = NotebookPage("find_spots", {config.name: config.to_dict()})
     auto_thresh_multiplier = config["auto_thresh_multiplier"]
     if auto_thresh_multiplier <= 0:
         raise ValueError(f"The auto_thresh_multiplier in 'find_spots' config must be positive")

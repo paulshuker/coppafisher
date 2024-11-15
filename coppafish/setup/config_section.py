@@ -53,6 +53,16 @@ class ConfigSection:
 
         return self._attributes[param_name]
 
+    def __setitem__(self, key: str, value: Any, /) -> None:
+        """
+        Allows a config parameter to be edited by config_section["param_name"] = value.
+        """
+        assert type(key) is str
+        assert key in self._attributes.keys()
+
+        self._retrieval_counts[key] = 0
+        self._attributes[key] = value
+
     def items(self) -> Iterable[Tuple[str, Any]]:
         """
         List all the config section parameter names and values.
@@ -60,10 +70,18 @@ class ConfigSection:
         Returns:
             (iterable[tuple[str, any]]): items. All config section parameter names and values.
         """
-        # TODO: Do this counting better using a yield.
+        # TODO: Remove this legacy function so the retrieval count of each config parameter can be correctly counted.
         for name in self._retrieval_counts.keys():
             self._retrieval_counts[name] += 1
         return self._attributes.items()
+
+    def get_parameter_names(self) -> list[str]:
+        """
+        Get every parameter name in the config section.
+
+        Returns a list containing every parameter name.
+        """
+        return list(self._attributes.keys())
 
     def list_redundant_params(self) -> list[str]:
         """
@@ -77,3 +95,10 @@ class ConfigSection:
             if count == 0:
                 redundant_parameters.append(name)
         return redundant_parameters
+
+    def to_dict(self) -> dict[str, Any]:
+        """
+        Convert the config section parameters into a dictionary. Used for saving placing the config section inside of a
+        notebook page.
+        """
+        return self._attributes.copy()

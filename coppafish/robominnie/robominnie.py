@@ -561,7 +561,7 @@ class Robominnie:
 
         [basic_info]
         is_3d = true
-        bad_trc = {", ".join([f"({bad_trc[0]}, {bad_trc[1]}, {bad_trc[2]})" for bad_trc in bad_trcs])}
+        bad_trc = {', '.join([f'{bad_trc[0]}, {bad_trc[1]}, {bad_trc[2]}' for bad_trc in bad_trcs])}
         dye_names = {', '.join(self.dye_names)}
         use_rounds = {', '.join([str(i) for i in range(self.n_rounds)])}
         use_z = {', '.join([str(i) for i in range(self.n_planes)])}
@@ -594,7 +594,6 @@ class Robominnie:
 
         [omp]
         minimum_intensity = 0.2
-        spot_shape = 13, 13, 1
         score_threshold = 0.1
         subset_pixels = 10_000
         """

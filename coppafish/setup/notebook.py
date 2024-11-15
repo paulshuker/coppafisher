@@ -7,6 +7,7 @@ from typing import Any, Optional, Tuple
 import numpy as np
 
 from . import config
+from .config import Config
 from .. import log
 from ..utils import system as utils_system
 from .notebook_page import NotebookPage
@@ -300,16 +301,17 @@ class Notebook:
             "Is the notebook from a different software version? If you are unsure, it "
             + "is recommended to delete the notebook and re-run the pipeline."
         )
-        config_on_disk = config.get_config(self.config_path)
+        config_on_disk = Config()
+        config_on_disk.load(self.config_path)
 
         for page in self._get_added_pages():
             for config_section in page.associated_configs:
-                if config_section not in config_on_disk:
+                if config_section not in config_on_disk.get_section_names():
                     log.warn(f"{msg_prefix} section {config_section}. {msg_suffix}")
                     continue
                 for var_name, value in page.associated_configs[config_section].items():
                     is_equal = False
-                    if var_name not in config_on_disk[config_section].keys():
+                    if var_name not in config_on_disk[config_section].get_parameter_names():
                         log.warn(f"{msg_prefix} variable named {var_name} in section {config_section}. {msg_suffix}")
                         modified_variables += (var_name,)
                         continue

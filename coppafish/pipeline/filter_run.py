@@ -10,16 +10,19 @@ import zarr
 from .. import extract, log, utils
 from ..filter import base as filter_base
 from ..filter import deconvolution
+from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..utils import indexing, tiles_io
 
 
-def run_filter(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) -> Tuple[NotebookPage, NotebookPage]:
+def run_filter(
+    config: ConfigSection, nbp_file: NotebookPage, nbp_basic: NotebookPage
+) -> Tuple[NotebookPage, NotebookPage]:
     """
     Read in extracted raw images, filter them, then re-save in a different location.
 
     Args:
-        config (dict): dictionary obtained from 'filter' section of config file.
+        config (ConfigSection): config section obtained from 'filter' section of config file.
         nbp_file (NotebookPage): 'file_names' notebook page.
         nbp_basic (NotebookPage): 'basic_info' notebook page.
 
@@ -30,8 +33,8 @@ def run_filter(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) ->
     Notes:
         - See `'filter'` and `'filter_debug'` sections of `notebook_page.py` file for description of variables.
     """
-    nbp = NotebookPage("filter", {"filter": config})
-    nbp_debug = NotebookPage("filter_debug", {"filter": config})
+    nbp = NotebookPage("filter", {config.name: config.to_dict()})
+    nbp_debug = NotebookPage("filter_debug", {config.name: config.to_dict()})
 
     log.debug("Filter started")
     start_time = time.time()

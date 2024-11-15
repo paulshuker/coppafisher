@@ -20,7 +20,7 @@ def check_n_spots(nb: Notebook):
     are the parameters which determine if warnings/errors will be raised.
 
     Args:
-        nb: *Notebook* containing `find_spots` page.
+        nb (Notebook): notebook up to and including the `find_spots` notebook page.
     """
     # TODO: show example of what error looks like in the docs
     config = nb.find_spots.associated_configs["find_spots"]
