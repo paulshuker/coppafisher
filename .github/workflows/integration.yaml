@@ -28,13 +28,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # Cache pip dependencies
+      # Cache pip dependencies.
       - name: Cache pip dependencies
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
-          # Cache the pip cache directory based on the hash of your requirements.txt or other dependency files
+          # Cache the pip cache directory based on the hash of the requirements files
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt', '**/requirements-dev.txt', '**/requirements-torch.txt') }}
           restore-keys: |
             ${{ runner.os }}-pip-
 
