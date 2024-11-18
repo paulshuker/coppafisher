@@ -1,6 +1,6 @@
 name: CI
 
-# Trigger on any push or pull requests
+# Trigger on any push or pull requests.
 on:
   push:
   pull_request:
@@ -8,7 +8,7 @@ on:
 jobs:
   run-tests:
     strategy:
-      # Do not fail fast, so we can see all errors from the unit/integration tests
+      # Do not fail fast, so we can see all errors from the unit/integration tests.
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest]
@@ -32,7 +32,7 @@ jobs:
         run: |
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-torch.txt
-      
+
       - name: Install coppafish
         run: python -m pip install .
 
@@ -50,3 +50,12 @@ jobs:
 
       - name: Run notebook-dependent tests
         run: pytest -m "notebook" --cov=coppafish --cov-report term
+
+      # Cache dependencies to speed up future runs.
+      - name: Cache pip dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
