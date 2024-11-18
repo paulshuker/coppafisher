@@ -4,6 +4,7 @@
 ![Static Badge](https://img.shields.io/badge/status-mature-99cc)
 ![GitHub Tag](https://img.shields.io/github/v/tag/paulshuker/coppafish?label=version)
 ![GitHub License](https://img.shields.io/github/license/paulshuker/coppafish)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ## Documentation
 

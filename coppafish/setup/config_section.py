@@ -83,7 +83,7 @@ class ConfigSection:
         """
         return list(self._attributes.keys())
 
-    def list_redundant_params(self) -> list[str]:
+    def list_redundant_params(self) -> tuple[str, ...]:
         """
         List parameters that were never retrieved in the config section.
 
@@ -94,7 +94,7 @@ class ConfigSection:
         for name, count in self._retrieval_counts.items():
             if count == 0:
                 redundant_parameters.append(name)
-        return redundant_parameters
+        return tuple(redundant_parameters)
 
     def to_dict(self) -> dict[str, Any]:
         """

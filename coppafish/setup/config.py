@@ -3,7 +3,7 @@ import configparser
 import importlib.resources as importlib_resources
 from os import path
 import re
-from typing import Any, Tuple
+from typing import Any, Dict, Tuple
 
 from .. import log
 from .config_section import ConfigSection
@@ -45,7 +45,7 @@ class Config:
 
         config = Config()
         parser = config.create_parser()
-        config._parse_config(parser, config.get_default_file_path())
+        config._parse_config(parser, config._get_default_file_path())
         if section_name not in parser.keys():
             raise ValueError(f"No config section called {section_name}")
         if parameter_name not in parser[section_name].keys():
@@ -63,6 +63,13 @@ class Config:
         return formatted_value
 
     _sections: list[ConfigSection]
+
+    def get_sections(self) -> tuple[ConfigSection]:
+        return tuple(self._sections)
+
+    sections: Tuple[ConfigSection, ...] = property(get_sections)
+
+    _current_section_index: int
 
     # Parameter pre checkers cannot be combined except for the "maybe" and "tuple" keyword, separated by an underscore.
     # The check must be true for the parameter to be valid. These checkers are applied BEFORE the parameter is formatted
@@ -115,14 +122,15 @@ class Config:
     _tuple_separator = ","
     _format_separator = "_"
     _checker_separator = "_"
+    _options_type = Dict[str, Dict[str, Tuple[str, str]]]
 
     # Each key is a configuration section.
     # Each value is a dict with each key being a parameter name, the value is a tuple containing two strings. The first
     # specifies the format for pre-checks and formatting, the second specifies the post checks, like "positive". This
     # can be left empty.
 
-    # If you change config options, update the config.default.ini file too.
-    _options = {
+    # If you change config options, update the coppafish/setup/default.ini file too.
+    _options: _options_type = {
         "basic_info": {
             "use_tiles": ("maybe_tuple_int", "tuple-not-empty"),
             "use_rounds": ("maybe_tuple_int", "tuple-not-empty"),
@@ -242,8 +250,19 @@ class Config:
         },
     }
 
+    def get_options(self) -> _options_type:
+        return self._options
+
+    def set_options(self, value) -> None:
+        self._options = value
+        self._validate_options()
+
+    options: _options_type = property(get_options, set_options)
+
     def __init__(self) -> None:
+        self._validate_options()
         self._sections = []
+        self._current_section_index = 0
 
     def __getitem__(self, section_name: str) -> ConfigSection:
         """
@@ -275,7 +294,7 @@ class Config:
         """
         assert type(file_path) is str
         if default_file_path is None:
-            default_file_path = self.get_default_file_path()
+            default_file_path = self._get_default_file_path()
         assert type(default_file_path) is str
         for config_path in (file_path, default_file_path):
             if not path.isfile(config_path):
@@ -336,7 +355,7 @@ class Config:
                 if not self.pre_check_param(param_name, section, param_value, pre_checker_str):
                     raise self.ParamError(
                         f"Failed check on {param_msg.format(param_name, section)}, expected type "
-                        + f"{self.convert_pre_checker_to_readable(pre_checker_str)} but got {param_value}"
+                        + f"{self._convert_pre_checker_to_readable(pre_checker_str)} but got {param_value}"
                     )
 
     def format_params(self, parser: configparser.ConfigParser) -> dict[str, dict[str, FORMATTED_PARAM_TYPE]]:
@@ -511,7 +530,14 @@ class Config:
                     return False, self._param_post_checks[check_name][1]
         return True, None
 
-    def convert_pre_checker_to_readable(self, pre_check_str: str) -> str:
+    def create_parser(self) -> configparser.ConfigParser:
+        parser = configparser.ConfigParser()
+        # Case sensitive parser.
+        parser.optionxform = str
+
+        return parser
+
+    def _convert_pre_checker_to_readable(self, pre_check_str: str) -> str:
         """
         Convert a pre-check string into a more readable format for debugging and user convenience.
 
@@ -544,18 +570,32 @@ class Config:
         with open(file_path, "r") as f:
             parser.read_string(f.read())
 
-    def create_parser(self) -> configparser.ConfigParser:
-        parser = configparser.ConfigParser()
-        # Case sensitive parser.
-        parser.optionxform = str
-
-        return parser
-
     def _create_param_msg(self) -> str:
         return "parameter {} in section {}"
 
-    def get_default_file_path(self) -> str:
+    def _get_default_file_path(self) -> str:
         return str(importlib_resources.files("coppafish.setup").joinpath("default.ini"))
+
+    def _validate_options(self) -> None:
+        param_msg = self._create_param_msg()
+        for section in self._options.keys():
+            for param_name, param_value in self._options[section].items():
+                if type(param_name) is not str:
+                    raise TypeError(f"Parameter name in _options must be str, got {type(param_name)}")
+                if not param_name:
+                    raise ValueError(f"Blank parameter name in section {section}")
+                if type(param_value) is not tuple:
+                    raise TypeError(
+                        f"All _options[section].values() must be tuple, got {type(param_value)} for "
+                        + f"{param_msg.format(param_name, section)}"
+                    )
+                if len(param_value) != 2:
+                    raise ValueError(
+                        f"All _options[section].values() must be tuple of len 2, got len {len(param_value)} for "
+                        + f"{param_msg.format(param_name, section)}"
+                    )
+                if not all([type(option) is str for option in param_value]):
+                    raise ValueError(f"Values inside of tuple for {param_msg.format(param_name, section)} must be str")
 
     class ParamError(Exception):
         pass

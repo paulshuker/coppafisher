@@ -3,15 +3,16 @@ import tempfile
 
 import numpy as np
 
-from coppafish.setup import config
+from coppafish.setup.config import Config
+from coppafish.setup.config_section import ConfigSection
 
 
 def test_Config() -> None:
-    assert config.Config.get_default_for("file_names", "notebook_name") == "notebook"
+    assert Config.get_default_for("file_names", "notebook_name") == "notebook"
 
-    conf = config.Config()
-    conf._options.clear()
-    conf._options["debug"] = {
+    config = Config()
+    config.options.clear()
+    config.options["debug"] = {
         "1": ("int", ""),
         "2": ("number", ""),
         "3": ("number", ""),
@@ -57,7 +58,7 @@ def test_Config() -> None:
 
     config_content = "\n[debug]\n"
     for i in range(1, 25):
-        expected_type = conf._options["debug"][str(i)][0]
+        expected_type = config.options["debug"][str(i)][0]
         if "maybe" in expected_type and rng.rand() > 0.9:
             config_content += f"{i} =    \n"
         elif "tuple_int" in expected_type:
@@ -96,21 +97,21 @@ def test_Config() -> None:
             config_file.write(config_content_wrong)
         # Expect as error here as the default config does not have the debug section.
         try:
-            conf.load(config_filepath)
+            config.load(config_filepath)
             assert False, "Expected SectionError"
-        except conf.SectionError:
+        except config.SectionError:
             pass
 
         try:
-            conf.load(config_filepath, "/wrong/path")
+            config.load(config_filepath, "/wrong/path")
             assert False, "Expected FileNotFoundError"
         except FileNotFoundError:
             pass
 
         try:
-            conf.load(config_filepath, default_config_filepath)
+            config.load(config_filepath, default_config_filepath)
             assert False, f"Expected ParamError with incorrect parameter {i}"
-        except conf.ParamError as e:
+        except config.ParamError as e:
             assert f" {i} " in str(e)
             assert f"debug" in str(e)
 
@@ -118,16 +119,16 @@ def test_Config() -> None:
     tmpdir2.cleanup()
     tmpfile.close()
     tmpfile2.close()
-    del conf, config_content, config_content_wrong, config_filepath, default_config_filepath
+    del config, config_content, config_content_wrong, config_filepath, default_config_filepath
     del tmpdir, tmpdir2, tmpfile, tmpfile2
 
     tmpfile = tempfile.TemporaryFile()
     tmpdir = tempfile.TemporaryDirectory("coppafish")
 
     # Create a correct config file and ensure the formatted values are all correct.
-    conf = config.Config()
-    conf._options.clear()
-    conf._options["debug"] = {
+    config = Config()
+    config.options.clear()
+    config.options["debug"] = {
         "1": ("int", ""),
         "2": ("number", ""),
         "a": ("str", ""),
@@ -157,7 +158,7 @@ def test_Config() -> None:
     expected_values = []
     config_content = "[debug]"
     default_config_content = "[debug]"
-    for param_name, checks in conf._options["debug"].items():
+    for param_name, checks in config.options["debug"].items():
         rnd_spaces = " " * rng.randint(5)
         rnd_spaces_2 = " " * rng.randint(5)
         default_config_content += f"{param_name}{rnd_spaces}={rnd_spaces_2}\n"
@@ -205,12 +206,110 @@ def test_Config() -> None:
     with open(config_filepath, "w") as config_file:
         config_file.write(config_content)
 
-    conf.load(config_filepath, default_config_filepath)
+    config.load(config_filepath, default_config_filepath)
 
-    for i, param_name in enumerate(conf._options["debug"].keys()):
-        assert conf["debug"][param_name] == expected_values[i]
+    for i, param_name in enumerate(config.options["debug"].keys()):
+        assert config["debug"][param_name] == expected_values[i]
+
+    del config_content, default_config_content
+
+    # Check the post-checkers are working.
+    config = Config()
+    config.options.clear()
+    config.options["debug"] = {
+        "1": ("int", "positive"),
+        "2": ("int", "negative"),
+        "3": ("int", "not-positive"),
+        "4": ("int", "not-negative"),
+        "5": ("int", "lt1"),
+        "6": ("int", "lteq1"),
+        "7": ("number", "positive"),
+        "8": ("number", "negative"),
+        "9": ("number", "not-positive"),
+        "10": ("number", "not-negative"),
+        "11": ("number", "lt1"),
+        "12": ("number", "lteq1"),
+        "13": ("str", "str-not-empty"),
+        "14": ("str", "file-exists"),
+        "15": ("str", "dir-exists"),
+        "16": ("str", "email-address"),
+        "17": ("tuple_int", "tuple-not-empty"),
+        "18": ("tuple_int", "tuple-len-multiple-3"),
+        "19": ("tuple_number", "tuple-not-empty"),
+        "20": ("tuple_number", "tuple-len-multiple-3"),
+    }
+    default_config_content = "\n".join([f"{name} = " for name in config.options["debug"].keys()])
+    default_config_content = "[debug]\n" + default_config_content + "\n"
+    with open(default_config_filepath, "w") as file:
+        file.write(default_config_content)
+    correct_config_content = f"""[debug]
+    1 = 2
+    2 = -4
+    3 = 0
+    4 = 1
+    5 = 0
+    6 = 1
+    7 = 0.01
+    8 = -12.4
+    9 = -0.0
+    10 = 0.1
+    11 = 0.5567
+    12 = 1.0000
+    13 = a
+    14 = {tmpfile.name}
+    15 = {tmpdir.name}
+    16 = example.email225@outlook.com
+    17 = 0, 2
+    18 = 1, 1, 2, 3, 4, 5
+    19 = 0.5, 1, 2, 4.5
+    20 = 0.5, 1, 2, 4.5, 5.6, 7
+    """
+    with open(config_filepath, "w") as config_file:
+        config_file.write(correct_config_content)
+
+    config.load(config_filepath, default_config_filepath)
+    assert type(config.sections) is tuple
+    assert len(config.sections) == 1
+    assert type(config.sections[0]) is ConfigSection
+    assert config.sections[0].name == "debug"
+
+    incorrect_values = (
+        "0",
+        "0",
+        "1",
+        "-1",
+        "1",
+        "2",
+        "-0.5",
+        "1.2",
+        "12.7",
+        "-12.7",
+        "1.1",
+        "1.01",
+        "",
+        "/nonexistent/path/filename.txt",
+        "/nonexistent/path/",
+        "failed email.sdl@outlook.com",
+        "",
+        "0, 1",
+        "",
+        "0.5, 1.1",
+    )
+    for i, param_name in enumerate(config.options["debug"].keys()):
+        substring = param_name + " = "
+        index_min = correct_config_content.index(substring)
+        index_max = correct_config_content.index("\n", index_min)
+        broken_config_content = correct_config_content[: index_min + len(substring)]
+        broken_config_content += incorrect_values[i]
+        broken_config_content += correct_config_content[index_max:]
+        with open(config_filepath, "w") as config_file:
+            config_file.write(broken_config_content)
+
+        try:
+            config.load(config_filepath, default_config_filepath)
+            assert False, f"Expected ParamError for parameter {param_name}"
+        except Config.ParamError as e:
+            assert " " + param_name + " " in str(e)
 
     tmpdir.cleanup()
     tmpfile.close()
-    del config_content, config_filepath, default_config_content, default_config_filepath
-    del tmpdir, tmpfile

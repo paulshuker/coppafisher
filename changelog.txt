@@ -8,7 +8,7 @@
  * General: All output variables are now stored within the notebook except for extract images, PDF diagnostics, and
     pipeline.log files.
  * General: The notebook is now faster at saving and loading, supports zarr arrays/groups, and has overwrite protection.
- * General: Better Command Line Interface (CLI).
+ * General: Better Command Line Interface (CLI) explained in the documentation.
  * General: Users can safely move the output directory and/or tiles directory mid-pipeline.
  * General: The notebook can be moved location without breaking usages fix.
  * General: Incorrect numpy data types within the notebook fixed.
@@ -18,7 +18,7 @@
  * General: Security patches for zipp, urllib3, scikit-learn, tornado, requests, and certifi.
  * General: Package versions are now logged in the pipeline.log file.
  * General: Numpy versions >=2.0, <2.1 now supported.
- * General: Improved config parameter validation
+ * General: Improved config parameter validation.
  * Documentation: New documentation for exporting data to pciSeq, skipping bad microscope images, running background
     processes, deleting notebook pages, and retrieving config data from the notebook.
  * Documentation: Detailed method description for find spots, stitch, call spots, and OMP.

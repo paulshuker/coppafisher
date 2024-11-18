@@ -50,6 +50,12 @@ def run_pipeline(config_file: str) -> Notebook:
     log.error_catch(BuildPDF, nb, nbp_file)
     log.error_catch(run_omp, nb, nbp_file, config)
     log.error_catch(BuildPDF, nb, nbp_file, auto_open=True)
+    # Check for redundant config parameters that have not been accessed during the pipeline.
+    for section in config.sections:
+        redundant_params = section.list_redundant_params()
+        if len(redundant_params) == 0:
+            continue
+        log.warn(f"Config parameter(s) {redundant_params} in section {section.name} were not accessed")
     log.info(f"Pipeline complete", force_email=True)
     return nb
 

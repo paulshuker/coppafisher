@@ -12,7 +12,7 @@ def test_ConfigSection() -> None:
 
     assert section.name == "debug"
     redundancies = section.list_redundant_params()
-    assert type(redundancies) is list
+    assert type(redundancies) is tuple
     assert len(redundancies) == 2
     assert "a" in redundancies
     assert "b" in redundancies
@@ -20,10 +20,10 @@ def test_ConfigSection() -> None:
     section["a"]
     section["a"]
     redundancies = section.list_redundant_params()
-    assert type(redundancies) is list
+    assert type(redundancies) is tuple
     assert len(redundancies) == 1
     assert "b" in redundancies
     assert len(section.items()) == 2
     redundancies = section.list_redundant_params()
-    assert type(redundancies) is list
+    assert type(redundancies) is tuple
     assert len(redundancies) == 0
