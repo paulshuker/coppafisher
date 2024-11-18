@@ -38,10 +38,11 @@ def test_Config() -> None:
         "23": ("maybe_tuple_file", "file-exists"),
         "24": ("maybe_tuple_dir", "dir-exists"),
     }
-    tmpdir = tempfile.TemporaryDirectory()
-    tmpdir2 = tempfile.TemporaryDirectory()
-    tmpfile = tempfile.TemporaryFile()
-    tmpfile2 = tempfile.TemporaryFile()
+    dir = os.path.dirname(__file__)
+    tmpdir = tempfile.TemporaryDirectory(dir=dir)
+    tmpdir2 = tempfile.TemporaryDirectory(dir=dir)
+    tmpfile = tempfile.TemporaryFile(dir=dir)
+    tmpfile2 = tempfile.TemporaryFile(dir=dir)
     config_filepath = os.path.join(tmpdir.name, f"test_config.ini")
 
     # Build a default config file with all parameters wrongly assigned.
@@ -122,8 +123,8 @@ def test_Config() -> None:
     del config, config_content, config_content_wrong, config_filepath, default_config_filepath
     del tmpdir, tmpdir2, tmpfile, tmpfile2
 
-    tmpfile = tempfile.TemporaryFile()
-    tmpdir = tempfile.TemporaryDirectory("coppafish")
+    tmpfile = tempfile.TemporaryFile(dir=dir)
+    tmpdir = tempfile.TemporaryDirectory(dir=dir)
 
     # Create a correct config file and ensure the formatted values are all correct.
     config = Config()

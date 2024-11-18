@@ -28,6 +28,16 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # Cache pip dependencies
+      - name: Cache pip dependencies
+        uses: actions/cache@v2
+        with:
+          # Cache the pip cache directory based on the hash of your requirements.txt or other dependency files
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install default dependencies
         run: |
           python -m pip install -r requirements.txt
@@ -50,12 +60,3 @@ jobs:
 
       - name: Run notebook-dependent tests
         run: pytest -m "notebook" --cov=coppafish --cov-report term
-
-      # Cache dependencies to speed up future runs.
-      - name: Cache pip dependencies
-        uses: actions/cache@v2
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
