@@ -24,13 +24,13 @@ pytest
 Run integration tests (~50s)
 
 ```terminal
-pytest -m "integration"
+pytest -m integration
 ```
 
 Run unit tests requiring a notebook (~3s)
 
 ```terminal
-pytest -m "notebook"
+pytest -m notebook
 ```
 
 Check the percentage code coverage by appending `--cov=coppafish --cov-report term` to each command.

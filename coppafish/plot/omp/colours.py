@@ -39,11 +39,15 @@ class ViewOMPColourSum(Subplot):
         n_rounds_use = len(nbp_basic.use_rounds)
         n_channels_use = len(nbp_basic.use_channels)
         min_intensity = config.get_default_for("omp", "minimum_intensity")
+        alpha = config.get_default_for("omp", "alpha")
+        beta = config.get_default_for("omp", "beta")
         max_genes = config.get_default_for("omp", "max_genes")
         dot_product_threshold = config.get_default_for("omp", "dot_product_threshold")
         self.gene_names = nbp_call_spots.gene_names
         if nbp_omp is not None:
             min_intensity = float(nbp_omp.associated_configs["omp"]["minimum_intensity"])
+            alpha = float(nbp_omp.associated_configs["omp"]["alpha"])
+            beta = float(nbp_omp.associated_configs["omp"]["beta"])
             max_genes = int(nbp_omp.associated_configs["omp"]["max_genes"])
             dot_product_threshold = float(nbp_omp.associated_configs["omp"]["dot_product_threshold"])
 
@@ -59,6 +63,8 @@ class ViewOMPColourSum(Subplot):
             maximum_iterations=max_genes,
             dot_product_threshold=dot_product_threshold,
             minimum_intensity=min_intensity,
+            alpha=alpha,
+            beta=beta,
             return_all_weights=True,
         )
         self.coefficient = coefficients[0]

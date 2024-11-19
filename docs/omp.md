@@ -37,7 +37,7 @@ computed for every gene and background gene $g$ the same way as
 [call spots](call_spots.md#6-and-7-application-of-scales-computation-of-final-scores-and-bleed-matrix)
 
 $$
-\text{(gene scores)}_{pgi} = \frac{1}{N_r}\Bigg|\sum_{rc}(\hat{R}_{prci}\hat{B}_{grc})\Bigg|
+\text{(gene scores)}_{pgi} = \frac{1}{N_r}\Bigg|\sum_{rc}(\epsilon_{prc}^2\hat{R}_{prci}\hat{B}_{grc})\Bigg|
 $$
 
 where
@@ -45,8 +45,19 @@ where
 $$
 \hat{R}_{prci} = \frac{R_{prci}}{\max_c(|R_{prci}|)}\text{,}\space\space\space
 \hat{B}_{grc} = \frac{B_{grc}}{||\mathbf{B}||_{gr.}}\text{,}\space\space\space
-N_r=\sum_r1
+\epsilon_{prc}^2 = N_r N_c\frac{\sigma_{pirc}^{-2}}{\sum_{rc}\sigma_{pirc}^{-2}}\text{,}\space\space\space
 $$
+
+and
+
+$$
+\sigma_{pirc}^2 = \beta^2 + \alpha\sum_{g\text{ assigned}} w_{pg(i-1)}^2 B_{grc}^2\text{,}\space\space\space
+N_r = \sum_r 1\text{,}\space\space\space
+N_c = \sum_c 1
+$$
+
+$\alpha$ is given by `alpha` (typically 120) and boosts the uncertainty on round-channel pairs already strongly
+weighted. $\beta$ is given by `beta` (typically 1) and gives every round-channel pair a constant uncertainty.
 
 A gene is successfully assigned to a pixel when all conditions are met:
 

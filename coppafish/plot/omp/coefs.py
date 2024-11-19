@@ -63,12 +63,16 @@ class ViewOMPImage(Subplot):
         assert len(z_planes) > 3
         n_rounds_use, n_channels_use = len(nbp_basic.use_rounds), len(nbp_basic.use_channels)
         min_intensity = config.get_default_for("omp", "minimum_intensity")
+        alpha = config.get_default_for("omp", "alpha")
+        beta = config.get_default_for("omp", "beta")
         max_genes = config.get_default_for("omp", "max_genes")
         dot_product_threshold = config.get_default_for("omp", "dot_product_threshold")
         mean_spot_filepath = importlib_resources.files("coppafish.omp").joinpath("mean_spot.npy")
         mean_spot: np.ndarray = np.load(mean_spot_filepath).astype(np.float32)
         if nbp_omp is not None:
             min_intensity = float(nbp_omp.associated_configs["omp"]["minimum_intensity"])
+            alpha = float(nbp_omp.associated_configs["omp"]["alpha"])
+            beta = float(nbp_omp.associated_configs["omp"]["beta"])
             max_genes = int(nbp_omp.associated_configs["omp"]["max_genes"])
             dot_product_threshold = float(nbp_omp.associated_configs["omp"]["dot_product_threshold"])
             mean_spot = nbp_omp.mean_spot
@@ -100,6 +104,8 @@ class ViewOMPImage(Subplot):
             max_genes,
             dot_product_threshold,
             min_intensity,
+            alpha,
+            beta,
         )
         shape = image_shape + (-1,)
         coefficients = coefficients.reshape(shape, order="F")

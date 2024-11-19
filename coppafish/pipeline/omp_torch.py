@@ -151,6 +151,8 @@ def run_omp(
             maximum_iterations=max_genes,
             dot_product_threshold=config["dot_product_threshold"],
             minimum_intensity=config["minimum_intensity"],
+            alpha=config["alpha"],
+            beta=config["beta"],
         )
         n_subset_pixels = config["subset_pixels"]
         index_subset, index_min, index_max = 0, 0, 0

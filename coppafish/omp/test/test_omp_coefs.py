@@ -110,6 +110,7 @@ def test_get_next_gene_assignments() -> None:
     kwargs = dict(
         residual_colours=residual_colours,
         all_bled_codes=all_bled_codes,
+        epsilon_squared=torch.ones_like(residual_colours, dtype=torch.float32),
         fail_gene_indices=fail_gene_indices,
         dot_product_threshold=dot_product_threshold,
         minimum_intensity=0.0,
@@ -159,7 +160,12 @@ def test_get_next_residual_colours() -> None:
     pixel_colours_previous = pixel_colours.detach().clone()
     bled_codes_previous = bled_codes.detach().clone()
     omp_solver = coefs.CoefficientSolverOMP()
-    residuals = omp_solver.get_next_residual_colours(pixel_colours=pixel_colours, bled_codes=bled_codes)
+    residuals, epsilon_squared = omp_solver.get_next_residual_colours(
+        pixel_colours=pixel_colours,
+        bled_codes=bled_codes,
+        alpha=1.0,
+        beta=120.0,
+    )
 
     assert type(residuals) is torch.Tensor
     assert residuals.shape == (n_pixels, n_rounds_channels_use)
@@ -169,6 +175,10 @@ def test_get_next_residual_colours() -> None:
     assert torch.isclose(residuals[1], torch.tensor(0).float(), atol=abs_tol).sum() == (n_rounds_channels_use - 1)
     assert residuals[2, 1] < 0
     assert residuals[2, 2] > 0
+
+    assert type(epsilon_squared) is torch.Tensor
+    assert epsilon_squared.shape == (n_pixels, n_rounds_channels_use)
+    assert (epsilon_squared <= 1.01).all()
 
     # Since tensors are mutable, check that the parameter tensors have not changed.
     assert torch.allclose(pixel_colours_previous, pixel_colours)

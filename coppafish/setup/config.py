@@ -128,6 +128,8 @@ _options = {
         "weight_coef_fit": "bool",
         "max_genes": "int",
         "minimum_intensity": "number",
+        "alpha": "number",
+        "beta": "number",
         "dot_product_threshold": "number",
         "subset_pixels": "maybe_int",
         "force_cpu": "bool",

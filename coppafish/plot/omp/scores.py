@@ -46,12 +46,16 @@ class ViewOMPDotProductScores(Subplot):
         assert type(spot_local_yxz) is np.ndarray
         assert spot_local_yxz.shape == (3,)
 
+        alpha = config.get_default_for("omp", "alpha")
+        beta = config.get_default_for("omp", "beta")
         max_genes = config.get_default_for("omp", "max_genes")
         dot_product_threshold = config.get_default_for("omp", "dot_product_threshold")
         min_intensity = config.get_default_for("omp", "minimum_intensity")
         if nbp_omp is not None:
             omp_config = nbp_omp.associated_configs["omp"]
             min_intensity = float(omp_config["minimum_intensity"])
+            alpha = float(omp_config["alpha"])
+            beta = float(omp_config["beta"])
             max_genes = int(omp_config["max_genes"])
             dot_product_threshold = float(omp_config["dot_product_threshold"])
         n_rounds_use = len(nbp_basic.use_rounds)
@@ -80,6 +84,8 @@ class ViewOMPDotProductScores(Subplot):
             maximum_iterations=max_genes,
             dot_product_threshold=self.dp_thresh,
             minimum_intensity=min_intensity,
+            alpha=alpha,
+            beta=beta,
             return_all_scores=True,
         )
         n_iterations = self.dp_scores.shape[0]
