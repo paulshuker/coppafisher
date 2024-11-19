@@ -1,8 +1,8 @@
 from collections import OrderedDict
 
+from .. import log
 from ..setup.notebook import Notebook
 from ..utils import system
-from .. import log
 
 
 class CompatibilityTracker:

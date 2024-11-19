@@ -8,12 +8,11 @@ between sequencing rounds and channels.
 ## Definitions
 
 - $r$ and $c$ represents sequencing rounds and channels respectively.
-- $\mathbf{B}_{grc}$ represents gene g's bled code in round $r$, channel $c$ saved at `nb.call_spots.bled_codes` from
-call spots.
-- $\mathbf{S}_{prc}$ is pixel $p$'s colour in round $r$, channel $c$, after pre-processing is applied.
-- $\mathbf{c}_{pg}$ is the OMP coefficients given to gene $g$ for image pixel $p$.
-- $\mathbf{w}_{pgi}$ is the OMP gene weight given to gene $g$ for image pixel $p$ on the $i$'th iteration. This is
-computed by least squares in [step 2](#2-gene-weights). $i$ takes values $1, 2, 3, ...$
+- $B_{grc}$ represents gene g's bled code in round $r$, channel $c$ saved at `nb.call_spots.bled_codes` from call spots.
+- $S_{prc}$ is pixel $p$'s colour in round $r$, channel $c$, after pre-processing is applied.
+- $c_{pg}$ is the OMP coefficients given to gene $g$ for image pixel $p$.
+- $w_{pgi}$ is the OMP gene weight given to gene $g$ for image pixel $p$ on the $i$'th iteration. This is computed by
+least squares in [step 2](#2-gene-weights). $i$ takes values $1, 2, 3, ...$
 - $||A||_{...}$ represents an L2 norm of $A$ (or Frobenius norm for a matrix) over all indices replaced by a dot ($.$).
 
 ## 0: Pre-processing
@@ -25,14 +24,14 @@ set to zero. The pixel colours are multiplied by `nb.call_spots.colour_norm_fact
 
 A pixel can have more than one gene assigned to it. The most genes allowed on each pixel is `max_genes`
 (typically 5). Let's say we are on iteration $i$ ($i = 1, 2, 3, ...$) for pixel $p$. The pixel will already have
-$i - 1$ genes assigned to it and their weights have been computed $(\mathbf{w}_{pg(i - 1)})$. We compute the latest
-residual pixel colour $\mathbf{R}_{prci}$ as
+$i - 1$ genes assigned to it and their weights have been computed $(w_{pg(i - 1)})$. We compute the latest residual
+pixel colour $R_{prci}$ as
 
 $$
-\mathbf{R}_{prci} = \mathbf{S}_{prc} - \sum_g(\mathbf{w}_{pg(i - 1)}\mathbf{B}_{grc})
+R_{prci} = S_{prc} - \sum_g(w_{pg(i - 1)}B_{grc})
 $$
 
-For the first iteration, $\mathbf{R}_{prc(i=1)} = \mathbf{S}_{prc}$. Using this residual, a "semi dot product score" is
+For the first iteration, $R_{prc(i=1)} = S_{prc}$. Using this residual, a "semi dot product score" is
 computed for every gene and background gene $g$ the same way as
 [call spots](call_spots.md#6-and-7-application-of-scales-computation-of-final-scores-and-bleed-matrix)
 
@@ -44,7 +43,7 @@ where
 
 $$
 \hat{R}_{prci} = \frac{R_{prci}}{\max_c(|R_{prci}|)}\text{,}\space\space\space
-\hat{B}_{grc} = \frac{B_{grc}}{||\mathbf{B}||_{gr.}}\text{,}\space\space\space
+\hat{B}_{grc} = \frac{B_{grc}}{||B||_{gr.}}\text{,}\space\space\space
 \epsilon_{prc}^2 = N_r N_c\frac{\sigma_{pirc}^{-2}}{\sum_{rc}\sigma_{pirc}^{-2}}\text{,}\space\space\space
 $$
 
@@ -81,7 +80,7 @@ If the pixel $p$ meets all conditions, then a coefficient is updated by
 
 $$
 g_{\text{new}} = \text{argmax}_g(\text{(gene\_scores)}_{pgi})\text{,}\space\space\space
-\mathbf{c}_{pg_{\text{new}}i}=(\text{gene\_scores})_{pg_{\text{new}}i}
+c_{pg_{\text{new}}i}=(\text{gene\_scores})_{pg_{\text{new}}i}
 $$
 
 If all remaining pixels fail the conditions, then the iterations stop and the coefficients $\mathbf{c}$ are kept as
@@ -91,11 +90,11 @@ final for [step 3](#3-pixel-scoring-and-spot-detection).
 
 On each iteration, the gene weights are re-computed for all genes assigned to pixel $p$ to best represent the pixel's
 colour. All unassigned genes have a zero weight, so $g$ here represents only the assigned genes ($i$ assigned genes)
-for pixels that passed [step 1](#1-next-gene-assignment). The weights, $\mathbf{w}_{pgi}$, are computed through the
+for pixels that passed [step 1](#1-next-gene-assignment). The weights, $w_{pgi}$, are computed through the
 method of least squares by minimising the scalar residual
 
 $$
-\sum_{rc}(\mathbf{S}_{prc} - \sum_{g}(\mathbf{B}_{grc}\mathbf{w}_{pgi}))^2
+\sum_{rc}(S_{prc} - \sum_{g}(B_{grc}w_{pgi}))^2
 $$
 
 In other words, using matrix multiplication, the weight vector of length genes assigned is
@@ -107,6 +106,12 @@ $$
 where $\bar{(...)}$ represents flattening the round and channel dimensions into a single dimension, so
 $\bar{\mathbf{B}}$ is of shape $\text{genes assigned}$ by $\text{rounds}*\text{channels}$ and $\bar{\mathbf{S}}$ is of
 shape $\text{rounds} * \text{channels}$. $(...)^{-1}$ is the Moore-Penrose matrix inverse (a pseudo-inverse).
+
+Since $\mathbf{B}$ is a vector, this simplifies to
+
+$$
+w_{pgi} = \frac{1}{\sum_{rc}B_{grc}^2}\sum_{rc}B_{grc}S_{prc}
+$$
 
 With the new, updated coefficients and weights, step 1 is repeated on the remaining pixels unless $i$ is
 $\text{max\_genes}$.

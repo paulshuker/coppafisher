@@ -272,7 +272,7 @@ def run_omp(
                 + "If so, consider adjusting OMP config parameters."
             )
         # For each detected spot, save the image intensity at its location, without background fitting.
-        log.debug(f"Gathering spot colours")
+        log.info(f"Gathering final spot colours")
         t_local_yxzs = t_spots_local_yxz[:]
         t_spots_colours = tile_results.zeros(
             "colours",
@@ -284,7 +284,7 @@ def run_omp(
             nbp_basic, t_local_yxzs, **spot_colour_kwargs
         ).astype(np.float16)
         del t_spots_local_yxz, t_spots_tile, t_spots_gene_no, t_spots_score, t_spots_colours, t_local_yxzs, tile_results
-        log.debug(f"Gathering spot colours complete")
+        log.debug(f"Gathering final spot colours complete")
 
     os.remove(config_path)
 

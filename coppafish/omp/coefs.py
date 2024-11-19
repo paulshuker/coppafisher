@@ -345,13 +345,10 @@ class CoefficientSolverOMP:
         assert bled_codes.shape[2] > 0, "Require at least one gene assigned"
 
         # Compute least squares for gene weights.
-        # First parameter A has shape (n_pixels x n_rounds_channels_use x n_genes_added)
-        # Second parameter B has shape (n_pixels x n_rounds_channels_use x 1)
-        # So, the resulting weights has shape (n_pixels x n_genes_added x 1)
-        # The least squares is minimising || A @ coefficients - B || ^ 2
-        weights = torch.linalg.lstsq(bled_codes, pixel_colours, rcond=-1, driver="gels")[0]
-        # Squeeze shape to (n_pixels x n_genes_added).
-        weights: torch.Tensor = weights[..., 0]
+        # The least squares computation is shown in the OMP documentation. Since bled_codes is a vector, it is a special
+        # case and can be computed without explicitly calling the lstsq function.
+        weights = (bled_codes * pixel_colours).sum(1)
+        weights /= torch.square(bled_codes).sum(1)
 
         # Has shape (n_pixels, n_rounds_channels_use).
         sigma_squared = beta**2 + alpha * (torch.square(weights[:, np.newaxis] * bled_codes)).sum(2)
