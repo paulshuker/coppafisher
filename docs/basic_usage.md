@@ -176,5 +176,5 @@ then type in the relevant information when prompted.
     indicator of an anomalous fluorescing feature that is not a spot. No spot codes are made to be the same channel in
     all rounds so they are not mistaken with background fluorescence.
 [^2]:
-    All time estimations are made using an Intel i9-13900K @ 5.500GHz, NVIDIA RTX 4070Ti Super, and NVMe local SSD.
-    Raw, ND2 files were saved on a server with read speed of ~200MB/s.
+    All time estimations are made using an Intel i9-13900K @ 5.500GHz, NVIDIA RTX 4070Ti Super (optional), and NVMe
+    local SSD. Raw, ND2 input files were saved on a server with read speed of ~200MB/s.

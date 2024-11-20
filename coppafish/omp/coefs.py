@@ -328,8 +328,8 @@ class CoefficientSolverOMP:
                 - (`(n_pixels x n_rounds_channels_use) tensor[float32]`): epsilon_squared. The weighting given to every
                     round/channel during scoring. Weightings below 1 are given when the round/channel already had been
                     strongly assigned to by a bled code. This is due to a higher variance.
-                - (`(n_pixels x n_genes_added x n_rounds_use) tensor[float32]`): gene_weights. The weight given to every
-                    gene bled code.
+                - (`(n_pixels x n_genes_added) tensor[float32]`): gene_weights. The weight given to every gene bled
+                    code. Only given if return_weights is true.
         """
         assert type(pixel_colours) is torch.Tensor
         assert type(bled_codes) is torch.Tensor
@@ -344,11 +344,13 @@ class CoefficientSolverOMP:
         assert bled_codes.shape[1] > 0, "Require at least one round and channel"
         assert bled_codes.shape[2] > 0, "Require at least one gene assigned"
 
-        # Compute least squares for gene weights.
-        # The least squares computation is shown in the OMP documentation. Since bled_codes is a vector, it is a special
-        # case and can be computed without explicitly calling the lstsq function.
-        weights = (bled_codes * pixel_colours).sum(1)
-        weights /= torch.square(bled_codes).sum(1)
+        # Compute least squares for gene weights of every gene on the total spot colour.
+        # First parameter has shape (n_pixels, n_rounds_channels_use, n_genes_added).
+        # Second parameter has shape (n_pixels, n_rounds_channels_use, 1).
+        # Therefore, the result has shape (n_pixels, n_genes_added, 1).
+        weights = torch.linalg.lstsq(bled_codes, pixel_colours)[0]
+        # Squeeze weights to (n_pixels, n_genes_added).
+        weights = weights[:, :, 0]
 
         # Has shape (n_pixels, n_rounds_channels_use).
         sigma_squared = beta**2 + alpha * (torch.square(weights[:, np.newaxis] * bled_codes)).sum(2)

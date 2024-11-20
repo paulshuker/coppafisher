@@ -35,6 +35,14 @@ pytest -m notebook
 
 Check the percentage code coverage by appending `--cov=coppafish --cov-report term` to each command.
 
+## Run Documentation Locally
+
+```terminal
+mkdocs serve
+```
+
+Then go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in a modern browser.
+
 ## Code Philosophy
 
 We follow basic rules when coding. Anyone can code something that works, but coding it in a scaleable, maintainable way
@@ -62,16 +70,6 @@ one another, you are doing something wrong. This also applies for the function's
 reasonable.
 * The documentation should update in parallel with the code. Having the documentation as part of the github repository
 makes this easier.
-
-## Run Documentation Locally
-
-Start the documentation locally
-
-```terminal
-mkdocs serve
-```
-
-Then go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/) on a modern browser.
 
 ## Docstrings
 

@@ -122,12 +122,6 @@ where $\bar{(...)}$ represents flattening the round and channel dimensions into 
 $\bar{\mathbf{B}}$ is of shape $\text{genes assigned}$ by $\text{rounds}*\text{channels}$ and $\bar{\mathbf{S}}$ is of
 shape $\text{rounds} * \text{channels}$. $(...)^{-1}$ is the Moore-Penrose matrix inverse (a pseudo-inverse).
 
-Since $\mathbf{B}$ is a vector, this simplifies to
-
-$$
-w_{pgi} = \frac{1}{\sum_{rc}B_{grc}^2}\sum_{rc}B_{grc}S_{prc}
-$$
-
 With the new, updated coefficients and weights, step 1 is repeated on the remaining pixels unless $i$ is
 $\text{max\_genes}$.
 

@@ -137,49 +137,50 @@ def test_get_next_gene_assignments() -> None:
 
 
 def test_get_next_residual_colours() -> None:
-    n_pixels = 3
+    n_pixels = 1
     n_genes_added = 2
-    n_rounds_channels_use = 4
-    pixel_colours = torch.zeros((n_pixels, n_rounds_channels_use, 1), dtype=torch.float32)
-    pixel_colours[0, 0, 0] = 1.3
-    pixel_colours[0, 1, 0] = 0.4
-    pixel_colours[0, 2, 0] = 0.6
-    # The second pixel will have a non-zero residual after genes are fitted.
-    pixel_colours[1, 0, 0] = 1 * 0.4
-    pixel_colours[1, 3, 0] = 4
-    # The third pixel does not quite fit on the second gene.
-    pixel_colours[2, 0, 0] = 1 * 0.74
-    pixel_colours[2, 1, 0] = 0.4
-    pixel_colours[2, 2, 0] = 0.8
-
-    bled_codes = torch.zeros((n_pixels, n_rounds_channels_use, n_genes_added))
-    bled_codes[:, 0, 0] = 1
-    bled_codes[:, 1, 1] = 0.2
-    bled_codes[:, 2, 1] = 0.3
-
-    pixel_colours_previous = pixel_colours.detach().clone()
-    bled_codes_previous = bled_codes.detach().clone()
-    omp_solver = coefs.CoefficientSolverOMP()
-    residuals, epsilon_squared = omp_solver.get_next_residual_colours(
-        pixel_colours=pixel_colours,
-        bled_codes=bled_codes,
-        alpha=1.0,
-        beta=120.0,
-    )
-
-    assert type(residuals) is torch.Tensor
+    n_rounds_channels_use = 3
+    pixel_colours = torch.zeros((n_pixels, n_rounds_channels_use, 1)).float()
+    pixel_colours[0, 0, 0] = 1
+    pixel_colours[0, 1, 0] = 0.5
+    pixel_colours[0, 2, 0] = 0
+    bled_codes = torch.zeros((n_pixels, n_rounds_channels_use, n_genes_added)).float()
+    bled_codes[0, 0, 0] = 1
+    bled_codes[0, 1, 0] = 1
+    bled_codes[0, 2, 0] = 0
+    bled_codes[0, 0, 1] = 0
+    bled_codes[0, 1, 1] = 1
+    bled_codes[0, 2, 1] = 1
+    alpha = 2.0
+    beta = 1.0
+    pixel_colours_copy = pixel_colours.detach().clone()
+    bled_codes_copy = bled_codes.detach().clone()
+    solver = coefs.CoefficientSolverOMP()
+    results = solver.get_next_residual_colours(pixel_colours, bled_codes, alpha, beta, return_weights=True)
+    assert type(results) is tuple
+    assert len(results) == 3
+    assert all([type(r) is torch.Tensor for r in results])
+    residuals, epsilon_squared, weights = results
+    assert residuals.ndim == 2
     assert residuals.shape == (n_pixels, n_rounds_channels_use)
-    abs_tol = 1e-6
-    assert torch.allclose(residuals[0], torch.tensor(0).float(), atol=abs_tol)
-    assert torch.isclose(residuals[1, 3], torch.tensor(4).float(), atol=abs_tol)
-    assert torch.isclose(residuals[1], torch.tensor(0).float(), atol=abs_tol).sum() == (n_rounds_channels_use - 1)
-    assert residuals[2, 1] < 0
-    assert residuals[2, 2] > 0
-
-    assert type(epsilon_squared) is torch.Tensor
+    assert epsilon_squared.ndim == 2
     assert epsilon_squared.shape == (n_pixels, n_rounds_channels_use)
-    assert (epsilon_squared <= 1.01).all()
-
-    # Since tensors are mutable, check that the parameter tensors have not changed.
-    assert torch.allclose(pixel_colours_previous, pixel_colours)
-    assert torch.allclose(bled_codes_previous, bled_codes)
+    assert weights.ndim == 2
+    assert weights.shape == (n_pixels, n_genes_added)
+    # Check that the input tensors are left unchanged.
+    assert torch.allclose(pixel_colours, pixel_colours_copy)
+    assert torch.allclose(bled_codes, bled_codes_copy)
+    # Check against calculations done by hand.
+    expected_residuals = torch.ones(3).float()
+    expected_residuals[1] = -1
+    expected_residuals /= 6
+    assert torch.allclose(residuals[0], expected_residuals)
+    expected_weights = torch.ones(2).float()
+    expected_weights[0] = 5 / 6
+    expected_weights[1] = -1 / 6
+    assert torch.allclose(weights, expected_weights)
+    expected_epsilon_squared = torch.ones(3).float()
+    expected_epsilon_squared[0] = 0.707475
+    expected_epsilon_squared[1] = 0.691396
+    expected_epsilon_squared[2] = 1.601128
+    assert torch.allclose(epsilon_squared[0], expected_epsilon_squared)
