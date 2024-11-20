@@ -4,21 +4,23 @@ from coppafish.call_spots import dot_product
 
 
 def test_dot_product():
-    n_spots, n_rounds, n_channels_use, n_genes = 1, 3, 3, 1
+    n_spots, n_rounds, n_channels_use, n_genes = 1, 3, 3, 2
     spot_colours = np.zeros((n_spots, n_rounds, n_channels_use), np.float32)
-    spot_colours[0, 0, 0] = 1
-    spot_colours[0, 0, 1] = 1
-    spot_colours[0, 1, 1] = 1
-    spot_colours[0, 2, 0] = 1
+    spot_colours[0, 0] = [1, 1, 0]
+    spot_colours[0, 1] = [0, 0, 1]
+    spot_colours[0, 2] = [0, 1, 1]
     bled_codes = np.zeros((n_genes, n_rounds, n_channels_use))
-    bled_codes[0, 0, 0] = np.sqrt(0.1)
-    bled_codes[0, 0, 1] = np.sqrt(0.9)
-    bled_codes[0, 1, 1] = 1
-    bled_codes[0, 2, 0] = 1
+    bled_codes[0, 0] = [np.sqrt(0.6), np.sqrt(0.4), 0]
+    bled_codes[0, 1] = [0, np.sqrt(0.1), np.sqrt(0.9)]
+    bled_codes[0, 2] = [0, np.sqrt(0.5), np.sqrt(0.5)]
+    bled_codes[1, 0] = [0, -1, 0]
+    bled_codes[1, 1] = [0, 0, 1]
+    bled_codes[1, 2] = [1, 0, 0]
     scores = dot_product.dot_product_score(spot_colours=spot_colours, bled_codes=bled_codes)
     assert type(scores) is np.ndarray
     assert scores.shape == (n_spots, n_genes)
-    assert np.allclose(scores, 1.088, atol=5e-4)
+    assert np.allclose(scores[0, 0], 0.98120648)
+    assert np.allclose(scores[0, 1], 0.0976310729)
 
 
 def test_gene_prob_score():

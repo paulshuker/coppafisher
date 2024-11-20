@@ -52,9 +52,8 @@ def dot_product_score(
 
     n_rounds = spot_colours_torch.shape[1]
 
-    # Spot colours are divided by their maximum for each round separately.
-    spot_colours_torch /= spot_colours_torch.abs().max(2, keepdim=True).values
-    # Bled codes are L2 normalised.
+    # Spot colours and bled codes are L2 normalised for every round separately.
+    spot_colours_torch /= torch.linalg.vector_norm(spot_colours_torch, dim=2, keepdim=True)
     bled_codes_torch /= torch.linalg.vector_norm(bled_codes_torch, dim=2, keepdim=True)
 
     # Has shape (n_spots x n_genes x n_rounds_use x n_channels_use).

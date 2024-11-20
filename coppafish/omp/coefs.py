@@ -148,6 +148,8 @@ class CoefficientSolverOMP:
 
             # Update coefficients on the pixels that passed.
             log.debug(f"Assigning new coefficients")
+            # TODO: Instead of saving the coefficients as this, save the gene assignment score computed on the residual
+            # left after subtracting all the other assigned genes (with epsilon as all ones to try for now).
             coefficients[pixels_to_continue, genes_selected[pixels_to_continue, iteration]] = gene_assigment_results[1][
                 ~torch.isnan(gene_assigment_results[1])
             ]
