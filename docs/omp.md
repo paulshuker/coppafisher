@@ -36,7 +36,7 @@ computed for every gene and background gene $g$ the same way as
 [call spots](call_spots.md#6-and-7-application-of-scales-computation-of-final-scores-and-bleed-matrix)
 
 $$
-\text{(gene scores)}_{pgi} = \frac{1}{N_r}\Bigg|\sum_{rc}(\epsilon_{prc}^2\hat{R}_{prci}\hat{B}_{grc})\Bigg|
+\text{(gene scores)}_{pgi} = \frac{1}{N_r}\Bigg|\sum_{rc}(\epsilon_{prc}^2\hat{R}_{prc(i - 1)}\hat{B}_{grc})\Bigg|
 $$
 
 where
@@ -57,6 +57,21 @@ $$
 
 $\alpha$ is given by `alpha` (typically 120) and boosts the uncertainty on round-channel pairs already strongly
 weighted. $\beta$ is given by `beta` (typically 1) and gives every round-channel pair a constant uncertainty.
+
+??? info "Why do we need an uncertainty weighting ($\mathbf{\epsilon}^2$) for each round-channel pair?"
+
+    On real datasets, subtracting the assigned, weighted bled code is not perfect for every round (shown below).
+    Therefore, $\mathbf{\epsilon}$ is a way of estimating the uncertainty associated with the imperfect gene weights. It
+    places a bias towards genes that are bright in unique round-channel pairs when $\alpha>0$.
+
+    By default, $\alpha >> \beta$ so it is unlikely to assign two genes bright in the same round-channel pairs.
+
+    <figure markdown="span">
+      ![Image title](images/algorithm/omp/poor_gene_weight_example.png){ height="300" }
+      <figcaption>An example of OMP failing to find a scalar to correctly weight every bright round-channel pair for a
+      gene. It is failing because the residual colour is sometimes very positive and sometimes very negative. Only the
+      fourth round was almost perfectly subtracted.</figcaption>
+    </figure>
 
 A gene is successfully assigned to a pixel when all conditions are met:
 
