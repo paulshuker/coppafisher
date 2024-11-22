@@ -388,12 +388,9 @@ class CoefficientSolverOMP:
         coefficients = torch.full((n_pixels, n_genes_assigned), torch.nan, dtype=torch.float32)
 
         for g in all_genes:
-            all_genes_except_g = all_genes.copy()
-            all_genes_except_g.pop(g)
-
             # bled_codes_sum is the sum of all weighted bled codes except for the i'th gene's bled code.
             # It has shape (n_pixels, n_rounds_use, n_channels_use).
-            bled_codes_sums = weighted_bled_codes[:, all_genes_except_g].sum(1)
+            bled_codes_sums = weighted_bled_codes[:, :g].sum(1) + weighted_bled_codes[:, (g + 1) :].sum(1)
 
             pixel_colours_residual = pixel_colours - bled_codes_sums
             del bled_codes_sums
