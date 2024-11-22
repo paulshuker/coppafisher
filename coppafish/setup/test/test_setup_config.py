@@ -41,8 +41,8 @@ def test_Config() -> None:
     dir = os.path.dirname(__file__)
     tmpdir = tempfile.TemporaryDirectory(dir=dir)
     tmpdir2 = tempfile.TemporaryDirectory(dir=dir)
-    tmpfile = tempfile.TemporaryFile(dir=dir)
-    tmpfile2 = tempfile.TemporaryFile(dir=dir)
+    tmpfile = tempfile.NamedTemporaryFile(dir=dir)
+    tmpfile2 = tempfile.NamedTemporaryFile(dir=dir)
     config_filepath = os.path.join(tmpdir.name, f"test_config.ini")
 
     # Build a default config file with all parameters wrongly assigned.
@@ -123,7 +123,7 @@ def test_Config() -> None:
     del config, config_content, config_content_wrong, config_filepath, default_config_filepath
     del tmpdir, tmpdir2, tmpfile, tmpfile2
 
-    tmpfile = tempfile.TemporaryFile(dir=dir)
+    tmpfile = tempfile.NamedTemporaryFile(dir=dir)
     tmpdir = tempfile.TemporaryDirectory(dir=dir)
 
     # Create a correct config file and ensure the formatted values are all correct.
@@ -157,13 +157,13 @@ def test_Config() -> None:
     }
 
     expected_values = []
-    config_content = "[debug]"
-    default_config_content = "[debug]"
+    config_content = "[debug]\n"
+    default_config_content = "[debug]\n"
     for param_name, checks in config.options["debug"].items():
         rnd_spaces = " " * rng.randint(5)
         rnd_spaces_2 = " " * rng.randint(5)
-        default_config_content += f"{param_name}{rnd_spaces}={rnd_spaces_2}\n"
-        config_content += "\n"
+        default_config_content += f"{param_name}{rnd_spaces}={rnd_spaces_2}1\n "
+        config_content += "\n "
         value_count = 1
         expecting_tuple = False
         if "tuple" in checks[0]:
@@ -195,6 +195,7 @@ def test_Config() -> None:
                 assert False, "I forgot something"
             if expecting_tuple and i != last_i:
                 config_content += ", "
+        config_content += " "
         if not expecting_tuple:
             expected_value = expected_value[0]
         expected_values.append(expected_value)
