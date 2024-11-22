@@ -145,12 +145,12 @@ Step 1 is now repeated on the remaining pixels unless $i$ is $\text{max\_genes}$
 
     If you remember from [step 1](#1-next-gene-assignment), the assigned gene is given a preliminary score similar to
     step 3's score. But, this score is not used as the final OMP coefficients. This is because the pleminary score has
-    lowered the scores of genes just for overlapping with another gene. The scores are lowered by brightness in other
-    rounds-channel pairs.
+    lowered the scores because they overlap with other genes. In other words, the scores are lowered by brightness in
+    other rounds-channel pairs.
 
-    Step 3's score gets around this. Assuming that all gene assignments are perfect, by subtracting those assignments
-    off except gene g, then gene g is given a fairer chance of scoring highly ideally without the brightness of the
-    other genes.
+    The step 3 scoring method gets around this. Assuming that all gene assignments are perfect, by subtracting those
+    assignments off except gene g, then gene g is given a fairer chance of scoring highly, hopefully without the
+    brightness of other genes.
 
 ## 4: Pixel Scoring and Spot Detection
 
@@ -170,7 +170,7 @@ local maxima using config parameters `radius_xy` (typically `3`) and `radius_z` 
 score threshold set by `score_threshold` (typically `0.1`). These are the final OMP gene reads shown in the
 [Viewer](diagnostics.md#viewer).
 
-??? note "Why not score each spot using a single coefficient value?"
+??? info "Why not score each spot using a single coefficient value?"
 
     Coefficients can be inflated by single overly-bright round/channel anomalies since they are computed using a
     non-robust least squares calculation. This could be from real autofluorescence or from mistakes in registration.
