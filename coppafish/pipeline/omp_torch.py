@@ -165,7 +165,7 @@ def run_omp(
             while index_min < yxz_all.shape[0]:
                 if n_subset_pixels is None:
                     n_subset_pixels: int = maths.floor(
-                        utils.system.get_available_memory(device) * 1e8 / (n_genes * n_rounds_use * n_channels_use)
+                        utils.system.get_available_memory(device) * 4e7 / (n_genes * n_rounds_use * n_channels_use)
                     )
                     n_subset_pixels = min(n_subset_pixels, yxz_all.shape[0] - index_max)
                     n_subset_pixels = max(n_subset_pixels, 1)
