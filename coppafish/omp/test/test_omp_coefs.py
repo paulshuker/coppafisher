@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 from coppafish.omp import coefs
@@ -116,11 +117,14 @@ def test_get_next_gene_assignments() -> None:
         minimum_intensity=0.0,
     )
     omp_solver = coefs.CoefficientSolverOMP()
-    best_genes, _ = omp_solver.get_next_gene_assignments(**kwargs)
+    best_genes = omp_solver.get_next_gene_assignments(**kwargs)
+    assert type(best_genes) is tuple
+    assert len(best_genes) == 1
+    best_genes = best_genes[0]
     kwargs["return_all_scores"] = True
     other_result = omp_solver.get_next_gene_assignments(**kwargs)
     assert type(other_result) is tuple
-    assert len(other_result) == 3
+    assert len(other_result) == 2
     assert all([type(result) is torch.Tensor for result in other_result])
     assert type(best_genes) is torch.Tensor
     assert best_genes.shape == (n_pixels,), f"Got shape {best_genes.shape}"
@@ -156,7 +160,7 @@ def test_get_next_residual_colours() -> None:
     pixel_colours_copy = pixel_colours.detach().clone()
     bled_codes_copy = bled_codes.detach().clone()
     solver = coefs.CoefficientSolverOMP()
-    results = solver.get_next_residual_colours(pixel_colours, bled_codes, alpha, beta, return_weights=True)
+    results = solver.get_next_gene_weights(pixel_colours, bled_codes, alpha, beta)
     assert type(results) is tuple
     assert len(results) == 3
     assert all([type(r) is torch.Tensor for r in results])
@@ -184,3 +188,45 @@ def test_get_next_residual_colours() -> None:
     expected_epsilon_squared[1] = 0.691396
     expected_epsilon_squared[2] = 1.601128
     assert torch.allclose(epsilon_squared[0], expected_epsilon_squared)
+
+
+def test_get_gene_coefficients() -> None:
+    n_pixels = 2
+    n_rounds_use = 3
+    n_channels_use = 4
+    n_genes_assigned = 2
+    pixel_colours = np.zeros((n_pixels, n_rounds_use, n_channels_use), np.float32)
+    pixel_colours[0, 0] = [1, 2, 0, 2]
+    pixel_colours[0, 1] = [2, 0, 0, 0]
+    pixel_colours[0, 2] = [2, 1, 2, 0]
+    pixel_colours[1, 0] = [2, 2, 1, 0]
+    pixel_colours[1, 1] = [2, 2, 0, 1]
+    pixel_colours[1, 2] = [1, 0, 0, 1]
+
+    weighted_bled_codes = np.zeros((n_pixels, n_genes_assigned, n_rounds_use, n_channels_use), np.float32)
+    weighted_bled_codes[0, 0, 0] = [0, 1, 0, 0]
+    weighted_bled_codes[0, 0, 1] = [1, 0, 0, 0]
+    weighted_bled_codes[0, 0, 2] = [2, 2, 1, 0]
+    weighted_bled_codes[0, 1, 0] = [2, 1, 0, 2]
+    weighted_bled_codes[0, 1, 1] = [0.2, 0.2, 0, 0.1]
+    weighted_bled_codes[0, 1, 2] = [0, 0, 0, 0.1]
+
+    weighted_bled_codes[1, 0, 0] = [0, 2, 0, 0]
+    weighted_bled_codes[1, 0, 1] = [2, 1, 0, 0]
+    weighted_bled_codes[1, 0, 2] = [1, 0, 0, 0]
+    weighted_bled_codes[1, 1, 0] = [2, 0, 0.5, 0]
+    weighted_bled_codes[1, 1, 1] = [0, 1, 0, 0.5]
+    weighted_bled_codes[1, 1, 2] = [0, 0, 1, 1]
+
+    pixel_colours = torch.from_numpy(pixel_colours)
+    weighted_bled_codes = torch.from_numpy(weighted_bled_codes)
+
+    solver = coefs.CoefficientSolverOMP()
+    coefficients = solver.get_gene_coefficients(pixel_colours, weighted_bled_codes)
+    assert type(coefficients) is torch.Tensor
+    assert coefficients.ndim == 2
+    assert coefficients.shape == (n_pixels, n_genes_assigned)
+
+    # Check against calculations done by hand.
+    assert (coefficients >= 0).all()
+    assert torch.isclose(coefficients[0, 0], torch.tensor(0.8626247925).float())

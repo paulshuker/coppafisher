@@ -15,7 +15,9 @@ def dot_product_score(
     Args:
         spot_colours (`(n_spots x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`): spot colours after
             call spots scaling has been applied. They must not be L2 normalised yet.
-        bled_codes (`(n_genes x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`): normalised bled codes.
+        bled_codes (`((n_spots, optional) x n_genes x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`):
+            normalised bled codes. The n_spots dimension is optional and can be removed if all the bled codes are the
+            same for every pixel.
         round_channel_weights (`(n_spots x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`, optional):
             round-channel weights. Higher weights have a higher significance to the scoring. They must range from 0 to
             1. Default: all ones.
@@ -45,19 +47,27 @@ def dot_product_score(
         round_channel_weights_torch = round_channel_weights.detach().clone()
     spot_colours_torch = spot_colours_torch.float()
     bled_codes_torch = bled_codes_torch.float()
-    assert spot_colours_torch.ndim == bled_codes_torch.ndim == 3
+    assert spot_colours_torch.ndim == 3
+    assert bled_codes_torch.ndim in (3, 4)
     assert round_channel_weights.ndim == 3
-    assert spot_colours_torch.shape[1:] == bled_codes_torch.shape[1:]
     assert spot_colours_torch.shape == round_channel_weights.shape
 
     n_rounds = spot_colours_torch.shape[1]
+    repeat_bled_codes = bled_codes_torch.ndim == 3
+    if repeat_bled_codes:
+        assert spot_colours_torch.shape[1:] == bled_codes_torch.shape[1:]
+    else:
+        assert spot_colours_torch.shape == bled_codes_torch.shape[:1] + bled_codes_torch.shape[2:]
 
     # Spot colours and bled codes are L2 normalised for every round separately.
-    spot_colours_torch /= torch.linalg.vector_norm(spot_colours_torch, dim=2, keepdim=True)
-    bled_codes_torch /= torch.linalg.vector_norm(bled_codes_torch, dim=2, keepdim=True)
+    spot_colours_torch /= torch.linalg.vector_norm(spot_colours_torch, dim=-1, keepdim=True)
+    bled_codes_torch /= torch.linalg.vector_norm(bled_codes_torch, dim=-1, keepdim=True)
+    if repeat_bled_codes:
+        # Add a dimension for n_spots.
+        bled_codes_torch = bled_codes_torch[np.newaxis]
 
-    # Has shape (n_spots x n_genes x n_rounds_use x n_channels_use).
-    scores = spot_colours_torch[:, np.newaxis] * bled_codes_torch[np.newaxis]
+    # scores has shape (n_spots x n_genes x n_rounds_use x n_channels_use).
+    scores = spot_colours_torch[:, np.newaxis] * bled_codes_torch
     scores *= round_channel_weights_torch[:, np.newaxis]
     # Sum over rounds and channels
     scores = scores.sum((2, 3))

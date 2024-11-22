@@ -74,5 +74,5 @@ least squares. Background genes[^1] are considered valid genes in OMP. The itera
 
 Every coefficient pixel is scored by convolving the coefficient pixel image with the mean spot. The mean spot is
 specified by `mean_spot_filepath` as a .npy file. If it is not specified, a default mean spot is used, shown
-[here](omp.md#3-pixel-scoring-and-spot-detection). This gives every gene a score image for every pixel. The final OMP
+[here](omp.md#4-pixel-scoring-and-spot-detection). This gives every gene a score image for every pixel. The final OMP
 spots are then taken as local maxima on the pixel score image greater than `score_threshold`.

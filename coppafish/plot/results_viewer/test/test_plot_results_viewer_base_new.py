@@ -3,6 +3,7 @@ import tempfile
 
 import matplotlib
 import numpy as np
+import pytest
 import tifffile
 import zarr
 
@@ -10,6 +11,7 @@ from coppafish.plot.results_viewer.base_new import Viewer
 from coppafish.setup.notebook_page import NotebookPage
 
 
+@pytest.mark.integration
 def test_Viewer() -> None:
     # Using a headless backend to support headless unit testing the Viewer.
     matplotlib.use("Agg")

@@ -16,11 +16,17 @@ def test_dot_product():
     bled_codes[1, 0] = [0, -1, 0]
     bled_codes[1, 1] = [0, 0, 1]
     bled_codes[1, 2] = [1, 0, 0]
+    spot_colours_copy = spot_colours.copy()
+    bled_codes_copy = bled_codes.copy()
     scores = dot_product.dot_product_score(spot_colours=spot_colours, bled_codes=bled_codes)
     assert type(scores) is np.ndarray
     assert scores.shape == (n_spots, n_genes)
     assert np.allclose(scores[0, 0], 0.98120648)
     assert np.allclose(scores[0, 1], 0.0976310729)
+    assert np.allclose(spot_colours, spot_colours_copy)
+    assert np.allclose(bled_codes, bled_codes_copy)
+    scores_2 = dot_product.dot_product_score(spot_colours, bled_codes[np.newaxis])
+    assert np.allclose(scores, scores_2)
 
 
 def test_gene_prob_score():

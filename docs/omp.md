@@ -2,15 +2,17 @@
 
 OMP is coppafish's current best gene assignment algorithm. OMP runs independently, except requiring
 [register](overview.md#register) for image-alignment and [call spots](overview.md#call-spots) for dataset-accurate
-representation of each gene's unique barcode: its bled code ($\mathbf{B}_{grc}$). OMP does not explicitly differentiate
-between sequencing rounds and channels.
+representation of each gene's unique barcode: its bled code, $\mathbf{B}$.
+
+OMP produces a coefficient image for every pixel and every gene by cycling through steps 1-3. Then, the final gene reads
+are found in step 4.
 
 ## Definitions
 
 - $r$ and $c$ represents sequencing rounds and channels respectively.
 - $B_{grc}$ represents gene g's bled code in round $r$, channel $c$ saved at `nb.call_spots.bled_codes` from call spots.
 - $S_{prc}$ is pixel $p$'s colour in round $r$, channel $c$, after pre-processing is applied.
-- $c_{pg}$ is the OMP coefficients given to gene $g$ for image pixel $p$.
+- $c_{pgi}$ is the OMP coefficients given gene $g$ at pixel $p$ on the $i$'th OMP iteration.
 - $w_{pgi}$ is the OMP gene weight given to gene $g$ for image pixel $p$ on the $i$'th iteration. This is computed by
 least squares in [step 2](#2-gene-weights). $i$ takes values $1, 2, 3, ...$
 - $||A||_{...}$ represents an L2 norm of $A$ (or Frobenius norm for a matrix) over all indices replaced by a dot ($.$).
@@ -32,19 +34,19 @@ R_{prci} = S_{prc} - \sum_g(w_{pg(i - 1)}B_{grc})
 $$
 
 For the first iteration, $R_{prc(i=1)} = S_{prc}$. Using this residual, a "semi dot product score" is
-computed for every gene and background gene $g$ the same way as
+computed for every gene and background gene $g$ similar to
 [call spots](call_spots.md#6-and-7-application-of-scales-computation-of-final-scores-and-bleed-matrix)
 
 $$
-\text{(gene scores)}_{pgi} = \frac{1}{N_r}\Bigg|\sum_{rc}(\epsilon_{prc}^2\hat{R}_{prc(i - 1)}\hat{B}_{grc})\Bigg|
+\text{(gene scores)}_{pgi} = \frac{1}{N_r}\Bigg|\sum_{rc}(\epsilon_{prci}^2\hat{R}_{prc(i - 1)}\hat{B}_{grc})\Bigg|
 $$
 
 where
 
 $$
-\hat{R}_{prci} = \frac{R_{prci}}{\max_c(|R_{prci}|)}\text{,}\space\space\space
-\hat{B}_{grc} = \frac{B_{grc}}{||B||_{gr.}}\text{,}\space\space\space
-\epsilon_{prc}^2 = N_r N_c\frac{\sigma_{pirc}^{-2}}{\sum_{rc}\sigma_{pirc}^{-2}}\text{,}\space\space\space
+\hat{R}_{prci} = \frac{R_{prci}}{||\mathbf{R}||_{pr.i}}\text{,}\space\space\space
+\hat{B}_{grc} = \frac{B_{grc}}{||\mathbf{B}||_{gr.}}\text{,}\space\space\space
+\epsilon_{prci}^2 = N_r N_c\frac{\sigma_{pirc}^{-2}}{\sum_{rc}\sigma_{pirc}^{-2}}\text{,}\space\space\space
 $$
 
 and
@@ -78,7 +80,7 @@ A gene is successfully assigned to a pixel when all conditions are met:
 - The best gene score is above `dot_product_threshold` (typically 0.4).
 - The best gene is not already assigned to the pixel.
 - The best gene is not a background gene.
-- The residual colour's intensity is at least `minimum_intensity` (typically 0.05). The intensity is defined as
+- The residual colour's intensity is at least `minimum_intensity` (typically 0.15). The intensity is defined as
 $\min_r(\max_c(|R_{prci}|))$.
 
 The reasons for each of these conditions is:
@@ -99,7 +101,7 @@ c_{pg_{\text{new}}i}=(\text{gene\_scores})_{pg_{\text{new}}i}
 $$
 
 If all remaining pixels fail the conditions, then the iterations stop and the coefficients $\mathbf{c}$ are kept as
-final for [step 3](#3-pixel-scoring-and-spot-detection).
+final for [step 3](#4-pixel-scoring-and-spot-detection).
 
 ## 2: Gene Weights
 
@@ -109,7 +111,7 @@ for pixels that passed [step 1](#1-next-gene-assignment). The weights, $w_{pgi}$
 method of least squares by minimising the scalar residual
 
 $$
-\sum_{rc}(S_{prc} - \sum_{g}(B_{grc}w_{pgi}))^2
+\sum_{rc}(S_{prc} - \sum_{g\text{ assigned}}(B_{grc}w_{pgi}))^2
 $$
 
 In other words, using matrix multiplication, the weight vector of length genes assigned is
@@ -122,10 +124,35 @@ where $\bar{(...)}$ represents flattening the round and channel dimensions into 
 $\bar{\mathbf{B}}$ is of shape $\text{genes assigned}$ by $\text{rounds}*\text{channels}$ and $\bar{\mathbf{S}}$ is of
 shape $\text{rounds} * \text{channels}$. $(...)^{-1}$ is the Moore-Penrose matrix inverse (a pseudo-inverse).
 
-With the new, updated coefficients and weights, step 1 is repeated on the remaining pixels unless $i$ is
-$\text{max\_genes}$.
+## 3: Gene Coefficients
 
-## 3: Pixel Scoring and Spot Detection
+After updating the gene weights, every assigned gene coefficient is (re)computed for pixels that passed gene assignment.
+The coefficient for assigned gene $g$ in pixel $p$ is given by
+
+$$
+c_{pgi} = \frac{1}{N_r}\Bigg | \sum_{rc}\tilde{R}_{pgrci}\hat{B}_{grc} \Bigg |
+$$
+
+where
+
+$$
+\tilde{R}_{pgrci} = S_{prc} - \sum_{g'\text{ assigned except }g}B_{g'rc}w_{pg'i}
+$$
+
+Step 1 is now repeated on the remaining pixels unless $i$ is $\text{max\_genes}$ (i.e. the last iteration).
+
+??? info "Why are the final coefficients set like this?"
+
+    If you remember from [step 1](#1-next-gene-assignment), the assigned gene is given a preliminary score similar to
+    step 3's score. But, this score is not used as the final OMP coefficients. This is because the pleminary score has
+    lowered the scores of genes just for overlapping with another gene. The scores are lowered by brightness in other
+    rounds-channel pairs.
+
+    Step 3's score gets around this. Assuming that all gene assignments are perfect, by subtracting those assignments
+    off except gene g, then gene g is given a fairer chance of scoring highly ideally without the brightness of the
+    other genes.
+
+## 4: Pixel Scoring and Spot Detection
 
 The gene coefficient images are converted to gene score images by convolving with the mean spot given as a numpy .npy
 file at file path `mean_spot_filepath`. If `mean_spot_filepath` is not given, the default mean spot is used (shown
