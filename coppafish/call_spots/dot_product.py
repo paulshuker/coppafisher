@@ -13,24 +13,31 @@ def dot_product_score(
     spot colour is zero in said round. The scores range from 0 to infinity.
 
     Args:
-        spot_colours (`(n_spots x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`): spot colours after
-            call spots scaling has been applied. They must not be L2 normalised yet.
-        bled_codes (`((n_spots, optional) x n_genes x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`):
-            normalised bled codes. The n_spots dimension is optional and can be removed if all the bled codes are the
-            same for every pixel.
+        spot_colours (n_batches x n_spots x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`): spot
+            colours after call spots scaling has been applied. They must not be L2 normalised.
+        bled_codes ((n_batches x n_spots x n_genes x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`):
+            normalised bled codes. Each batch of bled_codes is scored on the spot colours. n_spots is specified if the
+            bled codes are different for each spot colour.
         round_channel_weights (`(n_spots x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`, optional):
             round-channel weights. Higher weights have a higher significance to the scoring. They must range from 0 to
             1. Default: all ones.
 
     Returns:
-        (`(n_spots x n_genes) ndarray[float32] or tensor[float32]`): score. score such that `score[d, c]` gives a
-            "round dot product" between `spot_colours` vector `d` with `bled_codes` vector `c`. Returns a tensor if
-            spot_colours is a tensor.
+        (`(n_batches x n_spots x n_genes) ndarray[float32] or tensor[float32]`): score. score such that `score[d, c]`
+            gives a "round dot product" between `spot_colours` vector `d` with `bled_codes` vector `c`. Returns a tensor
+            if spot_colours is a tensor.
+
+    Notes:
+        - If n_batches is 1 for spot_colours or bled_codes, then that tensor will be repeated for all batches.
+        - If n_spots is 1 for bled_codes, then the bled codes will be repeated for all spots in spot_colours.
     """
     assert type(spot_colours) in (np.ndarray, torch.Tensor)
     assert type(bled_codes) in (np.ndarray, torch.Tensor)
     if round_channel_weights is None:
-        round_channel_weights = torch.ones(spot_colours.shape, dtype=torch.float32)
+        round_channel_weights = torch.ones((1, 1, 1), dtype=torch.float32)
+    else:
+        assert type(round_channel_weights) is torch.Tensor
+        assert round_channel_weights.ndim == 3
     assert type(round_channel_weights) in (np.ndarray, torch.Tensor)
 
     if type(spot_colours) is np.ndarray:
@@ -47,32 +54,25 @@ def dot_product_score(
         round_channel_weights_torch = round_channel_weights.detach().clone()
     spot_colours_torch = spot_colours_torch.float()
     bled_codes_torch = bled_codes_torch.float()
-    assert spot_colours_torch.ndim == 3
-    assert bled_codes_torch.ndim in (3, 4)
-    assert round_channel_weights.ndim == 3
-    assert spot_colours_torch.shape == round_channel_weights.shape
+    assert spot_colours_torch.ndim == 4
+    assert bled_codes_torch.ndim == 5
+    assert spot_colours_torch.numel() > 0
+    assert bled_codes_torch.numel() > 0
+    assert round_channel_weights_torch.numel() > 0
 
-    n_rounds = spot_colours_torch.shape[1]
-    repeat_bled_codes = bled_codes_torch.ndim == 3
-    if repeat_bled_codes:
-        assert spot_colours_torch.shape[1:] == bled_codes_torch.shape[1:]
-    else:
-        assert spot_colours_torch.shape == bled_codes_torch.shape[:1] + bled_codes_torch.shape[2:]
-
+    n_rounds = spot_colours_torch.shape[2]
     # Spot colours and bled codes are L2 normalised for every round separately.
     spot_colours_torch /= torch.linalg.vector_norm(spot_colours_torch, dim=-1, keepdim=True)
     bled_codes_torch /= torch.linalg.vector_norm(bled_codes_torch, dim=-1, keepdim=True)
-    if repeat_bled_codes:
-        # Add a dimension for n_spots.
-        bled_codes_torch = bled_codes_torch[np.newaxis]
 
-    # scores has shape (n_spots x n_genes x n_rounds_use x n_channels_use).
-    scores = spot_colours_torch[:, np.newaxis] * bled_codes_torch
-    scores *= round_channel_weights_torch[:, np.newaxis]
+    # scores has shape (n_batches, n_spots, n_genes, n_rounds_use, n_channels_use).
+    scores = spot_colours_torch[:, :, np.newaxis] * bled_codes_torch
+    scores *= round_channel_weights_torch[np.newaxis, :, np.newaxis]
+
     # Sum over rounds and channels
-    scores = scores.sum((2, 3))
+    # Has shape (n_batches, n_spots, n_genes).
+    scores = scores.sum((3, 4))
     scores /= n_rounds
-    # Has shape (n_spots x n_genes).
     scores = scores.abs()
 
     if type(spot_colours) is np.ndarray:

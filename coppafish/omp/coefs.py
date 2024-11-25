@@ -271,7 +271,9 @@ class CoefficientSolverOMP:
 
         intensity_is_low = residual_colours.clone().abs().max(2).values.min(1).values < minimum_intensity
 
-        all_gene_scores = dot_product.dot_product_score(residual_colours, all_bled_codes, epsilon_squared)
+        all_gene_scores = dot_product.dot_product_score(
+            residual_colours[np.newaxis], all_bled_codes[np.newaxis, np.newaxis], epsilon_squared
+        )[0]
 
         next_best_gene_scores, next_best_genes = torch.max(all_gene_scores, dim=1)
         next_best_genes = next_best_genes.int()
@@ -372,8 +374,8 @@ class CoefficientSolverOMP:
                 weighted bled code for every assigned gene.
 
         Returns:
-            (`(n_pixels x n_genes_assigned) tensor[float32]`): gene_coefficients. The genes' coefficients for every
-                given pixel.
+            (`(n_pixels x n_genes_assigned) tensor[float32]`): gene_coefficients. The gene coefficients for every given
+                pixel.
         """
         assert type(pixel_colours) is torch.Tensor
         assert type(weighted_bled_codes) is torch.Tensor
@@ -383,23 +385,29 @@ class CoefficientSolverOMP:
 
         n_pixels = pixel_colours.shape[0]
         n_genes_assigned = weighted_bled_codes.shape[1]
-        all_genes = list(range(n_genes_assigned))
 
         coefficients = torch.full((n_pixels, n_genes_assigned), torch.nan, dtype=torch.float32)
 
-        # bled_codes_sums is the sum of all weighted bled codes.
-        # It has shape (n_pixels, n_rounds_use, n_channels_use).
-        bled_codes_sum = weighted_bled_codes.sum(1)
+        # bled_codes_sums_except_one[:, g] is the sum of weighted bled codes except gene g's weighted bled code.
+        # It has shape (n_pixels, n_genes_assigned, n_rounds_use, n_channels_use).
+        bled_codes_sum_except_one = weighted_bled_codes.sum(1, keepdim=True).repeat_interleave(n_genes_assigned, 1)
+        bled_codes_sum_except_one -= weighted_bled_codes
+        # Change its shape to (n_genes_assigned, n_pixels, n_rounds_use, n_channels_use).
+        bled_codes_sum_except_one = bled_codes_sum_except_one.swapaxes(0, 1)
 
-        # TODO: This for loop probably needs to go.
-        for g in all_genes:
-            bled_code_sum_except_g = bled_codes_sum - weighted_bled_codes[:, g]
+        # colour_residuals has shape (n_genes_assigned, n_pixels, n_rounds_use, n_channels_use).
+        # colour_residuals[g] is the pixel's colour subtracting all weighted bled codes except the one for gene g.
+        #
+        # This is $\tilde{R}$ in the docs.
+        colour_residuals = pixel_colours.detach().clone()[np.newaxis] - bled_codes_sum_except_one
+        del bled_codes_sum_except_one
 
-            pixel_colours_residual = pixel_colours - bled_code_sum_except_g
-            del bled_code_sum_except_g
+        # bled_codes has shape (n_genes_assigned, n_pixels, 1, n_rounds_use, n_channels_use).
+        bled_codes = weighted_bled_codes.detach().clone().swapaxes(0, 1)[:, :, np.newaxis]
 
-            coefficients_g = dot_product.dot_product_score(pixel_colours_residual, weighted_bled_codes[:, g])[:, 0]
-            coefficients[:, g] = coefficients_g
-            del coefficients_g
+        coefficients = dot_product.dot_product_score(colour_residuals, bled_codes)[:, :, 0]
+
+        # Change coefficients shape to (n_pixels x n_genes_assigned).
+        coefficients = coefficients.swapaxes(0, 1)
 
         return coefficients

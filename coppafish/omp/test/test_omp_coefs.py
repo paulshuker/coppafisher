@@ -220,13 +220,17 @@ def test_get_gene_coefficients() -> None:
 
     pixel_colours = torch.from_numpy(pixel_colours)
     weighted_bled_codes = torch.from_numpy(weighted_bled_codes)
+    pixel_colours_copy = pixel_colours.detach().clone()
+    weighted_bled_codes_copy = weighted_bled_codes.detach().clone()
 
     solver = coefs.CoefficientSolverOMP()
     coefficients = solver.get_gene_coefficients(pixel_colours, weighted_bled_codes)
     assert type(coefficients) is torch.Tensor
     assert coefficients.ndim == 2
     assert coefficients.shape == (n_pixels, n_genes_assigned)
+    assert torch.allclose(pixel_colours, pixel_colours_copy)
+    assert torch.allclose(weighted_bled_codes, weighted_bled_codes_copy)
+    assert (coefficients >= 0).all()
 
     # Check against calculations done by hand.
-    assert (coefficients >= 0).all()
     assert torch.isclose(coefficients[0, 0], torch.tensor(0.8626247925).float())

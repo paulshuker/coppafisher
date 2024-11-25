@@ -141,12 +141,12 @@ $$
 
 Step 1 is now repeated on the remaining pixels unless $i$ is $\text{max\_genes}$ (i.e. the last iteration).
 
-??? info "Why are the final coefficients set like this?"
+??? info "Why not use the scores from step 1 as the coefficients?"
 
-    If you remember from [step 1](#1-next-gene-assignment), the assigned gene is given a preliminary score similar to
-    step 3's score. But, this score is not used as the final OMP coefficients. This is because the pleminary score has
-    lowered the scores because they overlap with other genes. In other words, the scores are lowered by brightness in
-    other rounds-channel pairs.
+    If you recall, from [step 1](#1-next-gene-assignment), the assigned gene is given a preliminary score similar to
+    step 3's score. This score is not used as the final OMP coefficients (but, we did try). This is because the
+    pleminary score has lowered the scores because they overlap with other genes. In other words, the scores are lowered
+    by brightness in other rounds-channel pairs.
 
     The step 3 scoring method gets around this. Assuming that all gene assignments are perfect, by subtracting those
     assignments off except gene g, then gene g is given a fairer chance of scoring highly, hopefully without the
