@@ -571,6 +571,9 @@ class Robominnie:
         anchor_channel = {self.anchor_channel if self.include_anchor else ''}
         dapi_channel = {self.dapi_channel if self.include_dapi else ''}
 
+        [notifications]
+        allow_notifications = false
+
         [extract]
         num_rotations = 0
 

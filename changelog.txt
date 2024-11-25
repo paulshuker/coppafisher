@@ -7,6 +7,7 @@
  * General: Many package updates.
  * General: All output variables are now stored within the notebook except for extract images, PDF diagnostics, and
     pipeline.log files.
+ * General: New system notification support for both pipeline crashes and completions.
  * General: The notebook is now faster at saving and loading, supports zarr arrays/groups, and has overwrite protection.
  * General: Better Command Line Interface (CLI) explained in the documentation.
  * General: Users can safely move the output directory and/or tiles directory mid-pipeline.

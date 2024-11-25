@@ -6,10 +6,9 @@ from typing import Any, Optional, Tuple
 
 import numpy as np
 
-from . import config
-from .config import Config
 from .. import log
 from ..utils import system as utils_system
+from .config import Config
 from .notebook_page import NotebookPage
 
 
@@ -85,7 +84,7 @@ class Notebook:
         ],
     }
 
-    def __init__(self, notebook_dir: str, config_path: Optional[str] = None, must_exist: bool = False) -> None:
+    def __init__(self, notebook_dir: str, config_path: Optional[str] = None, must_exist: bool = True) -> None:
         """
         Load the notebook found at the given directory. Or, if the directory does not exist, create the directory.
 
@@ -93,7 +92,7 @@ class Notebook:
             notebook_dir (str): the notebook directory to write into and/or load from.
             config_path (str, optional): path to the pipeline's config file. This must be given for new pages to be
                 added, i.e. during the pipeline runtime. Default: not given.
-            must_exists (bool, optional): crash if the notebook does not already exist. Default: false.
+            must_exists (bool, optional): crash if the notebook does not already exist. Default: true.
         """
         assert type(notebook_dir) is str
         assert config_path is None or type(config_path) is str

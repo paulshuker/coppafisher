@@ -171,6 +171,9 @@ class Config:
         "notifications": {
             "log_name": ("str", "str-not-empty"),
             "minimum_print_severity": ("int", "not-negative"),
+            "allow_notifications": ("bool", ""),
+            "notify_on_crash": ("bool", ""),
+            "notify_on_completion": ("bool", ""),
             "sender_email": ("maybe_str", "str-not-empty_email-address"),
             "sender_email_password": ("maybe_str", "str-not-empty"),
             "email_me": ("maybe_str", "str-not-empty_email-address"),

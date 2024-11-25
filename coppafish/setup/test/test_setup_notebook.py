@@ -12,14 +12,14 @@ from coppafish.setup.notebook_page import NotebookPage, PageTypeError
 from coppafish.utils import system
 
 
-def test_notebook_creation() -> None:
+def test_Notebook() -> None:
     rng = np.random.RandomState(0)
 
     nb_path = os.path.join(os.getcwd(), ".notebook_test")
     if os.path.isdir(nb_path):
         shutil.rmtree(nb_path)
     config_path = os.path.abspath("dslkhgdsjlgh")
-    nb = Notebook(nb_path, config_path)
+    nb = Notebook(nb_path, config_path, must_exist=False)
     assert len(nb.get_all_versions()) == 0
 
     assert nb.has_page("debug") == False
@@ -198,7 +198,7 @@ def test_notebook_creation() -> None:
     _check_variables(nb)
 
     del nb
-    nb = Notebook(nb_path)
+    nb = Notebook(nb_path, must_exist=True)
     _check_variables(nb)
 
     # Check that the resave function can safely remove pages.
