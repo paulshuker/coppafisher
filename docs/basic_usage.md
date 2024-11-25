@@ -85,9 +85,9 @@ gene_2 2301230
 gene_3 3012301
 ```
 
-the names (`gene_0`, `gene_1`, ...) can be changed. Do not assign any genes a constant gene code like `0000000` as
-these are background genes. To learn how the codes can be generated, see [advanced usage](advanced_usage.md#). For
-details on how the codes are best generated, see `reed_solomon_codes` in the
+the names (`gene_0`, `gene_1`, ...) can be changed. Do not assign any genes a constant gene code like `0000000`[^1]. To
+learn how the codes can be generated, see [advanced usage](advanced_usage.md). For details on how the codes are best
+generated, see `reed_solomon_codes` in the
 [source code](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/utils/base.py). See
 [Wikipedia](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction) for algorithmic details on how gene
 codes are best selected.
@@ -138,7 +138,7 @@ at <a href="https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/setup/se
 
 ## Running
 
-Coppafish must be run with a [configuration](basic_usage.md#configuration) file. In the command line
+Coppafish must be run with a [configuration](#configuration) file. In the command line
 
 ```terminal
 python3 -m coppafish /path/to/config.ini
@@ -172,9 +172,9 @@ then type in the relevant information when prompted.
 
 
 [^1]:
-    Background genes refer to constant pixel intensity across all sequencing rounds in one channel. This is an
-    indicator of an anomalous fluorescing feature that is not a spot. No spot codes are made to be the same channel in
-    all rounds so they are not mistaken with background fluorescence.
+    Background genes refer to constant pixel intensity across all sequencing rounds in one channel. This is an indicator
+    of an anomalous fluorescing artefact that is not a spot. No spot codes are made to be the same channel in all
+    rounds. This way spots are not mistaken for background fluorescence and vice versa.
 [^2]:
     All time estimations are made using an Intel i9-13900K @ 5.500GHz, NVIDIA RTX 4070Ti Super (optional), and NVMe
-    local SSD. Raw, ND2 input files were saved on a server with read speed of ~200MB/s.
+    local SSD. Raw, ND2 input files were saved on a server with read speed of ~200 MB/s.

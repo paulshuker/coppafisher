@@ -36,7 +36,7 @@ vocabulary might be unfamiliar, please see the [glossary](glossary.md) for refer
 
 ### Environment
 
-Install coppafish software from within an environment. We will use a conda environment, so 
+Install coppafish software from within an environment. We will use a conda environment, so
 [miniconda](https://docs.anaconda.com/miniconda/) or [anaconda](https://anaconda.org/anaconda/conda) is required.
 
 First, build an environment
@@ -50,13 +50,13 @@ coppa can be changed to any name.
 
 ### Install
 
-Clone the latest coppafish version locally 
+Clone the latest coppafish version locally
 
 ```terminal
 git clone --depth 1 https://github.com/paulshuker/coppafish
 ```
 
-or a specific version, like version 1.0.0 
+or a specific version, like version 1.0.0
 
 ```terminal
 git clone --depth 1 --branch 1.0.0 https://github.com/paulshuker/coppafish
@@ -69,7 +69,7 @@ cd coppafish
 python -m pip install -r requirements.txt
 ```
 
-install [PyTorch](https://pytorch.org/) with both CPU and Cuda 12.4 support by 
+install [PyTorch](https://pytorch.org/) with both CPU and Cuda 12.4 support by
 
 ```terminal
 python -m pip install -r requirements-torch.txt
@@ -82,7 +82,7 @@ import torch
 torch.cuda.is_available()
 ```
 
-which should give true. Finally, install coppafish by 
+which should give true. Finally, install coppafish by
 
 ```terminal
 python -m pip install .
@@ -92,14 +92,19 @@ You can now safely delete the locally cloned coppafish repository.
 
 ## Updating
 
-Coppafish will not automatically install updates. But, you will see a warning at the start of a pipeline if a new 
+Coppafish will not automatically install updates. But, you will see a warning at the start of a pipeline if a new
 online version is available.
 
-To update version, delete the old conda environment by `#!terminal conda env remove -n coppa`. Then follow all 
-[installation](#installation) instructions again.
+To update version, delete the old conda environment by
 
-You can verify your install by running `#!terminal pip show coppafish` in the coppafish environment to check you have the 
-latest version.
+```term
+conda env remove -n coppa
+```
 
-Keep all output data (including the notebook) when updating coppafish versions. If data saved to disk is now 
+Then follow all [installation](#installation) instructions again.
+
+You can verify your install by running `#!terminal pip show coppafish` in the environment to check you have the correct
+version.
+
+Keep all output data (including the notebook) when updating coppafish versions. If data saved to disk is now
 deprecated, coppafish will automatically suggest a course of action when it is [run](basic_usage.md#running) again.
