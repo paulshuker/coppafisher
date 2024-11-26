@@ -32,7 +32,7 @@ from ...utils import system as utils_system
 from ..call_spots import bleed_matrix, spot_colours
 from ..omp.coefs import ViewOMPImage
 from ..omp.colours import ViewOMPColourSum
-from ..omp.scores import ViewOMPDotProductScores
+from ..omp.scores import ViewOMPGeneScores
 from .hotkeys_new import Hotkey
 from .subplot import Subplot
 
@@ -727,7 +727,7 @@ class Viewer:
             return
         self._free_subplot_spaces()
         spot_data = self.spot_data[self.selected_method]
-        return ViewOMPDotProductScores(
+        return ViewOMPGeneScores(
             self.nbp_basic,
             self.nbp_filter,
             self.nbp_register,
