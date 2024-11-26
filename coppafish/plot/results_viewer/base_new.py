@@ -385,15 +385,15 @@ class Viewer:
             Hotkey(
                 "View OMP Coefficients",
                 "v",
-                "Show the OMP coefficients around the selected spot's local region",
+                "Show the OMP coefficients/scores around the selected spot's local region",
                 lambda _: self._add_subplot(self.view_omp_coefficients()),
                 "OMP",
             ),
             Hotkey(
-                "View OMP Dot Product Scores",
+                "View OMP Gene Scores",
                 "j",
-                "Show the OMP dot product scores for every gene on each iteration for a spot",
-                lambda _: self._add_subplot(self.view_omp_dot_product_scores()),
+                "Show the OMP gene scores for every gene on each iteration for a spot",
+                lambda _: self._add_subplot(self.view_omp_gene_scores()),
                 "OMP",
             ),
             Hotkey(
@@ -722,7 +722,7 @@ class Viewer:
             show=self.show,
         )
 
-    def view_omp_dot_product_scores(self) -> Subplot | None:
+    def view_omp_gene_scores(self) -> Subplot | None:
         if self.selected_spot is None:
             return
         self._free_subplot_spaces()

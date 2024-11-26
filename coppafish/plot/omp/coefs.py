@@ -20,6 +20,7 @@ from coppafish.spot_colours import base as spot_colours_base
 class ViewOMPImage(Subplot):
     class Options(enum.Enum):
         COEFFICIENTS = enum.auto()
+        SCORES = enum.auto()
         ITERATIONS = enum.auto()
 
     def __init__(
@@ -75,7 +76,7 @@ class ViewOMPImage(Subplot):
             beta = float(nbp_omp.associated_configs["omp"]["beta"])
             max_genes = int(nbp_omp.associated_configs["omp"]["max_genes"])
             dot_product_threshold = float(nbp_omp.associated_configs["omp"]["dot_product_threshold"])
-            mean_spot = nbp_omp.mean_spot
+            mean_spot = nbp_omp.mean_spot.astype(np.float32)
         yxz_min = local_yxz.copy() + np.array([-im_size, -im_size, min(z_planes)], int)
         yxz_max = local_yxz.copy() + np.array([im_size, im_size, max(z_planes)], int) + 1
         image_shape = tuple((yxz_max - yxz_min).tolist())
@@ -122,6 +123,9 @@ class ViewOMPImage(Subplot):
         coefficients = coefficients.transpose((3, 0, 1, 2))
         self.coefficients = coefficients
         self.iteration_counts = iteration_counts
+        self.score_images = omp_scores.score_coefficient_image(
+            torch.from_numpy(coefficients), torch.from_numpy(mean_spot)
+        )
         scores = omp_scores.score_coefficient_image(torch.from_numpy(coefficients), torch.from_numpy(mean_spot))[
             :, image_shape[0] // 2, image_shape[1] // 2, image_shape[2] // 2
         ]
@@ -151,9 +155,11 @@ class ViewOMPImage(Subplot):
         self.button_colour = "red"
         self.button_colour_press = "green"
         self.coef_button = Button(self.axes[1, 1], "Coefficients", hovercolor="0.275")
-        self.iter_count_button = Button(self.axes[1, 2], "Iteration Counts", hovercolor="0.275")
-        self.reset_gene_button = Button(self.axes[1, 3], "Spot Gene", hovercolor="0.275")
+        self.score_button = Button(self.axes[1, 2], "Final Scores", hovercolor="0.275")
+        self.iter_count_button = Button(self.axes[1, 3], "Iteration Counts", hovercolor="0.275")
+        self.reset_gene_button = Button(self.axes[1, 4], "Spot Gene", hovercolor="0.275")
         self.coef_button.on_clicked(self.pressed_coef_button)
+        self.score_button.on_clicked(self.pressed_score_button)
         self.iter_count_button.on_clicked(self.pressed_iter_button)
         self.reset_gene_button.on_clicked(self.pressed_reset_gene)
         self.pressed_coef_button()
@@ -173,6 +179,8 @@ class ViewOMPImage(Subplot):
             if self.selected_button == self.Options.COEFFICIENTS:
                 z_data = self.coefficients[self.selected_gene, :, :, k]
                 abs_max = self.coefficients.max()
+            elif self.selected_button == self.Options.SCORES:
+                z_data = self.score_images[self.selected_gene, :, :, k]
             elif self.selected_button == self.Options.ITERATIONS:
                 z_data = self.iteration_counts[:, :, k]
             else:
@@ -222,6 +230,15 @@ class ViewOMPImage(Subplot):
         self.selected_button = self.Options.COEFFICIENTS
         self.draw_data()
         self.coef_button.label.set_color(self.button_colour_press)
+        self.score_button.label.set_color(self.button_colour)
+        self.iter_count_button.label.set_color(self.button_colour)
+        self.gene_slider.set_active(True)
+
+    def pressed_score_button(self, _=None) -> None:
+        self.selected_button = self.Options.SCORES
+        self.draw_data()
+        self.coef_button.label.set_color(self.button_colour)
+        self.score_button.label.set_color(self.button_colour_press)
         self.iter_count_button.label.set_color(self.button_colour)
         self.gene_slider.set_active(True)
 
@@ -229,6 +246,7 @@ class ViewOMPImage(Subplot):
         self.selected_button = self.Options.ITERATIONS
         self.draw_data()
         self.coef_button.label.set_color(self.button_colour)
+        self.score_button.label.set_color(self.button_colour)
         self.iter_count_button.label.set_color(self.button_colour_press)
         self.gene_slider.set_active(False)
 

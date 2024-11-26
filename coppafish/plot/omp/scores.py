@@ -12,7 +12,7 @@ from coppafish.spot_colours import base as spot_colours_base
 from coppafish.plot.results_viewer.subplot import Subplot
 
 
-class ViewOMPDotProductScores(Subplot):
+class ViewOMPGeneScores(Subplot):
     def __init__(
         self,
         nbp_basic: NotebookPage,
@@ -25,7 +25,7 @@ class ViewOMPDotProductScores(Subplot):
         show: bool = True,
     ):
         """
-        View a spot's gene dot product scores on each OMP iteration. A slider is used to switch between OMP iteration
+        View a spot's gene dot product scores at each OMP iteration. A slider is used to switch between OMP iteration
         number.
 
         Args:

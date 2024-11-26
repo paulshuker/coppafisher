@@ -551,7 +551,7 @@ class NotebookPage:
         "omp": {
             "mean_spot": [
                 "ndarray[float32]",
-                "Numpy float16 array [im_y x im_x x im_z]"
+                "Numpy float32 array [im_y x im_x x im_z]"
                 + "Mean of *OMP* spots in neighbourhood centred on detected isolated spot.",
             ],
             "results": [
