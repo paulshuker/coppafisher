@@ -3,7 +3,7 @@ import math as maths
 import os
 import pickle
 import platform
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
 import scipy
@@ -20,7 +20,7 @@ from ..utils import duplicates
 
 
 def run_omp(
-    config: dict[str, any],
+    config: dict[str, Any],
     nbp_file: NotebookPage,
     nbp_basic: NotebookPage,
     nbp_extract: NotebookPage,
