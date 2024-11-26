@@ -164,14 +164,16 @@ def run_omp(
         ) as pbar:
             while index_min < yxz_all.shape[0]:
                 if n_subset_pixels is None:
-                    n_subset_pixels: int = maths.floor(
+                    index_max += maths.floor(
                         utils.system.get_available_memory(device) * 8e6 / (n_genes * n_rounds_use * n_channels_use)
                     )
-                    n_subset_pixels = min(n_subset_pixels, yxz_all.shape[0] - index_max)
-                    n_subset_pixels = max(n_subset_pixels, 1)
+                else:
+                    index_max += n_subset_pixels
+                index_max = min(index_max, yxz_all.shape[0])
+                index_max = max(index_max, index_min + 1)
+
                 log.debug(f"==== Subset {index_subset} ====")
                 log.debug(f"Getting spot colours")
-                index_max = index_min + n_subset_pixels
                 colour_subset = spot_colours_base.get_spot_colours_new_safe(
                     nbp_basic, yxz_all[index_min:index_max], **spot_colour_kwargs
                 )
@@ -179,16 +181,18 @@ def run_omp(
                 intensity = np.abs(colour_subset.copy()).max(2).min(1)
                 is_intense = (intensity >= config["minimum_intensity"]).nonzero()
                 del intensity
+
                 log.debug(f"Computing coefficients")
-                coefficient_subset = np.zeros((colour_subset.shape[0], n_genes), np.float32)
+                coefficient_subset = np.zeros((index_max - index_min, n_genes), np.float32)
                 if is_intense[0].size > 0:
                     coefficient_subset[is_intense] = solver.solve(colour_subset[is_intense], **coefficient_kwargs)
                 del colour_subset
+
                 log.debug(f"Appending results")
                 coefficient_subset = scipy.sparse.csr_matrix(coefficient_subset)
                 coefficients.append(coefficient_subset.copy())
                 del coefficient_subset
-                pbar.update(n_subset_pixels)
+                pbar.update(index_max - index_min)
                 index_min = index_max
                 index_subset += 1
         del solver
