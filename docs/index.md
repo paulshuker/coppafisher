@@ -2,9 +2,9 @@
 
 Coppafish is an open source data analysis Python package for COmbinatorial Padlock-Probe-Amplified Fluorescence In Situ
 Hybridization (coppafish) datasets. A series of 3D microscope images are arranged into tiles, rounds and channels. For
-each sequencing round, every considered gene is fluoresced by a dye. By the end of all rounds, each gene has a unique,
-barcode-like sequence of dyes called the gene code. Coppafish is a data analysis pipeline to decode gene's by their
-gene codes in 3D.
+each sequencing round, every wanted gene spot is fluoresced by a dye. By the end of all rounds, each gene has a unique,
+barcode-like sequence of dyes called the gene code. Coppafish is a data analysis pipeline to assign genes to spots by
+their gene codes in 3D.
 
 <div class="grid cards no-format" markdown>
 
