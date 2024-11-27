@@ -126,7 +126,7 @@ class ViewOMPColourSum(Subplot):
 
         # Plot residual colours for each gene
         for i, g in enumerate(self.assigned_genes):
-            self.axes[1, i].set_title(f"Spot colour - all genes\nexcept {self.gene_names[g]}")
+            self.axes[1, i].set_title(f"Spot colour - bled codes\nexcept {self.gene_names[g]}")
             self.axes[1, i].imshow(self.residual_colours[i].T, cmap=self.cmap, norm=self.norm)
 
         self.axes[1, -2].set_title(f"Spot colour")
