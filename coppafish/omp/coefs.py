@@ -5,6 +5,7 @@ import torch
 
 from .. import log
 from ..call_spots import dot_product
+from ..utils import system
 
 
 class CoefficientSolverOMP:
@@ -29,6 +30,7 @@ class CoefficientSolverOMP:
         beta: float,
         return_all_scores: bool = False,
         return_all_weights: bool = False,
+        force_cpu: bool = True,
     ) -> (
         np.ndarray[DTYPE]
         | Tuple[np.ndarray[DTYPE], np.ndarray[DTYPE]]
@@ -60,6 +62,7 @@ class CoefficientSolverOMP:
                 false.
             return_all_weights (bool, optional): return all gene bled code weights for every gene that was assigned.
                 Default: false.
+            force_cpu (bool, optional): only use the CPU to solve. Default: true.
 
         Returns:
             Tuple (tensor if only one tensor is returned) containing the following:
@@ -89,6 +92,7 @@ class CoefficientSolverOMP:
         assert type(beta) is float
         assert type(return_all_scores) is bool
         assert type(return_all_weights) is bool
+        assert type(force_cpu) is bool
         assert maximum_iterations > 0
         assert dot_product_threshold >= 0
         assert minimum_intensity >= 0
@@ -110,6 +114,8 @@ class CoefficientSolverOMP:
         # Bled codes and background codes must be L2 normalised.
         assert torch.isclose(torch.linalg.matrix_norm(all_bled_codes), torch.ones(1).float()).all()
 
+        device = system.get_device(force_cpu)
+
         coefficients = torch.zeros((n_pixels, n_genes), dtype=torch.float32)
         colours = torch.from_numpy(pixel_colours.astype(np.float32))
         # Remember the residual colour between iterations.
@@ -124,6 +130,16 @@ class CoefficientSolverOMP:
         if return_all_weights:
             # Remember the gene weightings given to each pixel.
             all_weights = torch.full_like(coefficients, torch.nan, dtype=torch.float32)
+
+        # Move tensors to the right device.
+        coefficients = coefficients.to(device)
+        colours = colours.to(device)
+        residual_colours = residual_colours.to(device)
+        pixels_to_continue = pixels_to_continue.to(device)
+        genes_selected = genes_selected.to(device)
+        bled_codes_torch = bled_codes_torch.to(device)
+        all_bled_codes = all_bled_codes.to(device)
+        bg_gene_indices = bg_gene_indices.to(device)
 
         for iteration in range(maximum_iterations):
             log.debug(f"Iteration: {iteration}")
@@ -166,7 +182,7 @@ class CoefficientSolverOMP:
             )
             iteration_weights = residual_colours[2]
             if return_all_weights:
-                all_weights[pixels_to_continue, latest_gene_selections] = iteration_weights
+                all_weights[pixels_to_continue, latest_gene_selections] = iteration_weights.cpu()
             epsilon_squared = residual_colours[1]
             epsilon_squared = epsilon_squared.reshape((-1, n_rounds_use, n_channels_use))
             residual_colours = residual_colours[0]
@@ -194,6 +210,7 @@ class CoefficientSolverOMP:
             result += (all_weights.cpu().numpy(),)
         if len(result) == 1:
             result = result[0]
+
         return result
 
     def create_background_bled_codes(self, n_rounds_use: int, n_channels_use: int) -> np.ndarray:

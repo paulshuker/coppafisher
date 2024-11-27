@@ -595,7 +595,7 @@ class Robominnie:
 
         [omp]
         minimum_intensity = 0.2
-        subset_pixels = 10_000
+        subset_pixels = {maths.floor(self.tile_sz * self.tile_sz * self.n_planes * 0.4)}
         """
         # Remove large spaces in the config contents
         config_file_contents = config_file_contents.replace("  ", "")

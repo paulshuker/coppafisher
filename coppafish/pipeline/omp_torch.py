@@ -16,7 +16,7 @@ from .. import find_spots
 from ..omp import coefs, scores
 from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
-from ..utils import duplicates
+from ..utils import duplicates, system
 
 
 def run_omp(
@@ -71,13 +71,38 @@ def run_omp(
         # Avoids chance of memory crashing on Linux.
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
+    # Preparing useful values used during OMP.
     n_genes = nbp_call_spots.bled_codes.shape[0]
     n_rounds_use = len(nbp_basic.use_rounds)
     n_channels_use = len(nbp_basic.use_channels)
     tile_shape: Tuple[int] = nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z)
+    n_tile_pixels = np.prod(tile_shape).item()
     tile_origins = nbp_stitch.tile_origin.astype(np.float32)
     tile_centres = duplicates.get_tile_centres(nbp_basic.tile_sz, len(nbp_basic.use_z), tile_origins)
+    n_subset_pixels = config["subset_pixels"]
+    n_memory_constant = 1e7 / (n_genes * n_rounds_use * n_channels_use)
+    yxz_all = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
+    yxz_all = np.array(np.meshgrid(*yxz_all, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
+    bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
+    assert np.isnan(bled_codes).sum() == 0, "bled codes cannot contain nan values"
+    assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"
+    solver = coefs.CoefficientSolverOMP()
+    bg_bled_codes = solver.create_background_bled_codes(n_rounds_use, n_channels_use)
+    max_genes = config["max_genes"]
+    coefficient_kwargs = dict(
+        bled_codes=bled_codes,
+        background_codes=bg_bled_codes,
+        maximum_iterations=max_genes,
+        dot_product_threshold=config["dot_product_threshold"],
+        minimum_intensity=config["minimum_intensity"],
+        alpha=config["alpha"],
+        beta=config["beta"],
+        force_cpu=config["force_cpu"],
+    )
+    colour_norm_factor = nbp_call_spots.colour_norm_factor.astype(np.float32)
+    n_chunk_max = 600_000
 
+    # Remember the latest OMP config values during a run.
     last_omp_config = omp_config.copy()
     config_path = os.path.join(nbp_file.output_dir, "omp_last_config.pkl")
     if os.path.isfile(config_path):
@@ -101,10 +126,10 @@ def run_omp(
     if any([(dim % 2 == 0) and (dim > 0) for dim in mean_spot.shape]):
         raise ValueError(f"Mean spot must have all odd dimension shapes, got {mean_spot.shape}")
     nbp.mean_spot = np.array(mean_spot, np.float32)
-    # Using a torch tensor during computations.
     mean_spot = torch.from_numpy(nbp.mean_spot)
 
-    # Each tile's results are appended to the zarr.Group.
+    # Every tile's results are appended to a zarr.Group. The zarr group is kept in the output directory until OMP is
+    # complete, then it is moved into the 'omp' notebook page.
     group_path = os.path.join(nbp_file.output_dir, "results.zgroup")
     results = zarr.group(store=group_path, zarr_version=2)
     tile_exists = [
@@ -120,10 +145,8 @@ def run_omp(
             continue
 
         # STEP 1: Gather spot colours and compute OMP coefficients on the entire tile, one subset at a time.
-        device = torch.device("cpu") if (config["force_cpu"] or not torch.cuda.is_available()) else torch.device("cuda")
+        device = system.get_device(config["force_cpu"])
         postfix = {"tile": t, "device": str(device).upper()}
-        yxz_all = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
-        yxz_all = np.array(np.meshgrid(*yxz_all, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
         spot_colour_kwargs = dict(
             image=nbp_filter.images,
             flow=nbp_register.flow,
@@ -135,58 +158,38 @@ def run_omp(
             out_of_bounds_value=0,
         )
         log.debug(f"Compute coefficients, tile {t} started")
-        bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
-        assert np.isnan(bled_codes).sum() == 0, "bled codes cannot contain nan values"
-        assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"
-        solver = coefs.CoefficientSolverOMP()
-        bg_bled_codes = solver.create_background_bled_codes(n_rounds_use, n_channels_use)
-        max_genes = config["max_genes"]
         # The tile's coefficient results are stored as a list of scipy sparse matrices. Each item is a specific subset
         # that was run. Appending them all together is done on demand later as it is computationally expensive to do
-        # this while as a sparse matrix. Most coefficients in each row are zeroes, so a csr matrix is appropriate.
+        # this while as a sparse matrix. Most coefficients in each row are zeroes (this is because rows go over all
+        # genes in the panel, most pixels only assign one or two genes), so a csr matrix is appropriate.
         coefficients: list[scipy.sparse.csr_matrix] = []
-        coefficient_kwargs = dict(
-            bled_codes=bled_codes,
-            background_codes=bg_bled_codes,
-            maximum_iterations=max_genes,
-            dot_product_threshold=config["dot_product_threshold"],
-            minimum_intensity=config["minimum_intensity"],
-            alpha=config["alpha"],
-            beta=config["beta"],
-        )
-        n_subset_pixels = config["subset_pixels"]
         index_subset, index_min, index_max = 0, 0, 0
         log.debug(f"OMP {max_genes=}")
         log.debug(f"OMP {n_subset_pixels=}")
 
-        with tqdm.tqdm(
-            total=np.prod(tile_shape).item(), desc=f"Computing coefficients", unit="pixel", postfix=postfix
-        ) as pbar:
-            while index_min < yxz_all.shape[0]:
+        with tqdm.tqdm(total=n_tile_pixels, desc=f"Computing coefficients", unit="pixel", postfix=postfix) as pbar:
+            while index_min < n_tile_pixels:
                 if n_subset_pixels is None:
-                    index_max += maths.floor(
-                        utils.system.get_available_memory(device) * 8e6 / (n_genes * n_rounds_use * n_channels_use)
-                    )
+                    index_max += maths.floor(utils.system.get_available_memory(device) * n_memory_constant)
                 else:
                     index_max += n_subset_pixels
-                index_max = min(index_max, yxz_all.shape[0])
+                index_max = min(index_max, n_tile_pixels)
                 index_max = max(index_max, index_min + 1)
 
                 log.debug(f"==== Subset {index_subset} ====")
                 log.debug(f"Getting spot colours")
-                colour_subset = spot_colours_base.get_spot_colours_new_safe(
-                    nbp_basic, yxz_all[index_min:index_max], **spot_colour_kwargs
-                )
-                colour_subset *= nbp_call_spots.colour_norm_factor[[t]].astype(np.float32)
+                yxz_subset = yxz_all[index_min:index_max]
+                colour_subset = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)
+                colour_subset *= colour_norm_factor[[t]]
                 intensity = np.abs(colour_subset.copy()).max(2).min(1)
-                is_intense = (intensity >= config["minimum_intensity"]).nonzero()
+                is_intense = intensity >= config["minimum_intensity"]
                 del intensity
 
                 log.debug(f"Computing coefficients")
                 coefficient_subset = np.zeros((index_max - index_min, n_genes), np.float32)
-                if is_intense[0].size > 0:
+                if is_intense.sum() > 0:
                     coefficient_subset[is_intense] = solver.solve(colour_subset[is_intense], **coefficient_kwargs)
-                del colour_subset
+                del colour_subset, is_intense
 
                 log.debug(f"Appending results")
                 coefficient_subset = scipy.sparse.csr_matrix(coefficient_subset)
@@ -195,12 +198,10 @@ def run_omp(
                 pbar.update(index_max - index_min)
                 index_min = index_max
                 index_subset += 1
-        del solver
         log.debug(f"Compute coefficients, tile {t} complete")
 
         tile_results = results.create_group(f"tile_{t}", overwrite=True)
         tile_results.attrs["software_version"] = utils.system.get_software_version()
-        n_chunk_max = 600_000
         t_spots_local_yxz = tile_results.zeros(
             "local_yxz", overwrite=True, shape=(0, 3), chunks=(n_chunk_max, 3), dtype=np.int16
         )
@@ -208,7 +209,7 @@ def run_omp(
         t_spots_gene_no = tile_results.zeros("gene_no", overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.int16)
         t_spots_score = tile_results.zeros("scores", overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.float16)
 
-        batch_size = int(2e6 * utils.system.get_available_memory(device) // (np.prod(tile_shape).item()))
+        batch_size = int(2e6 * utils.system.get_available_memory(device) // n_tile_pixels)
         batch_size = max(batch_size, 1)
         log.debug(f"Gene batch size: {batch_size}")
         gene_batches = [
@@ -220,9 +221,7 @@ def run_omp(
             g_coef_image = torch.full((len(gene_batch),) + tile_shape, torch.nan, dtype=torch.float32)
             for g_i, g in enumerate(gene_batch):
                 g_coef_image[g_i] = torch.from_numpy(
-                    np.vstack([coef_subset[:, [g]].toarray() for coef_subset in coefficients]).reshape(
-                        tile_shape, order="F"
-                    )
+                    np.vstack([subset[:, [g]].toarray() for subset in coefficients]).reshape(tile_shape, order="F")
                 )
             log.debug("Scoring coefficient image(s)")
             g_score_image = scores.score_coefficient_image(g_coef_image, mean_spot, config["force_cpu"])

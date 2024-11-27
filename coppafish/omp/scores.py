@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 
+from ..utils import system
+
 
 def score_coefficient_image(
     coefficient_image: torch.Tensor,
@@ -27,9 +29,7 @@ def score_coefficient_image(
     assert coefficient_image.shape[0] < 2_000, "More than 2,000 batches given"
     assert (mean_spot >= 0).all()
 
-    run_on = torch.device("cpu")
-    if not force_cpu and torch.cuda.is_available():
-        run_on = torch.device("cuda")
+    run_on = system.get_device(force_cpu)
 
     coef_image = coefficient_image.detach().clone().to(device=run_on)
     mean_spot = mean_spot.to(device=run_on)
