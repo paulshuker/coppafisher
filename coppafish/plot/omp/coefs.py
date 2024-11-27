@@ -178,7 +178,7 @@ class ViewOMPImage(Subplot):
         for k in range(len(self.z_planes)):
             if self.selected_button == self.Options.COEFFICIENTS:
                 z_data = self.coefficients[self.selected_gene, :, :, k]
-                abs_max = self.coefficients.max()
+                abs_max = np.abs(self.coefficients).max()
             elif self.selected_button == self.Options.SCORES:
                 z_data = self.score_images[self.selected_gene, :, :, k]
             elif self.selected_button == self.Options.ITERATIONS:
