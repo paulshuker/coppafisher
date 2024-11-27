@@ -1,9 +1,9 @@
-# <img src="/docs/images/logo.png" width="60"/> coppafish
+# <img src="/docs/images/logo.png" width="25"/> Coppafish
 
 ![Continuous Integration](https://img.shields.io/github/actions/workflow/status/paulshuker/coppafish/integration.yaml?logo=github)
 ![Status Badge](https://img.shields.io/badge/status-mature-blue)
 ![GitHub Tag](https://img.shields.io/github/v/tag/paulshuker/coppafish?label=version)
-![GitHub License](https://img.shields.io/github/license/paulshuker/coppafish?logo=gitbook&logoColor=white&color=blue)
+![GitHub License](https://img.shields.io/github/license/paulshuker/coppafish?color=blue)
 
 ## Documentation
 
