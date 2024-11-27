@@ -8,6 +8,7 @@ from ..call_spots import dot_product
 
 
 class CoefficientSolverOMP:
+    DTYPE = np.float32
     NO_GENE_ASSIGNMENT: int = -32_768
 
     def __init__(self) -> None:
@@ -18,9 +19,9 @@ class CoefficientSolverOMP:
 
     def solve(
         self,
-        pixel_colours: np.ndarray[np.float32],
-        bled_codes: np.ndarray[np.float32],
-        background_codes: np.ndarray[np.float32],
+        pixel_colours: np.ndarray[DTYPE],
+        bled_codes: np.ndarray[DTYPE],
+        background_codes: np.ndarray[DTYPE],
         maximum_iterations: int,
         dot_product_threshold: float,
         minimum_intensity: float,
@@ -28,7 +29,11 @@ class CoefficientSolverOMP:
         beta: float,
         return_all_scores: bool = False,
         return_all_weights: bool = False,
-    ) -> np.ndarray | Tuple[np.ndarray, np.ndarray] | Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> (
+        np.ndarray[DTYPE]
+        | Tuple[np.ndarray[DTYPE], np.ndarray[DTYPE]]
+        | Tuple[np.ndarray[DTYPE], np.ndarray[DTYPE], np.ndarray[DTYPE]]
+    ):
         """
         Compute OMP coefficients for all pixel colours from the same tile. At each iteration of OMP, the next best gene
         assignment is found from the residual spot colours. A pixel is stopped iterating on if gene assignment fails.
@@ -172,7 +177,9 @@ class CoefficientSolverOMP:
             # Using the new gene weights, update the OMP coefficients.
             log.debug(f"Computing gene coefficients")
             new_coefficients = self.get_gene_coefficients(
-                colours[pixels_to_continue], bled_codes_to_continue * iteration_weights[:, :, np.newaxis, np.newaxis]
+                colours[pixels_to_continue],
+                bled_codes_to_continue * iteration_weights[:, :, np.newaxis, np.newaxis],
+                torch.sign(iteration_weights),
             )
             del bled_codes_to_continue, iteration_weights
             log.debug(f"Assigning gene coefficients")
@@ -358,7 +365,9 @@ class CoefficientSolverOMP:
 
         return (pixel_residuals, epsilon_squared, weights)
 
-    def get_gene_coefficients(self, pixel_colours: torch.Tensor, weighted_bled_codes: torch.Tensor) -> torch.Tensor:
+    def get_gene_coefficients(
+        self, pixel_colours: torch.Tensor, weighted_bled_codes: torch.Tensor, weight_signs: torch.Tensor
+    ) -> torch.Tensor:
         """
         For each gene assignment in a pixel, compute its coefficient. For each gene, a residual colour is computed by
         subtracting all other assigned genes. Then, the coefficient for said gene is the dot product with this residual
@@ -368,6 +377,8 @@ class CoefficientSolverOMP:
             pixel_colours (`(n_pixels x n_rounds_use x n_channels_use) tensor[float32]`): the pixel colours.
             weighted_bled_codes (`(n_pixels x n_genes_assigned x n_rounds_use x n_channels_use) tensor[float32]`): the
                 weighted bled code for every assigned gene.
+            weight_signs (`(n_pixels x n_genes_assigned) tensor[float32]`): for each pixel and gene, gives a -1 if the
+                gene has a negative, otherwise it is +1.
 
         Returns:
             (`(n_pixels x n_genes_assigned) tensor[float32]`): gene_coefficients. The gene coefficients for every given
@@ -375,9 +386,12 @@ class CoefficientSolverOMP:
         """
         assert type(pixel_colours) is torch.Tensor
         assert type(weighted_bled_codes) is torch.Tensor
+        assert type(weight_signs) is torch.Tensor
         assert pixel_colours.ndim == 3
         assert weighted_bled_codes.ndim == 4
+        assert weight_signs.ndim == 2
         assert pixel_colours.shape == weighted_bled_codes.shape[:1] + weighted_bled_codes.shape[2:]
+        assert weight_signs.shape[:2] == weighted_bled_codes.shape[:2]
 
         n_pixels = pixel_colours.shape[0]
         n_genes_assigned = weighted_bled_codes.shape[1]
@@ -405,5 +419,8 @@ class CoefficientSolverOMP:
 
         # Change coefficients shape to (n_pixels x n_genes_assigned).
         coefficients = coefficients.swapaxes(0, 1)
+
+        # Set coefficients to be negative if their gene's weight is negative.
+        coefficients *= weight_signs
 
         return coefficients
