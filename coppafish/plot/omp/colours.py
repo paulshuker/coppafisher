@@ -73,18 +73,20 @@ class ViewOMPColourSum(Subplot):
         self.gene_weight = self.gene_weight[self.assigned_genes]
         self.coefficient = self.coefficient[self.assigned_genes]
         n_iterations = self.assigned_genes.size
-
-        column_count = max(2, self.assigned_genes.size)
-        self.fig, self.axes = plt.subplots(2, column_count, figsize=(column_count * 2.7, 5.5))
         if n_iterations == 0:
             return
+
+        column_count = max(2, n_iterations + 1)
+        self.fig, self.axes = plt.subplots(2, column_count, figsize=(column_count * 2.7, 5.5))
         self.assigned_bled_codes = nbp_call_spots.bled_codes[self.assigned_genes]
         # Weight the bled codes.
         self.assigned_bled_codes *= self.gene_weight[:, np.newaxis, np.newaxis]
-        self.residual_colour = self.colour - self.assigned_bled_codes.sum(0)
+        # self.bled_codes_except_one[i] is total colour - all weighted bled codes except the i'th gene.
+        self.bled_codes_except_one = self.assigned_bled_codes.sum(0, keepdims=True).repeat(n_iterations, 0)
+        self.residual_colours = self.colour - self.bled_codes_except_one + self.assigned_bled_codes
         abs_max = np.abs(self.assigned_bled_codes).max()
         abs_max = np.max([abs_max, np.abs(self.colour).max()])
-        abs_max = np.max([abs_max, np.abs(self.residual_colour).max()]).item()
+        abs_max = np.max([abs_max, np.abs(self.residual_colours).max()]).item()
 
         self.cmap = mpl.cm.seismic
         self.norm = mpl.colors.Normalize(vmin=-abs_max, vmax=abs_max)
@@ -108,9 +110,12 @@ class ViewOMPColourSum(Subplot):
             self.axes[0, i].set_title(f"{g}: {self.gene_names[g]}\nweight: {w_str}\ncoefficient: {c_str}")
             self.axes[0, i].imshow(self.assigned_bled_codes[i].T, cmap=self.cmap, norm=self.norm)
 
+        # Plot residual colours for each gene
+        for i, g in enumerate(self.assigned_genes):
+            self.axes[1, i].set_title(f"Total colour - all genes except {self.gene_names[g]}")
+            self.axes[1, i].imshow(self.residual_colours[i].T, cmap=self.cmap, norm=self.norm)
+
         self.axes[1, -1].set_title(f"Total colour")
         self.axes[1, -1].imshow(self.colour.T, cmap=self.cmap, norm=self.norm)
-        self.axes[1, -2].set_title(f"Residual colour")
-        self.axes[1, -2].imshow(self.residual_colour.T, cmap=self.cmap, norm=self.norm)
 
         self.fig.canvas.draw_idle()
