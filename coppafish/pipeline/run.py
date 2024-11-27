@@ -48,7 +48,7 @@ def run_pipeline(config_file: str) -> Notebook:
     log.error_catch(run_reference_spots, nb, nbp_file)
     log.error_catch(BuildPDF, nb, nbp_file)
     log.error_catch(run_omp, nb, nbp_file)
-    log.error_catch(BuildPDF, nb, nbp_file, auto_open=True)
+    log.error_catch(BuildPDF, nb, nbp_file)
     log.info(f"Pipeline complete", force_email=True)
     return nb
 
