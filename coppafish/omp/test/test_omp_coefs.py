@@ -111,7 +111,6 @@ def test_get_next_gene_assignments() -> None:
     kwargs = dict(
         residual_colours=residual_colours,
         all_bled_codes=all_bled_codes,
-        epsilon_squared=torch.ones_like(residual_colours, dtype=torch.float32),
         fail_gene_indices=fail_gene_indices,
         dot_product_threshold=dot_product_threshold,
         minimum_intensity=0.0,
