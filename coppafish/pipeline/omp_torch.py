@@ -80,7 +80,7 @@ def run_omp(
     tile_origins = nbp_stitch.tile_origin.astype(np.float32)
     tile_centres = duplicates.get_tile_centres(nbp_basic.tile_sz, len(nbp_basic.use_z), tile_origins)
     n_subset_pixels = config["subset_pixels"]
-    n_memory_constant = 1e7 / (n_genes * n_rounds_use * n_channels_use)
+    n_memory_constant = 7e7 / (n_genes * n_rounds_use * n_channels_use)
     yxz_all = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
     yxz_all = np.array(np.meshgrid(*yxz_all, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
     bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
