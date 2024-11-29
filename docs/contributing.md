@@ -3,9 +3,9 @@
 Coppafish is built on the basis that an algorithm that performs well does not need to be changed. Algorithms are only
 updated when there is evidence that it can perform better and that the current algorithm is performing worse.
 
-Typically there is a protected staging branch, like `v1.0.0`, for a future release. This must be pull requested into
-and must pass continuous integration tests. The `main` branch remains the latest version release to be the default
-branch when users install the software.
+Typically, there is a protected staging branch, like `v1.0.0`, for a future release. This must be pull requested into
+and must pass continuous integration tests. The `main` branch remains the latest stable release for users to easily
+install the software.
 
 ## Run Tests
 
@@ -21,19 +21,19 @@ Run unit tests (~6s)
 pytest
 ```
 
-Run integration tests (~60s)
+Run integration tests (~90s)
 
 ```terminal
 pytest -m integration
 ```
 
-Run unit tests requiring a notebook (~3s)
+Run unit tests requiring a notebook (~4s)
 
 ```terminal
 pytest -m notebook
 ```
 
-Check the percentage code coverage by appending `--cov=coppafish --cov-report term` to each command.
+View code coverage by appending `--cov=coppafish --cov-report term` to each command.
 
 ## Run Documentation Locally
 
@@ -94,4 +94,4 @@ of these definitions includes the dapi channel/anchor channel[^1], which can be 
 and `#!py nb.basic_info.anchor_channel` respectively.
 
 [^1]:
-    The anchor channel can be a sequencing channel.
+    The anchor channel can be a sequencing channel, but this does not have to be the case.

@@ -130,7 +130,7 @@ After updating the gene weights, every assigned gene coefficient is (re)computed
 The coefficient for assigned gene $g$ in pixel $p$ is given by
 
 $$
-c_{pgi} = \frac{1}{N_r}\Bigg | \sum_{rc}\tilde{R}_{pgrci}\hat{B}_{grc} \Bigg |
+c_{pgi} = \frac{1}{N_r ||\tilde{R}||_{pgr.i}}\Bigg | \sum_{rc}\epsilon_{pgrci}^2 \tilde{R}_{pgrci} \hat{B}_{grc} \Bigg |
 $$
 
 where
@@ -138,6 +138,15 @@ where
 $$
 \tilde{R}_{pgrci} = S_{prc} - \sum_{g'\text{ assigned except }g}B_{g'rc}w_{pg'i}
 $$
+
+and
+
+$$
+\epsilon_{pgrci}^2 = N_r N_c \frac{\sigma_{pgirc}^{-2}}{\sum_{rc} \sigma_{pgirc}^{-2}} \text{,}\space\space\space
+\sigma_{pgirc}^2 = \beta^2 + \alpha \sum_{g'\text{ assigned except }g}w_{pg'i}^2 B_{g'rc}^2
+$$
+
+A coefficient is made negative if the gene's weight is negative.
 
 Step 1 is now repeated on the remaining pixels unless $i$ is $\text{max\_genes}$ (i.e. the last iteration).
 

@@ -56,7 +56,7 @@ class ViewOMPColourSum(Subplot):
         omp_solver = CoefficientSolverOMP()
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
         bg_bled_codes = omp_solver.create_background_bled_codes(n_rounds_use, n_channels_use)
-        coefficients, gene_weights = omp_solver.solve(
+        coefficients, gene_weights, gene_residuals = omp_solver.solve(
             pixel_colours=self.colour[np.newaxis],
             bled_codes=bled_codes,
             background_codes=bg_bled_codes,
@@ -66,11 +66,14 @@ class ViewOMPColourSum(Subplot):
             alpha=alpha,
             beta=beta,
             return_all_weights=True,
+            return_all_residuals=True,
         )
         self.coefficient = coefficients[0]
         self.gene_weight = gene_weights[0]
         self.assigned_genes: np.ndarray[int] = (~np.isnan(self.gene_weight)).nonzero()[0]
         self.gene_weight = self.gene_weight[self.assigned_genes]
+        # Has shape (n_genes_assigned, n_rounds_use, n_channels_use).
+        self.gene_residuals = gene_residuals[0][self.assigned_genes]
         self.coefficient = self.coefficient[self.assigned_genes]
         n_iterations = self.assigned_genes.size
         if n_iterations == 0:
@@ -84,15 +87,13 @@ class ViewOMPColourSum(Subplot):
             width_ratios=[3 for _ in range(column_count - 1)] + [1],
             layout="constrained",
         )
-        self.assigned_bled_codes = nbp_call_spots.bled_codes[self.assigned_genes]
+        self.assigned_bled_codes: np.ndarray = nbp_call_spots.bled_codes[self.assigned_genes].astype(np.float32)
         # Weight the bled codes.
         self.assigned_bled_codes *= self.gene_weight[:, np.newaxis, np.newaxis]
-        # self.bled_codes_except_one[i] is total colour - all weighted bled codes except the i'th gene.
-        self.bled_codes_except_one = self.assigned_bled_codes.sum(0, keepdims=True).repeat(n_iterations, 0)
-        self.residual_colours = self.colour - self.bled_codes_except_one + self.assigned_bled_codes
+
         abs_max = np.abs(self.assigned_bled_codes).max()
         abs_max = np.max([abs_max, np.abs(self.colour).max()])
-        abs_max = np.max([abs_max, np.abs(self.residual_colours).max()]).item()
+        abs_max = np.max([abs_max, np.abs(self.gene_residuals).max()]).item()
 
         self.cmap = mpl.cm.seismic
         self.norm = mpl.colors.Normalize(vmin=-abs_max, vmax=abs_max)
@@ -124,10 +125,12 @@ class ViewOMPColourSum(Subplot):
         self.axes[0, 0].set_ylabel("Channel")
         self.axes[1, 0].set_ylabel("Channel")
 
-        # Plot residual colours for each gene
+        # Plot residual colours for each gene.
         for i, g in enumerate(self.assigned_genes):
-            self.axes[1, i].set_title(f"Spot colour - bled codes\nexcept {self.gene_names[g]}")
-            self.axes[1, i].imshow(self.residual_colours[i].T, cmap=self.cmap, norm=self.norm)
+            self.axes[1, i].set_title(
+                r"(Spot colour - bled codes)$\times\epsilon^2$" + f"\nexcept {self.gene_names[g]}"
+            )
+            self.axes[1, i].imshow(self.gene_residuals[i].T, cmap=self.cmap, norm=self.norm)
 
         self.axes[1, -2].set_title(f"Spot colour")
         self.axes[1, -2].imshow(self.colour.T, cmap=self.cmap, norm=self.norm)

@@ -1,4 +1,7 @@
+import math as maths
+
 import numpy as np
+import torch
 
 from coppafish.call_spots import dot_product
 
@@ -28,6 +31,20 @@ def test_dot_product():
     assert np.allclose(scores[0, 0, 1], 0.0976310729)
     assert np.allclose(spot_colours, spot_colours_copy)
     assert np.allclose(bled_codes, bled_codes_copy)
+
+    # Check with torch Tensor inputs.
+    spot_colours_torch = torch.from_numpy(spot_colours)
+    bled_codes_torch = torch.from_numpy(bled_codes)
+    spot_colours_torch_copy = spot_colours_torch.detach().clone()
+    bled_codes_torch_copy = bled_codes_torch.detach().clone()
+    scores_torch = dot_product.dot_product_score(spot_colours=spot_colours_torch, bled_codes=bled_codes_torch)
+    assert type(scores_torch) is torch.Tensor
+    assert scores_torch.shape == (n_batches, n_spots, n_genes)
+    assert maths.isclose(scores_torch[0, 0, 0].item(), 0.98120648, abs_tol=5e-9)
+    assert maths.isclose(scores_torch[0, 0, 1].item(), 0.09763107, abs_tol=5e-9)
+    assert torch.allclose(spot_colours_torch, spot_colours_torch_copy)
+    assert torch.allclose(bled_codes_torch, bled_codes_torch_copy)
+
     # Ensure the batching dimension is working.
     bled_codes = bled_codes.repeat(3, 0)
     scores_2 = dot_product.dot_product_score(spot_colours, bled_codes)
