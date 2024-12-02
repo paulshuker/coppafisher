@@ -125,7 +125,6 @@ _options = {
         "concentration_parameter_perpendicular": "number",
     },
     "omp": {
-        "weight_coef_fit": "bool",
         "max_genes": "int",
         "minimum_intensity": "number",
         "alpha": "number",

@@ -4,8 +4,8 @@ OMP is coppafish's current best gene assignment algorithm. OMP runs independentl
 [register](overview.md#register) for image-alignment and [call spots](overview.md#call-spots) for dataset-accurate
 representation of each gene's unique barcode: its bled code, $\mathbf{B}$.
 
-OMP produces a coefficient image for every pixel and every gene by cycling through steps 1-3. Then, the final gene reads
-are found in step 4.
+A coefficient image is produced for every pixel and every gene by iterating through steps 1-3. Then, the final gene
+reads are found in step 4.
 
 ## Definitions
 
@@ -38,13 +38,13 @@ computed for every gene and background gene $g$ similar to
 [call spots](call_spots.md#6-and-7-application-of-scales-computation-of-final-scores-and-bleed-matrix)
 
 $$
-\text{(gene scores)}_{pgi} = \frac{1}{N_r}\Bigg|\sum_{rc}(\epsilon_{prci}^2\hat{R}_{prc(i - 1)}\hat{B}_{grc})\Bigg|
+\text{(gene scores)}_{pgi} = \frac{1}{N_r||\mathbf{\hat{R}}||_{prc(i-1)}}\Bigg|\sum_{rc}(\hat{R}_{prc(i - 1)}\hat{B}_{grc})\Bigg|
 $$
 
 where
 
 $$
-\hat{R}_{prci} = \frac{R_{prci}}{||\mathbf{R}||_{pr.i}}\text{,}\space\space\space
+\hat{R}_{prci} = \epsilon_{prci}^2R_{prci}\text{,}\space\space\space
 \hat{B}_{grc} = \frac{B_{grc}}{||\mathbf{B}||_{gr.}}\text{,}\space\space\space
 \epsilon_{prci}^2 = N_r N_c\frac{\sigma_{pirc}^{-2}}{\sum_{rc}\sigma_{pirc}^{-2}}\text{,}\space\space\space
 $$
@@ -130,13 +130,13 @@ After updating the gene weights, every assigned gene coefficient is (re)computed
 The coefficient for assigned gene $g$ in pixel $p$ is given by
 
 $$
-c_{pgi} = \frac{1}{N_r ||\tilde{R}||_{pgr.i}}\Bigg | \sum_{rc}\epsilon_{pgrci}^2 \tilde{R}_{pgrci} \hat{B}_{grc} \Bigg |
+c_{pgi} = \frac{1}{N_r ||\mathbf{\tilde{R}}||_{pgr.i}}\Bigg | \sum_{rc}\tilde{R}_{pgrci} \hat{B}_{grc} \Bigg |
 $$
 
 where
 
 $$
-\tilde{R}_{pgrci} = S_{prc} - \sum_{g'\text{ assigned except }g}B_{g'rc}w_{pg'i}
+\tilde{R}_{pgrci} = \epsilon_{prci}^2\Big(S_{prc} - \sum_{g'\text{ assigned except }g}B_{g'rc}w_{pg'i}\Big)
 $$
 
 and

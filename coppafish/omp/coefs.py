@@ -447,15 +447,16 @@ class CoefficientSolverOMP:
         n_pixels, n_rounds_use, n_channels_use = pixel_colours.shape
         n_genes_assigned = bled_codes.shape[1]
 
+        # Has shape (n_pixels, n_genes_assigned, n_rounds_use, n_channels_use).
         weighted_bled_codes = bled_codes * weights[:, :, np.newaxis, np.newaxis]
 
         # bled_codes_sums_except_one[:, g] is the sum of weighted bled codes except gene g's weighted bled code.
         # It has shape (n_pixels, n_genes_assigned, n_rounds_use, n_channels_use).
         bled_codes_sum_except_one = weighted_bled_codes.sum(1, keepdim=True).repeat_interleave(n_genes_assigned, 1)
         bled_codes_sum_except_one -= weighted_bled_codes
-
         # Change its shape to (n_genes_assigned, n_pixels, n_rounds_use, n_channels_use).
         bled_codes_sum_except_one = bled_codes_sum_except_one.swapaxes(0, 1)
+        del weighted_bled_codes
 
         # colour_residuals has shape (n_genes_assigned, n_pixels, n_rounds_use, n_channels_use).
         # colour_residuals[g] is the pixel colour minus all weighted bled codes except the one for gene g.
@@ -463,9 +464,6 @@ class CoefficientSolverOMP:
         # Denoted as $\tilde{R}$ in the docs.
         colour_residuals = pixel_colours.detach().clone()[np.newaxis] - bled_codes_sum_except_one
         del bled_codes_sum_except_one
-
-        # weighted_bled_codes has shape (n_genes_assigned, n_pixels, 1, n_rounds_use, n_channels_use).
-        weighted_bled_codes = weighted_bled_codes.swapaxes(0, 1)[:, :, np.newaxis]
 
         # bled_codes_except_one[g] is every bled code except the bled code for gene g.
         # It has shape (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_use, n_channels_use).
