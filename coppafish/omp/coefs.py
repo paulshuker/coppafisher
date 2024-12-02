@@ -127,7 +127,7 @@ class CoefficientSolverOMP:
         device = system.get_device(force_cpu)
 
         coefficients = torch.zeros((n_pixels, n_genes), dtype=self.DTYPE_T)
-        colours = torch.from_numpy(pixel_colours.astype(np.float32))
+        colours = torch.from_numpy(pixel_colours).to(dtype=self.DTYPE_T)
         # Remember the residual colour between iterations.
         residual_colours = colours.detach().clone()
         # Remember what pixels still need iterating on.
