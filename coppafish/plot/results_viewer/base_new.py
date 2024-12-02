@@ -198,6 +198,7 @@ class Viewer:
 
         # Gather all spot data and keep in self.
         print("Gathering spot data")
+        # TODO: Place this code logic outside of the Viewer. It will be used by other methods too like export_to_pciseq.
         spot_data: dict[str, Viewer.MethodData] = {}
         spot_data["prob"] = self.MethodData()
         spot_data["prob"].tile = self.nbp_ref_spots.tile[:]
