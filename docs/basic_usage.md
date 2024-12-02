@@ -122,6 +122,10 @@ dapi_channel = 0
 
 [stitch]
 expected_overlap = 0.15
+
+[call_spots]
+target_values = 1, 1, 1, 1
+d_max = 0, 1, 2, 3
 ```
 
 where the `dapi_channel` is the index in the numpy arrays that the dapi channel is stored at. `use_channels` includes
@@ -135,6 +139,9 @@ corresponds to a larger, real distance. `tile_dir` is the tile directory, where 
 `output_dir` is where the notebook and PDF diagnostics are saved. More details about every config variable can be found
 at <a href="https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/setup/settings.default.ini" target="_blank">
 `coppafish/setup/settings.default.ini`</a> in the source code.
+
+`target_values` and `d_max` must both have `n_seq_channels` numbers, one for each channel. See
+[call spots](call_spots.md#4-round-and-channel-normalisation) for details on how to set the values.
 
 ## Running
 
