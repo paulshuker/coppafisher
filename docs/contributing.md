@@ -1,11 +1,11 @@
 ## The Algorithm
 
-Coppafish is built on the basis that an algorithm that performs well does not need to be changed. Algorithms are only
-updated when there is evidence that it can perform better and that the current algorithm is performing worse.
+Coppafish is built on the principle: An algorithm that performs well does not need to be changed. So, algorithms are
+only updated when there is evidence that it can perform better and that the current algorithm is performing worse.
 
-Typically, there is a protected staging branch, like `v1.0.0`, for a future release. This must be pull requested into
-and must pass continuous integration tests. The `main` branch remains the latest stable release for users to easily
-install the software.
+We use a protected staging branch, like `v1.0.0`, for a future release. This must be pull requested into and must pass
+continuous integration tests. The `main` branch remains the latest stable release for users to easily install the
+software.
 
 ## Run Tests
 
