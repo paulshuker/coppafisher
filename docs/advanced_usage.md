@@ -6,7 +6,7 @@ re-run starting from an intermediate stage, you can delete all subsequent stages
 stages of coppafish you can re-run starting from, in chronological order, in the python terminal
 
 ```py
-from coppafish.utils import CompatibilityTracker
+from coppafish.compatibility import CompatibilityTracker
 
 tracker = CompatibilityTracker()
 tracker.print_stage_names()
@@ -15,7 +15,7 @@ tracker.print_stage_names()
 As an example, if you wished to know how to start from the stage "find_spots" again
 
 ```py
-from coppafish.utils import CompatibilityTracker
+from coppafish.compatibility import CompatibilityTracker
 
 tracker = CompatibilityTracker()
 tracker.print_start_from("find_spots")
@@ -37,7 +37,7 @@ bad_trc = (t1, r1, c1), (t2, r2, c2), ...
 under the `basic_info` section. Each set of brackets represents one image to ignore. This allows for meaningful
 results to be salvaged from an incomplete tile.
 
-## Exporting results for pciSeq
+## Export for pciSeq
 
 For probabilistic cell typing with [pciSeq](https://github.com/acycliq/pciSeq), you can export gene reads into a
 compatible csv file by
@@ -51,13 +51,13 @@ export_to_pciseq(nb, method)
 ```
 
 where method can be "omp", "prob", or "anchor" for each gene calling method. To set a score and/or intensity minimum
-threshold,
+threshold:
 
 ```py
 export_to_pciseq(nb, method, score_thresh, intensity_thresh)
 ```
 
-where score_thresh and intensity_thresh are numbers. Use the [Viewer](diagnostics.md#viewer) to decide on thresholds.
+score_thresh and intensity_thresh are numbers. Use the [Viewer](diagnostics.md#viewer) to decide on thresholds.
 
 ## Create a background process
 
