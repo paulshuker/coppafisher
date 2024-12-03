@@ -28,6 +28,18 @@ You can run pre-commit checks manually as well:
 pre-commit run --all-files
 ```
 
+If a commit is pushed that fails a pre-commit check, then the GitHub integration workflow will catch it.
+
+## Lint
+
+[Pyright](https://github.com/microsoft/pyright) does lint checks on the codebase in the GitHub integration workflow.
+Currently, static type checking is turned off (see [#145](https://github.com/paulshuker/coppafish/issues/145)). It is
+recommended to install pyright within your IDE/text editor for error checking while editing code. Manually check by
+
+```terminal
+pyright .
+```
+
 ## Tests
 
 Tests are run through [pytest](https://github.com/pytest-dev/pytest/). Scripts are unit tested by placing the test
@@ -58,7 +70,7 @@ pytest -m notebook
 
 View code coverage by appending `--cov=coppafish --cov-report term` to each command.
 
-## Run Local Documentation
+## Run Documentation Locally
 
 ```terminal
 mkdocs serve
