@@ -496,7 +496,9 @@ class CoefficientSolverOMP:
         colour_residuals *= epsilon_squared
         del epsilon_squared
 
-        coefficients = dot_product.dot_product_score(colour_residuals, bled_codes[np.newaxis])[:, :, 0]
+        coefficients = dot_product.dot_product_score(colour_residuals, bled_codes.swapaxes(0, 1)[:, :, np.newaxis])[
+            :, :, 0
+        ]
 
         # Change coefficients shape to (n_pixels x n_genes_assigned).
         coefficients = coefficients.swapaxes(0, 1)
