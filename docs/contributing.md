@@ -7,13 +7,36 @@ We use a protected staging branch, like `v1.0.0`, for a future release. This mus
 continuous integration tests. The `main` branch remains the latest stable release for users to easily install the
 software.
 
-## Run Tests
-
-In the coppafish environment, install dev packages
+While changing code, please install dev packages
 
 ```terminal
 pip install -r requirements-dev.txt
 ```
+
+## Pre-Commit
+
+[Pre-commit](https://github.com/pre-commit/pre-commit) hooks will automatically run on every git commit. This will
+ensure files are consistently formatted and checked. Use pre-commit hooks by
+
+```terminal
+pre-commit install
+```
+
+You can run pre-commit checks manually as well:
+
+```terminal
+pre-commit run --all-files
+```
+
+## Tests
+
+Tests are run through [pytest](https://github.com/pytest-dev/pytest/). Scripts are unit tested by placing the test
+scripts inside a directory called `test` within the script's directory. Every `test` directory must contain an empty
+`__init__.py` file. All test script file names should start with `test_`. The scripts must end with their relative
+directory (directories) and their script file name, separated by underscores. For example, the test script for
+`coppafish/omp/coefs.py` is named `test_omp_coefs.py`. Check existing tests for examples.
+
+## Run Tests
 
 Run unit tests (~6s)
 
@@ -35,7 +58,7 @@ pytest -m notebook
 
 View code coverage by appending `--cov=coppafish --cov-report term` to each command.
 
-## Run Documentation Locally
+## Run Local Documentation
 
 ```terminal
 mkdocs serve
