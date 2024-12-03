@@ -4,4 +4,8 @@ line-length = 120
 [tool.pyright]
 typeCheckingMode = "off"
 # Fix relative importing resolves using pyright.
-executionEnvironments = {"root" = "src"}
+include = ["src" ]
+exclude = [ "**/temp", "temp.py", "**/__pycache__", "**/build/lib" ]
+executionEnvironments = [
+    { "root" = "src" },
+]

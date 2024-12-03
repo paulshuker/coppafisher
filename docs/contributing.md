@@ -52,6 +52,7 @@ Here are some specific standards to follow:
 
 * Knowledge written down twice is bad code. Don't Repeat Yourself (DRY)!
 * If a bug is found, the bug must be automatically found if it is to occur again.
+* All code is [black](https://github.com/psf/black) formatted.
 * Every time a function is modified or created, a new unit test must be created for the function. A pre-existing unit
 test can be drawn from to build a new unit test, but it should be clear in your mind that you are affectively building
 a new function.

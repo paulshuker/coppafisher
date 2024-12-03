@@ -28,11 +28,25 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Install black
+        run: python -m pip install black
+
+      - name: Assert black formatted code
+        run: black --check --diff .
+        continue-on-error: false
+
+      - name: Install pyright
+        run: python -m pip install pyright
+
+      - name: Check linting
+        run: pyright .
+        continue-on-error: false
+
       - name: Install default dependencies
         run: |
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-torch.txt
-      
+
       - name: Install coppafish
         run: python -m pip install .
 

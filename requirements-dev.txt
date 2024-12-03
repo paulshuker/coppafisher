@@ -10,5 +10,3 @@ pytest-cov
 pyright
 # Code formatter
 black
-# Automatic imports organiser
-isort
