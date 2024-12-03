@@ -44,6 +44,10 @@ jobs:
         run: pre-commit run --all-files
         continue-on-error: false
 
+      - name: Lint checks
+        run: pyright .
+        continue-on-error: false
+
       - name: Run default unit tests
         run: pytest -m "not integration and not notebook" --cov=coppafish --cov-report term
 
