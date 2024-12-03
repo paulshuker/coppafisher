@@ -1,12 +1,12 @@
-# Documentation
-mkdocs-material
-# Continuous integration testing
-pytest
-# Napari Qt tests
-pytest-qt
-# Code coverage
-pytest-cov
-# Static type checker
-pyright
 # Code formatter
 black
+# Documentation
+mkdocs-material
+# Pre-commit hooks
+pre-commit
+# Static type checker
+pyright
+# Testing
+pytest
+# Code coverage
+pytest-cov
