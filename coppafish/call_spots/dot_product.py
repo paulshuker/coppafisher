@@ -12,9 +12,9 @@ def dot_product_score(
     spot colour is zero in said round. The scores range from 0 to infinity.
 
     Args:
-        spot_colours (n_batches x n_spots x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`): spot
+        spot_colours (`(n_batches x n_spots x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`): spot
             colours after call spots scaling has been applied. They must not be L2 normalised.
-        bled_codes ((n_batches x n_spots x n_genes x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`):
+        bled_codes (`(n_batches x n_spots x n_genes x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`):
             normalised bled codes. Each batch of bled_codes is scored on the spot colours. n_spots is specified if the
             bled codes are different for each spot colour.
 
@@ -24,7 +24,7 @@ def dot_product_score(
             if spot_colours is a tensor.
 
     Notes:
-        - If n_batches is 1 for a tensor, then that tensor will be repeated for all batches.
+        - If n_batches is 1 for a tensor, then that tensor will be broadcasted for all batches.
         - If n_spots is 1 for bled_codes, then the bled codes will be repeated for all spots in spot_colours.
     """
     assert type(spot_colours) in (np.ndarray, torch.Tensor)

@@ -216,21 +216,73 @@ def test_get_gene_coefficients() -> None:
     weighted_bled_codes[1, 1, 1] = [0, 1, 0, 0.5]
     weighted_bled_codes[1, 1, 2] = [0, 0, 1, 1]
 
+    weights = np.zeros((n_pixels, n_genes_assigned), np.float32)
+    weights = np.linalg.norm(weighted_bled_codes, axis=(-1, -2))
+
+    bled_codes = np.zeros_like(weighted_bled_codes, np.float32)
+    bled_codes = weighted_bled_codes.copy() / weights[:, :, np.newaxis, np.newaxis]
+
     pixel_colours = torch.from_numpy(pixel_colours)
-    weighted_bled_codes = torch.from_numpy(weighted_bled_codes)
+    weights = torch.from_numpy(weights)
+    bled_codes = torch.from_numpy(bled_codes)
     pixel_colours_copy = pixel_colours.detach().clone()
-    weighted_bled_codes_copy = weighted_bled_codes.detach().clone()
+    weights_copy = weights.detach().clone()
+    bled_codes_copy = bled_codes.detach().clone()
 
     solver = coefs.CoefficientSolverOMP()
-    coefficients = solver.get_gene_coefficients(
-        pixel_colours, weighted_bled_codes, torch.ones((n_pixels, n_genes_assigned)).float()
-    )
-    assert type(coefficients) is torch.Tensor
+    coefficients = solver.get_gene_coefficients(pixel_colours, bled_codes, weights, 0.0, 2.0)
+    assert type(coefficients) is tuple
+    assert len(coefficients) == 1
+    coefficients = coefficients[0]
     assert coefficients.ndim == 2
     assert coefficients.shape == (n_pixels, n_genes_assigned)
     assert torch.allclose(pixel_colours, pixel_colours_copy)
-    assert torch.allclose(weighted_bled_codes, weighted_bled_codes_copy)
+    assert torch.allclose(bled_codes, bled_codes_copy)
+    assert torch.allclose(weights, weights_copy)
     assert (coefficients >= 0).all()
 
     # Check against calculations done by hand.
     assert torch.isclose(coefficients[0, 0], torch.tensor(0.8626247925).float())
+
+    # TODO: Check when alpha and beta are both non-zero.
+
+
+def test_get_uncertainty_weights() -> None:
+    n_batches = 2
+    n_pixels = 3
+    n_genes_assigned = 4
+    n_rounds_channels_use = 5
+
+    rng = np.random.RandomState(0)
+
+    gene_weights = rng.rand(n_batches, n_pixels, n_genes_assigned).astype(np.float32)
+    gene_weights = torch.from_numpy(gene_weights)
+    bled_codes = rng.rand(n_batches, n_pixels, n_rounds_channels_use, n_genes_assigned).astype(np.float32)
+    bled_codes = torch.from_numpy(bled_codes)
+    alpha = 1.1
+    beta = 2.3
+
+    gene_weights_copy = gene_weights.detach().clone()
+    bled_codes_copy = bled_codes.detach().clone()
+
+    solver = coefs.CoefficientSolverOMP()
+    epsilon_squared = solver.get_uncertainty_weights(gene_weights, bled_codes, alpha, beta)
+    assert type(epsilon_squared) is torch.Tensor
+    assert epsilon_squared.shape == (n_batches, n_pixels, n_rounds_channels_use)
+    assert torch.allclose(gene_weights, gene_weights_copy)
+    assert torch.allclose(bled_codes, bled_codes_copy)
+
+    for b in range(n_batches):
+        for p in range(n_pixels):
+            # We require sigma squared for every round/channel pair for each epsilon squared computation.
+            sigma_squared_values = []
+            for rc in range(n_rounds_channels_use):
+                sigma_squared = beta**2 + alpha * torch.square(gene_weights[b, p] * bled_codes[b, p, rc]).sum()
+                sigma_squared_values.append(sigma_squared)
+            sigma_squared_values = torch.tensor(sigma_squared_values)
+            sigma_squared_values = torch.reciprocal(sigma_squared_values)
+
+            # Now compute epsilon squared for each round/channel pair and check the function's values are correct.
+            for rc in range(n_rounds_channels_use):
+                epsilon_squared_expected = n_rounds_channels_use * sigma_squared_values[rc] / sigma_squared_values.sum()
+                assert torch.isclose(epsilon_squared[b, p, rc], epsilon_squared_expected)
