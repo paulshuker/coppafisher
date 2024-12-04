@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 import tqdm
-import tqdm
 import zarr
 
 from .. import find_spots as fs

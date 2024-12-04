@@ -1,7 +1,7 @@
 import os
-from pathlib import PurePath
 import shutil
 import tempfile
+from pathlib import PurePath
 
 import numpy as np
 import zarr

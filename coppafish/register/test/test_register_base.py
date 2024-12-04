@@ -1,6 +1,6 @@
 import numpy as np
-from skimage.filters import gaussian
 from skimage import data
+from skimage.filters import gaussian
 
 from coppafish.register import base as reg_base
 from coppafish.register import preprocessing as reg_pre

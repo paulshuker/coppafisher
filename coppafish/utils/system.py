@@ -1,8 +1,8 @@
 import os
-from pathlib import PurePath
 import shutil
-from typing import Tuple
 import urllib
+from pathlib import PurePath
+from typing import Tuple
 
 import numpy as np
 import psutil

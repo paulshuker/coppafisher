@@ -1,18 +1,18 @@
-from typing import Optional
 import warnings
+from typing import Optional
 
-from PyQt5.QtWidgets import QLabel, QLineEdit, QMainWindow, QPushButton, QSlider
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import napari
 import nd2
 import numpy as np
+import skimage
+import torch
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from PyQt5.QtWidgets import QLabel, QLineEdit, QMainWindow, QPushButton, QSlider
 from qtpy.QtCore import Qt
 from scipy.ndimage import affine_transform
 from scipy.spatial import KDTree
-import skimage
 from superqt import QRangeSlider
-import torch
 from tqdm import tqdm
 
 from coppafish.setup import file_names

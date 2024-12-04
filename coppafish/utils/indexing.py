@@ -1,5 +1,5 @@
 import itertools
-from typing import Tuple, Optional, Union, List, Any
+from typing import Any, List, Optional, Tuple, Union
 
 from ..setup.notebook_page import NotebookPage
 

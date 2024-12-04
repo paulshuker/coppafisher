@@ -6,7 +6,7 @@ from tqdm import tqdm
 from .. import log
 from ..extract import raw
 from ..setup.notebook_page import NotebookPage
-from ..utils import indexing, tiles_io, system
+from ..utils import indexing, system, tiles_io
 
 
 def run_extract(config: dict, nbp_file: NotebookPage, nbp_basic: NotebookPage) -> NotebookPage:

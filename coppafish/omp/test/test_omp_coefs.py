@@ -3,7 +3,6 @@ import torch
 
 from coppafish.omp import coefs
 
-
 # def test_compute_omp_coefficients() -> None:
 #     n_pixels = 7
 #     n_genes = 2

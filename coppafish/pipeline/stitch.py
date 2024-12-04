@@ -1,10 +1,11 @@
 import os
 
 import numpy as np
-from tqdm import tqdm
 import zarr
+from tqdm import tqdm
 
-from .. import log, stitch as stitch_base
+from .. import log
+from .. import stitch as stitch_base
 from ..setup.notebook_page import NotebookPage
 
 

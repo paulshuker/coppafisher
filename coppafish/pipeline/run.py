@@ -1,16 +1,8 @@
 import os
 from typing import Tuple
 
-from . import basic_info
-from . import extract_run
-from . import filter_run
-from . import find_spots
-from . import register
-from . import stitch
-from . import get_reference_spots
-from . import call_reference_spots
-from . import omp_torch
 from .. import log, setup
+from ..compatibility import base as utils_version
 from ..find_spots import check_spots
 from ..pdf.base import BuildPDF
 from ..setup import file_names
@@ -18,8 +10,18 @@ from ..setup.notebook import Notebook
 from ..setup.notebook_page import NotebookPage
 from ..utils import system as utils_system
 from ..utils import tiles_io as utils_tiles_io
-from ..compatibility import base as utils_version
 from ..utils import warnings as utils_warnings
+from . import (
+    basic_info,
+    call_reference_spots,
+    extract_run,
+    filter_run,
+    find_spots,
+    get_reference_spots,
+    omp_torch,
+    register,
+    stitch,
+)
 
 
 def run_pipeline(config_file: str) -> Notebook:

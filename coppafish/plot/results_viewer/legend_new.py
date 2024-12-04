@@ -2,10 +2,10 @@ import colorsys
 import math as maths
 
 import matplotlib
+import numpy as np
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvasHeadless
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-import numpy as np
 
 
 # A headless (Agg) backend version of MplCanvas, this is required for unit testing the gene legend.

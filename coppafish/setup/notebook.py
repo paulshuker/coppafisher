@@ -6,9 +6,9 @@ from typing import Any, Optional, Tuple
 
 import numpy as np
 
-from . import config
 from .. import log
 from ..utils import system as utils_system
+from . import config
 from .notebook_page import NotebookPage
 
 

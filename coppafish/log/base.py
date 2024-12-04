@@ -1,5 +1,3 @@
-from collections.abc import Callable
-from datetime import datetime
 import logging
 import smtplib
 import socket
@@ -7,6 +5,8 @@ import subprocess
 import sys
 import time
 import traceback
+from collections.abc import Callable
+from datetime import datetime
 from typing import Any, Union
 
 DEBUG = 10

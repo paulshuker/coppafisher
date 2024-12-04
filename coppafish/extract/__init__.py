@@ -1,1 +1,1 @@
-from .base import strip_hack, get_pixel_length
+from .base import get_pixel_length, strip_hack

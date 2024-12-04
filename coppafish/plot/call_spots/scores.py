@@ -1,13 +1,13 @@
-from typing import Optional, List
 import warnings
+from typing import List, Optional
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.widgets import TextBox, CheckButtons
 import numpy as np
+from matplotlib.widgets import CheckButtons, TextBox
 
-from ...setup.notebook import Notebook
 from ...call_spots.dot_product import dot_product_score
+from ...setup.notebook import Notebook
 
 
 class HistogramScore:

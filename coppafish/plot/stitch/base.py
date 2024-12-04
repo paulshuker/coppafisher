@@ -1,9 +1,9 @@
 import matplotlib.pyplot as plt
 import napari
 import numpy as np
+from tqdm import tqdm
 
 from ...setup.notebook import Notebook
-from tqdm import tqdm
 
 
 def view_stitch_checkerboard(nb: Notebook):

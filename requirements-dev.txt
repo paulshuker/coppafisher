@@ -1,5 +1,7 @@
 # Code formatter
 black
+# Import formatter
+isort
 # Documentation
 mkdocs-material
 # Pre-commit hooks

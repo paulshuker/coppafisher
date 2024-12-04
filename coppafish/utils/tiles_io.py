@@ -2,13 +2,12 @@ import enum
 import os
 from typing import Any, Optional, Tuple, Union
 
-from numcodecs import Blosc, blosc
 import numpy as np
 import numpy.typing as npt
 import zarr
+from numcodecs import Blosc, blosc
 
 from ..utils import system
-
 
 EXTRACT_IMAGE_DTYPE = np.uint16
 FILTER_IMAGE_DTYPE = np.float16

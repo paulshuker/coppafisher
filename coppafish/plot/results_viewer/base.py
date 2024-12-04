@@ -2,34 +2,35 @@ import copy
 import importlib.resources as importlib_resources
 import os
 import time
-from typing import Optional, Union
 import warnings
+from typing import Optional, Union
 
-from PyQt5.QtWidgets import QMainWindow, QPushButton
 import matplotlib.pyplot as plt
 import napari
-from napari.layers.points import Points
-from napari.layers.points._points_constants import Mode
 import numpy as np
 import pandas as pd
+import tifffile
+from napari.layers.points import Points
+from napari.layers.points._points_constants import Mode
+from PyQt5.QtWidgets import QMainWindow, QPushButton
 from qtpy.QtCore import Qt
 from superqt import QDoubleRangeSlider, QDoubleSlider
-import tifffile
 
-from . import legend
-from .. import call_spots as call_spots_plot
 from ...omp import base as omp_base
 from ...setup.notebook import Notebook
+from .. import call_spots as call_spots_plot
 from ..call_spots import (
-    ViewGeneEfficiencies,
+    HistogramScore,
+    ViewAllGeneHistograms,
     ViewBleedMatrix,
+    ViewGeneEfficiencies,
     ViewScalingAndBGRemoval,
-    view_bled_codes,
     ViewSpotColourAndCode,
+    view_bled_codes,
     view_spot,
 )
-from ..call_spots import HistogramScore, ViewAllGeneHistograms
 from ..omp import ViewOMPImage
+from . import legend
 from .hotkeys import Hotkeys, ViewHotkeys
 
 

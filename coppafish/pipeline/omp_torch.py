@@ -11,8 +11,7 @@ import torch
 import tqdm
 import zarr
 
-from .. import log, utils
-from .. import find_spots
+from .. import find_spots, log, utils
 from ..omp import coefs, scores
 from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base

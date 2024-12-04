@@ -1,31 +1,30 @@
 import importlib.resources as importlib_resources
 import math as maths
-from os import path
 import sys
 import time
-from typing import Optional
 import warnings
+from os import path
+from typing import Optional
 
-from PyQt5.QtCore import QLoggingCategory
-from PyQt5.QtWidgets import QComboBox, QPushButton
 import matplotlib as mpl
-from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import napari
 import napari.components
 import napari.components.viewer_model
-from napari.layers import Points
 import napari.layers
 import napari.settings
-from napari.utils.events import Selection
 import numpy as np
 import pandas as pd
-from qtpy.QtCore import Qt
-from superqt import QDoubleRangeSlider, QDoubleSlider
 import tabulate
 import tifffile
+from matplotlib.figure import Figure
+from napari.layers import Points
+from napari.utils.events import Selection
+from PyQt5.QtCore import QLoggingCategory
+from PyQt5.QtWidgets import QComboBox, QPushButton
+from qtpy.QtCore import Qt
+from superqt import QDoubleRangeSlider, QDoubleSlider
 
-from . import distribution, legend_new
 from ...omp import base as omp_base
 from ...setup.notebook import Notebook, NotebookPage
 from ...utils import system as utils_system
@@ -33,6 +32,7 @@ from ..call_spots import bleed_matrix, spot_colours
 from ..omp.coefs import ViewOMPImage
 from ..omp.colours import ViewOMPColourSum
 from ..omp.scores import ViewOMPGeneScores
+from . import distribution, legend_new
 from .hotkeys_new import Hotkey
 from .subplot import Subplot
 

@@ -1,5 +1,5 @@
-from collections.abc import Callable, Iterable
 import math as maths
+from collections.abc import Callable, Iterable
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np

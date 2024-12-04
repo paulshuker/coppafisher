@@ -1,10 +1,10 @@
 import itertools
 from typing import Optional
 
-from dash import Dash, dcc, html, Input, Output
 import matplotlib.pyplot as plt
 import numpy as np
 import plotly.graph_objects as go
+from dash import Dash, Input, Output, dcc, html
 
 from ..find_spots import detect
 from ..setup.notebook import Notebook

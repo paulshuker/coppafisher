@@ -1,5 +1,6 @@
-import numpy as np
 import math as maths
+
+import numpy as np
 
 from coppafish.utils import spot_images
 

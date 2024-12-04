@@ -1,15 +1,15 @@
 import warnings
 
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider
 import mplcursors
 import numpy as np
+from matplotlib.widgets import Slider
 
 from coppafish.omp import coefs
+from coppafish.plot.results_viewer.subplot import Subplot
 from coppafish.setup import config
 from coppafish.setup.notebook import NotebookPage
 from coppafish.spot_colours import base as spot_colours_base
-from coppafish.plot.results_viewer.subplot import Subplot
 
 
 class ViewOMPGeneScores(Subplot):

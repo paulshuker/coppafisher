@@ -1,13 +1,13 @@
 import enum
 import importlib.resources as importlib_resources
-from typing import Tuple
 import warnings
+from typing import Tuple
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Button, Slider
 import numpy as np
 import torch
+from matplotlib.widgets import Button, Slider
 
 from coppafish.omp import coefs
 from coppafish.omp import scores as omp_scores

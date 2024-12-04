@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("coppafish/_version.py", "r") as f:
     exec(f.read())

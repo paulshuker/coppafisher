@@ -1,13 +1,13 @@
 import os
 import textwrap
-from typing import Optional, Tuple, Union
 import webbrowser
+from typing import Optional, Tuple, Union
 
 import matplotlib as mpl
-from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib.pyplot as plt
-from matplotlib.transforms import ScaledTranslation
 import numpy as np
+from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.transforms import ScaledTranslation
 from tqdm import tqdm
 from typing_extensions import Self
 

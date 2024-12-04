@@ -4,12 +4,12 @@ import os
 from typing import Tuple
 
 import numpy as np
-from tqdm import tqdm
 import zarr
+from tqdm import tqdm
 
 from .. import log
-from ..register import preprocessing
 from ..register import base as register_base
+from ..register import preprocessing
 from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
 

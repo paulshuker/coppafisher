@@ -4,9 +4,9 @@ import os
 import numpy as np
 
 from .. import log
+from ..extract import nd2
 from ..setup.notebook_page import NotebookPage
 from ..utils import base as utils_base
-from ..extract import nd2
 
 
 def set_basic_info_new(config: dict) -> NotebookPage:

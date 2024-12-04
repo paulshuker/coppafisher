@@ -5,7 +5,6 @@ import os
 import shutil
 import time
 from typing import Dict, List, Optional, Tuple, Union
-from typing_extensions import Self
 
 import dask
 import napari
@@ -14,13 +13,14 @@ import numpy.typing as npt
 import pandas
 import scipy
 import tqdm
+from typing_extensions import Self
 
-from ..utils import base as utils_base
-from ..utils import errors as utils_errors
 from .. import log
 from ..omp import base as omp_base
 from ..pipeline import run
 from ..setup.notebook import Notebook
+from ..utils import base as utils_base
+from ..utils import errors as utils_errors
 
 
 # Originally created by Max Shinn, August 2023

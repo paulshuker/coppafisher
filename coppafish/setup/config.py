@@ -28,7 +28,6 @@ from typing import Any, Dict
 
 from .. import log
 
-
 # List of options and their type.  If you change this, update the
 # config.default.ini file too.  Make sure the type is valid.
 _options = {
