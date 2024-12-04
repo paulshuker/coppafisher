@@ -28,6 +28,12 @@ You can run pre-commit checks manually as well:
 pre-commit run --all-files
 ```
 
+Auto-update pre-commits (recommended):
+
+```terminal
+pre-commit autoupdate
+```
+
 If a commit is pushed that fails a pre-commit check, then the GitHub integration workflow will catch it.
 
 ## Lint
