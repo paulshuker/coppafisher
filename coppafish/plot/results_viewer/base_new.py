@@ -29,8 +29,8 @@ from ...omp import base as omp_base
 from ...setup.notebook import Notebook, NotebookPage
 from ...utils import system as utils_system
 from ..call_spots import bleed_matrix, spot_colours
-from ..omp.coefs import ViewOMPImage
 from ..omp.colours import ViewOMPColourSum
+from ..omp.pixel_scores import ViewOMPPixelScoreImage
 from ..omp.scores import ViewOMPGeneScores
 from . import distribution, legend_new
 from .hotkeys_new import Hotkey
@@ -384,10 +384,10 @@ class Viewer:
                 False,
             ),
             Hotkey(
-                "View OMP Coefficients",
+                "View OMP Pixel Scores",
                 "v",
-                "Show the OMP coefficients/scores around the selected spot's local region",
-                lambda _: self._add_subplot(self.view_omp_coefficients()),
+                "Show the OMP pixel scores/spot scores around the selected spot's local region",
+                lambda _: self._add_subplot(self.view_omp_pixel_scores()),
                 "OMP",
             ),
             Hotkey(
@@ -405,9 +405,11 @@ class Viewer:
                 "OMP",
             ),
         )
-        # Hotkeys can be connected to a function when they occur.
+        # Some Hotkeys invoke functions.
         for hotkey in self.hotkeys:
-            if hotkey.invoke is None or not self.viewer_exists():
+            if not self.viewer_exists():
+                continue
+            if hotkey.invoke is None:
                 continue
             self.viewer.bind_key(hotkey.key_press)(hotkey.invoke)
 
@@ -703,12 +705,12 @@ class Viewer:
             show=self.show,
         )
 
-    def view_omp_coefficients(self) -> Subplot | None:
+    def view_omp_pixel_scores(self) -> Subplot | None:
         if self.selected_spot is None:
             return
         self._free_subplot_spaces()
         spot_data = self.spot_data[self.selected_method]
-        return ViewOMPImage(
+        return ViewOMPPixelScoreImage(
             self.nbp_basic,
             self.nbp_filter,
             self.nbp_register,

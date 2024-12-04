@@ -2,7 +2,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
-from ...omp.coefs import CoefficientSolverOMP
+from ...omp.pixel_scores import PixelScoreSolver
 from ...setup import config
 from ...setup.notebook_page import NotebookPage
 from ..results_viewer.subplot import Subplot
@@ -53,7 +53,7 @@ class ViewOMPColourSum(Subplot):
 
         self.colour = spot_colour.copy().astype(np.float32)
         self.colour *= nbp_call_spots.colour_norm_factor[spot_tile].astype(np.float32)
-        omp_solver = CoefficientSolverOMP()
+        omp_solver = PixelScoreSolver()
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
         bg_bled_codes = omp_solver.create_background_bled_codes(n_rounds_use, n_channels_use)
         coefficients, gene_weights, gene_residuals = omp_solver.solve(

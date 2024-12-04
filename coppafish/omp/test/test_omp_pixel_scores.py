@@ -1,74 +1,12 @@
 import numpy as np
 import torch
 
-from coppafish.omp import coefs
+from coppafish.omp.pixel_scores import PixelScoreSolver
 
-# def test_compute_omp_coefficients() -> None:
-#     n_pixels = 7
-#     n_genes = 2
-#     n_rounds_use = 4
-#     n_channels_use = 3
-#     bled_codes = np.zeros((n_genes, n_rounds_use, n_channels_use), np.float32)
-#     bled_codes[0, 0, 0] = 1
-#     bled_codes[0, 1, 1] = 1
-#     bled_codes[1, 0, 1] = 1
-#     bled_codes[1, 1, 0] = 1
-#     bled_codes[1, 2, 2] = 1
-#     pixel_colours = np.zeros((n_pixels, n_rounds_use, n_channels_use), np.float16)
-#     # Pixel 0 has no intensity, expecting zero coefficients.
-#     pixel_colours[0] = 0
-#     # Pixel 1 has only background, expecting zero coefficients.
-#     pixel_colours[1, 1] = 2
-#     # Pixel 2 has a one strong gene expression weak background.
-#     pixel_colours[2] = 1.2 * bled_codes[1]
-#     pixel_colours[2, 0] += 0.02
-#     pixel_colours[2, 1] += 0.03
-#     # Pixel 3 has a weak gene expression and strong background.
-#     pixel_colours[3] = 0.5 * bled_codes[0]
-#     pixel_colours[3, 0] += 2
-#     # Pixel 4 has a weak gene expression below the normalisation_shift.
-#     pixel_colours[4] = 0.005 * bled_codes[0]
-#     # Pixel 5 has a weak and strong gene expression.
-#     pixel_colours[5] = 0.1 * bled_codes[0] + 2.0 * bled_codes[1]
-#     # Pixel 6 has both strong gene expressions.
-#     pixel_colours[6] = 1.4 * bled_codes[0] + 2.0 * bled_codes[1]
-#     background_codes = np.zeros((n_channels_use, n_rounds_use, n_channels_use), np.float32)
-#     background_codes[0, 0] = 1
-#     background_codes[1, 1] = 1
-#     background_codes[2, 2] = 1
-#     colour_norm_factor = np.ones((1, n_rounds_use, n_channels_use), np.float32)
-#     colour_norm_factor[0, 3, 2] = 0.1
-#     maximum_iterations = 4
-#     dot_product_threshold = 0.5
-#     normalisation_shift = 0.03
-#
-#     pixel_colours_previous = pixel_colours.copy()
-#     bled_codes_previous = bled_codes.copy()
-#     background_codes_previous = background_codes.copy()
-#     colour_norm_factor_previous = colour_norm_factor.copy()
-#     omp_solver = coefs.CoefficientSolverOMP()
-#     coefficients = omp_solver.compute_omp_coefficients(
-#         pixel_colours=pixel_colours,
-#         bled_codes=bled_codes,
-#         background_codes=background_codes,
-#         colour_norm_factor=colour_norm_factor,
-#         maximum_iterations=maximum_iterations,
-#         dot_product_weight=1.0,
-#         dot_product_threshold=dot_product_threshold,
-#         normalisation_shift=normalisation_shift,
-#     )
-#     assert type(coefficients) is np.ndarray
-#     assert np.allclose(pixel_colours_previous, pixel_colours)
-#     assert np.allclose(bled_codes_previous, bled_codes)
-#     assert np.allclose(background_codes_previous, background_codes)
-#     assert np.allclose(colour_norm_factor_previous, colour_norm_factor)
-#     assert coefficients.shape == (n_pixels, n_genes)
-#     abs_tol = 0.01
-#     assert np.allclose(coefficients[0], 0)
-#     assert np.allclose(coefficients[1], 0)
-#     assert np.allclose(coefficients[2, 0], 0)
-#     # TODO: Create solid coefficient compute assertions for this unit test. The bled codes and pixel colours are L2
-#     # normalised now during semi dot product scoring, so this needs updating.
+
+# TODO: Create solid pixel score compute assertions for this unit test. The bled codes and pixel colours are L2
+# normalised now during semi dot product scoring, so this needs updating.
+def test_solve() -> None: ...
 
 
 def test_get_next_gene_assignments() -> None:
@@ -114,7 +52,7 @@ def test_get_next_gene_assignments() -> None:
         dot_product_threshold=dot_product_threshold,
         minimum_intensity=0.0,
     )
-    omp_solver = coefs.CoefficientSolverOMP()
+    omp_solver = PixelScoreSolver()
     best_genes = omp_solver.get_next_gene_assignments(**kwargs)
     assert type(best_genes) is tuple
     assert len(best_genes) == 1
@@ -157,7 +95,7 @@ def test_get_next_residual_colours() -> None:
     beta = 1.0
     pixel_colours_copy = pixel_colours.detach().clone()
     bled_codes_copy = bled_codes.detach().clone()
-    solver = coefs.CoefficientSolverOMP()
+    solver = PixelScoreSolver()
     results = solver.get_next_gene_weights(pixel_colours, bled_codes, alpha, beta)
     assert type(results) is tuple
     assert len(results) == 3
@@ -188,7 +126,7 @@ def test_get_next_residual_colours() -> None:
     assert torch.allclose(epsilon_squared[0], expected_epsilon_squared)
 
 
-def test_get_gene_coefficients() -> None:
+def test_get_gene_pixel_scores() -> None:
     n_pixels = 2
     n_rounds_use = 3
     n_channels_use = 4
@@ -229,20 +167,20 @@ def test_get_gene_coefficients() -> None:
     weights_copy = weights.detach().clone()
     bled_codes_copy = bled_codes.detach().clone()
 
-    solver = coefs.CoefficientSolverOMP()
-    coefficients = solver.get_gene_coefficients(pixel_colours, bled_codes, weights, 0.0, 2.0)
-    assert type(coefficients) is tuple
-    assert len(coefficients) == 1
-    coefficients = coefficients[0]
-    assert coefficients.ndim == 2
-    assert coefficients.shape == (n_pixels, n_genes_assigned)
+    solver = PixelScoreSolver()
+    pixel_scores = solver.get_gene_pixel_scores(pixel_colours, bled_codes, weights, 0.0, 2.0)
+    assert type(pixel_scores) is tuple
+    assert len(pixel_scores) == 1
+    pixel_scores = pixel_scores[0]
+    assert pixel_scores.ndim == 2
+    assert pixel_scores.shape == (n_pixels, n_genes_assigned)
     assert torch.allclose(pixel_colours, pixel_colours_copy)
     assert torch.allclose(bled_codes, bled_codes_copy)
     assert torch.allclose(weights, weights_copy)
-    assert (coefficients >= 0).all()
+    assert (pixel_scores >= 0).all()
 
     # Check against calculations done by hand.
-    assert torch.isclose(coefficients[0, 0], torch.tensor(0.8626247925).float())
+    assert torch.isclose(pixel_scores[0, 0], torch.tensor(0.8626247925).float())
 
     # TODO: Check when alpha and beta are both non-zero.
 
@@ -265,7 +203,7 @@ def test_get_uncertainty_weights() -> None:
     gene_weights_copy = gene_weights.detach().clone()
     bled_codes_copy = bled_codes.detach().clone()
 
-    solver = coefs.CoefficientSolverOMP()
+    solver = PixelScoreSolver()
     epsilon_squared = solver.get_uncertainty_weights(gene_weights, bled_codes, alpha, beta)
     assert type(epsilon_squared) is torch.Tensor
     assert epsilon_squared.shape == (n_batches, n_pixels, n_rounds_channels_use)

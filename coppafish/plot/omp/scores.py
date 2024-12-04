@@ -5,7 +5,7 @@ import mplcursors
 import numpy as np
 from matplotlib.widgets import Slider
 
-from coppafish.omp import coefs
+from coppafish.omp import pixel_scores
 from coppafish.plot.results_viewer.subplot import Subplot
 from coppafish.setup import config
 from coppafish.setup.notebook import NotebookPage
@@ -74,7 +74,7 @@ class ViewOMPGeneScores(Subplot):
             out_of_bounds_value=0,
         )
         image_colours *= nbp_call_spots.colour_norm_factor[[spot_tile]]
-        omp_solver = coefs.CoefficientSolverOMP()
+        omp_solver = pixel_scores.PixelScoreSolver()
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
         bg_bled_codes = omp_solver.create_background_bled_codes(n_rounds_use, n_channels_use)
         _, self.dp_scores = omp_solver.solve(

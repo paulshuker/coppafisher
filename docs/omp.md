@@ -4,7 +4,7 @@ OMP is coppafish's current best gene assignment algorithm. OMP runs independentl
 [register](overview.md#register) for image-alignment and [call spots](overview.md#call-spots) for dataset-accurate
 representation of each gene's unique barcode: its bled code, $\mathbf{B}$.
 
-A coefficient image is produced for every pixel and every gene by iterating through steps 1-3. Then, the final gene
+A pixel score image is produced for every pixel and every gene by iterating through steps 1-3. Then, the final gene
 reads are found in step 4.
 
 ## Definitions
@@ -12,7 +12,7 @@ reads are found in step 4.
 - $r$ and $c$ represents sequencing rounds and channels respectively.
 - $B_{grc}$ represents gene g's bled code in round $r$, channel $c$ saved at `nb.call_spots.bled_codes` from call spots.
 - $S_{prc}$ is pixel $p$'s colour in round $r$, channel $c$, after pre-processing is applied.
-- $c_{pgi}$ is the OMP coefficients given gene $g$ at pixel $p$ on the $i$'th OMP iteration.
+- $c_{pgi}$ is the OMP pixel score given to gene $g$ at pixel $p$ on the $i$'th OMP iteration.
 - $w_{pgi}$ is the OMP gene weight given to gene $g$ for image pixel $p$ on the $i$'th iteration. This is computed by
 least squares in [step 2](#2-gene-weights). $i$ takes values $1, 2, 3, ...$
 - $||A||_{...}$ represents an L2 norm of $A$ (or Frobenius norm for a matrix) over all indices replaced by a dot ($.$).
@@ -81,7 +81,7 @@ A gene is successfully assigned to a pixel when all conditions are met:
 - The best gene is not already assigned to the pixel.
 - The best gene is not a background gene.
 - The residual colour's intensity is at least `minimum_intensity` (typically 0.15). The intensity is defined as
-$\min_r(\max_c(|R_{prci}|))$.
+$\min_r(\max_c(|\hat{R}_{prci}|))$.
 
 The reasons for each of these conditions is:
 
@@ -91,17 +91,16 @@ The reasons for each of these conditions is:
 - to remove dim colours.
 
 respectively. If a pixel fails to meet one or more of these conditions, then no more genes are assigned to it and the
-pixel's coefficients will be final.
+pixel scores will be final.
 
-If the pixel $p$ meets all conditions, then a coefficient is updated by
+If the pixel $p$ meets all conditions, then the assigned gene is taken as
 
 $$
 g_{\text{new}} = \text{argmax}_g(\text{(gene\_scores)}_{pgi})\text{,}\space\space\space
-c_{pg_{\text{new}}i}=(\text{gene\_scores})_{pg_{\text{new}}i}
 $$
 
-If all remaining pixels fail the conditions, then the iterations stop and the coefficients $\mathbf{c}$ are kept as
-final for [step 3](#4-pixel-scoring-and-spot-detection).
+If all remaining pixels fail the conditions, then the iterations stop and the current pixel scores $\mathbf{c}$ are kept
+as final for [step 3](#4-pixel-scoring-and-spot-detection).
 
 ## 2: Gene Weights
 
@@ -124,10 +123,10 @@ where $\bar{(...)}$ represents flattening the round and channel dimensions into 
 $\bar{\mathbf{B}}$ is of shape $\text{genes assigned}$ by $\text{rounds}*\text{channels}$ and $\bar{\mathbf{S}}$ is of
 shape $\text{rounds} * \text{channels}$. $(...)^{-1}$ is the Moore-Penrose matrix inverse (a pseudo-inverse).
 
-## 3: Gene Coefficients
+## 3: Pixel Scores
 
-After updating the gene weights, every assigned gene coefficient is (re)computed for pixels that passed gene assignment.
-The coefficient for assigned gene $g$ in pixel $p$ is given by
+After updating the gene weights, every assigned gene pixel score is (re)computed for pixels that passed gene assignment.
+The pixel score for assigned gene $g$ in pixel $p$ is given by
 
 $$
 c_{pgi} = \frac{1}{N_r ||\mathbf{\tilde{R}}||_{pgr.i}}\Bigg | \sum_{rc}\tilde{R}_{pgrci} \hat{B}_{grc} \Bigg |
@@ -146,14 +145,14 @@ $$
 \sigma_{pgirc}^2 = \beta^2 + \alpha \sum_{g'\text{ assigned except }g}w_{pg'i}^2 B_{g'rc}^2
 $$
 
-A coefficient is made negative if the gene's weight is negative.
+A pixel score is made negative if the gene's weight is negative.
 
 Step 1 is now repeated on the remaining pixels unless $i$ is $\text{max\_genes}$ (i.e. the last iteration).
 
-??? info "Why not use the scores from step 1 as the coefficients?"
+??? info "Why not use the scores from step 1 as the pixel scores?"
 
     If you recall, from [step 1](#1-next-gene-assignment), the assigned gene is given a preliminary score similar to
-    step 3's score. This score is not used as the final OMP coefficients (but, we did try). This is because the
+    step 3's score. This score is not used as the final OMP pixel scores (but, we did try). This is because the
     pleminary score has lowered the scores because they overlap with other genes. In other words, the scores are lowered
     by brightness in other rounds-channel pairs.
 
@@ -163,11 +162,11 @@ Step 1 is now repeated on the remaining pixels unless $i$ is $\text{max\_genes}$
 
 ## 4: Pixel Scoring and Spot Detection
 
-The gene coefficient images are converted to gene score images by convolving with the mean spot given as a numpy .npy
+The gene pixel score images are converted to gene score images by convolving with the mean spot given as a numpy .npy
 file at file path `mean_spot_filepath`. If `mean_spot_filepath` is not given, the default mean spot is used (shown
 below). The mean spot is divided by its sum then used. This gives a score for every pixel for every gene. Spot-shaped
-and high coefficient regions result in higher score maxima. Scores can be $\geq 0$. But, in practice, scores are rarely
-greater than $0.7$.
+and high pixel score regions result in higher score maxima. Scores can be $\geq 0$. But, in practice, scores are rarely
+greater than $1$.
 
 <figure markdown="span">
   ![Image title](images/algorithm/omp/omp_mean_spot_example.png){ width="776" }
@@ -179,14 +178,14 @@ local maxima using config parameters `radius_xy` (typically `3`) and `radius_z` 
 score threshold set by `score_threshold` (typically `0.1`). These are the final OMP gene reads shown in the
 [Viewer](diagnostics.md#viewer).
 
-??? info "Why not score each spot using a single coefficient value?"
+??? info "Why not score each spot using a single pixel score value?"
 
-    Coefficients can be inflated by single overly-bright round/channel anomalies since they are computed using a
+    Pixel scores can be inflated by single overly-bright round/channel anomalies since they are computed using a
     non-robust least squares calculation. This could be from real autofluorescence or from mistakes in registration.
-    For this reason, a spot's score is better represented by using coefficient data from its neighbourhood. The mean
+    For this reason, a spot's score is better represented by using pixel score data from its neighbourhood. The mean
     spot is an estimation of how much care to put in the local, spatial neighbourhood.
 
-    If you still wanted to score each spot by a single coefficient value, create your own 1x1x1 mean spot with value
+    If you still wanted to score each spot by a single pixel score value, create your own 1x1x1 mean spot with value
     $>0$ and run OMP again.
 
 ## Diagnostics
@@ -197,5 +196,5 @@ Use the [Viewer](diagnostics.md#viewer) to check the final gene reads made by OM
 
 ### PDF
 
-Check the `_omp.pdf` file created at runtime in the output directory for details on the OMP mean spot, the gene score
+Check the `_omp.pdf` file created at runtime in the output directory for details on the OMP mean spot, the spot score
 distributions, gene counts, and gene locations.

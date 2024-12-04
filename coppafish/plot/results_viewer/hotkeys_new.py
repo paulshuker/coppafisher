@@ -27,22 +27,3 @@ class Hotkey:
         if self.description:
             msg += f": {self.description}"
         return msg
-
-    # view_hotkeys = "Shift-k"
-    # switch_zoom_select = "Space"
-    # remove_background = "i"
-    # view_bleed_matrix = "b"
-    # view_background_norm = "n"
-    # view_bleed_matrix_calculation = "Shift-b"
-    # view_bled_codes = "g"
-    # view_all_gene_scores = "Shift-h"
-    # view_gene_efficiency = "e"
-    # # view_gene_counts = "Shift-g"
-    # view_histogram_scores = "h"
-    # view_scaled_k_means = "k"
-    # view_colour_and_codes = "c"
-    # view_spot_intensities = "s"
-    # view_spot_colours_and_weights = "d"
-    # view_intensity_from_colour = "Shift-i"
-    # view_omp_coef_image = "o"
-    # # view_omp_pixel_colours = "p"

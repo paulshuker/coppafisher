@@ -61,10 +61,11 @@
     all genes are re-weighted using the full pixel colour and a new gene is found using the latest residual colour.
  * OMP: Gene assignment now uses a dot product with similar round contribution. This is identical to the anchor method
     scoring. This score is now used for the final OMP coefficients instead of gene weightings.
- * OMP: A pixel is not run through OMP if its intensity is below minimum_intensity in the omp config (default 0.05). A
+ * OMP: A pixel is not run through OMP if its intensity is below minimum_intensity in the omp config (default 0.15). A
     pixel's intensity is defined as `min over rounds (max over channels (I_rc))`, where I_rc is the pixel's image
     intensity in sequencing round r, sequencing channel c after image registration and after call spot scaling.
  * OMP: After each tile, OMP saves the progress and can continue where it left off.
+ * OMP: OMP "coefficients" are now called "pixel scores" to differentiate them from gene weights.
  * OMP: Pixel colours are no longer background fitted before being run through OMP. OMP stops iterating on a pixel if a
     background gene is assigned.
  * OMP: The OMP mean spot is fixed and no longer computed. It is less broad, leading to better results.

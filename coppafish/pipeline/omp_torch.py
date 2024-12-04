@@ -12,7 +12,8 @@ import tqdm
 import zarr
 
 from .. import find_spots, log, utils
-from ..omp import coefs, scores
+from ..omp import scores
+from ..omp.pixel_scores import PixelScoreSolver
 from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
 from ..utils import duplicates, system
@@ -29,10 +30,11 @@ def run_omp(
     nbp_call_spots: NotebookPage,
 ) -> NotebookPage:
     """
-    Run orthogonal matching pursuit (omp) on every pixel to determine a coefficient for each gene at each pixel.
+    Run orthogonal matching pursuit (omp) on every pixel to determine a pixel score for each gene at each pixel.
 
-    From the OMP coefficients, score every pixel using an expected spot shape. Detect spots using the image of spot
-    scores and save all OMP spots with a large enough score.
+    From these OMP pixel scores, create a spot score at every pixel position by convolving with a given mean spot.
+
+    Detect spots to find final gene reads.
 
     See `omp` section of file `coppafish/setup/notebook_page.py` for descriptions of the omp variables.
 
@@ -85,10 +87,10 @@ def run_omp(
     bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
     assert np.isnan(bled_codes).sum() == 0, "bled codes cannot contain nan values"
     assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"
-    solver = coefs.CoefficientSolverOMP()
+    solver = PixelScoreSolver()
     bg_bled_codes = solver.create_background_bled_codes(n_rounds_use, n_channels_use)
     max_genes = config["max_genes"]
-    coefficient_kwargs = dict(
+    solver_kwargs = dict(
         bled_codes=bled_codes,
         background_codes=bg_bled_codes,
         maximum_iterations=max_genes,
@@ -143,7 +145,7 @@ def run_omp(
             log.info(f"OMP is skipping tile {t}, results already found at {nbp_file.output_dir}")
             continue
 
-        # STEP 1: Gather spot colours and compute OMP coefficients on the entire tile, one subset at a time.
+        # STEP 1: Gather spot colours and compute OMP pixel scores on the entire tile, one subset at a time.
         device = system.get_device(config["force_cpu"])
         postfix = {"tile": t, "device": str(device).upper()}
         spot_colour_kwargs = dict(
@@ -156,17 +158,17 @@ def run_omp(
             output_dtype=np.float32,
             out_of_bounds_value=0,
         )
-        log.debug(f"Compute coefficients, tile {t} started")
-        # The tile's coefficient results are stored as a list of scipy sparse matrices. Each item is a specific subset
+        log.debug(f"Compute pixel scores, tile {t} started")
+        # The tile's pixel score results are stored as a list of scipy sparse matrices. Each item is a specific subset
         # that was run. Appending them all together is done on demand later as it is computationally expensive to do
-        # this while as a sparse matrix. Most coefficients in each row are zeroes (this is because rows go over all
+        # this while as a sparse matrix. Most pixel scores in each row are zeroes (this is because rows go over all
         # genes in the panel, most pixels only assign one or two genes), so a csr matrix is appropriate.
-        coefficients: list[scipy.sparse.csr_matrix] = []
+        pixel_scores: list[scipy.sparse.csr_matrix] = []
         index_subset, index_min, index_max = 0, 0, 0
         log.debug(f"OMP {max_genes=}")
         log.debug(f"OMP {n_subset_pixels=}")
 
-        with tqdm.tqdm(total=n_tile_pixels, desc=f"Computing coefficients", unit="pixel", postfix=postfix) as pbar:
+        with tqdm.tqdm(total=n_tile_pixels, desc=f"Computing pixel scores", unit="pixel", postfix=postfix) as pbar:
             while index_min < n_tile_pixels:
                 if n_subset_pixels is None:
                     index_max += maths.floor(utils.system.get_available_memory(device) * n_memory_constant)
@@ -184,20 +186,20 @@ def run_omp(
                 is_intense = intensity >= config["minimum_intensity"]
                 del intensity
 
-                log.debug(f"Computing coefficients")
-                coefficient_subset = np.zeros((index_max - index_min, n_genes), np.float32)
+                log.debug(f"Computing pixel scores")
+                pixel_scores_subset = np.zeros((index_max - index_min, n_genes), np.float32)
                 if is_intense.sum() > 0:
-                    coefficient_subset[is_intense] = solver.solve(colour_subset[is_intense], **coefficient_kwargs)
+                    pixel_scores_subset[is_intense] = solver.solve(colour_subset[is_intense], **solver_kwargs)
                 del colour_subset, is_intense
 
                 log.debug(f"Appending results")
-                coefficient_subset = scipy.sparse.csr_matrix(coefficient_subset)
-                coefficients.append(coefficient_subset.copy())
-                del coefficient_subset
+                pixel_scores_subset = scipy.sparse.csr_matrix(pixel_scores_subset)
+                pixel_scores.append(pixel_scores_subset.copy())
+                del pixel_scores_subset
                 pbar.update(index_max - index_min)
                 index_min = index_max
                 index_subset += 1
-        log.debug(f"Compute coefficients, tile {t} complete")
+        log.debug(f"Compute pixel scores, tile {t} complete")
 
         tile_results = results.create_group(f"tile_{t}", overwrite=True)
         tile_results.attrs["software_version"] = utils.system.get_software_version()
@@ -216,15 +218,15 @@ def run_omp(
             for b in range(maths.ceil(n_genes / batch_size))
         ]
         for gene_batch in tqdm.tqdm(gene_batches, desc=f"Scoring/detecting spots", unit="gene batch", postfix=postfix):
-            # STEP 2: Score every gene's coefficient image.
-            g_coef_image = torch.full((len(gene_batch),) + tile_shape, torch.nan, dtype=torch.float32)
+            # STEP 2: Score every gene's pixel score image.
+            g_pixel_image = torch.full((len(gene_batch),) + tile_shape, torch.nan, dtype=torch.float32)
             for g_i, g in enumerate(gene_batch):
-                g_coef_image[g_i] = torch.from_numpy(
-                    np.vstack([subset[:, [g]].toarray() for subset in coefficients]).reshape(tile_shape, order="F")
+                g_pixel_image[g_i] = torch.from_numpy(
+                    np.vstack([subset[:, [g]].toarray() for subset in pixel_scores]).reshape(tile_shape, order="F")
                 )
-            log.debug("Scoring coefficient image(s)")
-            g_score_image = scores.score_coefficient_image(g_coef_image, mean_spot, config["force_cpu"])
-            del g_coef_image
+            log.debug("Scoring pixel score image(s)")
+            g_score_image = scores.score_pixel_score_image(g_pixel_image, mean_spot, config["force_cpu"])
+            del g_pixel_image
             g_score_image = g_score_image.to(dtype=torch.float16)
 
             # STEP 3: Detect genes as score local maxima.

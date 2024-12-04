@@ -8,14 +8,14 @@ from ..call_spots import dot_product
 from ..utils import system
 
 
-class CoefficientSolverOMP:
+class PixelScoreSolver:
     DTYPE = np.float32
     DTYPE_T = torch.float32
     NO_GENE_ASSIGNMENT: int = -32_768
 
     def __init__(self) -> None:
         """
-        Initialise the CoefficientSolverOMP class. Used to compute OMP coefficients.
+        Initialise the PixelScoreSolver class. Used to compute OMP pixel scores.
         """
         pass
 
@@ -40,12 +40,12 @@ class CoefficientSolverOMP:
         | Tuple[np.ndarray[DTYPE], np.ndarray[DTYPE], np.ndarray[DTYPE], np.ndarray[DTYPE]]
     ):
         """
-        Compute OMP coefficients for all pixel colours from the same tile. At each iteration of OMP, the next best gene
+        Compute OMP pixel scores on all pixel colours from the same tile. At each iteration of OMP, the next best gene
         assignment is found from the residual spot colours. A pixel is stopped iterating on if gene assignment fails.
         See function `get_next_gene_assignments` below for details on the stopping criteria and gene scoring. Pixels
-        that do not fail have their new gene score added to the final coefficients. Pixels that are gene assigned are
-        then fitted with the additional gene to find updated coefficients. See function `get_next_gene_coefficients`
-        for details on the coefficient computation.
+        that do not fail are weighted and a new pixel score is added to the final pixel scores. Pixels that are gene
+        assigned are then fitted with the additional gene to find updated pixel scores. See function
+        `get_gene_pixel_scores` for details on the pixel score computation.
 
         Args:
             pixel_colours (`(n_pixels x n_rounds_use x n_channels_use) ndarray[float]`): pixel intensity in each
@@ -65,13 +65,13 @@ class CoefficientSolverOMP:
                 false.
             return_all_weights (bool, optional): return all gene bled code weights for every gene that was assigned.
                 Default: false.
-            return_all_residuals (bool, optional): return all residual colours used to compute the final coefficients.
+            return_all_residuals (bool, optional): return all residual colours used to compute the final pixel scores.
                 Default: false.
             force_cpu (bool, optional): only use the CPU to solve. Default: true.
 
         Returns:
             Tuple (tensor if only one tensor is returned) containing the following:
-                - (`(n_pixels x n_genes) ndarray[float32]`): coefficients. Each gene's final coefficient for every
+                - (`(n_pixels x n_genes) ndarray[float32]`): pixel_scores. Each gene's final pixel score for every
                     pixel.
                 - (`((n_iterations + 1) x n_pixels x n_genes_all) ndarray[float32]`): dp_scores. The dot product
                     score for every gene on each iteration. This even includes the iteration that did not assign any new
@@ -82,7 +82,7 @@ class CoefficientSolverOMP:
                     returned if return_all_weights is true.
                 - (`(n_pixels x n_genes x n_rounds_use x n_channels_use) ndarray[float32]`): final_residuals. For every
                     gene, this is the residual colour that is scored against the gene's bled code to find the final
-                    coefficients. In the OMP method documentation, this is denoted by epsilon ^ 2 * tilde{R} with i
+                    pixel scores. In the OMP method documentation, this is denoted by epsilon ^ 2 * tilde{R} with i
                     being the final iteration. For genes that are not assigned to a pixel, nan is placed. Only returned
                     if return_all_residuals is true.
 
@@ -126,7 +126,7 @@ class CoefficientSolverOMP:
 
         device = system.get_device(force_cpu)
 
-        coefficients = torch.zeros((n_pixels, n_genes), dtype=self.DTYPE_T)
+        pixel_scores = torch.zeros((n_pixels, n_genes), dtype=self.DTYPE_T)
         colours = torch.from_numpy(pixel_colours).to(dtype=self.DTYPE_T)
         # Remember the residual colour between iterations.
         residual_colours = colours.detach().clone()
@@ -139,12 +139,12 @@ class CoefficientSolverOMP:
 
         if return_all_weights:
             # Remember the gene weightings given to each pixel.
-            all_weights = torch.full_like(coefficients, torch.nan, dtype=self.DTYPE_T)
+            all_weights = torch.full_like(pixel_scores, torch.nan, dtype=self.DTYPE_T)
         if return_all_residuals:
             all_residuals = torch.full((n_pixels, n_genes, n_rounds_use, n_channels_use), torch.nan, dtype=self.DTYPE_T)
 
         # Move tensors to the right device.
-        coefficients = coefficients.to(device)
+        pixel_scores = pixel_scores.to(device)
         colours = colours.to(device)
         residual_colours = residual_colours.to(device)
         pixels_to_continue = pixels_to_continue.to(device)
@@ -155,7 +155,7 @@ class CoefficientSolverOMP:
 
         for iteration in range(maximum_iterations):
             log.debug(f"Iteration: {iteration}")
-            # Find the next best gene and coefficients for pixels that have not reached a stopping criteria yet.
+            # Find the next best gene for pixels that have not reached a stopping criteria yet.
             log.debug(f"Finding next best gene assignments")
             fail_gene_indices = torch.cat((genes_selected[:, :iteration], bg_gene_indices), 1)
             fail_gene_indices = fail_gene_indices[pixels_to_continue]
@@ -202,9 +202,9 @@ class CoefficientSolverOMP:
             residual_colours *= epsilon_squared
             del epsilon_squared
 
-            # Using the new gene weights, update the OMP coefficients.
-            log.debug(f"Computing gene coefficients")
-            coef_result = self.get_gene_coefficients(
+            # Using the new gene weights, update the OMP pixel scores.
+            log.debug(f"Computing gene pixel scores")
+            pixel_score_result = self.get_gene_pixel_scores(
                 colours[pixels_to_continue],
                 bled_codes_to_continue,
                 iteration_weights,
@@ -212,19 +212,19 @@ class CoefficientSolverOMP:
                 beta,
                 return_all_residuals,
             )
-            new_coefficients = coef_result[0]
+            new_pixel_scores = pixel_score_result[0]
             if return_all_residuals:
-                new_residuals = coef_result[1]
+                new_residuals = pixel_score_result[1]
                 for j in range(iteration + 1):
                     all_residuals[pixels_to_continue, latest_gene_selections[:, j]] = new_residuals[:, j]
                 del new_residuals
-            del bled_codes_to_continue, iteration_weights, coef_result
-            log.debug(f"Assigning gene coefficients")
+            del bled_codes_to_continue, iteration_weights, pixel_score_result
+            log.debug(f"Assigning gene pixel scores")
             for j in range(iteration + 1):
-                coefficients[pixels_to_continue, latest_gene_selections[:, j]] = new_coefficients[:, j]
-            del latest_gene_selections, new_coefficients
+                pixel_scores[pixels_to_continue, latest_gene_selections[:, j]] = new_pixel_scores[:, j]
+            del latest_gene_selections, new_pixel_scores
 
-        result = (coefficients.cpu().numpy(),)
+        result = (pixel_scores.cpu().numpy(),)
         if return_all_scores:
             result += (np.array([score.cpu().numpy() for score in dp_scores]),)
         if return_all_weights:
@@ -238,7 +238,7 @@ class CoefficientSolverOMP:
 
     def create_background_bled_codes(self, n_rounds_use: int, n_channels_use: int) -> np.ndarray:
         """
-        Create the background bled codes that are used during OMP coefficient computing.
+        Create the background bled codes that are used during OMP pixel score computing.
 
         Args:
             n_rounds_use (int): the number of sequencing rounds.
@@ -400,7 +400,7 @@ class CoefficientSolverOMP:
 
         return (pixel_residuals, epsilon_squared, weights)
 
-    def get_gene_coefficients(
+    def get_gene_pixel_scores(
         self,
         pixel_colours: torch.Tensor,
         bled_codes: torch.Tensor,
@@ -410,8 +410,8 @@ class CoefficientSolverOMP:
         return_residuals: bool = False,
     ) -> Tuple[torch.Tensor] | Tuple[torch.Tensor, torch.Tensor]:
         """
-        For each gene assignment in a pixel, compute its coefficient. For each gene, a residual colour is computed by
-        subtracting all other assigned genes. Then, the coefficient for said gene is the dot product with this residual
+        For each gene assignment in a pixel, compute its pixel score. For each gene, a residual colour is computed by
+        subtracting all other assigned genes. Then, the pixel score for said gene is the dot product with this residual
         and the genes bled code.
 
         Args:
@@ -422,14 +422,14 @@ class CoefficientSolverOMP:
                 best match the pixel colour.
             alpha (float): the alpha parameter.
             beta (float): the beta parameter.
-            return_residuals (bool, optional): return the residuals used to compute the coefficients for each gene.
+            return_residuals (bool, optional): return the residuals used to compute the pixel scores for each gene.
                 Default: false.
 
         Returns tuple containing:
-            - (`(n_pixels x n_genes_assigned) tensor[float32]`): gene_coefficients. The gene coefficients for every given
-                pixel.
+            - (`(n_pixels x n_genes_assigned) tensor[float32]`): gene_pixel_scores. The gene pixel scores for every
+                given pixel.
             - (`(n_pixels x n_genes_assigned x n_rounds_use x n_channels_use) tensor[float32]`): residuals. The
-                residuals used to compute the coefficients. Denoted by epsilon ^ 2 * tilde{R} in the OMP method
+                residuals used to compute the pixel scores. Denoted by epsilon ^ 2 * tilde{R} in the OMP method
                 documentation. Only given if return_residuals is true.
         """
         assert type(pixel_colours) is torch.Tensor
@@ -496,17 +496,17 @@ class CoefficientSolverOMP:
         colour_residuals *= epsilon_squared
         del epsilon_squared
 
-        coefficients = dot_product.dot_product_score(colour_residuals, bled_codes.swapaxes(0, 1)[:, :, np.newaxis])[
+        pixel_scores = dot_product.dot_product_score(colour_residuals, bled_codes.swapaxes(0, 1)[:, :, np.newaxis])[
             :, :, 0
         ]
 
-        # Change coefficients shape to (n_pixels x n_genes_assigned).
-        coefficients = coefficients.swapaxes(0, 1)
+        # Change pixel_scores shape to (n_pixels x n_genes_assigned).
+        pixel_scores = pixel_scores.swapaxes(0, 1)
 
-        # Set coefficients to be negative if their gene's weight is negative.
-        coefficients *= torch.sign(weights)
+        # Set pixel scores to be negative if their gene's weight is negative.
+        pixel_scores *= torch.sign(weights)
 
-        result = (coefficients,)
+        result = (pixel_scores,)
 
         if return_residuals:
             colour_residuals = colour_residuals.swapaxes(0, 1)
