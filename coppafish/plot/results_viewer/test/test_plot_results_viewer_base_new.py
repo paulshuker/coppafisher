@@ -145,8 +145,6 @@ def test_Viewer() -> None:
             "minimum_intensity": 0.001,
             "max_genes": 2,
             "dot_product_threshold": 0.01,
-            "dot_product_weight": 0.4,
-            "coefficient_normalisation_shift": 0.001,
             "alpha": 0.0,
             "beta": 1.0,
         }

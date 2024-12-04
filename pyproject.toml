@@ -7,9 +7,4 @@ filter_files = true
 
 [tool.pyright]
 typeCheckingMode = "off"
-# Fix relative importing resolves using pyright.
-include = ["src" ]
 exclude = [ "**/temp", "temp.py", "**/__pycache__", "**/build/lib" ]
-executionEnvironments = [
-    { "root" = "src" },
-]

@@ -68,6 +68,8 @@ weighted. $\beta$ is given by `beta` (typically 1) and gives every round-channel
 
     By default, $\alpha >> \beta$ so it is unlikely to assign two genes bright in the same round-channel pairs.
 
+    If you fully trusted the weightings to be accurate. Then you set can `alpha` to zero in the config.
+
     <figure markdown="span">
       ![Image title](images/algorithm/omp/poor_gene_weight_example.png){ height="300" }
       <figcaption>An example of OMP failing to find a scalar to correctly weight every bright round-channel pair for a
@@ -100,7 +102,7 @@ g_{\text{new}} = \text{argmax}_g(\text{(gene\_scores)}_{pgi})\text{,}\space\spac
 $$
 
 If all remaining pixels fail the conditions, then the iterations stop and the current pixel scores $\mathbf{c}$ are kept
-as final for [step 3](#4-pixel-scoring-and-spot-detection).
+as final for [step 3](#4-spot-scoring-and-spot-detection).
 
 ## 2: Gene Weights
 
@@ -160,7 +162,7 @@ Step 1 is now repeated on the remaining pixels unless $i$ is $\text{max\_genes}$
     assignments off except gene g, then gene g is given a fairer chance of scoring highly, hopefully without the
     brightness of other genes.
 
-## 4: Pixel Scoring and Spot Detection
+## 4: Spot Scoring and Spot Detection
 
 The gene pixel score images are converted to gene score images by convolving with the mean spot given as a numpy .npy
 file at file path `mean_spot_filepath`. If `mean_spot_filepath` is not given, the default mean spot is used (shown

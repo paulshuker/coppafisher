@@ -56,7 +56,7 @@ class ViewOMPColourSum(Subplot):
         omp_solver = PixelScoreSolver()
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
         bg_bled_codes = omp_solver.create_background_bled_codes(n_rounds_use, n_channels_use)
-        coefficients, gene_weights, gene_residuals = omp_solver.solve(
+        pixel_scores, gene_weights, gene_residuals = omp_solver.solve(
             pixel_colours=self.colour[np.newaxis],
             bled_codes=bled_codes,
             background_codes=bg_bled_codes,
@@ -68,13 +68,13 @@ class ViewOMPColourSum(Subplot):
             return_all_weights=True,
             return_all_residuals=True,
         )
-        self.coefficient = coefficients[0]
+        self.pixel_score = pixel_scores[0]
         self.gene_weight = gene_weights[0]
         self.assigned_genes: np.ndarray[int] = (~np.isnan(self.gene_weight)).nonzero()[0]
         self.gene_weight = self.gene_weight[self.assigned_genes]
         # Has shape (n_genes_assigned, n_rounds_use, n_channels_use).
         self.gene_residuals = gene_residuals[0][self.assigned_genes]
-        self.coefficient = self.coefficient[self.assigned_genes]
+        self.pixel_score = self.pixel_score[self.assigned_genes]
         n_iterations = self.assigned_genes.size
         if n_iterations == 0:
             return
@@ -115,8 +115,8 @@ class ViewOMPColourSum(Subplot):
 
         for i, g in enumerate(self.assigned_genes):
             w_str = "{:.3f}".format(self.gene_weight[i])
-            c_str = "{:.3f}".format(self.coefficient[i])
-            self.axes[0, i].set_title(f"{g}: {self.gene_names[g]}\nweight: {w_str}\ncoefficient: {c_str}")
+            c_str = "{:.3f}".format(self.pixel_score[i])
+            self.axes[0, i].set_title(f"{g}: {self.gene_names[g]}\nweight: {w_str}\npixel score: {c_str}")
             self.axes[0, i].imshow(self.assigned_bled_codes[i].T, cmap=self.cmap, norm=self.norm)
 
         for i in range(self.axes.shape[1] - 1):
