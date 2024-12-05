@@ -1,39 +1,88 @@
 ## The Algorithm
 
-Coppafish is built on the basis that an algorithm that performs well does not need to be changed. Algorithms are only
-updated when there is evidence that it can perform better and that the current algorithm is performing worse.
+Coppafish is built on the principle: An algorithm that performs well does not need to be changed. So, algorithms are
+only updated when there is evidence that it can perform better and that the current algorithm is performing worse.
 
-Typically there is a protected staging branch, like `v1.0.0`, for a future release. This must be pull requested into
-and must pass continuous integration tests. The `main` branch remains the latest version release to be the default
-branch when users git clone the software.
+We use a protected staging branch, like `v1.0.0`, for a future release. This must be pull requested into and must pass
+continuous integration tests. The `main` branch remains the latest stable release for users to easily install the
+software.
 
-## Run Tests
-
-In your coppafish environment, install dev packages
+While changing code, please install dev packages
 
 ```terminal
 pip install -r requirements-dev.txt
 ```
 
-Run unit tests (~25s)
+## Pre-Commit
+
+[Pre-commit](https://github.com/pre-commit/pre-commit) hooks will automatically run on every git commit. This will
+ensure files are consistently formatted and checked. Use pre-commit hooks by
 
 ```terminal
-pytest -m "not integration and not notebook"
+pre-commit install
 ```
 
-Run integration tests (~50s)
+You can run pre-commit checks manually as well:
 
 ```terminal
-pytest -m "integration"
+pre-commit run --all-files
 ```
 
-Run unit tests requiring a notebook (~3s) afterwards
+Auto-update pre-commits (recommended):
 
 ```terminal
-pytest -m "notebook"
+pre-commit autoupdate
 ```
 
-You can check the percentage code coverage by appending `--cov=coppafish --cov-report term` to each command.
+If a commit is pushed that fails a pre-commit check, then the GitHub integration workflow will catch it.
+
+## Lint
+
+[Pyright](https://github.com/microsoft/pyright) does lint checks on the codebase in the GitHub integration workflow.
+Currently, static type checking is turned off (see [#145](https://github.com/paulshuker/coppafish/issues/145)). It is
+recommended to install pyright within your IDE/text editor for error checking while editing code. Manually check by
+
+```terminal
+pyright .
+```
+
+## Tests
+
+Tests are run through [pytest](https://github.com/pytest-dev/pytest/). Scripts are unit tested by placing the test
+scripts inside a directory called `test` within the script's directory. Every `test` directory must contain an empty
+`__init__.py` file. All test script file names should start with `test_`. The scripts must end with their relative
+directory (directories) and their script file name, separated by underscores. For example, the test script for
+`coppafish/omp/coefs.py` is named `test_omp_coefs.py`. Check existing tests for examples.
+
+## Run Tests
+
+Run unit tests (~6s)
+
+```terminal
+pytest
+```
+
+Run integration tests (~90s)
+
+```terminal
+pytest -m integration
+```
+
+Run unit tests requiring a notebook (~4s)
+
+```terminal
+pytest -m notebook
+```
+
+View code coverage by appending `--cov=coppafish --cov-report term` to each command.
+
+## Run Documentation Locally
+
+```terminal
+mkdocs serve
+```
+
+Then go to [http://127.0.0.1:8000/](http://127.0.0.1:8000/) in a modern browser.
 
 ## Code Philosophy
 
@@ -44,6 +93,7 @@ Here are some specific standards to follow:
 
 * Knowledge written down twice is bad code. Don't Repeat Yourself (DRY)!
 * If a bug is found, the bug must be automatically found if it is to occur again.
+* All code is [black](https://github.com/psf/black) formatted.
 * Every time a function is modified or created, a new unit test must be created for the function. A pre-existing unit
 test can be drawn from to build a new unit test, but it should be clear in your mind that you are affectively building
 a new function.
@@ -63,19 +113,11 @@ reasonable.
 * The documentation should update in parallel with the code. Having the documentation as part of the github repository
 makes this easier.
 
-## Run Documentation Locally
-
-Start the documentation locally
-
-```terminal
-mkdocs serve
-```
-
 ## Docstrings
 
 While not all docstrings are consistent yet, future docstrings follow the rules below:
 
-* The code's functionality must be reproducible from the docstring alone.
+* The code must be reproducible from the docstring alone.
 * Use [Google's style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html).
 * `` `ndarray` `` represents a numpy ndarray and `` `zarray` `` represents a zarr Array.
 * `` `zgroup` `` represents a zarr Group.
@@ -93,5 +135,42 @@ refers to size `#!py max(use_channels) + 1`, i.e. the smallest shape that can be
 of these definitions includes the dapi channel/anchor channel[^1], which can be found at `#!py nb.basic_info.dapi_channel`
 and `#!py nb.basic_info.anchor_channel` respectively.
 
+Below is a docstring example that demonstrates all the rules.
+
+```py
+from typing import Tuple
+
+import numpy as np
+import torch
+import zarr
+
+def large_function(
+    arr_0: np.ndarray[np.float16],
+    arr_1: torch.Tensor[np.uint32],
+    arr_2: zarr.Array,
+    number: float | None = None,
+) -> Tuple[zarr.Group, float, int]:
+    """
+    An description of exactly what the function does. This docstring must contain
+    enough detail to make the exact function again, without looking at any code.
+
+    Args:
+        arr_0 (`(n_pixels x 3) ndarray[float32]`): a description of arr_0.
+        arr_1 (`(n_pixels x n_rounds x n_channels) tensor[uint32]`): a description
+            of arr_1.
+        arr_2 (`(n_pixels x n_rounds x (n_channels + 1)) zarray[uint16]`): a
+            description of arr_2.
+        number (float or none, optional): a description of number. Default: none.
+
+    Returns:
+        A tuple containing:
+            - (zgroup): zgroup_0. A zarr Group containing arrays named zarr_0,
+                zarr_1, and zarr_2.
+            - (float): variable_0. A description of variable_0.
+            - (int): variable_1. A description of variable_1.
+    """
+    ...
+```
+
 [^1]:
-    The anchor channel can be the same as a sequencing channel.
+    The anchor channel can be a sequencing channel, but this does not have to be the case.

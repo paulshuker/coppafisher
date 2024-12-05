@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 import tqdm
-import tqdm
 import zarr
 
 from .. import find_spots as fs
@@ -71,7 +70,7 @@ def find_spots(
     # Phase 2: Detect spots on uncompleted tiles, rounds and channels
     pbar = tqdm.tqdm(total=use_indices.sum(), desc="Finding spots", unit="image")
     for t, r, c in np.argwhere(use_indices):
-        pbar.set_postfix_str(f"{t=}, {r=}, {c=}")
+        pbar.set_postfix_str(f"t={t.item()}, r={r.item()}, c={c.item()}")
         image_trc = nbp_filter.images[t, r, c]
 
         # Compute the image's auto threshold to detect spots.

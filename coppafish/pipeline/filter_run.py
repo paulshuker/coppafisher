@@ -4,8 +4,8 @@ import time
 from typing import Tuple
 
 import numpy as np
-from tqdm import tqdm
 import zarr
+from tqdm import tqdm
 
 from .. import extract, log, utils
 from ..filter import base as filter_base

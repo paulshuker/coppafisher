@@ -1,9 +1,9 @@
-from .spot_colours import ViewSpotColourAndCode, GeneSpotsViewer, ViewGeneEfficiencies, ViewScalingAndBGRemoval
-from .bleed_matrix import ViewBleedMatrix, ViewBledCodes
-from .scores import ViewAllGeneHistograms, HistogramScore
+from .bleed_matrix import ViewBledCodes, ViewBleedMatrix
 from .parameter_estimation import (
     ViewFreeAndConstrainedBledCodes,
+    ViewScaleFactors,
     ViewTargetRegression,
     ViewTileScaleRegression,
-    ViewScaleFactors,
 )
+from .scores import HistogramScore, ViewAllGeneHistograms
+from .spot_colours import GeneSpotsViewer, ViewGeneEfficiencies, ViewScalingAndBGRemoval, ViewSpotColourAndCode

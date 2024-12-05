@@ -5,7 +5,6 @@ import os
 import shutil
 import time
 from typing import Dict, List, Optional, Tuple, Union
-from typing_extensions import Self
 
 import dask
 import napari
@@ -13,13 +12,14 @@ import numpy as np
 import pandas
 import scipy
 import tqdm
+from typing_extensions import Self
 
-from ..utils import base as utils_base
-from ..utils import errors as utils_errors
 from .. import log
 from ..omp import base as omp_base
 from ..pipeline import run
 from ..setup.notebook import Notebook
+from ..utils import base as utils_base
+from ..utils import errors as utils_errors
 
 
 # Originally created by Max Shinn, August 2023
@@ -597,8 +597,7 @@ class Robominnie:
 
         [omp]
         minimum_intensity = 0.2
-        score_threshold = 0.1
-        subset_pixels = 10_000
+        subset_pixels = {maths.floor(self.tile_sz * self.tile_sz * self.n_planes * 0.4)}
         """
         # Remove large spaces in the config contents
         config_file_contents = config_file_contents.replace("  ", "")
@@ -737,9 +736,10 @@ class Robominnie:
             assignments, FNs = utils_errors.compare_spots(
                 t_spot_positions, t_spot_gene_indices, t_truth_positions, t_truth_gene_indices, 2.0
             )
-            TPs = (assignments == 0).sum()
-            WPs = (assignments == 1).sum()
-            FPs = (assignments == 2).sum()
+            TPs = (assignments == 0).sum().item()
+            WPs = (assignments == 1).sum().item()
+            FPs = (assignments == 2).sum().item()
+            FNs = FNs.item()
             if method not in self.coppafish_spot_assignments:
                 self.coppafish_spot_assignments[method] = np.full(keep.size, -1, np.int8)
             self.coppafish_spot_assignments[method][keep] = assignments

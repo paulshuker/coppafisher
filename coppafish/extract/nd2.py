@@ -8,10 +8,9 @@ import numpy as np
 import numpy_indexed
 from tqdm import tqdm
 
-from . import raw
 from .. import log, setup
 from ..setup import tile_details
-
+from . import raw
 
 # bioformats ssl certificate error solution:
 # https://stackoverflow.com/questions/35569042/ssl-certificate-verify-failed-with-python3

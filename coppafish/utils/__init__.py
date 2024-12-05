@@ -1,1 +1,1 @@
-from .base import reed_solomon_codes, estimate_runtime
+from .base import estimate_runtime, reed_solomon_codes

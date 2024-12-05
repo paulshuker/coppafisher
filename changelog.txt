@@ -55,26 +55,28 @@
  * Stitch: The shifts computed are now given a score, which is the squared pearson correlation of the shifted image
     and the reference image in the overlapping region. This score is then used in the computation of the final shifts,
     where we deal with the fact that our problem is over-specified. The scoring is used as a weight and the results are
-    much better than before.
+    better than before.
  * Stitch: The stitching diagnostics have been replaced with 2 new viewers, one for viewing the image as a checker-
     board patten in green and red, with overlapping regions in yellow, and the other for viewing the shifts computed
     for each tile.
  * Call spots: Some variables are now saved as zarr arrays to reduce memory usage and notebook read time.
  * Call spots: Config parameter bad_trc now works with new colour normalisation computation fix.
- * Call spots: The anchor gene scores are no longer a dot product. They are now a "round dot product" to put equal
-    importance on multiple sequencing rounds matching the gene bled code.
+ * Call spots: The anchor gene scores are no longer a dot product. They are now a "round dot product" to put similar
+    importance on each sequencing round matching the gene bled code.
  * OMP: OMP is now truly orthogonal fix. Before, the new gene was weighted using only the residual pixel colour. Now,
     all genes are re-weighted using the full pixel colour and a new gene is found using the latest residual colour.
- * OMP: Gene assignment now uses a dot product with equal round weighting. This is identical to the anchor method
-    scoring. This score is now used for the final OMP coefficients instead of the gene weightings.
- * OMP: A pixel is not run through OMP if its intensity is below minimum_intensity in the omp config (default 0.05). A
-    pixel's intensity is defined as `min over rounds (max over channels (I_rc))`, where I_rc is the pixel's image
-    intensity in sequencing round r, sequencing channel c after image registration and after call spot scaling. This
-    intensity threshold is applied after every OMP iteration on the residual colour too.
+ * OMP: Gene assignment now uses a dot product with similar round contribution. This is identical to the anchor method
+    scoring.
+ * OMP: OMP "coefficients" are now called "pixel scores" to differentiate them from gene weights.
+ * OMP: The final OMP pixel scores are found after gene weights are computed. Check the OMP method documentation for
+    details.
+ * OMP: A pixel is not run through OMP if its intensity is below minimum_intensity in the omp config (default 0.15). A
+    pixel's intensity is defined as `min over rounds (max over channels (|I_rc|))`, where I_rc is the pixel's image
+    intensity in sequencing round r, sequencing channel c after image registration and after call spot scaling.
  * OMP: After each tile, OMP saves the progress and can continue where it left off.
  * OMP: Pixel colours are no longer background fitted before being run through OMP. OMP stops iterating on a pixel if a
-    background gene is assigned.
- * OMP: The OMP mean spot is fixed and no longer computed. It is less broad, leading to better results.
+    background gene is the next best assignment.
+ * OMP: The OMP mean spot is fixed and no longer computed. It is less broad, leading to improved spot scores.
  * OMP: Less memory intensive by saving each tile's results separately.
  * OMP: Results are now compressed.
  * OMP: New subplots for the Viewer. Press "h" to show all subplot shortcuts.

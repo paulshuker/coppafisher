@@ -2,13 +2,13 @@ import importlib.resources as importlib_resources
 import os
 from typing import Optional, Tuple
 
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
-import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-import pandas as pd
+import matplotlib.pyplot as plt
 import napari
 import numpy as np
+import pandas as pd
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 
 # Subplot settings
 left = 0.05

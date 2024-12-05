@@ -1,9 +1,8 @@
 import importlib.resources as importlib_resources
 import os
 
-from .. import log
+from .. import log, utils
 from ..setup.config import Config
-from .. import utils
 from ..setup.notebook_page import NotebookPage
 from .tile_details import get_tile_file_names
 

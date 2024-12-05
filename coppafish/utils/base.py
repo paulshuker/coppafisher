@@ -1,5 +1,5 @@
-from collections.abc import Callable, Iterable
 import math as maths
+from collections.abc import Callable, Iterable
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
@@ -34,16 +34,16 @@ def deep_convert(value: Iterable[Any], conversion: Callable = tuple, /) -> Tuple
     return result
 
 
-def reed_solomon_codes(n_genes: int, n_rounds: int, n_channels: Optional[int] = None) -> Dict[str, str]:
+def reed_solomon_codes(n_genes: int, n_rounds: int, n_dyes: Optional[int] = None) -> Dict[str, str]:
     """
     Generates random gene codes based on reed-solomon principle, using the lowest degree polynomial possible for the
-    number of genes needed. The `i`th gene name will be `gene_i`. We assume that `n_channels` is the number of unique
-    dyes, each dye is labelled between `(0, n_channels]`.
+    number of genes needed. The `i`th gene name will be `gene_i`. We assume that `n_dyes` is the number of unique dyes,
+    each dye is labelled between `(0, n_dyes]`.
 
     Args:
         n_genes (int): number of unique gene codes to generate.
         n_rounds (int): number of sequencing rounds.
-        n_channels (int, optional): number of channels. Default: same as `n_rounds`.
+        n_dyes (int, optional): number of dyes. Default: same as `n_rounds`.
 
     Returns:
         Dict (str: str): gene names as keys, gene codes as values.
@@ -54,12 +54,12 @@ def reed_solomon_codes(n_genes: int, n_rounds: int, n_channels: Optional[int] = 
     Notes:
         See [wikipedia](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction) for more details.
     """
-    if n_channels is None:
-        n_channels = n_rounds
+    if n_dyes is None:
+        n_dyes = n_rounds
     assert n_rounds > 1, "Require at least two rounds"
-    assert n_channels > 1, "Require at least two channels"
+    assert n_dyes > 1, "Require at least two dyes"
     assert n_genes > 0, "Require at least one gene"
-    assert n_channels < 10, "n_channels >= 10 is not supported"
+    assert n_dyes < 10, "n_dyes >= 10 is not yet supported. Please raise an issue if required"
 
     verbose = n_genes > 10
     degree = 0
@@ -81,10 +81,10 @@ def reed_solomon_codes(n_genes: int, n_rounds: int, n_channels: Optional[int] = 
         # Find the next coefficient set that works, which is not just constant across all rounds (like a background
         # code)
         while True:
-            # Iterate to next working coefficient set, by mod n_channels addition
+            # Iterate to next working coefficient set, by mod n_dyes addition
             most_recent_coefficient_set[0] += 1
             for i in range(most_recent_coefficient_set.size):
-                if most_recent_coefficient_set[i] >= n_channels:
+                if most_recent_coefficient_set[i] >= n_dyes:
                     # Cycle back around to 0, then add one to next coefficient
                     most_recent_coefficient_set[i] = 0
                     most_recent_coefficient_set[i + 1] += 1
@@ -99,7 +99,7 @@ def reed_solomon_codes(n_genes: int, n_rounds: int, n_channels: Optional[int] = 
             for j in range(degree + 1):
                 result += most_recent_coefficient_set[j] * r**j
             result = int(result)
-            result %= n_channels
+            result %= n_dyes
             new_code += str(result)
         # Add new code to dictionary
         codes[gene_name] = new_code

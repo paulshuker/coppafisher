@@ -4,8 +4,8 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
-from ..omp import base as omp_base
 from ..call_spots import qual_check
+from ..omp import base as omp_base
 from ..setup.notebook import Notebook
 from ..setup.notebook_page import NotebookPage
 

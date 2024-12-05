@@ -1,15 +1,6 @@
 import os
 from typing import Tuple
 
-from . import basic_info
-from . import extract_run
-from . import filter_run
-from . import find_spots
-from . import register
-from . import stitch
-from . import get_reference_spots
-from . import call_reference_spots
-from . import omp_torch
 from .. import log
 from ..compatibility import base as utils_version
 from ..find_spots import check_spots
@@ -20,7 +11,17 @@ from ..setup.notebook import Notebook
 from ..setup.notebook_page import NotebookPage
 from ..utils import system as utils_system
 from ..utils import tiles_io as utils_tiles_io
-from ..utils import warnings as utils_warnings
+from . import (
+    basic_info,
+    call_reference_spots,
+    extract_run,
+    filter_run,
+    find_spots,
+    get_reference_spots,
+    omp_torch,
+    register,
+    stitch,
+)
 
 
 def run_pipeline(config_file: str) -> Notebook:
@@ -82,23 +83,21 @@ def run_pipeline(config_file: str) -> Notebook:
         )
         nb += nbp
     log.error_catch(BuildPDF, nb, nbp_file)
-
     if not nb.has_page("omp"):
-        nbp = omp_torch.run_omp(
-            config["omp"], nbp_file, nb.basic_info, nb.extract, nb.filter, nb.register, nb.stitch, nb.call_spots
+        nbp = log.error_catch(
+            omp_torch.run_omp,
+            config["omp"],
+            nbp_file,
+            nb.basic_info,
+            nb.extract,
+            nb.filter,
+            nb.register,
+            nb.stitch,
+            nb.call_spots,
         )
         nb += nbp
     log.error_catch(BuildPDF, nb, nbp_file)
-
-    # Check for redundant config parameters that have not been accessed during the pipeline.
-    for section in config.sections:
-        redundant_params = section.list_redundant_params()
-        if len(redundant_params) == 0:
-            continue
-        log.warn(f"Config parameter(s) {redundant_params} in section {section.name} were not accessed")
-
     log.info(f"Pipeline complete", force_email=True, notify=config["notifications"]["notify_on_completion"])
-
     return nb
 
 

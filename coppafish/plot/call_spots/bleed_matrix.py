@@ -1,10 +1,10 @@
 import matplotlib as mpl
+import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.widgets import TextBox
-import numpy as np
 
-from ..results_viewer.subplot import Subplot
 from ...setup.notebook_page import NotebookPage
+from ..results_viewer.subplot import Subplot
 
 
 class ViewBleedMatrix(Subplot):

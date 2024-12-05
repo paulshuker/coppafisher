@@ -1,13 +1,11 @@
-[tool.pytest.ini_options]
-markers = [
-    "integration: integration tests",
-    "notebook: tests that can only run with a completed robominnie notebook (after an integration test)",
-]
-
 [tool.black]
 line-length = 120
 
+[tool.isort]
+profile = "black"
+filter_files = true
+line_length = 120
+
 [tool.pyright]
 typeCheckingMode = "off"
-# Fix relative importing resolves using pyright.
-executionEnvironments = {"root" = "src"}
+exclude = [ "**/temp", "temp.py", "**/__pycache__", "**/build/lib" ]

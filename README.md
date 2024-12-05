@@ -1,10 +1,14 @@
-# <img src="/docs/images/logo.png" width="60"/> coppafish
+# <img src="/docs/images/logo.png" width="25"/> Coppafish
 
-![https://github.com/paulshuker/coppafish/blob/dev/.github/workflows/integration.yaml](https://github.com/paulshuker/coppafish/actions/workflows/integration.yaml/badge.svg)
-![Static Badge](https://img.shields.io/badge/status-mature-99cc)
+![Continuous Integration](https://img.shields.io/github/actions/workflow/status/paulshuker/coppafish/integration.yaml?logo=github)
+![Status Badge](https://img.shields.io/badge/status-mature-blue)
 ![GitHub Tag](https://img.shields.io/github/v/tag/paulshuker/coppafish?label=version)
+<<<<<<< HEAD
 ![GitHub License](https://img.shields.io/github/license/paulshuker/coppafish)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+=======
+![GitHub License](https://img.shields.io/github/license/paulshuker/coppafish?color=blue)
+>>>>>>> goomba
 
 ## Documentation
 

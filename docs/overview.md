@@ -1,6 +1,6 @@
-The coppafish pipeline is separated into distinct sections. Some of these are for image pre-processing 
-([extract](#extract), [filter](#filter)), image alignment ([register](#register), [stitch](#stitch)) and spot 
-detection/gene calling ([find spots](#find-spots), [call spots](#call-spots), 
+The coppafish pipeline is separated into distinct sections. Some of these are for image pre-processing
+([extract](#extract), [filter](#filter)), image alignment ([register](#register), [stitch](#stitch)) and spot
+detection/gene calling ([find spots](#find-spots), [call spots](#call-spots),
 [orthogonal matching pursuit](#orthogonal-matching-pursuit)). Below, each stage is given in chronological order. For
 full detail on each pipeline section, click on a stage on the left panel.
 
@@ -53,7 +53,7 @@ We also expect different genes to vary in brightness across both rounds and chan
 
 * Bridge probes attach to gene spots where an RCP has been produced. The concentration of bridge probes that attach
 (and hence the brightness of the dye that attaches) can vary.
-* Microscope software can automatically adjust exposure or expand the data to fill the uint16 range for each 
+* Microscope software can automatically adjust exposure or expand the data to fill the uint16 range for each
 round/channel image separately. This equates to an unknown scale factor for each tile/round/channel that must be found.
 
 Therefore, call spots learns scale factors for each tile, round, and channel image as well as updating the gene bled
@@ -65,37 +65,15 @@ Orthogonal Matching Pursuit (OMP) is the most sophisticated gene calling method 
 overlapping genes to be detected. It is an iterative,
 <a href="https://en.wikipedia.org/wiki/Greedy_algorithm" target="_blank">greedy algorithm</a> that runs on individual
 pixels of the images. At each OMP iteration, a new gene is assigned to the pixel. OMP is also self-correcting.
-"Orthogonal" refers to how OMP will re-compute its gene contributions (their coefficients) after every iteration by 
-least squares. Background genes[^1] are considered valid genes in OMP. The iterations stop if:
+"Orthogonal" refers to how OMP will re-compute every gene contribution (their pixel score) after each iteration by least
+squares. Background genes[^1] are considered valid genes in OMP. The iterations stop if:
 
-* `max_genes` in the `omp` config section is reached.
-* assigning the next best gene to the pixel does not have a dot product score above `dot_product_threshold` in the 
-`omp` config.
+* iteration number `max_genes` in the `omp` config section is reached.
+* assigning the next best gene to the pixel does not have a score above `dot_product_threshold` in the `omp` config.
 * the next best gene is a background gene or already assigned to the pixel.
+* its residual colour is too dim.
 
-<!-- TODO: Should expand more on the OMP gene scoring here -->
-Every coefficient pixel is scored by a weighted average around a small local region of the spot where the spot is 
-expressed most strongly. The coefficients are weighted with the mean spot intensity normalised to have a maximum of 1. 
-The mean spot is computed on tile `nb.basic_info.use_tiles[0]` by taking the average of many well-isolated spots. The 
-scoring is controlled by config parameters `shape_isolation_distance_yx`, `shape_isolation_distance_z`, 
-`shape_coefficient_threshold` and `shape_sign_thresh`. Low scores are deleted by OMP when they are below the 
-`score_threshold`.
-
-## Runtime
-
-For an estimate of your pipeline runtime, in the Python terminal:
-```python
-from coppafish.utils import estimate_runtime
-
-estimate_runtime()
-```
-then type in the relevant information when prompted[^2].
-
-
-[^1]:
-    Background genes refer to constant pixel intensity across all sequencing rounds in one channel. This is an
-    indicator of an anomalous fluorescing feature that is not a spot. No spot codes are made to be the same channel in
-    all rounds so they are not mistaken with background fluorescence.
-[^2]:
-    All time estimations are made using an Intel i9-13900K @ 5.500GHz, NVIDIA RTX 4070Ti Super, and NVMe local SSD. 
-    Raw, ND2 files were saved on a server with read speed of ~200MB/s.
+Pixel spot scores are computed by a convolution of the pixel score image with a mean spot. The mean spot is specified by
+`mean_spot_filepath` as a .npy file. If it is not specified, a default mean spot is used, shown
+[here](omp.md#4-spot-scoring-and-spot-detection). This gives every gene a score image for every pixel. The final OMP
+spots are then taken as local maxima on the pixel score image greater than `score_threshold`.

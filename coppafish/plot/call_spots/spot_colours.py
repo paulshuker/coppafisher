@@ -1,17 +1,17 @@
 import matplotlib as mpl
-from matplotlib import cm
-from matplotlib.patches import Rectangle
 import matplotlib.pyplot as plt
-from matplotlib.widgets import Button
 import mplcursors
 import numpy as np
 import zarr
+from matplotlib import cm
+from matplotlib.patches import Rectangle
+from matplotlib.widgets import Button
 
-from ..results_viewer.subplot import Subplot
 from ...call_spots.dot_product import gene_prob_score
 from ...omp import base as omp_base
 from ...setup.notebook import NotebookPage
 from ...spot_colours import base as spot_colours_base
+from ..results_viewer.subplot import Subplot
 
 
 class ViewSpotColourAndCode(Subplot):

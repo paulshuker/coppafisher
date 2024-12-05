@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 with open("coppafish/_version.py", "r") as f:
     exec(f.read())
@@ -58,7 +58,7 @@ setup(
             "default_bleed.npy",
             "default_psf.npz",
         ],
-        "coppafish.plot.results_viewer": ["cell_color.csv", "cellClassColors.json", "gene_color.csv"],
+        "coppafish.plot.results_viewer": ["cell_colour.csv", "cellClassColours.json", "gene_colour.csv"],
     },
     include_package_data=True,
     classifiers=[

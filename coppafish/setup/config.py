@@ -1,13 +1,12 @@
-from collections.abc import Callable
 import configparser
 import importlib.resources as importlib_resources
-from os import path
 import re
+from collections.abc import Callable
+from os import path
 from typing import Any, Dict, Tuple
 
 from .. import log
 from .config_section import ConfigSection
-
 
 FORMATTED_PARAM_TYPE = (
     int | float | str | bool | None | Tuple[int, ...] | Tuple[float, ...] | Tuple[str, ...] | Tuple[bool, ...]
@@ -226,9 +225,10 @@ class Config:
             "concentration_parameter_perpendicular": ("number", ""),
         },
         "omp": {
-            "weight_coef_fit": ("bool", ""),
             "max_genes": ("int", "positive"),
             "minimum_intensity": ("number", "not-negative"),
+            "alpha": ("number", "not-negative"),
+            "beta": ("number", "positive"),
             "dot_product_threshold": ("number", "not-negative"),
             "subset_pixels": ("maybe_int", "positive"),
             "force_cpu": ("bool", ""),

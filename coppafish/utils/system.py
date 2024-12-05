@@ -1,8 +1,8 @@
 import os
-from pathlib import PurePath
 import shutil
-from typing import Tuple
 import urllib
+from pathlib import PurePath
+from typing import Tuple
 
 import numpy as np
 import psutil
@@ -82,6 +82,23 @@ def get_available_memory(device: torch.device = None) -> float:
         return psutil.virtual_memory().available / 1e9
     else:
         raise ValueError(f"Unknown device {device}")
+
+
+def get_device(force_cpu: bool) -> torch.device:
+    """
+    Get the best device available for pytorch. If not forced to use the CPU and CUDA is available, then the GPU device
+    is returned. Otherwise, the CPU is returned.
+
+    Args:
+        force_cpu (bool): force return the CPU.
+
+    Returns:
+        (`torch.device`): device. Is either torch.device("cpu") or torch.device("cuda").
+    """
+    if not force_cpu and torch.cuda.is_available():
+        return torch.device("cuda")
+
+    return torch.device("cpu")
 
 
 def get_core_count() -> int:

@@ -1,11 +1,24 @@
 from collections import OrderedDict
 
+from .. import log
 from ..setup.notebook import Notebook
 from ..utils import system
-from .. import log
 
 
 class CompatibilityTracker:
+    # Each pipeline stage, this is slightly different to each coppafish page.
+    _stages: list[str] = [
+        "initialisation",
+        "extract",
+        "filter",
+        "find_spots",
+        "register",
+        "stitch",
+        "ref_spots",
+        "call_spots",
+        "omp",
+        "none",
+    ]
     # The page names associated with each stage. For multiple pages, they must be separated by a comma followed by a
     # space.
     _page_names: tuple[str] = (
@@ -31,20 +44,7 @@ class CompatibilityTracker:
             ("1.0.0", "initialisation"),
         )
     )
-    # Each pipeline stage, this is slightly different to each coppafish page.
-    _stages: list[str] = [
-        "initialisation",
-        "extract",
-        "filter",
-        "find_spots",
-        "register",
-        "stitch",
-        "ref_spots",
-        "call_spots",
-        "omp",
-        "none",
-    ]
-    # For each stage, explain how to remove all data during and after said stage.
+    # For each stage, instructions are given on how to remove all data during and after said stage.
     _stage_instructions: list[tuple[str]] = [
         (
             "Clear the output directory, including the notebook",
@@ -116,14 +116,14 @@ class CompatibilityTracker:
 
     def notebook_is_compatible(self, nb: Notebook) -> bool:
         """
-        Check if the notebook contains incompatible data from older software versions. If so, a warning is given and
+        Check if the notebook contains incompatible data from older software versions. If so, a warning is printed and
         false is returned.
 
         Args:
-            - nb (Notebook): the notebook.
+            nb (Notebook): the notebook.
 
         Returns:
-            (bool) valid: true if all notebook data is compatible.
+            (bool): valid. Whether all the notebook's data is compatible for this version of coppafish.
         """
         assert type(nb) is Notebook
 
@@ -147,9 +147,18 @@ class CompatibilityTracker:
         return self._check_notebook_for_downgrade(nb)
 
     def print_start_from(self, stage: str) -> None:
+        """
+        Print the instructions on how to prepare the coppafish pipeline to start from the given stage.
+
+        Args:
+            stage (str): the stage to start again from.
+        """
         [log.info(f"    - {instruction}.") for instruction in self._stage_instructions[self._stages.index(stage)]]
 
     def print_stage_names(self) -> None:
+        """
+        Print every stage that is part of coppafish's pipeline in chronological order.
+        """
         stage_names = []
         for stage_name in self._stages:
             if stage_name == "none":
@@ -158,6 +167,15 @@ class CompatibilityTracker:
         print(f"Coppafish stages: {', '.join(stage_names)}")
 
     def has_version(self, version: str) -> bool:
+        """
+        Check if a version exists in the tracker's records.
+
+        Args:
+            version (str): the version to look for.
+
+        Returns:
+            (bool): version_exists. Whether the version exists.
+        """
         return version in self._version_compatibility
 
     def _check_notebook_for_downgrade(self, nb: Notebook) -> bool:

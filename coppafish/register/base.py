@@ -2,14 +2,14 @@ import time
 from typing import Optional, Tuple
 
 import joblib
-from joblib.externals import loky
 import nd2
 import numpy as np
 import scipy
-from scipy.ndimage import gaussian_filter
 import skimage
-from tqdm import tqdm
 import zarr
+from joblib.externals import loky
+from scipy.ndimage import gaussian_filter
+from tqdm import tqdm
 
 from .. import log, utils
 from ..register import preprocessing

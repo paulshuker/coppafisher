@@ -1,13 +1,14 @@
 import os
 import re
-import numpy as np
-import dask.array
-from tqdm import tqdm
 from typing import List, Optional, Tuple, Union
 
-from . import nd2
+import dask.array
+import numpy as np
+from tqdm import tqdm
+
 from .. import log
 from ..setup.notebook_page import NotebookPage
+from . import nd2
 
 
 class OutOfBoundsError(Exception):
