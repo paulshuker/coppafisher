@@ -2,18 +2,24 @@
  * General: Version 1.0.0 onwards automatically detects incompatible notebook versions. An automatic suggested course
     of action is given if a compatibility problem is found during runtime.
  * General: Presequence channels are no longer supported.
- * General: Many package updates.
  * General: Python 3.11 is now supported.
  * General: Python 3.9 is no longer supported.
+ * General: Many package updates.
  * General: All output variables are now stored within the notebook except for extract images, PDF diagnostics, and
     pipeline.log files.
- * General: The notebook is now faster at saving/loading, supports zarr arrays/groups, and has overwrite protection.
- * General: Better Command Line Interface (CLI).
+ * General: New system notification support for both pipeline crashes and completions.
+ * General: The notebook is now faster at saving and loading, supports zarr arrays/groups, and has overwrite protection.
+ * General: Better Command Line Interface (CLI) explained in the documentation.
  * General: Users can safely move the output directory and/or tiles directory mid-pipeline.
- * General: The notebook can be moved location without breaking software usage fix.
+ * General: The notebook can be moved location without breaking usages fix.
  * General: Incorrect numpy data types within the notebook fixed.
+ * General: New basic_info config parameters reverse_tile_positions_x and reverse_tile_positions_y to reverse the tile
+   positions if they are in the wrong places.
+ * General: Clearer config warnings/errors.
  * General: Security patches for zipp, urllib3, scikit-learn, tornado, requests, and certifi.
  * General: Package versions are now logged in the pipeline.log file.
+ * General: Numpy versions >=2.0, <2.1 now supported.
+ * General: Improved config parameter validation.
  * Documentation: New documentation for exporting data to pciSeq, skipping bad microscope images, running background
     processes, deleting notebook pages, and retrieving config data from the notebook.
  * Documentation: Detailed method description for find spots, stitch, call spots, and OMP.
@@ -29,9 +35,9 @@
     moved from `filter` to `extract`.
  * Filter: Images are now saved as float16 instead of uint16.
  * Filter: Images are now saved in the 'filter' notebook page.
- * Filter: Images are not multiplied by a scalar anymore.
- * Filter: The PSF used for image filtering is not computed anymore. It is a config input. There is a default PSF
-    saved at coppafish/setup/default_psf.npz.
+ * Filter: Images are no longer multiplied by a scalar.
+ * Filter: The PSF used for image filtering is no longer computed. It is a config input. There is a default PSF saved at
+    coppafish/setup/default_psf.npz.
  * Filter: Optimised zarr image chunking.
  * Filter: Removed legacy filter options: difference of Hanning and image smoothing.
  * Filter: Warning issues when a filtered image contains adjacent pixels at the maximum possible integer value.
@@ -75,7 +81,7 @@
  * OMP: Results are now compressed.
  * OMP: New subplots for the Viewer. Press "h" to show all subplot shortcuts.
  * OMP: Faster compute times with and without cuda.
- * OMP: Robust memory usage.
+ * OMP: Better memory usage.
 
 
 2024/05/15 Alpha Update (v0.10.6):

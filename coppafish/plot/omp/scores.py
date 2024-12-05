@@ -7,7 +7,7 @@ from matplotlib.widgets import Slider
 
 from coppafish.omp import pixel_scores
 from coppafish.plot.results_viewer.subplot import Subplot
-from coppafish.setup import config
+from coppafish.setup.config import Config
 from coppafish.setup.notebook import NotebookPage
 from coppafish.spot_colours import base as spot_colours_base
 
@@ -46,11 +46,11 @@ class ViewOMPGeneScores(Subplot):
         assert type(spot_local_yxz) is np.ndarray
         assert spot_local_yxz.shape == (3,)
 
-        alpha = config.get_default_for("omp", "alpha")
-        beta = config.get_default_for("omp", "beta")
-        max_genes = config.get_default_for("omp", "max_genes")
-        dot_product_threshold = config.get_default_for("omp", "dot_product_threshold")
-        min_intensity = config.get_default_for("omp", "minimum_intensity")
+        alpha = Config.get_default_for("omp", "alpha")
+        beta = Config.get_default_for("omp", "beta")
+        max_genes = Config.get_default_for("omp", "max_genes")
+        dot_product_threshold = Config.get_default_for("omp", "dot_product_threshold")
+        min_intensity = Config.get_default_for("omp", "minimum_intensity")
         if nbp_omp is not None:
             omp_config = nbp_omp.associated_configs["omp"]
             min_intensity = float(omp_config["minimum_intensity"])

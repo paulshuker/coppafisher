@@ -6,9 +6,4 @@ from .parameter_estimation import (
     ViewTileScaleRegression,
 )
 from .scores import HistogramScore, ViewAllGeneHistograms
-from .spot_colours import (
-    GeneSpotsViewer,
-    ViewGeneEfficiencies,
-    ViewScalingAndBGRemoval,
-    ViewSpotColourAndCode,
-)
+from .spot_colours import GeneSpotsViewer, ViewGeneEfficiencies, ViewScalingAndBGRemoval, ViewSpotColourAndCode

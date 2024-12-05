@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from ...omp.pixel_scores import PixelScoreSolver
-from ...setup import config
+from ...setup.config import Config
 from ...setup.notebook_page import NotebookPage
 from ..results_viewer.subplot import Subplot
 
@@ -38,11 +38,11 @@ class ViewOMPColourSum(Subplot):
         """
         n_rounds_use = len(nbp_basic.use_rounds)
         n_channels_use = len(nbp_basic.use_channels)
-        min_intensity = config.get_default_for("omp", "minimum_intensity")
-        alpha = config.get_default_for("omp", "alpha")
-        beta = config.get_default_for("omp", "beta")
-        max_genes = config.get_default_for("omp", "max_genes")
-        dot_product_threshold = config.get_default_for("omp", "dot_product_threshold")
+        min_intensity = Config.get_default_for("omp", "minimum_intensity")
+        alpha = Config.get_default_for("omp", "alpha")
+        beta = Config.get_default_for("omp", "beta")
+        max_genes = Config.get_default_for("omp", "max_genes")
+        dot_product_threshold = Config.get_default_for("omp", "dot_product_threshold")
         self.gene_names = nbp_call_spots.gene_names
         if nbp_omp is not None:
             min_intensity = float(nbp_omp.associated_configs["omp"]["minimum_intensity"])

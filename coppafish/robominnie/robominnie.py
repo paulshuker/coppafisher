@@ -9,7 +9,6 @@ from typing import Dict, List, Optional, Tuple, Union
 import dask
 import napari
 import numpy as np
-import numpy.typing as npt
 import pandas
 import scipy
 import tqdm
@@ -209,11 +208,11 @@ class Robominnie:
     def add_spots(
         self,
         n_spots: Optional[int] = None,
-        bleed_matrix: npt.NDArray[np.float_] = None,
-        spot_size_pixels: npt.NDArray[np.float_] = None,
+        bleed_matrix: np.ndarray[float] = None,
+        spot_size_pixels: np.ndarray[float] = None,
         spot_amplitude: float = 1,
         include_dapi: bool = False,
-        spot_size_pixels_dapi: npt.NDArray[np.float_] = None,
+        spot_size_pixels_dapi: np.ndarray[float] = None,
         spot_amplitude_dapi: float = 1,
     ) -> Self:
         """
@@ -562,7 +561,7 @@ class Robominnie:
 
         [basic_info]
         is_3d = true
-        bad_trc = {", ".join([f"({bad_trc[0]}, {bad_trc[1]}, {bad_trc[2]})" for bad_trc in bad_trcs])}
+        bad_trc = {', '.join([f'{bad_trc[0]}, {bad_trc[1]}, {bad_trc[2]}' for bad_trc in bad_trcs])}
         dye_names = {', '.join(self.dye_names)}
         use_rounds = {', '.join([str(i) for i in range(self.n_rounds)])}
         use_z = {', '.join([str(i) for i in range(self.n_planes)])}
@@ -571,6 +570,9 @@ class Robominnie:
         use_channels = {', '.join([str(i) for i in np.arange((self.dapi_channel + 1), (self.n_channels + 1))])}
         anchor_channel = {self.anchor_channel if self.include_anchor else ''}
         dapi_channel = {self.dapi_channel if self.include_dapi else ''}
+
+        [notifications]
+        allow_notifications = false
 
         [extract]
         num_rotations = 0
@@ -734,9 +736,10 @@ class Robominnie:
             assignments, FNs = utils_errors.compare_spots(
                 t_spot_positions, t_spot_gene_indices, t_truth_positions, t_truth_gene_indices, 2.0
             )
-            TPs = (assignments == 0).sum()
-            WPs = (assignments == 1).sum()
-            FPs = (assignments == 2).sum()
+            TPs = (assignments == 0).sum().item()
+            WPs = (assignments == 1).sum().item()
+            FPs = (assignments == 2).sum().item()
+            FNs = FNs.item()
             if method not in self.coppafish_spot_assignments:
                 self.coppafish_spot_assignments[method] = np.full(keep.size, -1, np.int8)
             self.coppafish_spot_assignments[method][keep] = assignments
@@ -792,9 +795,7 @@ class Robominnie:
             )
         napari.run()
 
-    def _unstitch_image(
-        self, image: npt.NDArray[np.float_], tile_size_yxz: npt.NDArray[np.int_]
-    ) -> npt.NDArray[np.float_]:
+    def _unstitch_image(self, image: np.ndarray[float], tile_size_yxz: np.ndarray[int]) -> np.ndarray[float]:
         """
         Cookie-cut the large images into multiple tiles with a tile overlap.
 

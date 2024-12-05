@@ -36,7 +36,7 @@ setup(
         "mplcursors",
         "napari[pyqt5]",
         "nd2",
-        "numpy<2.0.0",
+        "numpy<2.1",
         "numpy_indexed",
         "opencv-python-headless",
         "pandas",
@@ -52,7 +52,7 @@ setup(
     ],
     package_data={
         "coppafish.setup": [
-            "settings.default.ini",
+            "default.ini",
             "notebook_comments.json",
             "dye_camera_laser_raw_intensity.csv",
             "default_bleed.npy",

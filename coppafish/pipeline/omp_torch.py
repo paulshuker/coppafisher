@@ -3,7 +3,7 @@ import math as maths
 import os
 import pickle
 import platform
-from typing import Any, Tuple
+from typing import Tuple
 
 import numpy as np
 import scipy
@@ -14,13 +14,14 @@ import zarr
 from .. import find_spots, log, utils
 from ..omp import scores
 from ..omp.pixel_scores import PixelScoreSolver
+from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
 from ..utils import duplicates, system
 
 
 def run_omp(
-    config: dict[str, Any],
+    config: ConfigSection,
     nbp_file: NotebookPage,
     nbp_basic: NotebookPage,
     nbp_extract: NotebookPage,
@@ -39,7 +40,7 @@ def run_omp(
     See `omp` section of file `coppafish/setup/notebook_page.py` for descriptions of the omp variables.
 
     Args:
-        config (dict): Dictionary obtained from `'omp'` section of config file.
+        config (ConfigSection): config section for `omp`.
         nbp_file (NotebookPage): `file_names` notebook page.
         nbp_basic (NotebookPage): `basic_info` notebook page.
         nbp_extract (NotebookPage): `extract` notebook page.
@@ -51,7 +52,7 @@ def run_omp(
     Returns:
         `NotebookPage[omp]`: nbp_omp. Page containing gene assignments and info for OMP spots.
     """
-    assert type(config) is dict
+    assert type(config) is ConfigSection
     assert type(nbp_file) is NotebookPage
     assert type(nbp_basic) is NotebookPage
     assert type(nbp_extract) is NotebookPage
@@ -64,7 +65,7 @@ def run_omp(
     log.debug(f"{torch.cuda.is_available()=}")
     log.debug(f"{config['force_cpu']=}")
 
-    omp_config = {"omp": config}
+    omp_config = {config.name: config.to_dict()}
     nbp = NotebookPage("omp", omp_config)
 
     torch.backends.cudnn.deterministic = True
@@ -80,6 +81,7 @@ def run_omp(
     n_tile_pixels = np.prod(tile_shape).item()
     tile_origins = nbp_stitch.tile_origin.astype(np.float32)
     tile_centres = duplicates.get_tile_centres(nbp_basic.tile_sz, len(nbp_basic.use_z), tile_origins)
+    tile_origins = torch.from_numpy(tile_origins)
     n_subset_pixels = config["subset_pixels"]
     n_memory_constant = 7e7 / (n_genes * n_rounds_use * n_channels_use)
     yxz_all = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]

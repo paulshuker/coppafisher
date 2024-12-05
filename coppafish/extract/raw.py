@@ -256,7 +256,7 @@ def load_image(
         tuple of numpy arrays [n_y x n_x x len(use_z)] for each channel given.
     """
     if not np.isin(nbp_file.raw_extension, [".nd2", ".npy", "jobs"]):
-        raise ValueError(f"nbp_file.raw_extension must be '.nd2', '.npy' or 'jobs' but it is {nbp_file.raw_extension}.")
+        raise ValueError(f"nbp_file.raw_extension must be '.nd2', '.npy' or 'jobs'. Got {nbp_file.raw_extension}.")
 
     if round_dask_array is None:
         round_dask_array, _ = load_dask(nbp_file, nbp_basic, r)

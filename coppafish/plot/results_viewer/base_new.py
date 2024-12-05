@@ -446,7 +446,7 @@ class Viewer:
             return
         index, _, local_yxz, tile, gene_no, score, _, intensity = self._get_selection_data()
         message = (
-            f"Selected {self.selected_method} spot: {index} at {tuple(local_yxz)}, tile {tile}, gene {gene_no}: "
+            f"Selected {self.selected_method} spot: {index} at {tuple(local_yxz.tolist())}, tile {tile}, gene {gene_no}: "
             + f"{self.nbp_call_spots.gene_names[gene_no]}, score {score}, intensity {intensity}"
         )
         print(message)
@@ -951,7 +951,9 @@ class Viewer:
             return
         self.open_subplots.append(subplot)
 
-    def _get_selection_data(self) -> tuple[np.ndarray]:
+    def _get_selection_data(
+        self,
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         # Get the currently selected spot's data.
         assert self.selected_spot is not None
         spot_data = self.spot_data[self.selected_method]

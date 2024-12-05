@@ -10,7 +10,6 @@ from tqdm import tqdm
 
 from .. import log, setup
 from ..setup import tile_details
-from ..utils import errors
 from . import raw
 
 # bioformats ssl certificate error solution:
@@ -81,7 +80,7 @@ def get_raw_extension(input_dir: str) -> str:
 def get_metadata(file_path: str, config: dict) -> dict:
     """
     Gets metadata containing information from nd2 data about pixel sizes, position of tiles and numbers of
-    tiles/channels/z-planes. This
+    tiles/channels/z-planes.
 
     Args:
         file_path: path to desired nd2 file
@@ -330,7 +329,7 @@ def get_nd2_tile_ind(
         tile_ind_npy = [tile_ind_npy]
     # As npy and nd2 have different coordinate systems, we need to convert tile_pos_yx_npy to nd2 tile coordinates
     tile_pos_yx_npy = np.max(tile_pos_yx_npy, axis=0) - tile_pos_yx_npy
-    # TODO: Remove the dependency on an obscure package for a single function.
+    # TODO: Remove the obscure dependency for a line.
     nd2_index = numpy_indexed.indices(tile_pos_yx_nd2, tile_pos_yx_npy[tile_ind_npy]).tolist()
     if len(nd2_index) == 1:
         return nd2_index[0]

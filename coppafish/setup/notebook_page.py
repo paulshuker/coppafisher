@@ -117,12 +117,6 @@ class NotebookPage:
                 "`channel_laser[i]` is the wavelength in *nm* of the laser on channel $i$."
                 + "`none` if `dye_names = none`.",
             ],
-            "tile_pixel_value_shift": [
-                "int",
-                "This is added onto every tile (except *DAPI*) when it is saved and removed from every tile when loaded."
-                + "Required so we can have negative pixel values when save to *npy* as *uint16*."
-                + "*Typical=15000*",
-            ],
             "n_extra_rounds": [
                 "int",
                 "Number of non-imaging rounds, typically 1 if using anchor and 0 if not.",
@@ -158,14 +152,16 @@ class NotebookPage:
             ],
             "tilepos_yx_nd2": [
                 "ndarray[int]",
-                "[n_tiles x 2] `tilepos_yx_nd2[i, :]` is the $yx$ position of tile with *fov* index $i$ in the *nd2* file."
-                + "Index 0 refers to `YX = [0, 0]`"
-                + "Index 1 refers to `YX = [0, 1]` if `MaxX > 0`",
+                "[n_tiles x 2] `tilepos_yx_nd2[i, :]` is the $yx$ position of tile with *fov* index $i$ in the *nd2*"
+                + "file. Index 0 refers to `YX = [0, 0]`"
+                + "Index 1 refers to `YX = [0, 1]` if `MaxX > 0`. "
+                + "The order is reversed based on config section basic_info `reverse_tile_positions_x` and "
+                + "`reverse_tile_positions_y`.",
             ],
             "tilepos_yx": [
                 "ndarray[int]",
-                "[n_tiles x 2] `tilepos_yx[i, :]` is the $yx$ position of tile with tile directory (*npy* files) index $i$."
-                + "Equally, `tilepos_yx[use_tiles[i], :]` is $yx$ position of tile `use_tiles[i]`."
+                "[n_tiles x 2] `tilepos_yx[i, :]` is the $yx$ position of tile with tile directory (*npy* files) "
+                + "index $i$. Equally, `tilepos_yx[use_tiles[i], :]` is $yx$ position of tile `use_tiles[i]`."
                 + "Index 0 refers to `YX = [MaxY, MaxX]`"
                 + "Index 1 refers to `YX = [MaxY, MaxX - 1]` if `MaxX > 0`",
             ],

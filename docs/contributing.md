@@ -106,7 +106,7 @@ feasible.
 * Every docstring for a function must be complete so a developer can re-create the function without seeing any of the
 existing source code.
 * Each parameter in a function must have an independent, clear functionality. If two parameters are derivable from
-one another, you are doing something wrong. This also applies for the function's return variables.
+one another, you are doing something wrong. This also applies to the function's return variables.
 * Minimise the number of data types a parameter can be and use common sense. For example, a parameter that can be
 `#!python int` or `#!python None` is reasonable. A parameter that can be `#!python bool` or `#!python float` is not
 reasonable.

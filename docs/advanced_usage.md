@@ -31,7 +31,7 @@ happens, the user can manually tell coppafish to run without these images. To do
 (`r`), channel (`c`) image by going to your custom config file and add the line
 
 ```
-bad_trc = (t1, r1, c1), (t2, r2, c2), ...
+bad_trc = t1, r1, c1, t2, r2, c2, ...
 ```
 
 under the `basic_info` section. Each set of brackets represents one image to ignore. This allows for meaningful

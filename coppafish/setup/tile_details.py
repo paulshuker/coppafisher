@@ -18,6 +18,7 @@ def get_tilepos(xy_pos: np.ndarray, tile_sz: int, expected_overlap: float) -> Tu
             `t` is the nd2 tile index.
         tile_sz: xy dimension of tile in pixels.
         expected_overlap: expected overlap between tiles as a fraction of tile_sz.
+
     Returns:
         tilepos_yx_nd2: `int [n_tiles x 2]`.
             yx position of each tile in nd2 format. `tilepos_yx_nd2[t,:]` is yx position of tile `t` where `t` is the

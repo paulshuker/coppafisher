@@ -1,9 +1,9 @@
 import torch
 
+from coppafish.omp import scores
+
 
 def test_score_pixel_score_image() -> None:
-    from coppafish.omp import scores
-
     im_y, im_x, im_z = 4, 5, 6
     spot_shape = 1, 3, 5
 
@@ -14,7 +14,7 @@ def test_score_pixel_score_image() -> None:
     mean_spot[0, 2, 2] = 0.9
     mean_spot[0, 1, 3] = 0.1
 
-    spot_scores = spot_scores.score_pixel_score_image(pixel_score_image, mean_spot)
+    spot_scores = scores.score_pixel_score_image(pixel_score_image, mean_spot)
 
     assert spot_scores.shape == pixel_score_image.shape
     assert torch.allclose(spot_scores[0], torch.zeros(1).float())

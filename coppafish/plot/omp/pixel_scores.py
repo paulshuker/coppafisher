@@ -12,7 +12,7 @@ from matplotlib.widgets import Button, Slider
 from coppafish.omp import scores as omp_scores
 from coppafish.omp.pixel_scores import PixelScoreSolver
 from coppafish.plot.results_viewer.subplot import Subplot
-from coppafish.setup import config
+from coppafish.setup.config import Config
 from coppafish.setup.notebook import NotebookPage
 from coppafish.spot_colours import base as spot_colours_base
 
@@ -63,11 +63,11 @@ class ViewOMPPixelScoreImage(Subplot):
         """
         assert len(z_planes) > 3
         n_rounds_use, n_channels_use = len(nbp_basic.use_rounds), len(nbp_basic.use_channels)
-        min_intensity = config.get_default_for("omp", "minimum_intensity")
-        alpha = config.get_default_for("omp", "alpha")
-        beta = config.get_default_for("omp", "beta")
-        max_genes = config.get_default_for("omp", "max_genes")
-        dot_product_threshold = config.get_default_for("omp", "dot_product_threshold")
+        min_intensity = Config.get_default_for("omp", "minimum_intensity")
+        alpha = Config.get_default_for("omp", "alpha")
+        beta = Config.get_default_for("omp", "beta")
+        max_genes = Config.get_default_for("omp", "max_genes")
+        dot_product_threshold = Config.get_default_for("omp", "dot_product_threshold")
         mean_spot_filepath = importlib_resources.files("coppafish.omp").joinpath("mean_spot.npy")
         mean_spot: np.ndarray = np.load(mean_spot_filepath).astype(np.float32)
         if nbp_omp is not None:

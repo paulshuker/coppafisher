@@ -50,8 +50,8 @@ def convert_coords_to_torch_grid(yxz_coords: torch.Tensor, image_shape: tuple[in
 
 
 def apply_flow_new(
-    yxz: Union[np.ndarray, torch.Tensor], flow: Union[zarr.Array, np.ndarray], tile: int, r: int
-) -> torch.Tensor:
+    yxz: np.ndarray | torch.Tensor, flow: zarr.Array | np.ndarray, tile: int, r: int
+) -> np.ndarray | torch.Tensor:
     """
     Apply the pixel shifts from flow to each yxz positions given. If the yxz positions are not exact integers within
     the flow image, then bilinear interpolation is done. On out-of-bound regions, the flow shift is taken to be the
@@ -66,7 +66,8 @@ def apply_flow_new(
         - r (int): round index to gather flow for.
 
     Returns:
-        `(n_points x 3) tensor[float32]` yxz_flow: yxz coordinates optical flow shifted.
+        (`(n_points x 3) ndarray[float32] or tensor[float32]`): yxz_flow. yxz coordinates optical flow shifted. Returns
+            a tensor if yxz is a tensor.
     """
     assert type(yxz) is np.ndarray or type(yxz) is torch.Tensor
     assert type(flow) is zarr.Array or type(flow) is np.ndarray
@@ -106,6 +107,9 @@ def apply_flow_new(
     flow_shifts = torch.nn.functional.grid_sample(flow_torch, yxz_grid, align_corners=True, padding_mode="border")
     flow_shifts = flow_shifts[:, 0, 0, 0]
     yxz_torch += flow_shifts.T + torch.tensor(yxz_min)[None]
+
+    if type(yxz) is np.ndarray:
+        yxz_torch = yxz_torch.numpy()
     return yxz_torch
 
 

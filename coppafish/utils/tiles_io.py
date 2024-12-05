@@ -3,7 +3,6 @@ import os
 from typing import Any, Optional, Tuple, Union
 
 import numpy as np
-import numpy.typing as npt
 import zarr
 from numcodecs import Blosc, blosc
 
@@ -94,7 +93,7 @@ def image_exists(file_path: str) -> bool:
 
 
 def _save_image(
-    image: npt.NDArray[Union[np.float16, np.uint16]],
+    image: np.ndarray[Union[np.float16, np.uint16]],
     file_path: str,
     optimised_for: OptimisedFor = None,
 ) -> None:
