@@ -1,7 +1,6 @@
 import os
-from typing import Any, Tuple
+from typing import Any
 
-import dask
 import nd2
 import numpy as np
 
@@ -41,13 +40,11 @@ class Nd2Reader(RawReader):
 
         images = images[channels]
 
-        # FIXME: Index the channels.
-
         # Put z index to end.
         # czyx -> cyxz where c is the channels index I think?
         images = images.swapaxes(1, 3)
 
-        assert images.ndim == 3
+        assert images.ndim == 4
 
         return images
 
