@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import Any
 
 import nd2
@@ -16,6 +17,15 @@ class Nd2Reader(RawReader):
     def read(
         self, nbp_basic: NotebookPage, nbp_file: NotebookPage, tile: int, round: int, channels: list[int]
     ) -> np.ndarray:
+        """
+        Read ND2 files for the given channels.
+
+        We expect every ND2 file to have the shape (n_tiles, n_z_planes, n_channels, n_y_pixels, n_x_pixels). There
+        should be one ND2 file for each round.
+
+        Returns:
+            (`len(channels) x im_y x im_x x im_z`): image. The channel image(s).
+        """
         super().read(nbp_basic, nbp_file, tile, round, channels)
 
         tile_raw = super().get_tile_raw_index(tile, nbp_basic.tilepos_yx_nd2, nbp_basic.tilepos_yx)
@@ -30,7 +40,10 @@ class Nd2Reader(RawReader):
         file_path = round_file + nbp_file.raw_extension
 
         with nd2.ND2File(file_path) as images:
-            images = images.to_dask()
+            # Hiding a warning (known issue with nd2 package https://github.com/tlambert03/nd2/issues/239).
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=UserWarning, module="dask.tokenize")
+                images = images.to_dask()
 
         images = images[tile_raw]
 
@@ -38,17 +51,15 @@ class Nd2Reader(RawReader):
         # This is the fastest way because the dask array is not chunked over channels like previously thought.
         images = images.compute()
 
-        images = images[channels]
+        images = images[:, channels]
 
-        # Put z index to end.
-        # czyx -> cyxz where c is the channels index I think?
-        images = images.swapaxes(1, 3)
-
-        assert images.ndim == 4
+        # Put the z index to the end.
+        # zcyx -> czyx -> cyzx -> cyxz where c is the channels index.
+        images = images.swapaxes(0, 1).swapaxes(1, 2).swapaxes(2, 3)
 
         return images
 
-    def _get_all_metadata(file_path: str) -> dict[str, Any]:
+    def get_all_metadata(file_path: str) -> dict[str, Any]:
         """
         Get all metadata from the given nd2 file.
 

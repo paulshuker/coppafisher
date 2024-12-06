@@ -1,9 +1,12 @@
 import numbers
+import os
 from typing import Any, Tuple
 
 import dask
+import nd2
 import numpy as np
 import numpy_indexed
+import tqdm
 
 from ..setup.notebook_page import NotebookPage
 
@@ -109,7 +112,7 @@ class RawReader:
             # Deal with non anchor round first as this follows a different format to anchor round
             if round != nbp_basic.anchor_round:
 
-                for t in tqdm(range(n_tiles), desc="Loading tiles in dask array"):
+                for t in tqdm.tqdm(range(n_tiles), desc="Loading tiles in dask array"):
                     # Get all the files of a given tiles (should be 7)
                     tile_files = round_files[round][t * n_lasers : (t + 1) * n_lasers]
                     tile_dask_array = []
@@ -176,14 +179,17 @@ class RawReader:
         Returns:
             (int): the raw tile index.
         """
-        if isinstance(tile_index, numbers.Number):
-            tile_index = [tile_index]
-        # As npy and nd2 have different coordinate systems, we need to convert tile_pos_yx_npy to nd2 tile coordinates
+        assert type(tile_index) is int
+        assert type(tile_pos_yx_raw) is np.ndarray
+        assert tile_pos_yx_raw.ndim == 2
+        assert tile_pos_yx_raw.shape[1] == 2
+        assert type(tile_pos_yx) is np.ndarray
+        assert tile_pos_yx.ndim == 2
+        assert tile_pos_yx.shape[1] == 2
+
+        # Since npy and raw files have different tile positioning, convert tile_pos_yx to raw tile coordinates.
         tile_pos_yx = np.max(tile_pos_yx, axis=0) - tile_pos_yx
-        # TODO: Remove the obscure dependency for a line.
-        nd2_index = numpy_indexed.indices(tile_pos_yx_raw, tile_pos_yx[tile_index]).tolist()
-        if len(nd2_index) == 1:
-            nd2_index = nd2_index[0]
+        nd2_index = (tile_pos_yx_raw == tile_pos_yx[[tile_index]]).all(1).nonzero()[0][0].item()
 
         return nd2_index
 
