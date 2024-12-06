@@ -81,9 +81,12 @@ def run_filter(
     if config["deconvolve"]:
         if not os.path.isfile(nbp_file.psf):
             raise FileNotFoundError(f"Could not find the PSF at location {nbp_file.psf}")
-        else:
-            psf = np.moveaxis(np.load(nbp_file.psf)["arr_0"], 0, 2)  # Put z to last index
-        # normalise psf so min is 0 and max is 1.
+
+        # Put z to last index
+        psf = np.load(nbp_file.psf)["arr_0"].astype(np.float32).swapaxes(0, 2)
+        if np.max(psf.shape[:2]) < psf.shape[2]:
+            log.warn(f"The given PSF has a strange shape of yxz = {psf.shape}")
+        # Normalise psf so the min is 0 and the max is 1.
         psf = psf - psf.min()
         psf = psf / psf.max()
         pad_im_shape = (
@@ -111,10 +114,10 @@ def run_filter(
             if bad_columns.size > 0:
                 raise ValueError(f"Bad y column(s) were found during {t=}, {r=}, {c=} image filtering")
             del im_raw
-            # Move to floating point before doing any filtering
+            # Move to floating point before doing any filtering.
             im_filtered = im_filtered.astype(np.float64)
             if config["deconvolve"]:
-                # Deconvolves dapi images too
+                # Deconvolves dapi images too.
                 im_filtered = deconvolution.wiener_deconvolve(
                     im_filtered, config["wiener_pad_shape"], wiener_filter, config["force_cpu"]
                 )

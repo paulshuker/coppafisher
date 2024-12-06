@@ -75,7 +75,10 @@ def find_spots(
 
         # Compute the image's auto threshold to detect spots.
         mid_z = image_trc.shape[2] // 2
-        auto_thresh[t, r, c] = float(auto_thresh_multiplier * np.median(np.abs(image_trc[..., mid_z])).clip(1))
+        auto_thresh[t, r, c] = auto_thresh_multiplier * np.median(np.abs(image_trc[..., mid_z].astype(np.float32)))
+
+        if auto_thresh[t, r, c] <= 0:
+            auto_thresh[t, r, c] = auto_thresh_multiplier
 
         local_yxz, spot_intensity = detect.detect_spots(
             image_trc,
