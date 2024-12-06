@@ -115,7 +115,7 @@ class ViewOMPGeneScores(Subplot):
         self.plot_ax.set_title(
             f"Pixel {tuple(spot_local_yxz)}, Tile {spot_tile} Gene Dot Product Scores\n(0, "
             + f"{n_genes_all - n_channels_use}) are gene indices, ({n_genes_all - n_channels_use}, {n_genes_all}) are "
-            + f"background genes"
+            + "background genes"
         )
         self.plot_ax.set_ylabel("Gene Score")
         max_score = max(1, self.dp_scores.max().item())

@@ -176,7 +176,7 @@ class Robominnie:
             include_anchor (bool, optional): Superimpose on the anchor image. Default: true.
             include_dapi (bool, optional): Superimpose on the DAPI image. Default: true.
         """
-        print(f"Generating pink noise")
+        print("Generating pink noise")
 
         # True spatial scale should be maintained regardless of the image size, so we scale it as such.
         true_noise_spatial_scale = noise_spatial_scale * np.asarray(
@@ -276,7 +276,7 @@ class Robominnie:
         ), f"Bleed matrix does not have n_channels={self.n_channels} as expected"
         assert spot_size_pixels.shape[0] == 3, "`spot_size_pixels` must be in three dimensions"
         if bleed_matrix.shape[0] != bleed_matrix.shape[1]:
-            log.warn(f"Given bleed matrix does not have equal channel and dye counts like usual")
+            log.warn("Given bleed matrix does not have equal channel and dye counts like usual")
         if self.bleed_matrix is None:
             self.bleed_matrix = bleed_matrix
         else:
@@ -368,7 +368,7 @@ class Robominnie:
 
         multiplier = (type_max - type_min) / (image_max - image_min)
         offset = type_max - multiplier * image_max
-        assert np.isclose(offset, type_min - multiplier * image_min), f"Oops"
+        assert np.isclose(offset, type_min - multiplier * image_min), "Oops"
         self.sequence_images *= multiplier
         self.sequence_images += offset
         self.sequence_images = self.sequence_images.astype(type)
@@ -401,7 +401,7 @@ class Robominnie:
         self.fit_images_to_type()
         self.bound_spots()
 
-        print(f"Saving raw data")
+        print("Saving raw data")
 
         self.tile_origins_yx, self.tile_yxz_pos = self._get_tile_bounds()[1:]
         self.image_tiles = self._unstitch_image(
@@ -496,7 +496,7 @@ class Robominnie:
             dask.array.to_npy_stack(save_path, image_dask)
             del image_dask
         if self.include_anchor:
-            self.anchor_directory_name = f"anchor"
+            self.anchor_directory_name = "anchor"
             anchor_save_path = os.path.join(output_dir, self.anchor_directory_name)
             if not os.path.isdir(anchor_save_path):
                 os.mkdir(anchor_save_path)
@@ -611,7 +611,7 @@ class Robominnie:
         Remove true spot positions when they are not within a tile. Any spot positions within a tile overlap are added
         multiple times, one for each tile. This is called when save_raw_data is called.
         """
-        print(f"Bounding spots... ", end="")
+        print("Bounding spots... ", end="")
         tile_bounds = self._get_tile_bounds()[0]
 
         bounded_true_spot_positions = np.zeros((0, 3), self.true_spot_positions.dtype)
@@ -641,7 +641,7 @@ class Robominnie:
         Returns:
             Notebook: final notebook.
         """
-        print(f"Running coppafish")
+        print("Running coppafish")
 
         config_filepath = self.config_filepath
         n_planes = self.n_planes

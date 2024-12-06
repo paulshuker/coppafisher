@@ -132,7 +132,7 @@ class ViewOMPColourSum(Subplot):
             )
             self.axes[1, i].imshow(self.gene_residuals[i].T, cmap=self.cmap, norm=self.norm)
 
-        self.axes[1, -2].set_title(f"Spot colour")
+        self.axes[1, -2].set_title("Spot colour")
         self.axes[1, -2].imshow(self.colour.T, cmap=self.cmap, norm=self.norm)
 
         self.fig.canvas.draw_idle()

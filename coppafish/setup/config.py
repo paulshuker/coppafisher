@@ -274,7 +274,7 @@ class Config:
         if type(section_name) is not str:
             raise TypeError(f"Config sections must be accessed through a string, got type {type(section_name)}")
         if len(self._sections) == 0:
-            raise self.SectionError(f"Load must be called first to parse the config file")
+            raise self.SectionError("Load must be called first to parse the config file")
 
         for section in self._sections:
             if section.name == section_name:
@@ -521,7 +521,7 @@ class Config:
                 if not self._param_post_checks[tuple_check][0](value):
                     return False, self._param_post_checks[tuple_check][1]
         else:
-            assert "tuple-" not in checker_str, f"Tuple post checks can only apply to tuple formatted types in _options"
+            assert "tuple-" not in checker_str, "Tuple post checks can only apply to tuple formatted types in _options"
 
         for check_value in check_values:
             for check_name in checker_str.split(self._checker_separator):

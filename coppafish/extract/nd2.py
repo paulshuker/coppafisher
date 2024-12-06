@@ -382,7 +382,7 @@ def get_raw_images(
 
     raw_images = np.zeros((n_tiles, n_rounds, n_channels, ny, nx, nz), dtype=np.uint16)
     with tqdm(total=n_images) as pbar:
-        pbar.set_description(f"Loading in raw data")
+        pbar.set_description("Loading in raw data")
         for r in range(n_rounds):
             round_dask_array, _ = raw.load_dask(nbp_file, nbp_basic, r=rounds[r])
             # TODO: Can get rid of these two for loops, when round_dask_array is always a dask array.

@@ -156,7 +156,7 @@ class PixelScoreSolver:
         for iteration in range(maximum_iterations):
             log.debug(f"Iteration: {iteration}")
             # Find the next best gene for pixels that have not reached a stopping criteria yet.
-            log.debug(f"Finding next best gene assignments")
+            log.debug("Finding next best gene assignments")
             fail_gene_indices = torch.cat((genes_selected[:, :iteration], bg_gene_indices), 1)
             fail_gene_indices = fail_gene_indices[pixels_to_continue]
             gene_assigment_results = self.get_next_gene_assignments(
@@ -182,7 +182,7 @@ class PixelScoreSolver:
 
             # On the pixels still being iterated on, update the gene weights and hence the residual colours for the
             # next iteration.
-            log.debug(f"Computing gene weights")
+            log.debug("Computing gene weights")
             latest_gene_selections = genes_selected[pixels_to_continue, : iteration + 1]
             # Has shape (n_pixels_continue, iteration + 1, n_rounds_use, n_channels_use).
             bled_codes_to_continue = bled_codes_torch[latest_gene_selections]
@@ -203,7 +203,7 @@ class PixelScoreSolver:
             del epsilon_squared
 
             # Using the new gene weights, update the OMP pixel scores.
-            log.debug(f"Computing gene pixel scores")
+            log.debug("Computing gene pixel scores")
             pixel_score_result = self.get_gene_pixel_scores(
                 colours[pixels_to_continue],
                 bled_codes_to_continue,
@@ -219,7 +219,7 @@ class PixelScoreSolver:
                     all_residuals[pixels_to_continue, latest_gene_selections[:, j]] = new_residuals[:, j]
                 del new_residuals
             del bled_codes_to_continue, iteration_weights, pixel_score_result
-            log.debug(f"Assigning gene pixel scores")
+            log.debug("Assigning gene pixel scores")
             for j in range(iteration + 1):
                 pixel_scores[pixels_to_continue, latest_gene_selections[:, j]] = new_pixel_scores[:, j]
             del latest_gene_selections, new_pixel_scores

@@ -1,5 +1,7 @@
 from setuptools import find_packages, setup
 
+__version__ = ""
+
 with open("coppafish/_version.py", "r") as f:
     exec(f.read())
 

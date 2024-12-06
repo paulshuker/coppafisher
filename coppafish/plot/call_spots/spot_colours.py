@@ -448,10 +448,8 @@ class GeneSpotsViewer:
 
     def load_spots(self, gene_index: int):
         # initialise variables
-        nbp_basic = self.nbp_basic
         nbp_ref_spots = self.nbp_ref_spots
         nbp_call_spots = self.nbp_call_spots
-        nbp_omp = self.nbp_omp
         colour_norm = nbp_call_spots.colour_norm_factor
 
         # get spots for gene gene_index

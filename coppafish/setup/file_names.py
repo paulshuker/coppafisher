@@ -36,15 +36,15 @@ def get_file_names(nbp_basic_info: NotebookPage, config_path: str):
         all_files.sort()  # Sort files by ascending number
         n_tiles = int(len(all_files) / 7 / 8)
         # FIXME: r is not defined within the scope of the square brackets, this will probably cause a runtime error
-        config["round"] = tuple(
-            [f.replace(".nd2", "") for f in all_files[n_tiles * r * 7 : n_tiles * (r + 1) * 7] for r in range(7)]
-        )
+        # config["round"] = tuple(
+        #     [f.replace(".nd2", "") for f in all_files[n_tiles * r * 7 : n_tiles * (r + 1) * 7] for r in range(7)]
+        # )
         # TODO replace range(7) by the by the number of rounds?
         config["anchor"] = tuple([r.replace(".nd2", "") for r in all_files[n_tiles * 7 * 7 :]])
     else:
         if config["round"] is None:
             if config["anchor"] is None:
-                log.error(ValueError(f"Neither imaging rounds nor anchor_round provided"))
+                log.error(ValueError("Neither imaging rounds nor anchor_round provided"))
             config["round"] = tuple()  # Sometimes the case where just want to run the anchor round.
         config["round"] = tuple([r.replace(config["raw_extension"], "") for r in config["round"]])
 

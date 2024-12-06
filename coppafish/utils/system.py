@@ -1,5 +1,7 @@
 import os
 import shutil
+import socket
+import ssl
 import urllib
 from pathlib import PurePath
 from typing import Tuple
@@ -148,5 +150,15 @@ def internet_is_active() -> bool:
     try:
         urllib.request.urlopen("http://www.google.com")
         return True
-    except:
+    except (
+        urllib.error.URLError
+        or urllib.error.HTTPError
+        or ValueError
+        or socket.gaierror
+        or TimeoutError
+        or OSError
+        or ssl.SSLError
+        or ConnectionResetError
+        or FileNotFoundError
+    ):
         return False

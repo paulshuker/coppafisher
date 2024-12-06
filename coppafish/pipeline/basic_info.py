@@ -44,7 +44,7 @@ def set_basic_info_new(config: Config) -> NotebookPage:
     all_files.sort()
     if raw_extension == ".nd2":
         if config_file["round"] is None and config_file["anchor"] is None:
-            log.error(ValueError(f"config_file['round'] or config_file['anchor'] should not both be left blank"))
+            log.error(ValueError("config_file['round'] or config_file['anchor'] should not both be left blank"))
         # load in metadata of nd2 file corresponding to first round
         # Allow for degenerate case when only anchor has been provided
         if config_file["round"] is not None:
@@ -59,8 +59,8 @@ def set_basic_info_new(config: Config) -> NotebookPage:
         if metadata_file is None:
             log.error(
                 ValueError(
-                    f"There is no json metadata file in input_dir. This should have been set at the point of "
-                    f"ND2 extraction to npy."
+                    "There is no json metadata file in input_dir. This should have been set at the point of "
+                    "ND2 extraction to npy."
                 )
             )
         metadata = json.load(open(metadata_file))
@@ -146,7 +146,7 @@ def set_basic_info_new(config: Config) -> NotebookPage:
         del nbp.use_channels
         nbp.use_channels = tuple(np.arange(metadata["n_channels"]).tolist())
     if len(nbp.use_channels) > 9:
-        raise NotImplementedError(f"There must be 9 or fewer sequencing channels to run coppafish.")
+        raise NotImplementedError("There must be 9 or fewer sequencing channels to run coppafish.")
 
     # If no use_z given, default to all except the first if ignore_first_z_plane = True
     if nbp.use_z is None:

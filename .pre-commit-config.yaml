@@ -27,3 +27,8 @@ repos:
     rev: 24.10.0
     hooks:
     -   id: black
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.8.2
+  hooks:
+    # Run the linter.
+    - id: ruff

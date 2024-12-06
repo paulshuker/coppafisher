@@ -209,7 +209,7 @@ class ViewOMPPixelScoreImage(Subplot):
                 linewidth=0.3,
             )
             if z_plane == 0:
-                ax.set_title(f"Central Plane")
+                ax.set_title("Central Plane")
             else:
                 ax.set_title(f"{'+' if z_plane > 0 else '-'}{abs(z_plane)}")
             im = ax.imshow(data[k], cmap=cmap, norm=norm, interpolation="nearest")

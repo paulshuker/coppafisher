@@ -188,9 +188,9 @@ class BuildPDF:
                             X[r, channels_to_index[c]] = nb.find_spots.spot_no[t, r, c]
                             ticks_channels_labels[channels_to_index[c]] = f"{c}"
                             if nb.basic_info.dapi_channel is not None and c == nb.basic_info.dapi_channel:
-                                ticks_channels_labels[channels_to_index[c]] = f"dapi"
+                                ticks_channels_labels[channels_to_index[c]] = "dapi"
                             if nb.basic_info.anchor_channel is not None and c == nb.basic_info.anchor_channel:
-                                ticks_channels_labels[channels_to_index[c]] = f"anchor"
+                                ticks_channels_labels[channels_to_index[c]] = "anchor"
                             ticks_rounds_labels[r] = f"{r if r != nb.basic_info.anchor_round else 'anchor'}"
                     im = ax.imshow(X, cmap="viridis", norm="log", vmin=minimum_spot_count, vmax=maximum_spot_count)
                     ax.set_xlabel("Channels")
@@ -285,7 +285,7 @@ class BuildPDF:
                     axes[0, 0].set_yticks(range(n_rounds))
                     axes[0, 0].set_ylim([n_rounds - 0.5, -0.5])
                     axes[0, 0].set_ylabel("round")
-                    axes[0, 0].set_title(f"dye code match")
+                    axes[0, 0].set_title("dye code match")
                     self.empty_plot_ticks(axes[1, 0], show_bottom_frame=True, show_left_frame=True)
                     max_shown = g_probs[: self.N_GENES_SHOW].size
                     axes[1, 0].plot(np.arange(max_shown), g_probs[: self.N_GENES_SHOW])
@@ -477,14 +477,14 @@ class BuildPDF:
         try:
             output = f"Coppafish {basic_info_page.software_version} Diagnostics"
         except AttributeError:
-            output = f"Coppafish <0.5.0 Diagnostics"
+            output = "Coppafish <0.5.0 Diagnostics"
         output += "\n \n"
         use_tiles = basic_info_page.use_tiles
         output += "\n".join(textwrap.wrap(f"{len(use_tiles)} tiles: {use_tiles}", 88)) + "\n"
         output += (
             "...\n".join(
                 textwrap.wrap(
-                    f"3D tile dimensions: "
+                    "3D tile dimensions: "
                     + f"{basic_info_page.nz}x{basic_info_page.tile_sz}x{basic_info_page.tile_sz}",
                     85,
                 )
@@ -526,7 +526,7 @@ class BuildPDF:
             # Filtering DAPI is true
             output += f"dapi filtering with r_dapi: {filter_debug_page.r_dapi}"
         else:
-            output += f"no dapi filtering"
+            output += "no dapi filtering"
         return output
 
     def create_pixel_value_hists(
@@ -694,10 +694,10 @@ class BuildPDF:
             label="Median score",
         )
         bar_colours = [cmap(norm(median_scores[i])) for i in range(median_scores.size)]
-        axes[0, 0].set_title(f"Counts")
+        axes[0, 0].set_title("Counts")
         axes[0, 0].bar(bar_x, spot_counts, width=1, color=bar_colours, edgecolor="black", linewidth=0.5)
         axes[0, 0].set_xticks(ticks, labels=labels)
-        axes[0, 0].set_ylabel(f"Spot count")
+        axes[0, 0].set_ylabel("Spot count")
         axes[0, 0].spines["left"].set_visible(True)
         axes[0, 0].spines["bottom"].set_visible(True)
 
@@ -705,7 +705,7 @@ class BuildPDF:
         all_scores = np.zeros(0, dtype=np.float16)
         for t in basic_info_page.use_tiles:
             all_scores = np.append(all_scores, omp_page.results[f"tile_{t}/scores"][:], 0)
-        axes[1, 0].set_title(f"Score distribution")
+        axes[1, 0].set_title("Score distribution")
         axes[1, 0].hist(all_scores, bins=200, color="red", edgecolor="black", linewidth=0.25)
         axes[1, 0].set_xlabel("Spot score")
         axes[1, 0].set_xlim(
@@ -745,7 +745,7 @@ class BuildPDF:
             max_z = mean_spot_shape.shape[2] - 1
             for column, z_offset in enumerate(z_offsets):
                 z = min([max([0, z_offset + mid_z]), max_z])
-                title = f"central z"
+                title = "central z"
                 if z_offset != 0:
                     title += f" {'+ ' if z_offset > 0 else '- '}{int(np.abs(z_offset))}"
                 else:
@@ -801,7 +801,7 @@ class BuildPDF:
         if score_threshold > 0:
             ax.set_title(r"Gene counts for scores $\geq$ " + str(round(score_threshold, 3)))
         else:
-            ax.set_title(f"Gene counts")
+            ax.set_title("Gene counts")
         # Create a colour map for the bars to be coloured based on the median scores
         cmap = mpl.cm.viridis
         norm = mpl.colors.Normalize(vmin=0, vmax=1)

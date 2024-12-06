@@ -16,7 +16,8 @@ pip install -r requirements-dev.txt
 ## Pre-Commit
 
 [Pre-commit](https://github.com/pre-commit/pre-commit) hooks will automatically run on every git commit. This will
-ensure files are consistently formatted and checked. Use pre-commit hooks by
+ensure files are consistently formatted and checked. It also runs linting rules through
+[ruff](https://github.com/astral-sh/ruff). Use pre-commit hooks by
 
 ```terminal
 pre-commit install
@@ -34,17 +35,7 @@ Auto-update pre-commits (recommended):
 pre-commit autoupdate
 ```
 
-If a commit is pushed that fails a pre-commit check, then the GitHub integration workflow will catch it.
-
-## Lint
-
-[Pyright](https://github.com/microsoft/pyright) does lint checks on the codebase in the GitHub integration workflow.
-Currently, static type checking is turned off (see [#145](https://github.com/paulshuker/coppafish/issues/145)). It is
-recommended to install pyright within your IDE/text editor for error checking while editing code. Manually check by
-
-```terminal
-pyright .
-```
+If a commit is pushed that fails a pre-commit hook, then the GitHub integration workflow will catch it.
 
 ## Tests
 

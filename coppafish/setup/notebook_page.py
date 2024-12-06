@@ -961,7 +961,7 @@ class NotebookPage:
         elif type_as_str == "tuple":
             return type(value) is tuple
         elif type_as_str.startswith("tuple"):
-            if not type(value) is tuple:
+            if type(value) is not tuple:
                 return False
             if len(value) == 0:
                 return True

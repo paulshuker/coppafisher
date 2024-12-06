@@ -6,9 +6,9 @@ isort
 mkdocs-material
 # Pre-commit hooks
 pre-commit
-# Static type checker
-pyright
 # Testing
 pytest
 # Code coverage
 pytest-cov
+# Linter
+ruff
