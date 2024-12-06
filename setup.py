@@ -29,7 +29,6 @@ setup(
         "dash-html-components",
         "dash_daq",
         "dask",
-        "datashader",
         "distinctipy",
         "h5py",
         "joblib",
