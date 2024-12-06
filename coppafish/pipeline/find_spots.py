@@ -71,11 +71,11 @@ def find_spots(
     pbar = tqdm.tqdm(total=use_indices.sum(), desc="Finding spots", unit="image")
     for t, r, c in np.argwhere(use_indices).tolist():
         pbar.set_postfix_str(f"{t=}, {r=}, {c=}")
-        image_trc = nbp_filter.images[t, r, c]
+        image_trc = nbp_filter.images[t, r, c].astype(np.float32)
 
         # Compute the image's auto threshold to detect spots.
         mid_z = image_trc.shape[2] // 2
-        auto_thresh[t, r, c] = auto_thresh_multiplier * np.median(np.abs(image_trc[..., mid_z].astype(np.float32)))
+        auto_thresh[t, r, c] = auto_thresh_multiplier * np.median(np.abs(image_trc[..., mid_z]))
 
         if auto_thresh[t, r, c] <= 0:
             auto_thresh[t, r, c] = auto_thresh_multiplier
