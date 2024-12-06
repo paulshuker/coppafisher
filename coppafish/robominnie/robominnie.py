@@ -477,15 +477,14 @@ class Robominnie:
             json.dump(metadata, f, indent=4)
 
         # Save the raw .npy tile files, one round at a time, in separate round directories. We do this because
-        # coppafish expects every rounds (including the anchor) in its own directory.
-        # Dask saves each tile as a separate .npy file for coppafish to read.
+        # coppafish expects every round (including the anchor) in its own directory.
+        # Dask saves each tile as a separate chunk for coppafish to read.
         dask_chunks = (1, self.n_channels + 1, self.tile_sz, self.tile_sz, self.n_planes)
         for r in range(self.n_rounds):
             save_path = os.path.join(output_dir, f"{r}")
             if not os.path.isdir(save_path):
                 os.mkdir(save_path)
-            # Clear the raw .npy directories before dask saving, so old multi-tile data is not left in the
-            # directories
+            # Clear the raw .npy directories before dask saving.
             for filename in os.listdir(save_path):
                 filepath = os.path.join(save_path, filename)
                 if os.path.isfile(filepath):
