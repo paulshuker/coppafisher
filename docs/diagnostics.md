@@ -2,9 +2,9 @@ Diagnostics specific to a method are found in the [method](find_spots.md) tab.
 
 ## Viewer
 
-The Viewer is the flagship way of viewing results. It is a fast, three-dimensional view of gene reads found during
-[call spots](overview.md#call-spots) and [OMP](overview.md#orthogonal-matching-pursuit). The application is run through
-[napari](https://github.com/napari/napari).
+The Viewer is the flagship diagnostic for viewing results. It is a fast, three-dimensional view of gene reads found
+during [call spots](overview.md#call-spots) and [OMP](overview.md#orthogonal-matching-pursuit). The application is
+powered by [napari](https://github.com/napari/napari).
 
 ### Opening
 
@@ -56,8 +56,8 @@ Viewer(nb, background_image="/path/to/custom/background_image.npy")
 
 The background image must be of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` and can be a .npy file, a compressed
 .npz file with image at key `"arr_0"`, or a .tif file (based on package
-[tifffile](https://github.com/cgohlke/tifffile)). For further customisation, see the Viewer docstring in the
-[source code](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/plot/results_viewer/base.py).
+[tifffile](https://github.com/cgohlke/tifffile)). For further customisation, see the Viewer
+[docstring](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/plot/results_viewer/base.py).
 
 Close the Viewer and all subplots by pressing Ctrl + C in the terminal.
 
@@ -70,15 +70,17 @@ right click a gene to show only that type. Right click it again to show all gene
 For help with Viewer hotkeys, press h. This includes further diagnostic subplots in the Viewer. Some require a selected
 spot. Select a spot by pressing 3 and clicking on a spot. Press 4 to continue panning.
 
-The "Background Contrast" slider below the gene legend will affect the colour scale of the background image. "Marker
-Size" will change the size of gene spots. The "Z Thickness" allows for multiple z planes of genes to be displayed at
-once. Genes further away in z are smaller. The "Score Thresholds" allows the user to change the minimum and maximum
-scores to be displayed. The "Intensity Thresholds" affects the minimum allowed spot intensity to display (only affects
-Anchor and OMP). The "Method" is the chosen method of gene calling. "Probability" is the Von-Mises probability method,
-"Anchor" is the anchor method (see [call spots](overview.md#call-spots)), and "OMP" is the Orthogonal Matching Pursuit
-method (see [OMP](overview.md#orthogonal-matching-pursuit)).
+The "Background Contrast" slider will affect the colour scale of the background image. "Marker Size" will change the
+size of gene spots. "Z Thickness" allows for multiple z planes to be displayed at once. The "Score Thresholds" allows
+the user to change the minimum and maximum spot scores to display. The "Intensity Thresholds" affects the minimum and
+maximum allowed spot intensity to display The "Method" is the chosen method of gene calling. "Probability" is the Von-
+Mises probability method, "Anchor" is the anchor method (see [call spots](overview.md#call-spots)), and "OMP" is the
+Orthogonal Matching Pursuit method (see [OMP](overview.md#orthogonal-matching-pursuit)).
 
-![](images/Viewer_example.PNG "The Viewer")
+<figure markdown="span">
+  ![Image title](images/Viewer_example.PNG){ width="1100" }
+  <figcaption>The Viewer</figcaption>
+</figure>
 
 ## RegistrationViewer
 
