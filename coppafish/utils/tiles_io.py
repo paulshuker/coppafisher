@@ -129,7 +129,7 @@ def _save_image(
 
 def _load_image(file_path: str) -> zarr.Array:
     """
-    Read in extract zarr array from file_path location.
+    Read extract zarr Array from the given location.
 
     Args:
         file_path (str): image location.

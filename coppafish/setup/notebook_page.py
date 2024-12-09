@@ -15,6 +15,15 @@ from ..utils import system as utils_system
 
 # NOTE: Every method and variable with an underscore at the start should not be accessed externally.
 class NotebookPage:
+    """
+    Every notebook page contains variable names and their associated values.
+
+    A notebook page never communicates with a notebook. But, the notebook communicates with notebook pages. There are
+    only a handful of valid page names. Each page can only contain specific variable names, these are stored in the
+    attribute _options. Each variable can only hold specific datatypes given in _options. If a variable is set to a
+    wrong type, PageTypeError is raised.
+    """
+
     def get_page_name(self) -> str:
         return self._name
 

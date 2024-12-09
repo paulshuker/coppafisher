@@ -109,6 +109,7 @@ def run_filter(
             assert raw_image_exists, f"Raw, extracted file at\n\t{file_path_raw}\nnot found"
             # Get t, r, c image from raw files
             im_filtered = tiles_io._load_image(file_path_raw)[:]
+
             # Move to floating point before doing any filtering.
             im_filtered = im_filtered.astype(np.float64)
             if wiener_filter is not None:
