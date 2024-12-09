@@ -1,8 +1,8 @@
 import numbers
 import os
 
-import dask.config
 import dask.array
+import dask.config
 import nd2
 import numpy as np
 import tqdm
