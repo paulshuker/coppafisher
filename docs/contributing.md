@@ -62,7 +62,7 @@ Run unit tests (~6s)
 pytest
 ```
 
-Run integration tests (~90s)
+Run integration tests (~80s)
 
 ```terminal
 pytest -m integration

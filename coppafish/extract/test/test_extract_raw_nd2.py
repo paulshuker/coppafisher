@@ -5,6 +5,7 @@ import numpy as np
 
 from ...setup.notebook_page import NotebookPage
 from ..raw_nd2 import Nd2Reader
+from ..raw_reader import RawReader
 
 FILE_NAME = "dims_z5t3c2y32x32"
 SUFFIX = ".nd2"
@@ -37,6 +38,7 @@ def test_raw_nd2() -> None:
     channels = [0, 1]
 
     reader = Nd2Reader()
+    assert isinstance(reader, RawReader)
     image = reader.read(nbp_basic, nbp_file, tile, round, channels)
 
     assert type(image) is np.ndarray

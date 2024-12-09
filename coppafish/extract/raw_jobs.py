@@ -1,5 +1,5 @@
+import numbers
 import os
-from typing import Any, Tuple
 
 import dask
 import nd2
@@ -15,13 +15,14 @@ class JobsReader(RawReader):
     Reader for raw JOBS file format.
     """
 
+    # TODO: Unit test the JOBS reader.
     def read(
         self, nbp_basic: NotebookPage, nbp_file: NotebookPage, tile: int, round: int, channels: list[int]
     ) -> np.ndarray:
         super().read(nbp_basic, nbp_file, tile, round, channels)
 
         tile_raw = self.get_tile_raw_index(tile, nbp_basic.tilepos_yx_nd2, nbp_basic.tilepos_yx)
-        round_dask_array, _ = self.load_as_dask(nbp_basic, nbp_file, round)
+        round_dask_array = self._load_as_dask(nbp_basic, nbp_file, round)
 
         result = tuple()
         # Need the dask config to silence warning.
@@ -32,10 +33,10 @@ class JobsReader(RawReader):
 
         return result
 
-    def load_as_dask(
-        self, nbp_basic: NotebookPage, nbp_file: NotebookPage, round: int
-    ) -> Tuple[dask.array.Array, dict[str, Any] | None]:
-        super().load_as_dask(nbp_basic, nbp_file, round)
+    def _load_as_dask(self, nbp_basic: NotebookPage, nbp_file: NotebookPage, round: int) -> dask.array.Array:
+        assert type(nbp_basic) is NotebookPage
+        assert type(nbp_file) is NotebookPage
+        assert isinstance(round, numbers.Number)
 
         channel_laser = super().get_channel_laser(nbp_basic)
         channel_cam = super().get_channel_laser(nbp_basic)
@@ -54,6 +55,7 @@ class JobsReader(RawReader):
         round_laser_dask_array = []
         # TODO: These big branches are awfully hard to read and bug prone.
         # It would be ideal to minimise the size of these branches.
+
         # Deal with non anchor round first as this follows a different format to anchor round.
         if round != nbp_basic.anchor_round:
 

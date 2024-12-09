@@ -1,6 +1,4 @@
-import os
 import warnings
-from typing import Any
 
 import nd2
 import numpy as np
@@ -24,20 +22,12 @@ class Nd2Reader(RawReader):
         should be one ND2 file for each round.
 
         Returns:
-            (`len(channels) x im_y x im_x x im_z`): image. The channel image(s).
+            (`(len(channels) x im_y x im_x x im_z) ndarray`): image. The channel image(s).
         """
         super().read(nbp_basic, nbp_file, tile, round, channels)
 
         tile_raw = super().get_tile_raw_index(tile, nbp_basic.tilepos_yx_nd2, nbp_basic.tilepos_yx)
-
-        if nbp_basic.use_anchor:
-            # Always have anchor after imaging rounds.
-            round_files = nbp_file.round + [nbp_file.anchor]
-        else:
-            round_files = nbp_file.round
-
-        round_file = os.path.join(nbp_file.input_dir, round_files[round])
-        file_path = round_file + nbp_file.raw_extension
+        file_path = super().get_round_file_path(nbp_file, round)
 
         with nd2.ND2File(file_path) as images:
             # Hiding a warning (known issue with nd2 package https://github.com/tlambert03/nd2/issues/239).
@@ -58,20 +48,3 @@ class Nd2Reader(RawReader):
         images = images.swapaxes(0, 1).swapaxes(1, 2).swapaxes(2, 3)
 
         return images
-
-    def get_all_metadata(file_path: str) -> dict[str, Any]:
-        """
-        Get all metadata from the given nd2 file.
-
-        Args:
-            file_path (str): path to nd2 file.
-
-        Returns:
-            (dict[str, any]): all_metadata. Dictionary containing all found metadata for given ND2 file.
-        """
-        if not os.path.isfile(file_path):
-            raise FileNotFoundError(f"Could not find ND2 file at {file_path}")
-
-        with nd2.ND2File(file_path) as images:
-            metadata = images.unstructured_metadata()
-        return dict(metadata)

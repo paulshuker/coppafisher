@@ -4,7 +4,10 @@ import numpy as np
 from tqdm import tqdm
 
 from .. import log
-from ..extract import raw
+from ..extract.raw_jobs import JobsReader
+from ..extract.raw_nd2 import Nd2Reader
+from ..extract.raw_numpy import NumpyReader
+from ..extract.raw_reader import RawReader
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..utils import indexing, system, tiles_io
@@ -30,6 +33,12 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
     nbp.num_rotations = config["num_rotations"]
 
     log.debug("Extraction started")
+
+    raw_extension_readers: dict[str, RawReader] = {
+        ".nd2": Nd2Reader(),
+        ".npy": NumpyReader(),
+        "JOBS": JobsReader(),
+    }
 
     if not os.path.isdir(nbp_file.extract_dir):
         os.mkdir(nbp_file.extract_dir)
@@ -69,7 +78,10 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
                     pbar.update()
                     continue
 
-                channel_images = raw.load_image(nbp_file, nbp_basic, t=t, c=channels, r=r, use_z=nbp_basic.use_z)
+                # Has shape (n_channels, im_y, im_x, im_z).
+                channel_images = raw_extension_readers[nbp_file.raw_extension].read(nbp_basic, nbp_file, t, r, channels)
+                channel_images = channel_images[:, :, :, nbp_basic.use_z]
+
                 for im, c, file_path, file_exists in zip(channel_images, channels, file_paths, files_exist):
                     if file_exists:
                         continue
@@ -80,8 +92,8 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
                         log.warn(
                             f"Raw image {t=}, {r=}, {c=} has dim z plane(s) at "
                             + f"{np.where(z_plane_means < config['z_plane_mean_warning'])[0].tolist()}. You may "
-                            + f"wish to remove the affected image by setting `bad_trc = ({t}, {r}, {c}), (...` in "
-                            + f"the basic_info config then re-run the pipeline with an empty output directory."
+                            + f"wish to remove the affected image by setting `bad_trc = {t}, {r}, {c}, ...` in "
+                            + "the basic_info config then re-run the pipeline with an empty output directory."
                         )
                     tiles_io._save_image(im, file_path)
                     del im
