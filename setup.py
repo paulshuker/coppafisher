@@ -1,5 +1,7 @@
 from setuptools import find_packages, setup
 
+__version__ = ""
+
 with open("coppafish/_version.py", "r") as f:
     exec(f.read())
 
@@ -27,7 +29,6 @@ setup(
         "dash-html-components",
         "dash_daq",
         "dask",
-        "datashader",
         "distinctipy",
         "h5py",
         "joblib",

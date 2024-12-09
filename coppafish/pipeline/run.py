@@ -97,7 +97,7 @@ def run_pipeline(config_file: str) -> Notebook:
         )
         nb += nbp
     log.error_catch(BuildPDF, nb, nbp_file)
-    log.info(f"Pipeline complete", force_email=True, notify=config["notifications"]["notify_on_completion"])
+    log.info("Pipeline complete", force_email=True, notify=config["notifications"]["notify_on_completion"])
     return nb
 
 
@@ -142,7 +142,7 @@ def initialize_notebook(config_path: str) -> Tuple[Notebook, NotebookPage, Confi
     # Check the notebook for backwards incompatibilities caused by old data.
     compatible_tracker = utils_version.CompatibilityTracker()
     if not compatible_tracker.notebook_is_compatible(nb):
-        raise ValueError(f"The notebook contains incompatible data. Please see the log above for advice")
+        raise ValueError("The notebook contains incompatible data. Please see the log above for advice")
 
     online_version = utils_system.get_remote_software_version()
     if online_version != utils_system.get_software_version():

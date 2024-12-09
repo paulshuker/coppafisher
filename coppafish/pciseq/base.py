@@ -61,10 +61,10 @@ def export_to_pciseq(
     """
     if intensity_thresh is None:
         intensity_thresh = -1.0
-        print(f"Using no intensity threshold")
+        print("Using no intensity threshold")
     if score_thresh is None:
         score_thresh = -1.0
-        print(f"Using no score threshold")
+        print("Using no score threshold")
     intensity_thresh = float(intensity_thresh)
     score_thresh = float(score_thresh)
     assert type(intensity_thresh) is float, "Floating point intensity_thresh required"

@@ -81,7 +81,7 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
                             f"Raw image {t=}, {r=}, {c=} has dim z plane(s) at "
                             + f"{np.where(z_plane_means < config['z_plane_mean_warning'])[0].tolist()}. You may "
                             + f"wish to remove the affected image by setting `bad_trc = ({t}, {r}, {c}), (...` in "
-                            + f"the basic_info config then re-run the pipeline with an empty output directory."
+                            + "the basic_info config then re-run the pipeline with an empty output directory."
                         )
                     tiles_io._save_image(im, file_path)
                     del im

@@ -233,7 +233,7 @@ def get_spot_colours_new(
     assert tile >= 0 and tile < image.shape[0]
     assert len(use_rounds) > 0
     assert all([type(r) is int for r in use_rounds])
-    assert all([r >= 0 and r < flow.shape[1] for r in use_rounds]), f"Cannot use round index {r}"
+    assert all([r >= 0 and r < flow.shape[1] for r in use_rounds]), "Unknown round index in use_rounds"
     assert len(use_channels) > 0
     assert all([type(c) is int for c in use_channels])
     assert all([c >= 0 and c < image.shape[2] for c in use_channels])

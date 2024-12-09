@@ -141,7 +141,7 @@ class CompatibilityTracker:
                     f"The existing notebook contains backwards incompatibility on page {page_name} at version "
                     + f"{page_version} compared to current version {current_version}."
                 )
-                log.warn(f"The suggested course of action is:")
+                log.warn("The suggested course of action is:")
                 self.print_start_from(earliest_stage)
                 return False
         return self._check_notebook_for_downgrade(nb)
@@ -199,7 +199,7 @@ class CompatibilityTracker:
                     f"Notebook contains page {page_name} run on version {page_version} which is higher than the "
                     + f"current coppafish version ({current_version})."
                 )
-                log.warn(f"The suggested course of action is:")
+                log.warn("The suggested course of action is:")
                 log.warn(f"    - Update coppafish version to >= {page_version} before re-running.")
                 return False
         return True

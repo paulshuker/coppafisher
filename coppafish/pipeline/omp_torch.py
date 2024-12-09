@@ -170,7 +170,7 @@ def run_omp(
         log.debug(f"OMP {max_genes=}")
         log.debug(f"OMP {n_subset_pixels=}")
 
-        with tqdm.tqdm(total=n_tile_pixels, desc=f"Computing pixel scores", unit="pixel", postfix=postfix) as pbar:
+        with tqdm.tqdm(total=n_tile_pixels, desc="Computing pixel scores", unit="pixel", postfix=postfix) as pbar:
             while index_min < n_tile_pixels:
                 if n_subset_pixels is None:
                     index_max += maths.floor(utils.system.get_available_memory(device) * n_memory_constant)
@@ -180,7 +180,7 @@ def run_omp(
                 index_max = max(index_max, index_min + 1)
 
                 log.debug(f"==== Subset {index_subset} ====")
-                log.debug(f"Getting spot colours")
+                log.debug("Getting spot colours")
                 yxz_subset = yxz_all[index_min:index_max]
                 colour_subset = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)
                 colour_subset *= colour_norm_factor[[t]]
@@ -188,13 +188,13 @@ def run_omp(
                 is_intense = intensity >= config["minimum_intensity"]
                 del intensity
 
-                log.debug(f"Computing pixel scores")
+                log.debug("Computing pixel scores")
                 pixel_scores_subset = np.zeros((index_max - index_min, n_genes), np.float32)
                 if is_intense.sum() > 0:
                     pixel_scores_subset[is_intense] = solver.solve(colour_subset[is_intense], **solver_kwargs)
                 del colour_subset, is_intense
 
-                log.debug(f"Appending results")
+                log.debug("Appending results")
                 pixel_scores_subset = scipy.sparse.csr_matrix(pixel_scores_subset)
                 pixel_scores.append(pixel_scores_subset.copy())
                 del pixel_scores_subset
@@ -219,7 +219,7 @@ def run_omp(
             [g for g in range(b * batch_size, min((b + 1) * batch_size, n_genes))]
             for b in range(maths.ceil(n_genes / batch_size))
         ]
-        for gene_batch in tqdm.tqdm(gene_batches, desc=f"Scoring/detecting spots", unit="gene batch", postfix=postfix):
+        for gene_batch in tqdm.tqdm(gene_batches, desc="Scoring/detecting spots", unit="gene batch", postfix=postfix):
             # STEP 2: Score every gene's pixel score image.
             g_pixel_image = torch.full((len(gene_batch),) + tile_shape, torch.nan, dtype=torch.float32)
             for g_i, g in enumerate(gene_batch):
@@ -278,7 +278,7 @@ def run_omp(
                 + "If so, consider adjusting OMP config parameters."
             )
         # For each detected spot, save the image intensity at its location, without background fitting.
-        log.info(f"Gathering final spot colours")
+        log.info("Gathering final spot colours")
         t_local_yxzs = t_spots_local_yxz[:]
         t_spots_colours = tile_results.zeros(
             "colours",
@@ -290,7 +290,7 @@ def run_omp(
             nbp_basic, t_local_yxzs, **spot_colour_kwargs
         ).astype(np.float16)
         del t_spots_local_yxz, t_spots_tile, t_spots_gene_no, t_spots_score, t_spots_colours, t_local_yxzs, tile_results
-        log.debug(f"Gathering final spot colours complete")
+        log.debug("Gathering final spot colours complete")
 
     os.remove(config_path)
 

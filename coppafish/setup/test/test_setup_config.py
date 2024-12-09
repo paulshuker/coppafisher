@@ -43,7 +43,7 @@ def test_Config() -> None:
     tmpdir2 = tempfile.TemporaryDirectory(dir=dir)
     tmpfile = tempfile.NamedTemporaryFile(dir=dir)
     tmpfile2 = tempfile.NamedTemporaryFile(dir=dir)
-    config_filepath = os.path.join(tmpdir.name, f"test_config.ini")
+    config_filepath = os.path.join(tmpdir.name, "test_config.ini")
 
     # Build a default config file with all parameters wrongly assigned.
     default_config_filepath = os.path.join(tmpdir.name, "default.ini")
@@ -114,7 +114,7 @@ def test_Config() -> None:
             assert False, f"Expected ParamError with incorrect parameter {i}"
         except config.ParamError as e:
             assert f" {i} " in str(e)
-            assert f"debug" in str(e)
+            assert "debug" in str(e)
 
     tmpdir.cleanup()
     tmpdir2.cleanup()
