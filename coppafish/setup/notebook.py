@@ -107,7 +107,7 @@ class Notebook:
         self._version = utils_system.get_software_version()
         if not os.path.isdir(self._directory):
             if self._config_path is None:
-                raise ValueError(f"To create a new notebook, config_path must be specified")
+                raise ValueError("To create a new notebook, config_path must be specified")
             log.info(f"Creating notebook at {self._directory}")
             os.mkdir(self._directory)
             self._save()

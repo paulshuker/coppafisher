@@ -6,6 +6,10 @@ profile = "black"
 filter_files = true
 line_length = 120
 
-[tool.pyright]
-typeCheckingMode = "off"
+[tool.ruff]
+line-length = 120
+indent-width = 4
+
+[tool.ruff.lint]
 exclude = [ "**/temp", "temp.py", "**/__pycache__", "**/build/lib" ]
+ignore = ["E741"]

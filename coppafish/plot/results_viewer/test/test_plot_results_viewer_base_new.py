@@ -7,7 +7,7 @@ import pytest
 import tifffile
 import zarr
 
-from coppafish.plot.results_viewer.base_new import Viewer
+from coppafish.plot.results_viewer.base import Viewer
 from coppafish.setup.notebook_page import NotebookPage
 
 

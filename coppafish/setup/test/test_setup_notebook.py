@@ -22,7 +22,7 @@ def test_Notebook() -> None:
     nb = Notebook(nb_path, config_path, must_exist=False)
     assert len(nb.get_all_versions()) == 0
 
-    assert nb.has_page("debug") == False
+    assert not nb.has_page("debug")
     assert nb.config_path == config_path
 
     nb_page: NotebookPage = NotebookPage("debug")
@@ -138,7 +138,7 @@ def test_Notebook() -> None:
 
     try:
         nb += nb_page
-        assert False, f"Should crash when adding an unfinished notebook page"
+        assert False, "Should crash when adding an unfinished notebook page"
     except ValueError:
         pass
 
@@ -159,7 +159,7 @@ def test_Notebook() -> None:
 
     try:
         nb += nb_page
-        assert False, f"Should not be able to add an unfinished page to the notebook"
+        assert False, "Should not be able to add an unfinished page to the notebook"
     except ValueError:
         pass
 
@@ -173,12 +173,12 @@ def test_Notebook() -> None:
 
     try:
         nb.fake_variable = 4
-        assert False, f"Should not be able to add integer variables to the notebook"
+        assert False, "Should not be able to add integer variables to the notebook"
     except TypeError:
         pass
     try:
         nb += nb_page
-        assert False, f"Should not be able to add the same page twice"
+        assert False, "Should not be able to add the same page twice"
     except ValueError:
         pass
 

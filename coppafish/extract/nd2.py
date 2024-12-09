@@ -230,4 +230,3 @@ def get_nd2_tile_ind(
         nd2_index = nd2_index[0]
 
     return nd2_index
-    # return np.where(np.sum(tile_pos_yx_nd2 == tile_pos_yx_npy[tile_ind_npy], 1) == 2)[0][0]

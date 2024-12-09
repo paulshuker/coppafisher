@@ -54,4 +54,6 @@ def wiener_deconvolve(
     ]
     im_deconvolved = im_deconvolved.cpu()
     # Convert result back to a numpy array
-    return im_deconvolved.numpy()
+    im_deconvolved = im_deconvolved.numpy()
+
+    return im_deconvolved

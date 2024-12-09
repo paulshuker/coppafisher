@@ -7,7 +7,7 @@ import numpy as np
 import zarr
 from tqdm import tqdm
 
-from .. import extract, log, utils
+from .. import log, utils
 from ..filter import base as filter_base
 from ..filter import deconvolution
 from ..setup.config_section import ConfigSection
@@ -78,12 +78,16 @@ def run_filter(
     else:
         filter_kernel_dapi = None
 
+    wiener_filter = None
     if config["deconvolve"]:
         if not os.path.isfile(nbp_file.psf):
             raise FileNotFoundError(f"Could not find the PSF at location {nbp_file.psf}")
-        else:
-            psf = np.moveaxis(np.load(nbp_file.psf)["arr_0"], 0, 2)  # Put z to last index
-        # normalise psf so min is 0 and max is 1.
+
+        # Put z to last index
+        psf = np.load(nbp_file.psf)["arr_0"].astype(np.float32).swapaxes(0, 2)
+        if np.max(psf.shape[:2]) < psf.shape[2]:
+            log.warn(f"The given PSF has a strange shape of yxz = {psf.shape}")
+        # Normalise psf so the min is 0 and the max is 1.
         psf = psf - psf.min()
         psf = psf / psf.max()
         pad_im_shape = (
@@ -92,10 +96,8 @@ def run_filter(
         )
         wiener_filter = filter_base.get_wiener_filter(psf, pad_im_shape, config["wiener_constant"])
         nbp_debug.psf = psf
-    else:
-        nbp_debug.psf = None
 
-    with tqdm(total=len(indices), desc=f"Filtering extract images") as pbar:
+    with tqdm(total=len(indices), desc="Filtering extract images") as pbar:
         for t, r, c in indices:
             if not np.isnan(images[t, r, c]).any():
                 # Already saved filtered images are not re-filtered.
@@ -107,10 +109,11 @@ def run_filter(
             assert raw_image_exists, f"Raw, extracted file at\n\t{file_path_raw}\nnot found"
             # Get t, r, c image from raw files
             im_filtered = tiles_io._load_image(file_path_raw)[:]
-            # Move to floating point before doing any filtering
+
+            # Move to floating point before doing any filtering.
             im_filtered = im_filtered.astype(np.float64)
-            if config["deconvolve"]:
-                # Deconvolves dapi images too
+            if wiener_filter is not None:
+                # Deconvolves dapi images too.
                 im_filtered = deconvolution.wiener_deconvolve(
                     im_filtered, config["wiener_pad_shape"], wiener_filter, config["force_cpu"]
                 )
