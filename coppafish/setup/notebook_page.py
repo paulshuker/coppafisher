@@ -753,8 +753,7 @@ class NotebookPage:
                 temp_directory = tempfile.TemporaryDirectory()
                 temp_zarr_path = os.path.join(temp_directory.name, f"{variable_name}.{suffix}")
                 temp_directories.append(temp_directory)
-                shutil.copytree(variable_path, temp_zarr_path)
-                shutil.rmtree(variable_path)
+                shutil.move(variable_path, temp_zarr_path)
                 if suffix == ".zarray":
                     self.__setattr__(variable_name, zarr.open_array(temp_zarr_path))
                 elif suffix == ".zgroup":
@@ -842,7 +841,7 @@ class NotebookPage:
         if not os.path.isfile(file_path):
             raise FileNotFoundError(f"Metadata file at {file_path} not found")
 
-        metadata: dict = None
+        metadata: dict[str, Any] = {}
         with open(file_path, "r") as file:
             metadata = json.loads(file.read())
             assert type(metadata) is dict
@@ -874,22 +873,16 @@ class NotebookPage:
             if type(value) is not zarr.Array:
                 raise PageTypeError(f"Variable {name} is of type {type(value)}, expected zarr.Array")
             old_path = os.path.abspath(value.store.path)
-            shutil.copytree(old_path, new_path)
+            shutil.move(old_path, new_path)
             new_array = zarr.open_array(store=new_path, mode="r+")
             new_array.read_only = True
-            if os.path.normpath(old_path) != os.path.normpath(new_path):
-                # Delete the old location of the zarr array.
-                shutil.rmtree(old_path)
             self.__setattr__(name, new_array)
         elif file_suffix == ".zgroup":
             if type(value) is not zarr.Group:
                 raise PageTypeError(f"Variable {name} is of type {type(value)}, expected zarr.Group")
             old_path = os.path.abspath(value.store.path)
-            shutil.copytree(old_path, new_path)
+            shutil.move(old_path, new_path)
             new_group = zarr.open_group(store=new_path, mode="r")
-            if os.path.normpath(old_path) != os.path.normpath(new_path):
-                # Delete the old location of the zarr array.
-                shutil.rmtree(old_path)
             self.__setattr__(name, new_group)
         else:
             raise NotImplementedError(f"File suffix {file_suffix} is not supported")

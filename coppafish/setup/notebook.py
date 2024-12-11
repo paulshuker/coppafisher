@@ -186,8 +186,6 @@ class Notebook:
         # to manually change variables that are already saved to disk. Even then, this function should be used as
         # little as possible as it will inevitably cause bugs.
         start_time = time.time()
-        # for page in self._get_existing_pages():
-        #     page.resave(self._get_page_directory(page.name))
         for filename in os.listdir(self._directory):
             filepath = os.path.join(self._directory, filename)
             if os.path.isfile(filepath) and filepath != self._get_metadata_path():
