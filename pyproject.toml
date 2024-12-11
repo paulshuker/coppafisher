@@ -13,3 +13,7 @@ indent-width = 4
 [tool.ruff.lint]
 exclude = [ "**/temp", "temp.py", "**/__pycache__", "**/build/lib" ]
 ignore = ["E741"]
+
+[tool.pyright]
+exclude = [ "**/temp", "temp.py", "**/__pycache__", "**/build/lib" ]
+typeCheckingMode = "off"
