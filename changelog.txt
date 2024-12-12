@@ -1,3 +1,8 @@
+2024/12/11 Alpha Update (v0.10.9):
+ * OMP now removes duplicate spots in tile overlap areas.
+ * OMP no longer saves progress after each tile is complete.
+
+
 2024/08/22 Alpha Update (v0.10.8):
  * OMP saves progress after each tile is complete.
 
