@@ -1,6 +1,6 @@
 import torch
 
-from .. import duplicates
+from coppafish.omp import duplicates
 
 
 def test_is_duplicate_spot() -> None:
