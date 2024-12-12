@@ -1,5 +1,4 @@
 import os
-import sys
 
 from . import basic_info
 from . import extract_run
@@ -222,7 +221,7 @@ def run_stitch(nb: Notebook) -> None:
             config["stitch"]["save_image_zero_thresh"],
             config["filter"]["num_rotations"],
         )
-    
+
     if nb.file_names.big_anchor_image is not None and not os.path.isfile(nb.file_names.big_anchor_image):
         # save stitched reference round/channel
         utils.tiles_io.save_stitched(
@@ -349,6 +348,7 @@ def run_omp(nb: Notebook) -> None:
             nb.filter,
             nb.register,
             nb.register_debug,
+            nb.stitch,
             nb.call_spots,
         )
         nb += nbp

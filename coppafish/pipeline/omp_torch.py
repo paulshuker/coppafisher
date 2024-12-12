@@ -10,7 +10,7 @@ from typing_extensions import assert_type
 from .. import log, utils
 from ..call_spots import background_pytorch, qual_check_torch
 from ..find_spots import detect_torch
-from ..omp import base, coefs_torch, scores_torch, spots_torch
+from ..omp import base, coefs_torch, duplicates, scores_torch, spots_torch
 from ..setup.notebook import NotebookPage
 
 
@@ -22,6 +22,7 @@ def run_omp(
     nbp_filter: NotebookPage,
     nbp_register: NotebookPage,
     nbp_register_debug: NotebookPage,
+    nbp_stitch: NotebookPage,
     nbp_call_spots: NotebookPage,
 ) -> NotebookPage:
     """
@@ -78,6 +79,13 @@ def run_omp(
     ]
     colour_norm_factor = torch.asarray(colour_norm_factor).float()
     first_computation = True
+    # The yxz bottom-left global coordinate of each tile.
+    # Has shape (n_tiles x 3).
+    tile_origins = torch.asarray(nbp_stitch.tile_origin).float()
+    # The tile centres in global coordinates. Any unused tile indices are set to ~infinity.
+    tile_centres = tile_origins.detach().clone() + torch.asarray(tile_shape).float() / 2
+    unused_tiles = [t for t in range(tile_centres.shape[0]) if t not in nbp_basic.use_tiles]
+    tile_centres[unused_tiles] = 1e20
 
     subset_z_size: int = max(nbp_basic.use_z.copy())
     subset_size_xy: int = config["subset_size_xy"]
@@ -106,40 +114,13 @@ def run_omp(
     log.debug(f"Running {len(subset_origins_yxz)} subsets for each tile")
 
     # Results are appended to these arrays
-    spots_local_yxz = np.zeros((0, 3), dtype=np.int16)
-    spots_tile = np.zeros(0, dtype=np.int16)
-    spots_gene_no = np.zeros(0, dtype=np.int16)
-    spots_score = np.zeros(0, dtype=np.int16)
-    spots_colours = np.zeros((0, n_rounds_use, n_channels_use), dtype=np.int32)
-
-    results_file_path = os.path.join(nbp_file.output_dir, "omp_results.npz")
-    mean_spot_file_path = os.path.join(nbp_file.output_dir, "mean_spot.npy")
-    spot_file_path = os.path.join(nbp_file.output_dir, "spot.npy")
-    spot_tile_file_path = os.path.join(nbp_file.output_dir, "spot_tile.npy")
-
-    completed_tiles = []
-    if os.path.isfile(results_file_path) and os.path.isfile(mean_spot_file_path) and os.path.isfile(spot_file_path):
-        # Load results saved to the output directory already completed.
-        old_results = np.load(results_file_path)
-        spots_local_yxz = old_results["local_yxz"]
-        spots_tile = old_results["tile"]
-        spots_gene_no = old_results["gene_no"]
-        spots_score = old_results["score"]
-        spots_colours = old_results["colour"]
-
-        mean_spot = np.load(mean_spot_file_path)
-        spot = np.load(spot_file_path)
-        spot_tile = np.load(spot_tile_file_path).item()
-        nbp.mean_spot = mean_spot
-        nbp.spot = spot
-        nbp.spot_tile = spot_tile
-
-        completed_tiles = np.unique(spots_tile).tolist()
-        log.warn(f"Loaded existing OMP results for tiles {completed_tiles}")
+    spots_local_yxz = torch.zeros((0, 3), dtype=torch.int16)
+    spots_tile = torch.zeros(0, dtype=torch.int16)
+    spots_gene_no = torch.zeros(0, dtype=torch.int16)
+    spots_score = torch.zeros(0, dtype=torch.int16)
+    spots_colours = torch.zeros((0, n_rounds_use, n_channels_use), dtype=torch.int32)
 
     for t in nbp_basic.use_tiles:
-        if t in completed_tiles:
-            continue
         # STEP 1: Load every registered sequencing round/channel image into memory
         log.debug(f"Loading tile {t} colours")
         colour_image = base.load_spot_colours(nbp_basic, nbp_file, nbp_extract, nbp_register, nbp_register_debug, t)
@@ -228,7 +209,7 @@ def run_omp(
             del subset_colours, bg_coefficients, bg_codes, bled_codes_ge, do_not_compute_on
 
             # STEP 2.5: On the first OMP subset/tile, compute the OMP spot shape using the found coefficients.
-            if first_computation and len(completed_tiles) == 0:
+            if first_computation:
                 log.debug("Computing spot and mean spot")
                 isolated_spots_yxz = torch.zeros((0, 3), dtype=torch.int16)
                 isolated_gene_numbers = torch.zeros(0, dtype=torch.int16)
@@ -307,11 +288,8 @@ def run_omp(
                     log.debug(message)
 
                 nbp.spot_tile = t
-                np.save(spot_tile_file_path, nbp.spot_tile)
                 nbp.mean_spot = np.array(mean_spot)
-                np.save(mean_spot_file_path, nbp.mean_spot)
                 nbp.spot = np.array(spot)
-                np.save(spot_file_path, nbp.spot)
                 log.debug("Computing spot and mean spot complete")
 
             for g in range(n_genes):
@@ -337,8 +315,8 @@ def run_omp(
                 g_spots_score = scores_torch.score_coefficient_image(
                     coefficient_image=g_coefficient_image,
                     points=g_spots_yxz,
-                    spot=torch.asarray(spot),
-                    mean_spot=torch.asarray(mean_spot),
+                    spot=spot,
+                    mean_spot=mean_spot,
                     high_coefficient_bias=config["high_coef_bias"],
                     force_cpu=config["force_cpu"],
                 )
@@ -346,23 +324,30 @@ def run_omp(
                 # Remove bad scoring spots (i.e. false gene reads)
                 keep_scores = g_spots_score >= config["score_threshold"]
                 g_spots_local_yxz = g_spots_local_yxz[keep_scores]
-                g_spots_yxz = g_spots_yxz[keep_scores]
                 g_spots_score = g_spots_score[keep_scores]
                 n_g_spots = g_spots_local_yxz.shape[0]
                 if n_g_spots == 0:
                     continue
 
-                g_spots_local_yxz = g_spots_local_yxz.numpy()
-                g_spots_score = scores_torch.omp_scores_float_to_int(g_spots_score).numpy()
-                g_spots_tile = np.ones(n_g_spots, dtype=np.int16) * t
-                g_spots_gene_no = np.ones(n_g_spots, dtype=np.int16) * g
+                # Remove duplicate spots on tile overlap areas.
+                g_spots_global_yxz = g_spots_local_yxz.detach().clone() + tile_origins[[t]]
+                is_duplicate_spot = duplicates.is_duplicate_spot(g_spots_global_yxz, t, tile_centres)
+                g_spots_local_yxz = g_spots_local_yxz[~is_duplicate_spot]
+                g_spots_score = g_spots_score[~is_duplicate_spot]
+                n_g_spots = g_spots_local_yxz.shape[0]
+                if n_g_spots == 0:
+                    continue
 
-                spots_local_yxz = np.concatenate((spots_local_yxz, g_spots_local_yxz), axis=0)
-                spots_score = np.concatenate((spots_score, g_spots_score), axis=0)
-                spots_tile = np.concatenate((spots_tile, g_spots_tile), axis=0)
-                spots_gene_no = np.concatenate((spots_gene_no, g_spots_gene_no), axis=0)
+                g_spots_score = scores_torch.omp_scores_float_to_int(g_spots_score)
+                g_spots_tile = torch.ones(n_g_spots, dtype=torch.int16) * t
+                g_spots_gene_no = torch.ones(n_g_spots, dtype=torch.int16) * g
 
-                del g_spots_yxz, g_spots_local_yxz, g_spots_score, g_spots_tile, g_spots_gene_no
+                spots_local_yxz = torch.cat((spots_local_yxz, g_spots_local_yxz), dim=0)
+                spots_score = torch.cat((spots_score, g_spots_score), dim=0)
+                spots_tile = torch.cat((spots_tile, g_spots_tile), dim=0)
+                spots_gene_no = torch.cat((spots_gene_no, g_spots_gene_no), dim=0)
+
+                del g_spots_yxz, g_spots_local_yxz, g_spots_global_yxz, g_spots_score, g_spots_tile, g_spots_gene_no
                 del g_coefficient_image
 
             # STEP 5: Repeat steps 2 to 4 on every subset.
@@ -375,25 +360,16 @@ def run_omp(
                 + "If so, consider adjusting OMP config parameters."
             )
         # For each detected spot, save the image intensity at its location, without background fitting.
-        t_local_yxzs = tuple(spots_local_yxz[t_spots].T)
-        t_spots_colours = colour_image[t_local_yxzs].astype(np.int32) - nbp_basic.tile_pixel_value_shift
-        spots_colours = np.concatenate((spots_colours, t_spots_colours), axis=0)
+        t_local_yxzs = tuple(spots_local_yxz[t_spots].int().T)
+        t_spots_colours = torch.asarray(colour_image[t_local_yxzs].astype(np.int32) - nbp_basic.tile_pixel_value_shift)
+        spots_colours = torch.cat((spots_colours, t_spots_colours), dim=0)
+
         del colour_image, t_spots, t_local_yxzs, t_spots_colours
 
-        # Save the intermediate results to the output directory for a tile by tile checkpoint.
-        np.savez_compressed(
-            results_file_path,
-            local_yxz=spots_local_yxz,
-            score=spots_score,
-            tile=spots_tile,
-            gene_no=spots_gene_no,
-            colour=spots_colours,
-        )
-
-    nbp.local_yxz = spots_local_yxz
-    nbp.scores = spots_score
-    nbp.tile = spots_tile
-    nbp.gene_no = spots_gene_no
-    nbp.colours = spots_colours
+    nbp.local_yxz = np.array(spots_local_yxz)
+    nbp.scores = np.array(spots_score)
+    nbp.tile = np.array(spots_tile)
+    nbp.gene_no = np.array(spots_gene_no)
+    nbp.colours = np.array(spots_colours)
     log.info("OMP complete")
     return nbp
