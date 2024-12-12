@@ -44,20 +44,20 @@ compatible csv file by
 
 ```py
 from coppafish import Notebook
-from coppafish.pciseq import export_to_pciseq
+from coppafish.results import export_to_pciseq
 
 nb = Notebook("/path/to/notebook")
 export_to_pciseq(nb, method)
 ```
 
-where method can be "omp", "prob", or "anchor" for each gene calling method. To set a score and/or intensity minimum
-threshold:
+where method can be `"omp"`, `"prob"`, or `"anchor"` for each gene calling method. To set a score and/or intensity
+minimum threshold:
 
 ```py
 export_to_pciseq(nb, method, score_thresh, intensity_thresh)
 ```
 
-score_thresh and intensity_thresh are numbers. Use the [Viewer](diagnostics.md#viewer) to decide on thresholds.
+score_thresh and intensity_thresh must be numbers. Use the [Viewer](diagnostics.md#viewer) to help decide on thresholds.
 
 ## Create a background process
 

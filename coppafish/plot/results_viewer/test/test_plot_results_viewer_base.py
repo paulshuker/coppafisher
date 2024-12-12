@@ -195,7 +195,7 @@ def test_Viewer() -> None:
         # Check clicking the gene legend.
         for _ in range(10):
             event = type("Event", (object,), {})()
-            event.inaxes = viewer.legend.canvas.axes
+            event.inaxes = viewer.legend_.canvas.axes
             event.xdata = rng.rand()
             event.ydata = rng.rand()
             button = type("Button", (object,), {})()

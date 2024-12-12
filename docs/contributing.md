@@ -89,8 +89,8 @@ Here are some specific standards to follow:
 test can be drawn from to build a new unit test, but it should be clear in your mind that you are affectively building
 a new function.
 * Minimise `#!python if`/`#!python else` branching as much as possible. Exit `#!python if`/`#!python else` nesting as
-soon as possible through the use of keywords like `#!python continue`, `#!python break` and `#!python return`, whenever
-feasible.
+soon as possible through the use of keywords like `#!python raise`, `#!python continue`, `#!python break` and
+`#!python return`, whenever feasible.
 * Do not over-shorten a variable or function name.
 * Variables and functions are not capitalised, classes are.
 * In most cases, a line of code should do only one operation.
