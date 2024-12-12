@@ -274,13 +274,6 @@ class NotebookPage:
             ],
         },
         "filter_debug": {
-            "r_dapi": [
-                "int or none",
-                "Filtering for *DAPI* images is a tophat with `r_dapi` radius."
-                + "Should be approx radius of object of interest."
-                + "Typically this is 8 micron converted to yx-pixel units which is typically 48."
-                + "By default, it is `None` meaning *DAPI* not filtered at all and *npy* file not saved.",
-            ],
             "psf": [
                 "ndarray[float]",
                 "Numpy float array [psf_shape[0] x psf_shape[1] x psf_shape[2]] or None (psf_shape is in config file)"

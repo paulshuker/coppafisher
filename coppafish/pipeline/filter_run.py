@@ -7,7 +7,7 @@ import numpy as np
 import zarr
 from tqdm import tqdm
 
-from .. import log, utils
+from .. import log
 from ..filter import base as filter_base
 from ..filter import deconvolution
 from ..setup.config_section import ConfigSection
@@ -71,13 +71,6 @@ def run_filter(
     for t, r, c in nbp_basic.bad_trc:
         images[t, r, c] = 0
 
-    nbp_debug.r_dapi = config["r_dapi"]
-
-    if nbp_debug.r_dapi is not None:
-        filter_kernel_dapi = utils.strel.disk(nbp_debug.r_dapi)
-    else:
-        filter_kernel_dapi = None
-
     wiener_filter = None
     if config["deconvolve"]:
         if not os.path.isfile(nbp_file.psf):
@@ -117,11 +110,6 @@ def run_filter(
                 im_filtered = deconvolution.wiener_deconvolve(
                     im_filtered, config["wiener_pad_shape"], wiener_filter, config["force_cpu"]
                 )
-            if c == nbp_basic.dapi_channel:
-                if filter_kernel_dapi is not None:
-                    im_filtered = utils.morphology.top_hat(im_filtered, filter_kernel_dapi)
-                # DAPI images are shifted so all negative pixels are now positive so they can be saved without clipping
-                im_filtered -= im_filtered.min()
             im_filtered = im_filtered.astype(np.float16)
             images[t, r, c] = im_filtered
             del im_filtered

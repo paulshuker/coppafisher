@@ -6,7 +6,7 @@ class ConfigSection:
     """
     Stores a config section's variables.
 
-    The config section has no for formatting and type checking config values. This is the job of the config itself. The
+    The config section has no formatting and type checking of config values. This is the job of the config itself. The
     config section just accepts whatever it is given.
 
     A config section will keep track of how many times a config parameter is gathered. So, if a config parameter is

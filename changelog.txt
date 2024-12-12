@@ -39,7 +39,7 @@
  * Filter: The PSF used for image filtering is no longer computed. It is a config input. There is a default PSF saved at
     coppafish/setup/default_psf.npz.
  * Filter: Optimised zarr image chunking.
- * Filter: Removed legacy filter options: difference of Hanning and image smoothing.
+ * Filter: Removed legacy filter options: difference of Hanning, image smoothing, and dapi top hat filter.
  * Filter: Warning issues when a filtered image contains adjacent pixels at the maximum possible integer value.
  * Find spots: Automatic spot intensity threshold (nb.find_spots.auto_thresh) is now computed in find_spots, not filter.
  * Channel Register: Now done more thoroughly, with the bead images being shift corrected with a phase correlation

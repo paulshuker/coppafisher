@@ -522,9 +522,6 @@ class BuildPDF:
         if filter_debug_page is not None:
             time_taken = self.get_time_taken_from_page(filter_debug_page)
             output += time_taken
-        if filter_debug_page.r_dapi is not None:
-            # Filtering DAPI is true
-            output += f"dapi filtering with r_dapi: {filter_debug_page.r_dapi}"
         else:
             output += "no dapi filtering"
         return output
