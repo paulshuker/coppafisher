@@ -4,6 +4,49 @@ from typing import List, Optional, Tuple
 import numpy as np
 
 
+def reverse_raw_tile_positions(
+    raw_tile_positions: np.ndarray[np.integer], reverse_x: bool, reverse_y: bool
+) -> np.ndarray[np.integer]:
+    """
+    Reverse x and/or y (or neither) raw tile orderings based on the given bool flags.
+
+    This is used by users when the raw tiles appear the wrong way around. The function simply rearranges the tile
+    positions in the array, this places the tiles at different positions since they change order relative to tilepos_yx
+    since they are unchanged.
+
+    Args:
+        raw_tile_positions (`(n_tiles x 2) ndarray[int]`): the positions of all tiles from the raw, input data.
+            raw_tile_positions[i] is the i'th tiles position y and x position.
+        reverse_x (bool): reverse the tile positions along the x axis.
+        reverse_y (bool): reverse the tile positions along the y axis.
+
+    Returns:
+        (`(n_tiles x 2) ndarray[int]`): new_raw_tile_positions. The reversed raw tile positions copy.
+    """
+    assert type(raw_tile_positions) is np.ndarray
+    assert raw_tile_positions.ndim == 2
+    assert raw_tile_positions.shape[1] == 2
+    assert type(reverse_x) is bool
+    assert type(reverse_y) is bool
+
+    output = raw_tile_positions.copy()
+    tile_count_yx = output.max(0) - output.min(0) + 1
+
+    if reverse_x:
+        for y in range(tile_count_yx[0]):
+            indices = list(range(output.shape[0]))
+            ind_min, ind_max = y * tile_count_yx[1], y * tile_count_yx[1] + tile_count_yx[1]
+            indices[ind_min:ind_max] = indices[ind_min:ind_max][::-1]
+            output = output[indices]
+    if reverse_y:
+        # Y positions are sorted from maximum first to minimum last (reversed ordering). Stable is true to preserve the
+        # ordering of the X positions.
+        indices = np.argsort(output[:, 0].max() - output[:, 0], stable=True).tolist()
+        output = output[indices]
+
+    return output
+
+
 def get_tilepos(xy_pos: np.ndarray, tile_sz: int, expected_overlap: float) -> Tuple[np.ndarray, np.ndarray]:
     """
     Using `xy_pos` from nd2 metadata, this obtains the yx position of each tile. We label the tiles differently in the

@@ -38,7 +38,6 @@ flexparser==0.3.1
 fonttools==4.54.1
 freetype-py==2.5.1
 fsspec==2024.9.0
-future==1.0.0
 h5py==3.12.1
 HeapDict==1.0.1
 hsluv==5.0.4
@@ -78,7 +77,6 @@ networkx==3.3
 npe2==0.7.7
 numcodecs==0.13.0
 numpy==2.0.1
-numpy-indexed==0.3.7
 numpydoc==1.8.0
 ome-types==0.5.2
 opencv-python-headless==4.10.0.84

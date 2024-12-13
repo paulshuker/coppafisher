@@ -164,7 +164,7 @@ class NotebookPage:
                 "[n_tiles x 2] `tilepos_yx_nd2[i, :]` is the $yx$ position of tile with *fov* index $i$ in the *nd2*"
                 + "file. Index 0 refers to `YX = [0, 0]`"
                 + "Index 1 refers to `YX = [0, 1]` if `MaxX > 0`. "
-                + "The order is reversed based on config section basic_info `reverse_tile_positions_x` and "
+                + "The order can be changed based on config section basic_info options `reverse_tile_positions_x` and "
                 + "`reverse_tile_positions_y`.",
             ],
             "tilepos_yx": [
