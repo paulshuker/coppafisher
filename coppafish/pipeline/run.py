@@ -150,7 +150,7 @@ def initialize_notebook(config_path: str) -> Tuple[Notebook, NotebookPage, Confi
             f"You are running v{utils_system.get_software_version()}. The latest online version is v{online_version}"
         )
     if not nb.has_page("basic_info"):
-        nbp_basic = basic_info.set_basic_info_new(config)
+        nbp_basic = basic_info.set_basic_info(config)
         nb += nbp_basic
     nbp_file = file_names.get_file_names(nb.basic_info, config_path)
     return nb, nbp_file, config

@@ -10,7 +10,7 @@ from ..setup.notebook_page import NotebookPage
 from ..utils import base as utils_base
 
 
-def set_basic_info_new(config: Config) -> NotebookPage:
+def set_basic_info(config: Config) -> NotebookPage:
     """
     Adds info from `'basic_info'` section of config file to notebook page.
 
