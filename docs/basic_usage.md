@@ -170,9 +170,7 @@ python3 coppafish_script_name.py
 For an estimate of your pipeline runtime[^2], in the Python terminal:
 
 ```python
-from coppafish.utils import estimate_runtime
-
-estimate_runtime()
+--8<-- "estimate_runtime.py"
 ```
 
 then type in the relevant information when prompted.

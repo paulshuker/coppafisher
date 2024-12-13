@@ -6,19 +6,13 @@ re-run starting from an intermediate stage, you can delete all subsequent stages
 stages of coppafish you can re-run starting from, in chronological order, in the python terminal
 
 ```py
-from coppafish.compatibility import CompatibilityTracker
-
-tracker = CompatibilityTracker()
-tracker.print_stage_names()
+--8<-- "compatibility_tracker_stage_names.py"
 ```
 
 As an example, if you wished to know how to start from the stage "find_spots" again
 
 ```py
-from coppafish.compatibility import CompatibilityTracker
-
-tracker = CompatibilityTracker()
-tracker.print_start_from("find_spots")
+--8<-- "compatibility_tracker_start_from.py"
 ```
 
 and follow the instructions given. Then, you are safe to change the configuration for all sections after find spots. If
@@ -43,18 +37,14 @@ For probabilistic cell typing with [pciSeq](https://github.com/acycliq/pciSeq), 
 compatible csv file by
 
 ```py
-from coppafish import Notebook
-from coppafish.pciseq import export_to_pciseq
-
-nb = Notebook("/path/to/notebook")
-export_to_pciseq(nb, method)
+--8<-- "export_to_pciseq_0.py"
 ```
 
 where method can be "omp", "prob", or "anchor" for each gene calling method. To set a score and/or intensity minimum
 threshold:
 
 ```py
-export_to_pciseq(nb, method, score_thresh, intensity_thresh)
+--8<-- "export_to_pciseq_1.py"
 ```
 
 score_thresh and intensity_thresh are numbers. Use the [Viewer](diagnostics.md#viewer) to decide on thresholds.
@@ -128,9 +118,7 @@ junk or not be sent altogether, depending on the email address you are sending t
 Generate gene codes automatically in the python terminal by
 
 ```py
-from coppafish.utils import reed_solomon_codes
-
-codes = reed_solomon_codes(n_gene_codes, n_rounds, n_channels)
+--8<-- "generate_gene_codes.py"
 ```
 
 where `n_gene_codes` is the number of gene codes desired, `n_rounds` is the number of sequencing rounds, and
@@ -144,8 +132,5 @@ Every notebook page has associated config section(s) saved to disk. You can look
 config section(s). For example, to see the associated config section(s) for the filter page, in the python terminal
 
 ```py
-from coppafish import Notebook
-
-nb = Notebook("path/to/notebook")
-nb.filter.associated_configs  # Dictionary of associated config sections.
+--8<-- "retrieve_notebook_config.py"
 ```
