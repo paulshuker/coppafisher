@@ -165,10 +165,10 @@ Step 1 is now repeated on the remaining pixels unless $i$ is $\text{max\_genes}$
 ## 4: Spot Scoring and Spot Detection
 
 The gene pixel score images are converted to gene score images by convolving with the mean spot given as a numpy .npy
-file at file path `mean_spot_filepath`. If `mean_spot_filepath` is not given, the default mean spot is used (shown
-below). The mean spot is divided by its sum then used. This gives a score for every pixel for every gene. Spot-shaped
-and high pixel score regions result in higher score maxima. Scores can be $\geq 0$. But, in practice, scores are rarely
-greater than $1$.
+file at file path `omp_mean_spot` in the `file_names` config section. If `omp_mean_spot` is not given, the default mean
+spot is used (shown below). The mean spot is divided by its sum then used. This gives a score for every pixel for every
+gene. Spot-shaped and high pixel score regions result in higher score maxima. Scores can be $\geq 0$. But, in practice,
+scores are rarely greater than $1$.
 
 <figure markdown="span">
   ![Image title](images/algorithm/omp/omp_mean_spot_example.png){ width="776" }

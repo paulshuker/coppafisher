@@ -117,13 +117,12 @@ def run_omp(
         pickle.dump(omp_config, config_file)
     del omp_config, last_omp_config
 
-    mean_spot_config = config["mean_spot_filepath"]
-    mean_spot_filepath = mean_spot_config
-    if mean_spot_config is None:
+    mean_spot_filepath = nbp_file.omp_mean_spot
+    if mean_spot_filepath is None:
         mean_spot_filepath = importlib_resources.files("coppafish.omp").joinpath("mean_spot.npy")
     mean_spot: np.ndarray = np.load(mean_spot_filepath)
     if not np.issubdtype(mean_spot.dtype, np.floating):
-        raise ValueError(f"The mean spot at {mean_spot_filepath} must be a float dtype")
+        raise ValueError(f"The mean spot at {mean_spot_filepath} must be a float dtype, got {mean_spot.dtype}")
     if mean_spot.ndim != 3:
         raise ValueError(f"Mean spot must have 3 dimensions, got {mean_spot.ndim}")
     if any([(dim % 2 == 0) and (dim > 0) for dim in mean_spot.shape]):

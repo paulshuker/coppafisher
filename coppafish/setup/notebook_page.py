@@ -245,6 +245,10 @@ class NotebookPage:
                 "dir or none",
                 "Location of initial bleed matrix file. If `none`, then use the default bleed matrix",
             ],
+            "omp_mean_spot": [
+                "file or none",
+                "Location of the OMP mean spot .npy file. If `none`, then the default mean spot is used",
+            ],
         },
         "extract": {
             "num_rotations": [
@@ -535,8 +539,8 @@ class NotebookPage:
         "omp": {
             "mean_spot": [
                 "ndarray[float32]",
-                "Numpy float32 array [im_y x im_x x im_z]"
-                + "Mean of *OMP* spots in neighbourhood centred on detected isolated spot.",
+                "Numpy float32 array [im_y x im_x x im_z]. "
+                + "The mean spot used to compute the final OMP spot scores",
             ],
             "results": [
                 "zgroup",

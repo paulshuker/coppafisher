@@ -164,6 +164,7 @@ class Config:
             "psf": ("maybe_str", "file-exists"),
             "fluorescent_bead_path": ("maybe_str", ""),
             "initial_bleed_matrix": ("maybe_str", "file-exists"),
+            "omp_mean_spot": ("maybe_str", "file-exists"),
         },
         "notifications": {
             "log_name": ("str", "str-not-empty"),
@@ -231,7 +232,6 @@ class Config:
             "force_cpu": ("bool", ""),
             "radius_xy": ("int", "positive"),
             "radius_z": ("int", "positive"),
-            "mean_spot_filepath": ("maybe_str", "file"),
             "score_threshold": ("number", "not-negative"),
         },
         "thresholds": {

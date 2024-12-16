@@ -7,7 +7,7 @@ from ..setup.notebook_page import NotebookPage
 from .tile_details import get_tile_file_names
 
 
-def get_file_names(nbp_basic_info: NotebookPage, config_path: str):
+def get_file_names(nbp_basic_info: NotebookPage, config_path: str) -> NotebookPage:
     """
     Function to set add `file_names` page to notebook. It requires notebook to be able to access a
     config file containing a `file_names` section and also the notebook to contain a `basic_info` page.
@@ -17,8 +17,11 @@ def get_file_names(nbp_basic_info: NotebookPage, config_path: str):
         config file changed.
 
     Args:
-        - nbp_basic_info (NotebookPage): `basic_info` notebook page.
-        - config_path (str): file path to the config.
+        nbp_basic_info (NotebookPage): `basic_info` notebook page.
+        config_path (str): file path to the config.
+
+    Returns:
+        (NotebookPage): nbp_file. `file_names` notebook page.
     """
     config = Config()
     config.load(config_path, post_check=False)
@@ -30,17 +33,20 @@ def get_file_names(nbp_basic_info: NotebookPage, config_path: str):
     nbp.extract_dir = os.path.join(config["tile_dir"], "extract")
     nbp.fluorescent_bead_path = config["fluorescent_bead_path"]
 
-    # remove file extension from round and anchor file names if it is present
+    # Remove file extension from round and anchor file names if it is present.
     if config["raw_extension"] == "jobs":
-        all_files = os.listdir(config["input_dir"])
+        all_files: list[str] = os.listdir(config["input_dir"])
         all_files.sort()  # Sort files by ascending number
-        n_tiles = int(len(all_files) / 7 / 8)
-        # FIXME: r is not defined within the scope of the square brackets, this will probably cause a runtime error
-        # config["round"] = tuple(
-        #     [f.replace(".nd2", "") for f in all_files[n_tiles * r * 7 : n_tiles * (r + 1) * 7] for r in range(7)]
-        # )
-        # TODO replace range(7) by the by the number of rounds?
-        config["anchor"] = tuple([r.replace(".nd2", "") for r in all_files[n_tiles * 7 * 7 :]])
+        n_rounds = len(nbp_basic_info.use_rounds)
+        # FIXME: What is this magical number 8 here?
+        n_tiles = int(len(all_files) / (n_rounds * 8))
+
+        round = []
+        for r in range(n_rounds):
+            r_files = all_files[n_tiles * r * n_rounds : n_tiles * (r + 1) * n_rounds]
+            round.append([file.replace(".nd2", "") for file in r_files])
+
+        config["anchor"] = tuple([file.replace(".nd2", "") for file in all_files[n_tiles * n_rounds * n_rounds :]])
     else:
         if config["round"] is None:
             if config["anchor"] is None:
@@ -56,6 +62,7 @@ def get_file_names(nbp_basic_info: NotebookPage, config_path: str):
     nbp.raw_extension = config["raw_extension"]
     nbp.raw_metadata = config["raw_metadata"]
     nbp.initial_bleed_matrix = config["initial_bleed_matrix"]
+    nbp.omp_mean_spot = config["omp_mean_spot"]
 
     if config["code_book"] is not None:
         config["code_book"] = config["code_book"].replace(".txt", "")

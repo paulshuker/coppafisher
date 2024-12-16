@@ -74,6 +74,6 @@ squares. Background genes[^1] are considered valid genes in OMP. The iterations 
 * its residual colour is too dim.
 
 Pixel spot scores are computed by a convolution of the pixel score image with a mean spot. The mean spot is specified by
-`mean_spot_filepath` as a .npy file. If it is not specified, a default mean spot is used, shown
-[here](omp.md#4-spot-scoring-and-spot-detection). This gives every gene a score image for every pixel. The final OMP
-spots are then taken as local maxima on the pixel score image greater than `score_threshold`.
+the .npy file at `omp_mean_spot` in `file_names` config section. If it is not specified, a default mean spot is used,
+shown [here](omp.md#4-spot-scoring-and-spot-detection). This gives every gene a score image for every pixel. The final
+OMP spots are then taken as local maxima on the pixel score image greater than `score_threshold`.
