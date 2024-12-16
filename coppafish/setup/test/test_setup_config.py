@@ -98,6 +98,12 @@ def test_Config() -> None:
             config_file.write(config_content_wrong)
         # Expect as error here as the default config does not have the debug section.
         try:
+            config.load(config_filepath, post_check=False)
+            assert False, "Expected SectionError"
+        except config.SectionError:
+            pass
+
+        try:
             config.load(config_filepath)
             assert False, "Expected SectionError"
         except config.SectionError:

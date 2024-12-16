@@ -284,7 +284,7 @@ class Config:
     def get_section_names(self) -> list[str]:
         return [section.name for section in self._sections]
 
-    def load(self, file_path: str, default_file_path: str | None = None) -> None:
+    def load(self, file_path: str, default_file_path: str | None = None, post_check: bool = True) -> None:
         """
         Load the configuration file from the given file path. Any unset configuration values are set to their default
         values in the default file.
@@ -293,6 +293,7 @@ class Config:
             file_path (str): the file path to the custom configuration file set by the user.
             default_file_path (str or none, optional): the default config values for every parameter. If None, then the
                 default config file path at coppafish/setup/default.ini is used.
+            post_check (bool, optional): run post-checks on config variables after loading them. Default: true.
         """
         assert type(file_path) is str
         if default_file_path is None:
@@ -323,8 +324,17 @@ class Config:
         # Format all the config parameters.
         formatted_parser = self.format_params(parser)
 
-        # Run post-checks on the config parameters.
-        self._post_check_params(formatted_parser)
+        if post_check:
+            # Run post-checks on the config parameters.
+            self._post_check_params(formatted_parser)
+
+        # Append all config sections/parameters.
+        for section in self._options.keys():
+            section_values = {}
+            for param_name, param_value in formatted_parser[section].items():
+                section_values[param_name] = param_value
+
+            self._sections.append(ConfigSection(section, section_values))
 
     def _check_config_sections(self, parser: configparser.ConfigParser) -> None:
         for section in self._options.keys():
@@ -383,7 +393,6 @@ class Config:
     def _post_check_params(self, formatted_parser: dict[str, dict[str, FORMATTED_PARAM_TYPE]]) -> None:
         param_msg = self._create_param_msg()
         for section in self._options.keys():
-            section_values = {}
             for param_name, param_value in formatted_parser[section].items():
                 post_checker_str = self._options[section][param_name][1]
                 check_passed, msg = self.post_check_param(param_name, section, param_value, post_checker_str)
@@ -391,9 +400,6 @@ class Config:
                     raise self.ParamError(
                         f"Expected {param_msg.format(param_name, section)} to be {msg}, but got {param_value}"
                     )
-                section_values[param_name] = param_value
-
-            self._sections.append(ConfigSection(section, section_values))
 
     def pre_check_param(self, name: str, section: str, value: str, checker_str: str) -> bool:
         """
