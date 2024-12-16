@@ -14,7 +14,7 @@
  * General: The notebook can be moved location without breaking usages fix.
  * General: Incorrect numpy data types within the notebook fixed.
  * General: New basic_info config parameters reverse_tile_positions_x and reverse_tile_positions_y to reverse the tile
-   positions if they are in the wrong places.
+   positions if they are in the wrong places along x and/or y.
  * General: Clearer config warnings/errors.
  * General: Security patches for zipp, urllib3, scikit-learn, tornado, requests, and certifi.
  * General: Package versions are now logged in the pipeline.log file.

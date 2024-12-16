@@ -5,12 +5,13 @@ import numpy as np
 
 from .. import log
 from ..extract import nd2
+from ..setup import tile_details
 from ..setup.config import Config
 from ..setup.notebook_page import NotebookPage
 from ..utils import base as utils_base
 
 
-def set_basic_info_new(config: Config) -> NotebookPage:
+def set_basic_info(config: Config) -> NotebookPage:
     """
     Adds info from `'basic_info'` section of config file to notebook page.
 
@@ -97,20 +98,13 @@ def set_basic_info_new(config: Config) -> NotebookPage:
             value = np.array(value)
         nbp.__setattr__(key, value)
 
-    # Reverse the tile positions from nd2 if set.
-    tilepos_yx_nd2 = nbp.tilepos_yx_nd2
-    tile_count_yx = tilepos_yx_nd2.max(0) - tilepos_yx_nd2.min(0) + 1
-    indices = list(range(tilepos_yx_nd2.shape[0]))
+    # Reverse the tile positions from raw tiles, if true.
+    reversed_tilepos_yx_nd2 = nbp.tilepos_yx_nd2
     del nbp.tilepos_yx_nd2
-    if config_basic["reverse_tile_positions_x"]:
-        for y in range(tile_count_yx[0]):
-            ind_min, ind_max = y * tile_count_yx[1], y * tile_count_yx[1] + tile_count_yx[1]
-            indices[ind_min:ind_max] = indices[ind_min:ind_max][::-1]
-    if config_basic["reverse_tile_positions_y"]:
-        # Y positions are sorted from maximum first to minimum last (reversed ordering). Stable is true to preserve the
-        # ordering of the X positions.
-        indices = np.argsort(tilepos_yx_nd2[indices, 0].max() - tilepos_yx_nd2[indices, 0], stable=True).tolist()
-    nbp.tilepos_yx_nd2 = tilepos_yx_nd2[indices]
+    reversed_tilepos_yx_nd2 = tile_details.reverse_raw_tile_positions(
+        reversed_tilepos_yx_nd2, config_basic["reverse_tile_positions_x"], config_basic["reverse_tile_positions_y"]
+    )
+    nbp.tilepos_yx_nd2 = reversed_tilepos_yx_nd2
 
     # Stage 4: If anything from the first 12 entries has been left blank, deal with that here.
     # Unfortunately, this is just many if statements as all blank entries need to be handled differently.

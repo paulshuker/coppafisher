@@ -299,7 +299,7 @@ class Notebook:
             + "is recommended to delete the notebook and re-run the pipeline."
         )
         config_on_disk = Config()
-        config_on_disk.load(self.config_path)
+        config_on_disk.load(self.config_path, post_check=False)
 
         for page in self._get_added_pages():
             for config_section in page.associated_configs:

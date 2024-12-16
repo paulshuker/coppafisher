@@ -1,10 +1,7 @@
-import numbers
 import os
-from typing import List, Union
 
 import nd2
 import numpy as np
-import numpy_indexed
 from tqdm import tqdm
 
 from .. import setup
@@ -198,35 +195,3 @@ def get_jobs_metadata(files: list, input_dir: str, config: dict) -> dict:
     metadata["nz"] = nz
 
     return metadata
-
-
-def get_nd2_tile_ind(
-    tile_ind_npy: Union[int, List[int]], tile_pos_yx_nd2: np.ndarray, tile_pos_yx_npy: np.ndarray
-) -> Union[int, List[int]]:
-    """
-    Gets index of tiles in nd2 file from tile index of npy file.
-
-    Args:
-        tile_ind_npy: Indices of tiles in npy file.
-        tile_pos_yx_nd2: ``int [n_tiles x 2]``.
-            ``[i,:]`` contains YX position of tile with nd2 index ``i``.
-            Index 0 refers to ``YX = [0, 0]``.
-            Index 1 refers to ``YX = [0, 1] if MaxX > 0``.
-        tile_pos_yx_npy: ``int [n_tiles x 2]``.
-            ``[i,:]`` contains YX position of tile with npy index ``i``.
-            Index 0 refers to ``YX = [MaxY, MaxX]``.
-            Index 1 refers to ``YX = [MaxY, MaxX - 1] if MaxX > 0``.
-
-    Returns:
-        Corresponding indices in nd2 file.
-    """
-    if isinstance(tile_ind_npy, numbers.Number):
-        tile_ind_npy = [tile_ind_npy]
-    # As npy and nd2 have different coordinate systems, we need to convert tile_pos_yx_npy to nd2 tile coordinates
-    tile_pos_yx_npy = np.max(tile_pos_yx_npy, axis=0) - tile_pos_yx_npy
-    # TODO: Remove the obscure dependency for a line.
-    nd2_index = numpy_indexed.indices(tile_pos_yx_nd2, tile_pos_yx_npy[tile_ind_npy]).tolist()
-    if len(nd2_index) == 1:
-        nd2_index = nd2_index[0]
-
-    return nd2_index

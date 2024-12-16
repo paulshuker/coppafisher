@@ -21,7 +21,7 @@ def get_file_names(nbp_basic_info: NotebookPage, config_path: str):
         - config_path (str): file path to the config.
     """
     config = Config()
-    config.load(config_path)
+    config.load(config_path, post_check=False)
     config = config["file_names"]
     nbp = NotebookPage("file_names", {config.name: config.to_dict()})
     # Copy some variables that are in config to page.

@@ -56,6 +56,9 @@ nav:
 markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
+  # Code snippets can now be embedded into the docs from coppafish/docs.
+  - pymdownx.snippets:
+      base_path: ["coppafish", "coppafish/docs"]
   # Code can be highlighted, for example python code by code block: ``` python ...``` or inline: `#!python ...`.
   - admonition
   - pymdownx.details
