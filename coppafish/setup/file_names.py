@@ -75,10 +75,6 @@ def get_file_names(nbp_basic_info: NotebookPage, config_path: str):
         config["psf"] = str(importlib_resources.files("coppafish.setup").joinpath("default_psf.npz"))
     nbp.psf = config["psf"]
 
-    # Add files so save plotting information for pciseq
-    config["pciseq"] = tuple([val.replace(".csv", "") for val in config["pciseq"]])
-    nbp.pciseq = tuple([os.path.join(config["output_dir"], val + ".csv") for val in config["pciseq"]])
-
     if config["anchor"] is not None:
         round_files = config["round"] + (config["anchor"],)
     else:

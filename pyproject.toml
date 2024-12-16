@@ -11,9 +11,9 @@ line-length = 120
 indent-width = 4
 
 [tool.ruff.lint]
-exclude = [ "**/temp", "temp.py", "**/coppafish/docs/*.py", "**/__pycache__", "**/build/lib" ]
+exclude = [ "**/temp", "temp.py", "**/coppafish/docs/*.py", "**/robominnie/test/.integration_dir/**", "**/__pycache__", "**/build/lib" ]
 ignore = ["E741"]
 
 [tool.pyright]
-exclude = [ "**/temp", "temp.py", "**/__pycache__", "**/build/lib" ]
+exclude = [ "**/temp", "temp.py", "**/coppafish/docs/*.py", "**/robominnie/test/.integration_dir/**", "**/__pycache__", "**/build/lib" ]
 typeCheckingMode = "off"

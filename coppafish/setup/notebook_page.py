@@ -235,16 +235,6 @@ class NotebookPage:
                 "file",
                 "*npy* file location indicating the average spot shape" + "This will have the shape `n_z x n_y x n_x`.",
             ],
-            "pciseq": [
-                "tuple[file]",
-                "2 *csv* files where plotting information for *pciSeq* is saved."
-                + "\n"
-                + "`pciseq[0]` is the path where the *OMP* method output will be saved."
-                + "\n"
-                + "`pciseq[1]` is the path where the *ref_spots* method output will be saved."
-                + "\n"
-                + "If files don't exist, they will be created when the function *coppafish/export_to_pciseq* is run.",
-            ],
             "tile_unfiltered": [
                 "tuple[tuple[tuple[file]]]",
                 "List of string arrays [n_tiles][(n_rounds + n_extra_rounds) {x n_channels if 3d}]"

@@ -5,13 +5,12 @@ from os import path
 
 import pytest
 
-# TODO: Add export to pciseq files once PR #161 is merged.
 TEST_FILE_NAMES = (
     "compatibility_tracker_stage_names",
     "compatibility_tracker_start_from",
     # "estimate_runtime",
-    # "export_to_pciseq_0",
-    # "export_to_pciseq_1",
+    "export_to_pciseq_0",
+    "export_to_pciseq_1",
     "generate_gene_codes",
     "retrieve_notebook_config",
 )
@@ -22,7 +21,7 @@ REPLACEMENTS = {
     "n_channels": "9",
     "n_gene_codes": "50",
     "score_thresh": "0.05",
-    "intensity_thesh": "0.05",
+    "intensity_thresh": "0.05",
 }
 
 
