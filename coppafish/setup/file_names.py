@@ -57,13 +57,6 @@ def get_file_names(nbp_basic_info: NotebookPage, config_path: str):
     nbp.raw_metadata = config["raw_metadata"]
     nbp.initial_bleed_matrix = config["initial_bleed_matrix"]
 
-    if config["dye_camera_laser"] is None:
-        # Default information is project
-        config["dye_camera_laser"] = str(
-            importlib_resources.files("coppafish.setup").joinpath("dye_camera_laser_raw_intensity.csv")
-        )
-    nbp.dye_camera_laser = config["dye_camera_laser"]
-
     if config["code_book"] is not None:
         config["code_book"] = config["code_book"].replace(".txt", "")
         nbp.code_book = config["code_book"] + ".txt"

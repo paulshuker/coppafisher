@@ -223,10 +223,6 @@ class NotebookPage:
                 + "required metadata extracted from the initial *nd2* files."
                 + "I.e. it is the output of *coppafish/utils/nd2/save_metadata*",
             ],
-            "dye_camera_laser": [
-                "file",
-                "*csv* file giving the approximate raw intensity for each dye with each camera/laser combination",
-            ],
             "code_book": [
                 "file",
                 "Text file which contains the codes indicating which dye to expect on each round for each gene",

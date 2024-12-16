@@ -160,7 +160,6 @@ class Config:
             "anchor": ("maybe_str", "str-not-empty"),
             "raw_extension": ("str", "str-not-empty"),
             "raw_metadata": ("maybe_str", "str-not-empty"),
-            "dye_camera_laser": ("maybe_file", ""),
             "code_book": ("str", "file-exists"),
             "psf": ("maybe_str", "file-exists"),
             "fluorescent_bead_path": ("maybe_str", ""),

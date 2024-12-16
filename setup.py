@@ -54,7 +54,6 @@ setup(
         "coppafish.setup": [
             "default.ini",
             "notebook_comments.json",
-            "dye_camera_laser_raw_intensity.csv",
             "default_bleed.npy",
             "default_psf.npz",
         ],
