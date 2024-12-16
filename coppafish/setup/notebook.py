@@ -174,9 +174,11 @@ class Notebook:
                 if result == "y":
                     for earlier_page_name in earlier_pages:
                         self.delete_page(earlier_page_name, prompt=False)
+                        print(f"{earlier_page_name} deleted")
         page_name_directory = self._get_page_directory(page_name)
         shutil.rmtree(page_name_directory)
         self.__delattr__(page_name)
+        print(f"{page_name} deleted")
 
     def resave(self) -> None:
         """

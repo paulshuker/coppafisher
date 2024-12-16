@@ -154,9 +154,7 @@ python3 -m coppafish /path/to/config.ini
 Or programmatically, using a python script
 
 ```py
-from coppafish import run_pipeline
-
-run_pipeline("/path/to/config.ini")
+--8<-- "run_pipeline_0.py"
 ```
 
 which can then be run from the command line

@@ -24,7 +24,9 @@ You may have one or more images that are taken which are corrupted, empty, or no
 happens, the user can manually tell coppafish to run without these images. To do this, specify each tile (`t`), round
 (`r`), channel (`c`) image by going to your custom config file and add the line
 
-```
+```ini
+[basic_info]
+; Keep other options.
 bad_trc = t1, r1, c1, t2, r2, c2, ...
 ```
 
@@ -88,19 +90,13 @@ running.
 To remove a notebook page, in the python terminal
 
 ```py
-from coppafish import Notebook
-
-nb = Notebook("/path/to/notebook")
-nb.delete_page("page_name")
+--8<-- "nb_delete_page_0.py"
 ```
 
 For example, to remove the stitch page
 
 ```py
-from coppafish import Notebook
-
-nb = Notebook("/path/to/notebook")
-nb.delete_page("stitch")
+--8<-- "nb_delete_page_1.py"
 ```
 
 Any page's added after stitch are warned about. It is recommended to delete these pages as well by typing `y`.
