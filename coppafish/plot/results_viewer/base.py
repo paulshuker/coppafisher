@@ -25,7 +25,7 @@ from PyQt5.QtWidgets import QComboBox, QPushButton
 from qtpy.QtCore import Qt
 from superqt import QDoubleRangeSlider, QDoubleSlider
 
-from ...omp import base as omp_base
+from ...results.base import MethodData
 from ...setup.notebook import Notebook, NotebookPage
 from ...utils import system as utils_system
 from ..call_spots import bleed_matrix, spot_colours
@@ -87,7 +87,7 @@ class Viewer:
     ignore_events: bool
 
     # UI variables:
-    legend: legend.Legend
+    legend_: legend.Legend
     point_layers: dict[str, Points]
     method_combo_box: QComboBox
     z_thick_slider: QDoubleSlider
@@ -141,9 +141,9 @@ class Viewer:
         assert type(gene_marker_filepath) is str or gene_marker_filepath is None
         if gene_marker_filepath is not None and not path.isfile(gene_marker_filepath):
             raise FileNotFoundError(f"Could not find gene marker filepath at {gene_marker_filepath}")
-        self.legend = legend.Legend()
-        if gene_legend_order_by not in self.legend.order_by_options:
-            raise ValueError(f"gene_legend_order_by must be one of {self.legend.order_by_options}")
+        self.legend_ = legend.Legend()
+        if gene_legend_order_by not in self.legend_.order_by_options:
+            raise ValueError(f"gene_legend_order_by must be one of {self.legend_.order_by_options}")
         if background_image is not None and type(background_image) is not str:
             raise TypeError(f"background_image must be type str, got type {type(background_image)}")
         if background_image is not None and background_image not in ("dapi",) and type(background_image) is not str:
@@ -198,50 +198,20 @@ class Viewer:
 
         # Gather all spot data and keep in self.
         print("Gathering spot data")
-        # TODO: Place this code logic outside of the Viewer. It will be used by other methods too like export_to_pciseq.
-        spot_data: dict[str, Viewer.MethodData] = {}
-        spot_data["prob"] = self.MethodData()
-        spot_data["prob"].tile = self.nbp_ref_spots.tile[:]
-        spot_data["prob"].local_yxz = self.nbp_ref_spots.local_yxz[:].astype(np.int16)
-        spot_data["prob"].yxz = (
-            spot_data["prob"].local_yxz.astype(np.float32) + self.nbp_stitch.tile_origin[spot_data["prob"].tile]
+        self.spot_data: dict[str, Viewer.MethodData] = {}
+        self.spot_data["prob"] = MethodData(
+            "prob", self.nbp_basic, self.nbp_stitch, self.nbp_ref_spots, self.nbp_call_spots, self.nbp_omp
         )
-        spot_data["prob"].gene_no = np.argmax(self.nbp_call_spots.gene_probabilities[:], 1).astype(np.int16)
-        spot_data["prob"].score = self.nbp_call_spots.gene_probabilities[:].max(1)
-        spot_data["prob"].colours = self.nbp_ref_spots.colours[:].astype(np.float32)
-        spot_data["prob"].intensity = self.nbp_call_spots.intensity[:]
-        spot_data["anchor"] = self.MethodData()
-        spot_data["anchor"].tile = spot_data["prob"].tile.copy()
-        spot_data["anchor"].local_yxz = self.nbp_ref_spots.local_yxz[:].astype(np.int16)
-        spot_data["anchor"].yxz = spot_data["prob"].yxz.copy()
-        spot_data["anchor"].gene_no = self.nbp_call_spots.dot_product_gene_no[:]
-        spot_data["anchor"].score = self.nbp_call_spots.dot_product_gene_score[:]
-        spot_data["anchor"].colours = spot_data["prob"].colours.copy()
-        spot_data["anchor"].intensity = self.nbp_call_spots.intensity[:]
+        self.spot_data["anchor"] = MethodData(
+            "anchor", self.nbp_basic, self.nbp_stitch, self.nbp_ref_spots, self.nbp_call_spots, self.nbp_omp
+        )
         self.selected_method = "anchor"
         self.selected_spot = None
         if self.nbp_omp is not None:
-            spot_data["omp"] = self.MethodData()
-            spot_data["omp"].local_yxz, spot_data["omp"].tile = omp_base.get_all_local_yxz(self.nbp_basic, self.nbp_omp)
-            spot_data["omp"].yxz = (
-                spot_data["omp"].local_yxz.astype(np.float32) + self.nbp_stitch.tile_origin[spot_data["omp"].tile]
+            self.spot_data["omp"] = MethodData(
+                "omp", self.nbp_basic, self.nbp_stitch, self.nbp_ref_spots, self.nbp_call_spots, self.nbp_omp
             )
-            spot_data["omp"].gene_no = omp_base.get_all_gene_no(self.nbp_basic, self.nbp_omp)[0].astype(np.int16)
-            spot_data["omp"].score = omp_base.get_all_scores(self.nbp_basic, self.nbp_omp)[0]
-            spot_data["omp"].colours = omp_base.get_all_colours(self.nbp_basic, self.nbp_omp)[0].astype(np.float32)
-            spot_data["omp"].intensity = omp_base.get_all_intensities(self.nbp_basic, self.nbp_call_spots, self.nbp_omp)
             self.selected_method = "omp"
-        for method in spot_data.keys():
-            method_count = spot_data[method].score.size
-            if method_count > np.iinfo(np.uint32).max:
-                raise ValueError(f"Too many spots in {method} to index with uint32")
-            spot_data[method].indices = np.linspace(
-                0, spot_data[method].score.size - 1, spot_data[method].score.size, dtype=np.uint32
-            )
-        self.spot_data = spot_data
-        # Sanity check spot data.
-        for data in self.spot_data.values():
-            data.check_variables()
 
         self.genes = self._create_gene_list(gene_marker_filepath)
         if len(self.genes) == 0:
@@ -262,10 +232,10 @@ class Viewer:
             self.viewer = napari.Viewer(**viewer_kwargs)
 
         print("Building gene legend")
-        self.legend.create_gene_legend(self.genes, gene_legend_order_by)
-        self.legend.canvas.mpl_connect("button_press_event", self.legend_clicked)
+        self.legend_.create_gene_legend(self.genes, gene_legend_order_by)
+        self.legend_.canvas.mpl_connect("button_press_event", self.legend_clicked)
         if self.viewer_exists():
-            self.viewer.window.add_dock_widget(self.legend.canvas, name="Gene Legend", area="left")
+            self.viewer.window.add_dock_widget(self.legend_.canvas, name="Gene Legend", area="left")
         self._update_gene_legend()
 
         print("Loading background image")
@@ -455,10 +425,10 @@ class Viewer:
     def legend_clicked(self, event: mpl.backend_bases.MouseEvent) -> None:
         if self.ignore_events:
             return
-        if event.inaxes != self.legend.canvas.axes:
+        if event.inaxes != self.legend_.canvas.axes:
             # Click event did not occur within the legend axes.
             return
-        closest_gene_index = self.legend.get_closest_gene_index_to(event.xdata, event.ydata)
+        closest_gene_index = self.legend_.get_closest_gene_index_to(event.xdata, event.ydata)
         if closest_gene_index is None:
             return
         closest_gene = self.genes[closest_gene_index]
@@ -1077,64 +1047,11 @@ class Viewer:
 
     def _update_gene_legend(self) -> None:
         # Called when the gene selection has changed by user input
-        self.legend.update_selected_legend_genes([g.active for g in self.genes])
+        self.legend_.update_selected_legend_genes([g.active for g in self.genes])
 
     def _set_status_to(self, message: str) -> None:
         # Sets the status bar of the viewer to a new message.
         self.viewer.status = message
-
-    # A nested class. Each instance of this class holds data on a specific gene calling method.
-    class MethodData:
-        _attribute_names = ("tile", "local_yxz", "yxz", "gene_no", "score", "colours", "intensity", "indices")
-        tile: np.ndarray
-        local_yxz: np.ndarray
-        yxz: np.ndarray
-        gene_no: np.ndarray
-        score: np.ndarray
-        colours: np.ndarray
-        intensity: np.ndarray
-        # We keep track of the spots' indices relative to the notebook since we will cut out spots that are part of
-        # invisible genes to improve performance.
-        indices: np.ndarray
-
-        def remove_data_at(self, remove: np.ndarray[bool]) -> None:
-            """
-            Delete the i'th spot data if remove[i] == True.
-            """
-            assert type(remove) is np.ndarray
-            assert remove.ndim == 1
-            assert remove.size == self.tile.size
-            keep_sum = (~remove).sum().item()
-            for var_name in self._attribute_names:
-                self.__setattr__(var_name, self.__getattribute__(var_name)[~remove])
-                assert self.__getattribute__(var_name).shape[0] == keep_sum
-            self.check_variables()
-
-        def check_variables(self) -> None:
-            assert all([type(self.__getattribute__(var_name)) is np.ndarray] for var_name in self._attribute_names)
-            assert self.tile.ndim == 1
-            assert self.tile.shape[0] >= 0
-            assert self.local_yxz.ndim == 2
-            assert self.local_yxz.shape[0] >= 0
-            assert self.local_yxz.shape[1] == 3
-            assert self.gene_no.ndim == 1
-            assert self.gene_no.shape[0] >= 0
-            assert self.score.ndim == 1
-            assert self.score.shape[0] >= 0
-            assert self.intensity.ndim == 1
-            assert self.intensity.shape[0] >= 0
-            assert self.indices.ndim == 1
-            assert self.indices.shape[0] >= 0
-            assert (
-                self.tile.size
-                == self.local_yxz.shape[0]
-                == self.yxz.shape[0]
-                == self.gene_no.size
-                == self.score.size
-                == self.colours.shape[0]
-                == self.intensity.size
-                == self.indices.size
-            )
 
     class Gene:
         def __init__(

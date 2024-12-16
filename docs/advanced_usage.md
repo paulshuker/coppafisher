@@ -40,14 +40,14 @@ compatible csv file by
 --8<-- "export_to_pciseq_0.py"
 ```
 
-where method can be "omp", "prob", or "anchor" for each gene calling method. To set a score and/or intensity minimum
-threshold:
+where method can be `"omp"`, `"prob"`, or `"anchor"` for each gene calling method. To set a score and/or intensity
+minimum threshold:
 
 ```py
 --8<-- "export_to_pciseq_1.py"
 ```
 
-score_thresh and intensity_thresh are numbers. Use the [Viewer](diagnostics.md#viewer) to decide on thresholds.
+score_thresh and intensity_thresh must be numbers. Use the [Viewer](diagnostics.md#viewer) to help decide on thresholds.
 
 ## Create a background process
 
