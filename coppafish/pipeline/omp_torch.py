@@ -178,8 +178,6 @@ def run_omp(
                 index_max = min(index_max, n_tile_pixels)
                 index_max = max(index_max, index_min + 1)
 
-                log.debug(f"==== Subset {index_subset} ====")
-                log.debug("Getting spot colours")
                 yxz_subset = yxz_all[index_min:index_max]
                 colour_subset = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)
                 colour_subset *= colour_norm_factor[[t]]
@@ -187,13 +185,11 @@ def run_omp(
                 is_intense = intensity >= config["minimum_intensity"]
                 del intensity
 
-                log.debug("Computing pixel scores")
                 pixel_scores_subset = np.zeros((index_max - index_min, n_genes), np.float32)
                 if is_intense.sum() > 0:
                     pixel_scores_subset[is_intense] = solver.solve(colour_subset[is_intense], **solver_kwargs)
                 del colour_subset, is_intense
 
-                log.debug("Appending results")
                 pixel_scores_subset = scipy.sparse.csr_matrix(pixel_scores_subset)
                 pixel_scores.append(pixel_scores_subset.copy())
                 del pixel_scores_subset
@@ -225,7 +221,6 @@ def run_omp(
                 g_pixel_image[g_i] = torch.from_numpy(
                     np.vstack([subset[:, [g]].toarray() for subset in pixel_scores]).reshape(tile_shape, order="F")
                 )
-            log.debug("Scoring pixel score image(s)")
             g_score_image = scores.score_pixel_score_image(g_pixel_image, mean_spot, config["force_cpu"])
             del g_pixel_image
             g_score_image = g_score_image.to(dtype=torch.float16)

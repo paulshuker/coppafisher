@@ -3,7 +3,6 @@ from typing import Tuple
 import numpy as np
 import torch
 
-from .. import log
 from ..call_spots import dot_product
 from ..utils import system
 
@@ -154,9 +153,7 @@ class PixelScoreSolver:
         bg_gene_indices = bg_gene_indices.to(device)
 
         for iteration in range(maximum_iterations):
-            log.debug(f"Iteration: {iteration}")
             # Find the next best gene for pixels that have not reached a stopping criteria yet.
-            log.debug("Finding next best gene assignments")
             fail_gene_indices = torch.cat((genes_selected[:, :iteration], bg_gene_indices), 1)
             fail_gene_indices = fail_gene_indices[pixels_to_continue]
             gene_assigment_results = self.get_next_gene_assignments(
@@ -182,7 +179,6 @@ class PixelScoreSolver:
 
             # On the pixels still being iterated on, update the gene weights and hence the residual colours for the
             # next iteration.
-            log.debug("Computing gene weights")
             latest_gene_selections = genes_selected[pixels_to_continue, : iteration + 1]
             # Has shape (n_pixels_continue, iteration + 1, n_rounds_use, n_channels_use).
             bled_codes_to_continue = bled_codes_torch[latest_gene_selections]
@@ -203,7 +199,6 @@ class PixelScoreSolver:
             del epsilon_squared
 
             # Using the new gene weights, update the OMP pixel scores.
-            log.debug("Computing gene pixel scores")
             pixel_score_result = self.get_gene_pixel_scores(
                 colours[pixels_to_continue],
                 bled_codes_to_continue,
@@ -219,7 +214,6 @@ class PixelScoreSolver:
                     all_residuals[pixels_to_continue, latest_gene_selections[:, j]] = new_residuals[:, j]
                 del new_residuals
             del bled_codes_to_continue, iteration_weights, pixel_score_result
-            log.debug("Assigning gene pixel scores")
             for j in range(iteration + 1):
                 pixel_scores[pixels_to_continue, latest_gene_selections[:, j]] = new_pixel_scores[:, j]
             del latest_gene_selections, new_pixel_scores
@@ -323,18 +317,14 @@ class PixelScoreSolver:
 
         # A pixel only passes if the highest scoring gene is above the dot product threshold.
         pixels_passed = (all_gene_scores > dot_product_threshold).any(1)
-        log.debug(f"Pixels passed min score: {pixels_passed.sum()} out of {pixels_passed.shape}")
 
         # A best gene in the fail_gene_indices means assignment failed.
         in_fail_gene_indices = (fail_gene_indices == next_best_genes[:, np.newaxis]).any(1)
-        log.debug(f"Pixels in failing gene index: {in_fail_gene_indices.sum()} out of {in_fail_gene_indices.shape}")
         pixels_passed = pixels_passed & (~in_fail_gene_indices)
 
         # An intensity below the minimum_intensity means assignment failed.
-        log.debug(f"Pixels too dim: {intensity_is_low.sum()} out of {intensity_is_low.shape}")
         pixels_passed = pixels_passed & (~intensity_is_low)
 
-        log.debug(f"So total pixels passed: {pixels_passed.sum()} out of {pixels_passed.shape}")
         next_best_genes[~pixels_passed] = self.NO_GENE_ASSIGNMENT
         next_best_gene_scores[~pixels_passed] = torch.nan
 
