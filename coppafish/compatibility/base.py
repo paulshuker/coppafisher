@@ -57,27 +57,27 @@ class CompatibilityTracker:
         ),
         ("Clear the output directory. Delete the notebook",),
         (
-            "Clear the output directory except the notebook.",
+            "Clear the output directory except the notebook",
             f"Remove notebook pages {', '.join(PAGE_NAMES[3:9])}",
         ),
         (
-            "Clear the output directory except the notebook.",
+            "Clear the output directory except the notebook",
             f"Remove notebook pages {', '.join(PAGE_NAMES[4:9])}",
         ),
         (
-            "Clear the output directory except the notebook.",
+            "Clear the output directory except the notebook",
             f"Remove notebook pages {', '.join(PAGE_NAMES[5:9])}",
         ),
         (
-            "Clear the output directory except the notebook.",
+            "Clear the output directory except the notebook",
             f"Remove notebook pages {', '.join(PAGE_NAMES[6:9])}",
         ),
         (
-            "Clear the output directory except the notebook.",
+            "Clear the output directory except the notebook",
             f"Remove notebook pages {', '.join(PAGE_NAMES[7:9])}",
         ),
         (
-            "Clear the output directory except the notebook.",
+            "Clear the output directory except the notebook",
             f"Remove notebook pages {', '.join(PAGE_NAMES[8:9])}",
         ),
         ("Do nothing",),

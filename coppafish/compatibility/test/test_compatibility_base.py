@@ -9,4 +9,4 @@ def test_CompatibilityTracker() -> None:
 
     assert tracker.has_version(
         system.get_software_version()
-    ), "Require the latest software version inside of the coppafish/utils/version.py::CompatibilityTracker"
+    ), "Require the latest software version inside of the coppafish/compatibility/base.py"
