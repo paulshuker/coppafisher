@@ -270,10 +270,6 @@ class NotebookPage:
                 + "Average shape of spot from individual raw spot images normalised so max is 1 and min is 0."
                 + "`None` if not applying the Wiener deconvolution.",
             ],
-            "time_taken": [
-                "float",
-                "Time taken to run through the filter section, in seconds.",
-            ],
         },
         "find_spots": {
             "auto_thresh": [

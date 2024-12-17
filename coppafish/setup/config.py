@@ -182,7 +182,6 @@ class Config:
         },
         "filter": {
             "force_cpu": ("bool", ""),
-            "deconvolve": ("bool", ""),
             "wiener_constant": ("number", "not-negative"),
             "wiener_pad_shape": ("tuple_int", "tuple-not-empty"),
         },

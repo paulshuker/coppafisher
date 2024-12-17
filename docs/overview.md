@@ -8,10 +8,10 @@ full detail on each pipeline section, click on a stage on the left panel.
 
 All raw data is re-saved at the `tile_dir` in the `file_names` config section. Coppafish does this to:
 
-* compress data.
-* remove unused tiles, rounds, and channels that may be in the given raw files.
-* save the raw data in a consistent format.
-* allow for faster data reading by using [zarr](https://zarr.readthedocs.io/) arrays.
+* Compress data.
+* Remove unused tiles, rounds, and channels that may be in the given raw files.
+* Save the raw data in a consistent format.
+* Allow for faster data reading by using [zarr](https://zarr.readthedocs.io/) arrays.
 
 Extract also saves metadata inside of the `tile_dir` directory if the raw files are ND2 format.
 
@@ -20,6 +20,10 @@ Extract also saves metadata inside of the `tile_dir` directory if the raw files 
 Extract images are then filtered to minimise scattering of light/de-blur (bright points will appear as cones initially,
 hence the name "Point Spread Function") and emphasise spots. A given point spread function is used to Wiener deconvolve
 the images.
+
+The point spread function is given as a .npz file under the `file_names` config section. The default is at
+`coppafish/setup/default_psf.npz`. Filtering is also affected by config parameters `wiener_constant` and
+`wiener_pad_shape` inside the `filter` config section.
 
 After filtering is applied, the images are saved to the notebook as `float16` compressed zarr arrays.
 

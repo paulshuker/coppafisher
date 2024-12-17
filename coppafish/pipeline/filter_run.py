@@ -1,6 +1,6 @@
 import math as maths
 import os
-import time
+import pickle
 from typing import Tuple
 
 import numpy as np
@@ -12,7 +12,7 @@ from ..filter import base as filter_base
 from ..filter import deconvolution
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
-from ..utils import indexing, tiles_io
+from ..utils import indexing, system, tiles_io
 
 
 def run_filter(
@@ -26,7 +26,7 @@ def run_filter(
         nbp_file (NotebookPage): 'file_names' notebook page.
         nbp_basic (NotebookPage): 'basic_info' notebook page.
 
-    Returns:
+    Returns tuple containing:
         - NotebookPage: 'filter' notebook page.
         - NotebookPage: 'filter_debug' notebook page.
 
@@ -37,7 +37,17 @@ def run_filter(
     nbp_debug = NotebookPage("filter_debug", {config.name: config.to_dict()})
 
     log.debug("Filter started")
-    start_time = time.time()
+
+    # Remember the config values during a run.
+    last_config = {config.name: config.to_dict(), "version": system.get_software_version()}
+    config_path = os.path.join(nbp_file.output_dir, "filter_last_config.pkl")
+    if os.path.isfile(config_path):
+        with open(config_path, "rb") as config_file:
+            last_config = pickle.load(config_file)
+    assert type(last_config) is dict
+    config_unchanged = config == last_config
+    with open(config_path, "wb") as config_file:
+        pickle.dump(config, config_file)
 
     indices = indexing.create(
         nbp_basic,
@@ -50,7 +60,7 @@ def run_filter(
 
     max_ind = np.array(indices).max(0).tolist()
     shape = (max_ind[0] + 1, max_ind[1] + 1, max_ind[2] + 1, nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z))
-    # Chunks are made into thin rods along the y direction as this is how the images are gathered in OMP.
+    # Chunks are made into thin rods along the y direction as this is how the images are later gathered in OMP.
     x_length = max(maths.floor(1e6 / (shape[1] * shape[3] * 2)), 1)
     z_length = 1
     while x_length > nbp_basic.tile_sz:
@@ -72,27 +82,26 @@ def run_filter(
         images[t, r, c] = 0
 
     wiener_filter = None
-    if config["deconvolve"]:
-        if not os.path.isfile(nbp_file.psf):
-            raise FileNotFoundError(f"Could not find the PSF at location {nbp_file.psf}")
+    if not os.path.isfile(nbp_file.psf):
+        raise FileNotFoundError(f"Could not find the PSF at location {nbp_file.psf}")
 
-        # Put z to last index
-        psf = np.load(nbp_file.psf)["arr_0"].astype(np.float32).swapaxes(0, 2)
-        if np.max(psf.shape[:2]) < psf.shape[2]:
-            log.warn(f"The given PSF has a strange shape of yxz = {psf.shape}")
-        # Normalise psf so the min is 0 and the max is 1.
-        psf = psf - psf.min()
-        psf = psf / psf.max()
-        pad_im_shape = (
-            np.array([nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z)])
-            + np.array(config["wiener_pad_shape"]) * 2
-        )
-        wiener_filter = filter_base.get_wiener_filter(psf, pad_im_shape, config["wiener_constant"])
-        nbp_debug.psf = psf
+    # Put z to last index
+    psf = np.load(nbp_file.psf)["arr_0"].astype(np.float32).swapaxes(0, 2)
+    if np.max(psf.shape[:2]) < psf.shape[2]:
+        log.warn(f"The given PSF has a strange shape of yxz = {psf.shape}")
+    # Normalise psf so the min is 0 and the max is 1.
+    psf = psf - psf.min()
+    psf = psf / psf.max()
+    pad_im_shape = (
+        np.array([nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z)])
+        + np.array(config["wiener_pad_shape"]) * 2
+    )
+    wiener_filter = filter_base.get_wiener_filter(psf, pad_im_shape, config["wiener_constant"])
+    nbp_debug.psf = psf
 
     with tqdm(total=len(indices), desc="Filtering extract images") as pbar:
         for t, r, c in indices:
-            if not np.isnan(images[t, r, c]).any():
+            if config_unchanged and not np.isnan(images[t, r, c]).any():
                 # Already saved filtered images are not re-filtered.
                 pbar.update()
                 continue
@@ -100,24 +109,22 @@ def run_filter(
             raw_image_exists = tiles_io.image_exists(file_path_raw)
             pbar.set_postfix({"round": r, "tile": t, "channel": c})
             assert raw_image_exists, f"Raw, extracted file at\n\t{file_path_raw}\nnot found"
+
             # Get t, r, c image from raw files
             im_filtered = tiles_io._load_image(file_path_raw)[:]
-
-            # Move to floating point before doing any filtering.
+            # Move to floating point before filtering.
             im_filtered = im_filtered.astype(np.float64)
-            if wiener_filter is not None:
-                # Deconvolves dapi images too.
-                im_filtered = deconvolution.wiener_deconvolve(
-                    im_filtered, config["wiener_pad_shape"], wiener_filter, config["force_cpu"]
-                )
+
+            # All images are deconvolved, including the DAPI.
+            im_filtered = deconvolution.wiener_deconvolve(
+                im_filtered, config["wiener_pad_shape"], wiener_filter, config["force_cpu"]
+            )
             im_filtered = im_filtered.astype(np.float16)
             images[t, r, c] = im_filtered
             del im_filtered
             pbar.update()
 
     nbp.images = images
-    end_time = time.time()
-    nbp_debug.time_taken = end_time - start_time
     log.debug("Filter complete")
 
     return nbp, nbp_debug
