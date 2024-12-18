@@ -17,10 +17,11 @@ def export_to_pciseq(
     """
     Saves a .csv files containing gene spot information compatible with pciSeq. The csv contains:
 
-    - y - y coordinate of each spot in stitched coordinate system.
-    - x - x coordinate of each spot in stitched coordinate system.
-    - z_stack - z coordinate of each spot in stitched coordinate system (in units of z-pixels).
-    - Gene - Name of gene each spot was assigned to.
+    - Gene: Name of gene each spot was assigned to.
+    - y: y coordinate of each spot in stitched coordinate system.
+    - x: x coordinate of each spot in stitched coordinate system.
+    - z_stack: z coordinate of each spot in stitched coordinate system (in units of z-pixels).
+    - score: the spot's score.
 
     Only spots which pass the thresholds are saved.
 
@@ -62,8 +63,12 @@ def export_to_pciseq(
     if os.path.isfile(file_path):
         print(f"WARNING: file {file_path} already exists, it will be overwritten")
     # Save the global yxz positions with their corresponding gene indices.
-    df_to_export = pd.DataFrame(data=spot_data.yxz, index=spot_data.gene_no, columns=["y", "x", "z_stack"])
-    df_to_export["Gene"] = df_to_export.index
+    df_to_export = pd.DataFrame()
+    df_to_export["Gene"] = nb.call_spots.gene_names[spot_data.gene_no]
+    df_to_export["y"] = spot_data.yxz[:, 0]
+    df_to_export["x"] = spot_data.yxz[:, 1]
+    df_to_export["z_stack"] = spot_data.yxz[:, 2]
+    df_to_export["score"] = spot_data.score
     df_to_export.to_csv(file_path, mode="w", index=False)
 
     print(f"pciSeq file saved for method {method} at " + file_path)
