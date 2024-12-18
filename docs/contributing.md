@@ -47,7 +47,7 @@ directory (directories) and their script file name, separated by underscores. Fo
 
 ## Run Tests
 
-Run unit tests (~6s)
+Run unit tests (~7s)
 
 ```terminal
 pytest

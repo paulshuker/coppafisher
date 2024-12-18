@@ -544,7 +544,7 @@ class NotebookPage:
                 + "For example, you can access tile 0's subgroup by doing `nb.omp.results['tile_0']`. Each tile "
                 + "subgroup contains 4 zarr arrays: local_yxz, scores, gene_no, and colours. Each has dtype int16, "
                 + "float16, int16, and float16 respectively. Each has shape (n_spots, 3), (n_spots), (n_spots), "
-                + "(n_spots) respectively. "
+                + "(n_spots, n_rounds_use, n_channels_use) respectively. "
                 + "To gather tile 0's spot's local_yxz's into memory, do `nb.omp.results['tile_0/local_yxz'][:]`. "
                 + "The local_yxz positions are relative to the tile. Converting these to global spot positions "
                 + "requires adding the tile_origin from the 'stitch' page.",
