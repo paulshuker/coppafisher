@@ -11,8 +11,8 @@ from ..setup.notebook import Notebook
 def export_to_pciseq(
     nb: Notebook,
     method: str,
-    intensity_thresh: float | None = None,
     score_thresh: float | None = None,
+    intensity_thresh: float | None = None,
 ) -> str:
     """
     Saves a .csv files containing gene spot information compatible with pciSeq. The csv contains:
@@ -31,8 +31,8 @@ def export_to_pciseq(
     Args:
         nb (Notebook): the experiment's coppafish outputted Notebook, must have completed at least up to call spots.
         method (str): gene calling method. Can be 'omp', 'anchor', or 'prob'.
-        intensity_thresh (float, optional): only include spots with colour intensity >= intensity_thresh. Default: 0
         score_thresh (float, optional): only include spots with score >= score_thresh. Default: 0.
+        intensity_thresh (float, optional): only include spots with colour intensity >= intensity_thresh. Default: 0
 
     Returns:
         (str): csv_file_path. The file path to the saved csv file.
@@ -41,12 +41,12 @@ def export_to_pciseq(
     assert type(method) is str
     if method not in ("prob", "anchor", "omp"):
         raise ValueError(f"Unknown method: {method}")
-    if intensity_thresh is None:
-        intensity_thresh = 0
-        print("Using no intensity threshold")
     if score_thresh is None:
         score_thresh = 0
         print("Using no score threshold")
+    if intensity_thresh is None:
+        intensity_thresh = 0
+        print("Using no intensity threshold")
     assert isinstance(intensity_thresh, Number), "Thresholds must be numbers"
     assert isinstance(score_thresh, Number), "Thresholds must be numbers"
     intensity_thresh = float(intensity_thresh)
