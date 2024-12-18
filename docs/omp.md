@@ -38,15 +38,14 @@ computed for every gene and background gene $g$ similar to
 [call spots](call_spots.md#6-and-7-application-of-scales-computation-of-final-scores-and-bleed-matrix)
 
 $$
-\text{(gene scores)}_{pgi} = \frac{1}{N_r||\mathbf{\hat{R}}||_{prc(i-1)}}\Bigg|\sum_{rc}(\hat{R}_{prc(i - 1)}\hat{B}_{grc})\Bigg|
+\text{(gene scores)}_{pgi} = \frac{1}{N_r}\Bigg|\sum_r\Bigg(\frac{1}{||\mathbf{\hat{R}}||_{pr.(i-1)}||\mathbf{B}||_{gr.}}\sum_{c}(\hat{R}_{prc(i - 1)}B_{grc})\Bigg)\Bigg|
 $$
 
 where
 
 $$
 \hat{R}_{prci} = \epsilon_{prci}^2R_{prci}\text{,}\space\space\space
-\hat{B}_{grc} = \frac{B_{grc}}{||\mathbf{B}||_{gr.}}\text{,}\space\space\space
-\epsilon_{prci}^2 = N_r N_c\frac{\sigma_{pirc}^{-2}}{\sum_{rc}\sigma_{pirc}^{-2}}\text{,}\space\space\space
+\epsilon_{prci}^2 = N_r N_c\frac{\sigma_{pirc}^{-2}}{\sum_{rc}\sigma_{pirc}^{-2}}
 $$
 
 and

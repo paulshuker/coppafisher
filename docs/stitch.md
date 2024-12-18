@@ -87,7 +87,7 @@ When performing gene assignments, we only use the pixels $p$ on tile $t$ whose c
 
 ### View Stitch Checkerboard
 
-```pseudo
+```py
 from coppafish.plot.stitch import view_stitch_checkerboard
 view_stitch_checkerboard(nb)
 ```

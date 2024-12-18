@@ -5,11 +5,12 @@ from .parameter_estimation import (
     ViewTargetRegression,
     ViewTileScaleRegression,
 )
-from .spot_colours import GeneSpotsViewer, ViewScalingAndBGRemoval
+from .spot_colours import GeneSpotsViewer, ViewGeneEfficiencies, ViewScalingAndBGRemoval
 
 __all__ = [
     "ViewBleedMatrix",
     "ViewFreeAndConstrainedBledCodes",
+    "ViewGeneEfficiencies",
     "ViewScaleFactors",
     "ViewTargetRegression",
     "ViewTileScaleRegression",
