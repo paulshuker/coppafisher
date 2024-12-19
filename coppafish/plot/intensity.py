@@ -1,5 +1,3 @@
-from typing import List, Optional
-
 import napari
 import numpy as np
 
@@ -9,7 +7,8 @@ from ..spot_colours import base
 
 def view_intensity_images(
     nb: Notebook,
-    tiles: Optional[List[int]] = None,
+    tiles: list[int] | None = None,
+    z_planes: list[int] | None = None,
     share_contrast_limits: bool = True,
 ) -> None:
     """
@@ -19,6 +18,7 @@ def view_intensity_images(
     Args:
         nb (Notebook): notebook.
         tiles (list of int, optional): tiles to view. Default: first tile.
+        z_planes (list of int, optional): z planes to view. Default: A maximum of 20 adjacent z planes starting at 0.
         share_contrast_limits (bool, optional): use the same contrast limits for all filtered images shown. Default:
             true.
     """
@@ -26,11 +26,13 @@ def view_intensity_images(
 
     if tiles is None:
         tiles = nb.basic_info.use_tiles[:1]
+    if z_planes is None:
+        z_planes = [z for z in range(0, min(20, max(nb.basic_info.use_z)))]
 
     factor = nb.call_spots.colour_norm_factor.astype(np.float32)
 
-    min = 1e20
-    max = -1e20
+    im_min = 1e20
+    im_max = -1e20
     images = []
     names = []
     for t in tiles:
@@ -56,16 +58,16 @@ def view_intensity_images(
         names.append(f"Intensities tile={t}")
         image_min = intensities.min()
         image_max = intensities.max()
-        if image_min < min:
-            min = image_min
-        if image_max > max:
-            max = image_max
+        if image_min < im_min:
+            im_min = image_min
+        if image_max > im_max:
+            im_max = image_max
 
     viewer = napari.Viewer(title="Coppafish intensities")
     limits = None
     for image, name in zip(images, names):
         if share_contrast_limits:
-            limits = [min, max]
+            limits = [im_min, im_max]
         viewer.add_image(image, name=name, rgb=False, contrast_limits=limits)
 
     napari.run()
