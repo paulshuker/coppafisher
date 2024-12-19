@@ -143,3 +143,16 @@ plot.view_filtered_images(nb, tiles, rounds, channels, apply_colour_norm_factor=
 
 where `tiles`, `rounds`, and `channels` are lists of integers specifying which images to view. Set these to `None` if
 you wish to view all of the them from the sequencing images. The boolean parameters can be set to `False` if needed.
+
+### Intensity images
+
+You can view the computed intensities once call spots is complete. Do this by
+
+```py
+from coppafish import Notebook, plot
+
+nb = Notebook("/path/to/notebook")
+plot.view_intensity_images(nb, tiles)
+```
+
+`tiles` is a list of integers for each tile index to view. If set to `None`, the first tile is shown.

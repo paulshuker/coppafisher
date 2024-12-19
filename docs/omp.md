@@ -82,7 +82,7 @@ A gene is successfully assigned to a pixel when all conditions are met:
 - The best gene is not already assigned to the pixel.
 - The best gene is not a background gene.
 - The residual colour's intensity is at least `minimum_intensity` (typically 0.15). The intensity is defined as
-$\min_r(\max_c(|\hat{R}_{prci}|))$.
+$\min_r(\max_c(|\hat{R}_{prci}|))$. See [diagnostic](diagnostics.md#intensity-images).
 
 The reasons for each of these conditions is:
 
@@ -190,6 +190,10 @@ score threshold set by `score_threshold` (typically `0.1`). These are the final 
     $>0$ and run OMP again.
 
 ## Diagnostics
+
+### Intensity
+
+Use the [diagnostic](diagnostics.md#intensity-images) to see intensity images.
 
 ### Viewer
 

@@ -12,8 +12,8 @@ def convert_coords_to_torch_grid(yxz_coords: torch.Tensor, image_shape: tuple[in
     True.
 
     Args:
-        - yxz_coords(`(... x 3) tensor[float or int]`): y, x, and z positions.
-        - image_shape (tuple of three ints): the image length that the yxz_coords are relative to in the y, x, and z
+        yxz_coords(`(... x 3) tensor[float or int]`): y, x, and z positions.
+        image_shape (tuple of three ints): the image length that the yxz_coords are relative to in the y, x, and z
             directions respectively.
 
     Returns:
@@ -58,12 +58,12 @@ def apply_flow_new(
     same as the nearby, edge pixels.
 
     Args:
-        - yxz (`(n_points x 3) ndarray[int or float] or tensor[int or float]`): the yxz coordinates.
-        - flow (`(n_tiles x n_rounds x 3 x im_y x im_x x im_z) zarray[float] or ndarray[float]`): the optical flow
-            shift for each pixel in the image for the y, x, and z directions. yxz positions must be aligned with the
-            flow image. I.e. 0, 0, 0 in yxz must be shifted by the flow at 0, 0, 0.
-        - tile (int): tile index to gather flow for.
-        - r (int): round index to gather flow for.
+        yxz (`(n_points x 3) ndarray[int or float] or tensor[int or float]`): the yxz coordinates.
+        flow (`(n_tiles x n_rounds x 3 x im_y x im_x x im_z) zarray[float] or ndarray[float]`): the optical flow shift
+            for each pixel in the image for the y, x, and z directions. yxz positions must be aligned with the flow
+            image. I.e. 0, 0, 0 in yxz must be shifted by the flow at 0, 0, 0.
+        tile (int): tile index to gather flow for.
+        r (int): round index to gather flow for.
 
     Returns:
         (`(n_points x 3) ndarray[float32] or tensor[float32]`): yxz_flow. yxz coordinates optical flow shifted. Returns
@@ -119,8 +119,8 @@ def apply_affine(yxz: torch.Tensor, affine: torch.Tensor) -> torch.Tensor:
     tile but on a different round and channel.
 
     Args:
-        - yxz (`(n_points x 3) tensor[float or int]`): y, x, and z coordinates positions to affine transform.
-        - affine (`(4 x 3) tensor[float]`): affine transform to apply.
+        yxz (`(n_points x 3) tensor[float or int]`): y, x, and z coordinates positions to affine transform.
+        affine (`(4 x 3) tensor[float]`): affine transform to apply.
 
     Returns:
         `(n_points x 3) tensor[float32]` yxz_affine: the yxz coordinates affine transformed.
@@ -144,10 +144,10 @@ def get_spot_colours_new_safe(
     get_spot_colours_new through multiple calls to avoid memory crashing on large images.
 
     Args:
-        - nbp_basic_info (NotebookPage): `basic_info` notebook page.
-        - yxz (`(n_points x 3) ndarray or tensor`, optional): positions to gather. Default: the entire tile.
-        - args (tuple): positional arguments.
-        - kwargs (dict[str, any]): keyword arguments.
+        nbp_basic_info (NotebookPage): `basic_info` notebook page.
+        yxz (`(n_points x 3) ndarray or tensor`, optional): positions to gather. Default: the entire tile.
+        args (tuple): positional arguments.
+        kwargs (dict[str, any]): keyword arguments.
 
     Returns:
         `(n_points x n_rounds x n_channels_use) ndarray` colours: gathered image colours.

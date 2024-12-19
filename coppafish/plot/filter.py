@@ -13,7 +13,7 @@ def view_filtered_images(
     rounds: Optional[List[int]] = None,
     channels: Optional[List[int]] = None,
     apply_colour_norm_factor: bool = True,
-    share_contrast_limits: bool = True,
+    share_contrast_limits: bool = False,
 ) -> None:
     """
     View the filtered images.
@@ -26,7 +26,7 @@ def view_filtered_images(
         apply_colour_norm_factor (bool, optional): apply the colour normalisation factor from call spots, if call spots
             is in the given notebook. Default: true.
         share_contrast_limits (bool, optional): use the same contrast limits for all filtered images shown. Default:
-            true.
+            false.
     """
     assert nb.has_page("filter"), "Filter must be run first"
 
