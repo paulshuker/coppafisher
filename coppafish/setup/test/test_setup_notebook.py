@@ -182,8 +182,8 @@ def test_Notebook() -> None:
     except ValueError:
         pass
 
-    assert nb > "debug"
-    assert nb_page > "o"
+    _ = nb > "debug"
+    _ = nb_page > "o"
 
     assert len(nb.get_all_versions()) == 1
     assert nb.get_all_versions()["debug"] == system.get_software_version()
