@@ -157,3 +157,4 @@ plot.view_intensity_images(nb, tiles, z_planes=None)
 
 `tiles` is a list of integers for each tile index to view. If set to `None`, the first tile is shown. When `z_planes` is
 `None`, the first 20 z planes are shown, you can choose to show more z planes by setting `z_planes` to any number > 20.
+The anchor images are also displayed for reference.

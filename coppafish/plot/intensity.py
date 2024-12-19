@@ -9,20 +9,18 @@ def view_intensity_images(
     nb: Notebook,
     tiles: list[int] | None = None,
     z_planes: int | None = None,
-    share_contrast_limits: bool = True,
 ) -> None:
     """
-    View the computed intensity for the given tile(s). The intensity is defined as min_r(max_c(abs(colours))) where
-    colours have the call spot colour norm factor applied.
+    View the computed intensity for the given tile(s) and the anchor image(s). The intensity is defined as
+    min_r(max_c(abs(colours))) where colours have the call spots colour norm factor applied.
 
     Args:
         nb (Notebook): notebook.
         tiles (list of int, optional): tiles to view. Default: first tile.
         z_planes (int, optional): the number of z planes to view, starting from 0. Default: 20.
-        share_contrast_limits (bool, optional): use the same contrast limits for all filtered images shown. Default:
-            true.
     """
-    assert nb.has_page("register"), "Register must be run first"
+    assert nb.has_page("register"), "Register must be complete"
+    assert nb.has_page("call_spots"), "Call spots must be complete"
 
     if tiles is None:
         tiles = nb.basic_info.use_tiles[:1]
@@ -36,10 +34,8 @@ def view_intensity_images(
 
     factor = nb.call_spots.colour_norm_factor.astype(np.float32)
 
-    im_min = 1e20
-    im_max = -1e20
-    images = []
-    names = []
+    images: list[np.np.ndarray] = []
+    names: list[str] = []
     for t in tiles:
         intensities = base.get_spot_colours_new_safe(
             nb.basic_info,
@@ -56,22 +52,21 @@ def view_intensity_images(
         intensities = np.abs(intensities).max(2).min(1)
         intensities = intensities.reshape((nb.basic_info.tile_sz, nb.basic_info.tile_sz, z_planes), order="F")
 
-        # y, x, z -> z, y, x.
-        intensities = intensities.swapaxes(1, 2).swapaxes(0, 1)
         images.append(intensities)
         names.append(f"Intensities tile={t}")
-        image_min = intensities.min()
-        image_max = intensities.max()
-        if image_min < im_min:
-            im_min = image_min
-        if image_max > im_max:
-            im_max = image_max
+
+    # Add the anchor images as well.
+    for t in tiles:
+        anchor_image = nb.filter.images[t, nb.basic_info.anchor_round, nb.basic_info.anchor_channel, :, :, :z_planes]
+        images.append(anchor_image)
+        names.append(f"Anchor tile={t}")
+
+    # y, x, z -> z, y, x for napari.
+    for i, image in enumerate(images):
+        images[i] = image.swapaxes(1, 2).swapaxes(0, 1)
 
     viewer = napari.Viewer(title="Coppafish intensities")
-    limits = None
     for image, name in zip(images, names):
-        if share_contrast_limits:
-            limits = [im_min, im_max]
-        viewer.add_image(image, name=name, rgb=False, contrast_limits=limits)
+        viewer.add_image(image, name=name, rgb=False)
 
     napari.run()
