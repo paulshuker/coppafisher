@@ -49,7 +49,7 @@ def view_filtered_images(
         image_trc: np.ndarray = nb.filter.images[t, r, c].astype(np.float32)
         # y, x, z -> z, y, x.
         image_trc = image_trc.swapaxes(1, 2).swapaxes(0, 1)
-        image_trc *= factor[t, r, c]
+        image_trc *= factor[t, r, nb.basic_info.use_channels.index(c)]
         images.append(image_trc)
         names.append(f"Filter {t=}, {r=}, {c=}")
         image_min = image_trc.min()
