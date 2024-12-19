@@ -142,7 +142,7 @@ def test_Viewer() -> None:
     n_omp_spots = 85 // n_tiles
     omp_config = {
         "omp": {
-            "minimum_intensity": 0.001,
+            "minimum_intensity_multiplier": 0.001,
             "max_genes": 2,
             "dot_product_threshold": 0.01,
             "alpha": 0.0,
@@ -158,6 +158,7 @@ def test_Viewer() -> None:
     group = zarr.group(store=temp_zgroup.name, zarr_version=2)
     for t in use_tiles:
         subgroup = group.create_group(f"tile_{t}")
+        subgroup.attrs["minimum_intensity"] = 0.02
         subgroup.create_dataset("local_yxz", shape=(n_omp_spots, 3), dtype=np.int16)
         subgroup.create_dataset("scores", shape=(n_omp_spots), dtype=np.float16)
         subgroup.create_dataset("gene_no", shape=(n_omp_spots), dtype=np.int16)

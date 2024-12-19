@@ -50,10 +50,10 @@ class ViewOMPGeneScores(Subplot):
         beta = Config.get_default_for("omp", "beta")
         max_genes = Config.get_default_for("omp", "max_genes")
         dot_product_threshold = Config.get_default_for("omp", "dot_product_threshold")
-        min_intensity = Config.get_default_for("omp", "minimum_intensity")
+        min_intensity = 0.0
         if nbp_omp is not None:
             omp_config = nbp_omp.associated_configs["omp"]
-            min_intensity = float(omp_config["minimum_intensity"])
+            min_intensity = float(nbp_omp.results[f"tile_{spot_tile}"].attrs["minimum_intensity"])
             alpha = float(omp_config["alpha"])
             beta = float(omp_config["beta"])
             max_genes = int(omp_config["max_genes"])

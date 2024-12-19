@@ -20,9 +20,26 @@ least squares in [step 2](#2-gene-weights). $i$ takes values $1, 2, 3, ...$
 ## 0: Pre-processing
 
 All pixel colours are gathered using the results from register. Any out of bounds round/channel colour intensities are
-set to zero. The pixel colours are multiplied by `nb.call_spots.colour_norm_factor` for the each tile.
+set to zero. The pixel colours, $\mathbf{S}$, are multiplied by `nb.call_spots.colour_norm_factor` for the each tile.
 
-## 1: Next Gene Assignment
+## 1: Minimum Intensity Threshold
+
+Before running on pixels, many pixels are discarded because they are background and not spots. To do this, we take the
+middle z plane colours for each tile, $D_{txyrc}$, and compute their intensities as
+
+$$
+I_{txy} = \min_r(\max_c(|D_{txyrc}|))
+$$
+
+The intensity thresholds for each tile are then
+
+$$
+\text{minimum\_intensity}_t = a\times\text{median}_{xy}(I_{txy})
+$$
+
+$a$ is the `minimum_intensity_multiplier` (typically 4).
+
+## 2: Next Gene Assignment
 
 A pixel can have more than one gene assigned to it. The most genes allowed on each pixel is `max_genes`
 (typically 5). Let's say we are on iteration $i$ ($i = 1, 2, 3, ...$) for pixel $p$. The pixel will already have
@@ -81,7 +98,7 @@ A gene is successfully assigned to a pixel when all conditions are met:
 - The best gene score is above `dot_product_threshold` (typically 0.4).
 - The best gene is not already assigned to the pixel.
 - The best gene is not a background gene.
-- The residual colour's intensity is at least `minimum_intensity` (typically 0.15). The intensity is defined as
+- The residual colour's intensity is at least $\text{minimum\_intensity}_t$. The intensity of a pixel is defined as
 $\min_r(\max_c(|\hat{R}_{prci}|))$. See [diagnostic](diagnostics.md#intensity-images).
 
 The reasons for each of these conditions is:
@@ -107,7 +124,7 @@ as final for [step 3](#4-spot-scoring-and-spot-detection).
 
 On each iteration, the gene weights are re-computed for all genes assigned to pixel $p$ to best represent the pixel's
 colour. All unassigned genes have a zero weight, so $g$ here represents only the assigned genes ($i$ assigned genes)
-for pixels that passed [step 1](#1-next-gene-assignment). The weights, $w_{pgi}$, are computed through the
+for pixels that passed [step 1](#2-next-gene-assignment). The weights, $w_{pgi}$, are computed through the
 method of least squares by minimising the scalar residual
 
 $$
@@ -152,7 +169,7 @@ Step 1 is now repeated on the remaining pixels unless $i$ is $\text{max\_genes}$
 
 ??? info "Why not use the scores from step 1 as the pixel scores?"
 
-    If you recall, from [step 1](#1-next-gene-assignment), the assigned gene is given a preliminary score similar to
+    If you recall, from [step 1](#2-next-gene-assignment), the assigned gene is given a preliminary score similar to
     step 3's score. This score is not used as the final OMP pixel scores (but, we did try). This is because the
     pleminary score has lowered the scores because they overlap with other genes. In other words, the scores are lowered
     by brightness in other rounds-channel pairs.
@@ -193,7 +210,14 @@ score threshold set by `score_threshold` (typically `0.1`). These are the final 
 
 ### Intensity
 
-Use the [diagnostic](diagnostics.md#intensity-images) to see intensity images.
+Use the [diagnostic](diagnostics.md#intensity-images) to see intensity images. Once OMP is complete, you can view the
+minimum intensity computed for each tile by doing
+
+```py
+--8<-- "omp_min_intensity.py"
+```
+
+where `tile` is the tile index.
 
 ### Viewer
 

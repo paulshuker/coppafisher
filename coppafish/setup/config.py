@@ -223,7 +223,7 @@ class Config:
         },
         "omp": {
             "max_genes": ("int", "positive"),
-            "minimum_intensity": ("number", "not-negative"),
+            "minimum_intensity_multiplier": ("number", "not-negative"),
             "alpha": ("number", "not-negative"),
             "beta": ("number", "positive"),
             "dot_product_threshold": ("number", "not-negative"),

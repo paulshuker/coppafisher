@@ -18,6 +18,7 @@ TEST_FILE_NAMES: tuple[tuple[str, int, bool]] = (
     ("generate_gene_codes", 20, False),
     ("nb_delete_page_0", 7, True),
     ("nb_delete_page_1", 7, True),
+    ("omp_min_intensity", 10, False),
     ("retrieve_notebook_config", 20, False),
     ("run_pipeline_0", 10, False),
 )
@@ -25,6 +26,7 @@ NB_REPLACE = '"/path/to/notebook"'
 CONFIG_REPLACE = '"/path/to/config.ini"'
 REPLACEMENTS = {
     "method": '"prob"',
+    "{tile}": "1",
     "n_rounds": "7",
     "n_channels": "9",
     "n_gene_codes": "11",
