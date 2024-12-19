@@ -629,14 +629,14 @@ class NotebookPage:
         "zgroup": ".zgroup",
     }
 
-    def __init__(self, page_name: str, associated_config: Dict[str, Dict[str, Any]] = {}) -> None:
+    def __init__(self, page_name: str, associated_config: Dict[str, Dict[str, Any]] = None) -> None:
         """
         Initialise a new, empty notebook page.
 
         Args:
-            - page_name (str): the notebook page name. Must exist within _options in the notebook page class.
-            - associated_config (dict): dictionary containing string keys of config section names. Values are the
-                config's dictionary.
+            page_name (str): the notebook page name. Must exist within _options in the notebook page class.
+            associated_config (dict, optional): dictionary containing string keys of config section names. Values are
+                the config's dictionary. Default: empty dictionary.
 
         Notes:
             - The way that the notebook handles zarr arrays is special since they must not be kept in memory. To give
@@ -647,6 +647,8 @@ class NotebookPage:
                 zarr array is accessed in a page, it gives you the zarr.Array class, which can then be put into memory
                 as a numpy array when indexed.
         """
+        if associated_config is None:
+            associated_config = {}
         assert type(associated_config) is dict
         for key in associated_config:
             assert type(key) is str

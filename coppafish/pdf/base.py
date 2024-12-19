@@ -419,8 +419,11 @@ class BuildPDF:
         size: Tuple[float, float] = A4_SIZE_INCHES,
         share_x: bool = False,
         share_y: bool = False,
-        gridspec_kw: dict = {},
+        gridspec_kw: dict = None,
     ) -> Tuple[plt.figure, np.ndarray]:
+        if gridspec_kw is None:
+            gridspec_kw = {}
+
         fig, axes = plt.subplots(
             nrows=nrows, ncols=ncols, squeeze=False, sharex=share_x, sharey=share_y, gridspec_kw=gridspec_kw
         )

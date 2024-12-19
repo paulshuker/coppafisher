@@ -46,7 +46,7 @@ def get_remote_software_version() -> str:
         version_contents = str(f.read())
         index_start = version_contents.index(consts.VERSION_ENCAPSULATE)
         index_end = version_contents.index(consts.VERSION_ENCAPSULATE, index_start + 1)
-    except urllib.error.HTTPError or urllib.error.URLError:
+    except (urllib.error.HTTPError, urllib.error.URLError):
         # This can be reached if GitHub refuses the request due to too many recent requests.
         return fallback
     return version_contents[index_start + 1 : index_end]
@@ -151,14 +151,14 @@ def internet_is_active() -> bool:
         urllib.request.urlopen("http://www.google.com")
         return True
     except (
-        urllib.error.URLError
-        or urllib.error.HTTPError
-        or ValueError
-        or socket.gaierror
-        or TimeoutError
-        or OSError
-        or ssl.SSLError
-        or ConnectionResetError
-        or FileNotFoundError
+        urllib.error.URLError,
+        urllib.error.HTTPError,
+        ValueError,
+        socket.gaierror,
+        TimeoutError,
+        OSError,
+        ssl.SSLError,
+        ConnectionResetError,
+        FileNotFoundError,
     ):
         return False

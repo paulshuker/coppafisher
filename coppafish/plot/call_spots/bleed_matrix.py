@@ -88,7 +88,7 @@ class ViewBledCodes(Subplot):
     def text_box_changed_to(self, expression: str) -> None:
         try:
             gene_no = int(eval(expression))
-        except NameError or ValueError:
+        except (NameError, ValueError):
             gene_name = str(expression)
             gene_no = (self.gene_names == gene_name).nonzero()[0]
             gene_no_2 = (self.gene_names == gene_name.lower()).nonzero()[0]

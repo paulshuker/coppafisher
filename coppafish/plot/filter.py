@@ -17,10 +17,10 @@ def view_filtered_images(
     View the filtered images.
 
     Args:
-        - nb (Notebook): notebook.
-        - tiles (Optional[List[int]], optional): tiles to view. Default: all tiles.
-        - rounds (Optional[List[int]], optional): rounds to view. Default: all rounds.
-        - channels (Optional[List[int]], optional): channels to view. Default: all channels.
+        nb (Notebook): notebook.
+        tiles (Optional[List[int]], optional): tiles to view. Default: all tiles.
+        rounds (Optional[List[int]], optional): rounds to view. Default: all rounds.
+        channels (Optional[List[int]], optional): channels to view. Default: all channels.
     """
     assert nb.has_page("filter"), "Filter must be run first"
 
@@ -37,6 +37,6 @@ def view_filtered_images(
         image_trc: np.ndarray = nb.filter.images[t, r, c].astype(np.float32)
         # y, x, z -> z, y, x.
         image_trc = image_trc.swapaxes(1, 2).swapaxes(0, 1)
-        viewer.add_image(image_trc, name=f"Filtered {t=}, {r=}, {c=}")
+        viewer.add_image(image_trc, name=f"Filtered {t=}, {r=}, {c=}", rgb=False)
 
     napari.run()

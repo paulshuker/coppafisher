@@ -854,7 +854,7 @@ def view_camera_correction(nb: Notebook, config_path: Optional[str] = None):
 
     # Transform the bead point clouds to the anchor frame of reference
     bead_point_clouds_transformed = []
-    for i in range(3):
+    for _ in range(3):
         points = np.hstack((bead_point_clouds[c], np.ones((bead_point_clouds[c].shape[0], 1))))
         affine = np.linalg.inv(np.vstack((transform[c], [0, 0, 1])))
         points_transformed = points @ affine.T

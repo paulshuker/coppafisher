@@ -483,7 +483,7 @@ class Config:
                     raise self.ParamError(
                         f"Failed to format config parameter {name} in {section} with formatting {sub_format}. It has "
                         + f"value {sub_value}. Error given: {e}"
-                    )
+                    ) from e
             formatted_value: tuple[Any, ...] = new_formatted_value
 
         if not keep_tuple:

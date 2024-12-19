@@ -83,7 +83,7 @@ def test_Config() -> None:
         elif "dir" in expected_type:
             config_content += f"{i} = {tmpdir2.name}\n"
         else:
-            assert False, "I forgot something"
+            raise AssertionError("I forgot something")
 
     # Set only the ith parameter incorrectly and assert an error is raised when loading the config.
     for i in range(1, 25):
@@ -99,25 +99,25 @@ def test_Config() -> None:
         # Expect as error here as the default config does not have the debug section.
         try:
             config.load(config_filepath, post_check=False)
-            assert False, "Expected SectionError"
+            raise AssertionError("Expected SectionError")
         except config.SectionError:
             pass
 
         try:
             config.load(config_filepath)
-            assert False, "Expected SectionError"
+            raise AssertionError("Expected SectionError")
         except config.SectionError:
             pass
 
         try:
             config.load(config_filepath, "/wrong/path")
-            assert False, "Expected FileNotFoundError"
+            raise AssertionError("Expected FileNotFoundError")
         except FileNotFoundError:
             pass
 
         try:
             config.load(config_filepath, default_config_filepath)
-            assert False, f"Expected ParamError with incorrect parameter {i}"
+            raise AssertionError(f"Expected ParamError with incorrect parameter {i}")
         except config.ParamError as e:
             assert f" {i} " in str(e)
             assert "debug" in str(e)
@@ -198,7 +198,7 @@ def test_Config() -> None:
                 expected_value += (tmpdir.name,)
                 config_content += f"{expected_value[i]}"
             else:
-                assert False, "I forgot something"
+                raise AssertionError("I forgot something")
             if expecting_tuple and i != last_i:
                 config_content += ", "
         config_content += " "
@@ -315,7 +315,7 @@ def test_Config() -> None:
 
         try:
             config.load(config_filepath, default_config_filepath)
-            assert False, f"Expected ParamError for parameter {param_name}"
+            raise AssertionError(f"Expected ParamError for parameter {param_name}")
         except Config.ParamError as e:
             assert " " + param_name + " " in str(e)
 

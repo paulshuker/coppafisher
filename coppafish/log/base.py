@@ -42,7 +42,7 @@ def error_catch(function: Callable, *args, **kwargs) -> Any:
         result = function(*args, **kwargs)
     except Exception as e:
         error(e)
-        raise RuntimeError("Should not reach here")
+        raise RuntimeError("Should not reach here") from e
     return result
 
 

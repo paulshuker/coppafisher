@@ -171,7 +171,7 @@ def get_spot_colours_new_safe(
     for z in z_coords.unique():
         is_z = torch.isclose(yxz_sorted[:, 2], z).nonzero()
         index_min, index_max = is_z[0], is_z[-1] + 1
-        i_colours = get_spot_colours_new(yxz=yxz_sorted[index_min:index_max], *args, **kwargs)
+        i_colours = get_spot_colours_new(yxz_sorted[index_min:index_max], *args, **kwargs)
         if first_compute:
             colours = np.zeros((yxz.shape[0],) + i_colours.shape[1:], i_colours.dtype)
             first_compute = False

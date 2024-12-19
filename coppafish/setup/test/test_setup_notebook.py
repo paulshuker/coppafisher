@@ -75,7 +75,7 @@ def test_Notebook() -> None:
     nb_page.a = a
     try:
         nb_page.b = 5
-        assert False, "Should not be able to set a float type to an int"
+        raise AssertionError("Should not be able to set a float type to an int")
     except PageTypeError:
         pass
     nb_page.b = b
@@ -84,7 +84,7 @@ def test_Notebook() -> None:
         nb_page.d = (5, "4", True)
         nb_page.d = (5, "4")
         nb_page.d = (5, 0.5)
-        assert False, "Should not be able to set a tuple[int] type like this"
+        raise AssertionError("Should not be able to set a tuple[int] type like this")
     except PageTypeError:
         pass
     nb_page.d = tuple()
@@ -101,33 +101,33 @@ def test_Notebook() -> None:
     nb_page.i = i
     try:
         nb_page.j = np.zeros(10, dtype=int)
-        assert False, "Should not be able to set a ndarray[float] type like this"
+        raise AssertionError("Should not be able to set a ndarray[float] type like this")
     except PageTypeError:
         pass
     try:
         nb_page.j = np.zeros(10, dtype=bool)
-        assert False, "Should not be able to set a ndarray[float] type like this"
+        raise AssertionError("Should not be able to set a ndarray[float] type like this")
     except PageTypeError:
         pass
     nb_page.j = j
     try:
         nb_page.k = np.zeros(10, dtype=np.float32)
-        assert False, "Should not be able to set a ndarray[int] type like this"
+        raise AssertionError("Should not be able to set a ndarray[int] type like this")
     except PageTypeError:
         pass
     try:
         nb_page.k = zarr.array(np.ones(10))
-        assert False, "Should not be able to set a ndarray[int] type to zarray"
+        raise AssertionError("Should not be able to set a ndarray[int] type to zarray")
     except PageTypeError:
         pass
     try:
         nb_page.k = np.zeros(10, dtype=bool)
-        assert False, "Should not be able to set a ndarray[int] type like this"
+        raise AssertionError("Should not be able to set a ndarray[int] type like this")
     except PageTypeError:
         pass
     try:
         nb_page.k = False
-        assert False, "Should not be able to set a ndarray[int] type like this"
+        raise AssertionError("Should not be able to set a ndarray[int] type like this")
     except PageTypeError:
         pass
     nb_page.k = k
@@ -138,7 +138,7 @@ def test_Notebook() -> None:
 
     try:
         nb += nb_page
-        assert False, "Should crash when adding an unfinished notebook page"
+        raise AssertionError("Should crash when adding an unfinished notebook page")
     except ValueError:
         pass
 
@@ -159,7 +159,7 @@ def test_Notebook() -> None:
 
     try:
         nb += nb_page
-        assert False, "Should not be able to add an unfinished page to the notebook"
+        raise AssertionError("Should not be able to add an unfinished page to the notebook")
     except ValueError:
         pass
 
@@ -173,17 +173,17 @@ def test_Notebook() -> None:
 
     try:
         nb.fake_variable = 4
-        assert False, "Should not be able to add integer variables to the notebook"
+        raise AssertionError("Should not be able to add integer variables to the notebook")
     except TypeError:
         pass
     try:
         nb += nb_page
-        assert False, "Should not be able to add the same page twice"
+        raise AssertionError("Should not be able to add the same page twice")
     except ValueError:
         pass
 
-    nb > "debug"
-    nb_page > "o"
+    assert nb > "debug"
+    assert nb_page > "o"
 
     assert len(nb.get_all_versions()) == 1
     assert nb.get_all_versions()["debug"] == system.get_software_version()

@@ -116,19 +116,6 @@ The viewer is updated by typing commands in the terminal. To find out the availa
 
 ## Viewing images
 
-### Raw images
-
-Raw images for particular tiles, round, and channels can be viewed with access to `input_dir` given in the config file:
-
-```python
-from coppafish import Notebook, plot
-
-nb = Notebook("/path/to/notebook")
-plot.view_raw(nb, tiles, rounds, channels)
-```
-
-where `tiles`, `rounds`, and `channels` are lists of integers specifying which images to view.
-
 ### Extracted images
 
 Extracted images are identical to raw images, these are viewed by

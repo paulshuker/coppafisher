@@ -53,7 +53,7 @@ def run_python_script(script_path, timeout):
     stdout, stderr = process.communicate()
 
     if process.returncode != 0 and "EOFError" not in stderr.decode():
-        assert False, f"Error occurred: {stderr.decode()}"
+        raise AssertionError(f"Error occurred: {stderr.decode()}")
     else:
         print(f"Script output:\n{stdout.decode()}")
 
