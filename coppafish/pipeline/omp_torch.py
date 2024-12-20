@@ -127,6 +127,8 @@ def run_omp(
         raise ValueError(f"Mean spot must have 3 dimensions, got {mean_spot.ndim}")
     if any([(dim % 2 == 0) and (dim > 0) for dim in mean_spot.shape]):
         raise ValueError(f"Mean spot must have all odd dimension shapes, got {mean_spot.shape}")
+    if not np.allclose(mean_spot, mean_spot[:, :, ::-1]):
+        raise ValueError(f"The mean spot must be symmetrical along the middle z plane")
     nbp.mean_spot = np.array(mean_spot, np.float32)
     mean_spot = torch.from_numpy(nbp.mean_spot)
 
@@ -237,6 +239,7 @@ def run_omp(
                     np.vstack([subset[:, [g]].toarray() for subset in pixel_scores]).reshape(tile_shape, order="F")
                 )
             g_score_image = scores.score_pixel_score_image(g_pixel_image, mean_spot, config["force_cpu"])
+            g_score_image = scores.boost_z_edge_spot_scores(g_score_image, mean_spot)
             del g_pixel_image
             g_score_image = g_score_image.to(dtype=torch.float16)
 

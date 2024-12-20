@@ -595,7 +595,6 @@ class Robominnie:
         d_max = {", ".join(np.argmax(self.bleed_matrix, axis=1).astype(str))}
 
         [omp]
-        minimum_intensity = 0.2
         subset_pixels = {maths.floor(self.tile_sz * self.tile_sz * self.n_planes * 0.4)}
         """
         # Remove large spaces in the config contents
