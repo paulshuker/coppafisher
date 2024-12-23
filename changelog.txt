@@ -1,7 +1,7 @@
-2024/mm/dd Version 1 Major Release (v1.0.0):
+2025/mm/dd Version 1 Major Release (v1.0.0):
  * General: Version 1.0.0 onwards automatically detects incompatible notebook versions. An automatic suggested course
     of action is given if a compatibility problem is found during runtime.
- * General: Presequence channels are no longer supported.
+ * General: Pre-sequence channels are no longer supported.
  * General: Python 3.11 is now supported.
  * General: Python 3.9 is no longer supported.
  * General: Many package updates.

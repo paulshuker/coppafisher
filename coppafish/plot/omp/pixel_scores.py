@@ -126,9 +126,13 @@ class ViewOMPPixelScoreImage(Subplot):
         self.score_images = omp_scores.score_pixel_score_image(
             torch.from_numpy(pixel_scores), torch.from_numpy(mean_spot)
         )
-        scores = omp_scores.score_pixel_score_image(torch.from_numpy(pixel_scores), torch.from_numpy(mean_spot))[
-            :, image_shape[0] // 2, image_shape[1] // 2, image_shape[2] // 2
+        # The score is boosted if close to the edge of the z stack.
+        scores = self.score_images[:, image_shape[0] // 2, image_shape[1] // 2, image_shape[2] // 2]
+        scores = scores[:, np.newaxis].repeat_interleave(len(nbp_basic.use_z), 1)
+        scores = omp_scores.boost_z_edge_spot_scores(scores[:, np.newaxis, np.newaxis], torch.from_numpy(mean_spot))[
+            :, 0, 0, local_yxz[2]
         ]
+
         self.scores = scores.numpy()
 
         self.fig, self.axes = plt.subplots(2, len(z_planes) + 1, height_ratios=(6, 1))
@@ -156,6 +160,13 @@ class ViewOMPPixelScoreImage(Subplot):
         self.button_colour_press = "green"
         self.pixel_score_button = Button(self.axes[1, 1], "Pixel Scores", hovercolor="0.275")
         self.score_button = Button(self.axes[1, 2], "Final Scores", hovercolor="0.275")
+        z = local_yxz[2]
+        if (
+            min(z_planes) + z <= mean_spot.shape[2] // 2
+            or max(z_planes) + z >= nbp_basic.use_z[-1] - mean_spot.shape[2] // 2
+        ):
+            # TODO: Boost self.score_images correctly that are close to the edge of the z stack.
+            self.score_button.set_active(False)
         self.iter_count_button = Button(self.axes[1, 3], "Iteration Counts", hovercolor="0.275")
         self.reset_gene_button = Button(self.axes[1, 4], "Spot Gene", hovercolor="0.275")
         self.pixel_score_button.on_clicked(self.pressed_pixel_score_button)
