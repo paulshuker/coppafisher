@@ -33,19 +33,20 @@ def run_filter(
     Notes:
         - See `'filter'` and `'filter_debug'` sections of `notebook_page.py` file for description of variables.
     """
-    nbp = NotebookPage("filter", {config.name: config.to_dict()})
-    nbp_debug = NotebookPage("filter_debug", {config.name: config.to_dict()})
+    filter_config = {config.name: config.to_dict(), "version": system.get_software_version()}
+    nbp = NotebookPage("filter", filter_config)
+    nbp_debug = NotebookPage("filter_debug", filter_config)
 
     log.debug("Filter started")
 
     # Remember the config values during a run.
-    last_config = {config.name: config.to_dict(), "version": system.get_software_version()}
+    last_config = filter_config.copy()
     config_path = os.path.join(nbp_file.output_dir, "filter_last_config.pkl")
     if os.path.isfile(config_path):
         with open(config_path, "rb") as config_file:
             last_config = pickle.load(config_file)
     assert type(last_config) is dict
-    config_unchanged = config == last_config
+    config_unchanged = filter_config == last_config
     with open(config_path, "wb") as config_file:
         pickle.dump(config, config_file)
 
