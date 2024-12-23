@@ -142,7 +142,9 @@ plot.view_filtered_images(nb, tiles, rounds, channels, apply_colour_norm_factor=
 ```
 
 where `tiles`, `rounds`, and `channels` are lists of integers specifying which images to view. Set these to `None` if
-you wish to view all of the them from the sequencing images. The boolean parameters can be set to `False` if needed.
+you wish to view all of the them from the sequencing images. The boolean parameters can be set to `False` if needed. You
+can also view the anchor round/channel. See `nb.basic_info.anchor_round` and `nb.basic_info.anchor_channel` for the
+indices.
 
 ### Intensity images
 

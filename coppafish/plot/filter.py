@@ -37,33 +37,39 @@ def view_filtered_images(
     if channels is None:
         channels = nb.basic_info.use_channels.copy()
 
-    factor = np.ones((len(nb.basic_info.use_tiles), len(nb.basic_info.use_rounds), len(nb.basic_info.use_channels)))
+    all_channels = list(set(nb.basic_info.use_channels + [nb.basic_info.anchor_channel]))
+    factor = np.ones(
+        (max(nb.basic_info.use_tiles) + 1, max(nb.basic_info.use_rounds) + 2, max(all_channels) + 1),
+        np.float32,
+    )
     if apply_colour_norm_factor and nb.has_page("call_spots"):
-        factor = nb.call_spots.colour_norm_factor.astype(np.float32)
+        factor[np.ix_(nb.basic_info.use_tiles, nb.basic_info.use_rounds, nb.basic_info.use_channels)] = (
+            nb.call_spots.colour_norm_factor.astype(np.float32)
+        )
 
-    min = 1e20
-    max = -1e20
+    im_min = 1e20
+    im_max = -1e20
     images = []
     names = []
     for t, r, c in itertools.product(tiles, rounds, channels):
         image_trc: np.ndarray = nb.filter.images[t, r, c].astype(np.float32)
         # y, x, z -> z, y, x.
         image_trc = image_trc.swapaxes(1, 2).swapaxes(0, 1)
-        image_trc *= factor[t, r, nb.basic_info.use_channels.index(c)]
+        image_trc *= factor[t, r, c]
         images.append(image_trc)
         names.append(f"Filter {t=}, {r=}, {c=}")
         image_min = image_trc.min()
         image_max = image_trc.max()
-        if image_min < min:
-            min = image_min
-        if image_max > max:
-            max = image_max
+        if image_min < im_min:
+            im_min = image_min
+        if image_max > im_max:
+            im_max = image_max
 
     viewer = napari.Viewer(title="Coppafish filtered images")
     limits = None
     for image, name in zip(images, names):
         if share_contrast_limits:
-            limits = [min, max]
+            limits = [im_min, im_max]
         viewer.add_image(image, name=name, rgb=False, contrast_limits=limits)
 
     napari.run()

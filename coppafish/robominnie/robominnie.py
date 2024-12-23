@@ -65,22 +65,22 @@ class Robominnie:
         include_dapi: bool = True,
         tile_overlap: float = 0.125,
         seed: Union[int, None] = 1,
-    ) -> Self:
+    ) -> None:
         """
         Create an empty Robominnie instance to begin generating synthetic data for coppafish.
 
         Args:
-            - n_channels (int): the number of sequencing channels. Default: 5.
-            - n_rounds (int): the number of sequencing rounds. Default: 7.
-            - n_planes (int): the number of z planes. Default: 4.
-            - tile_sz (int): the number of pixels along x/y directions for a single tile. Default: 128.
-            - n_tiles_x (int): the number of tiles along the x direction. Default: 1.
-            - n_tiles_y (int): the number of tiles along the y direction. Default: 2.
-            - include_anchor (bool): include the anchor round and channel. Default: true.
-            - include_dapi (bool): include the dapi channel. Default: true.
-            - tile_overlap (float): the proportion of tile overlap in the x/y directions relative to the tile sizes.
+            n_channels (int): the number of sequencing channels. Default: 5.
+            n_rounds (int): the number of sequencing rounds. Default: 7.
+            n_planes (int): the number of z planes. Default: 4.
+            tile_sz (int): the number of pixels along x/y directions for a single tile. Default: 128.
+            n_tiles_x (int): the number of tiles along the x direction. Default: 1.
+            n_tiles_y (int): the number of tiles along the y direction. Default: 2.
+            include_anchor (bool): include the anchor round and channel. Default: true.
+            include_dapi (bool): include the dapi channel. Default: true.
+            tile_overlap (float): the proportion of tile overlap in the x/y directions relative to the tile sizes.
                 Default: 1/8 == 0.125.
-            - seed (int or none): the random generation seed. None to use a random seed every time. Default: 1.
+            seed (int or none): the random generation seed. None to use a random seed every time. Default: 1.
         """
         assert type(n_channels) is int
         assert n_channels > 1
