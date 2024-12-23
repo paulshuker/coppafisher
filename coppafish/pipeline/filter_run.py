@@ -33,7 +33,7 @@ def run_filter(
     Notes:
         - See `'filter'` and `'filter_debug'` sections of `notebook_page.py` file for description of variables.
     """
-    filter_config = {config.name: config.to_dict(), "version": system.get_software_version()}
+    filter_config = {config.name: config.to_dict(), "version": {"0": system.get_software_version()}}
     nbp = NotebookPage("filter", filter_config)
     nbp_debug = NotebookPage("filter_debug", filter_config)
 
