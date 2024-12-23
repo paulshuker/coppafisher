@@ -125,6 +125,7 @@ def run_filter(
             pbar.update()
 
     nbp.images = images
+    os.remove(config_path)
     log.debug("Filter complete")
 
     return nbp, nbp_debug
