@@ -20,11 +20,11 @@ STAGES: list[str] = [
 # The page names associated with each stage. For multiple pages, they must be separated by a comma followed by a
 # space.
 PAGE_NAMES: tuple[str] = (
-    "basic_info, file_names",
+    "basic_info",
     "extract",
-    "filter, filter_debug",
+    "filter",
     "find_spots",
-    "register, register_debug",
+    "register",
     "stitch",
     "ref_spots",
     "call_spots",
@@ -58,27 +58,27 @@ class CompatibilityTracker:
         ("Clear the output directory. Delete the notebook",),
         (
             "Clear the output directory except the notebook",
-            f"Remove notebook pages {', '.join(PAGE_NAMES[3:9])}",
+            f"Remove notebook page {PAGE_NAMES[3]} and all later pages",
         ),
         (
             "Clear the output directory except the notebook",
-            f"Remove notebook pages {', '.join(PAGE_NAMES[4:9])}",
+            f"Remove notebook page {PAGE_NAMES[4]} and all later pages",
         ),
         (
             "Clear the output directory except the notebook",
-            f"Remove notebook pages {', '.join(PAGE_NAMES[5:9])}",
+            f"Remove notebook page {PAGE_NAMES[5]} and all later pages",
         ),
         (
             "Clear the output directory except the notebook",
-            f"Remove notebook pages {', '.join(PAGE_NAMES[6:9])}",
+            f"Remove notebook page {PAGE_NAMES[6]} and all later pages",
         ),
         (
             "Clear the output directory except the notebook",
-            f"Remove notebook pages {', '.join(PAGE_NAMES[7:9])}",
+            f"Remove notebook page {PAGE_NAMES[7]} and all later pages",
         ),
         (
             "Clear the output directory except the notebook",
-            f"Remove notebook pages {', '.join(PAGE_NAMES[8:9])}",
+            f"Remove notebook page {PAGE_NAMES[8]} and all later pages",
         ),
         ("Do nothing",),
     ]

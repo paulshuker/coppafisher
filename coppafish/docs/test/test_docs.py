@@ -32,7 +32,7 @@ REPLACEMENTS = {
     "n_gene_codes": "11",
     "score_thresh": "0.05",
     "intensity_thresh": "0.05",
-    "page_name": "basic_info",
+    "page_name": "omp",
 }
 
 
@@ -72,6 +72,7 @@ def test_all_docs() -> None:
 
     with tempfile.TemporaryDirectory(suffix="coppafish_nb") as temp_dir:
         nb_path_copy = path.join(temp_dir, "notebook_copy")
+        shutil.copytree(nb_path, nb_path_copy)
 
         last_test_modified_nb = False
         for file_name, timeout, modifies_nb in TEST_FILE_NAMES:
@@ -92,7 +93,7 @@ def test_all_docs() -> None:
                 code = "".join(file.readlines())
 
             # Replace any temp notebook paths with a real notebook path.
-            code = code.replace(NB_REPLACE, f'r"{nb_path}"')
+            code = code.replace(NB_REPLACE, f'r"{nb_path_copy}"')
             code = code.replace(CONFIG_REPLACE, f'r"{config_path}"')
             for replace_content, replace_to in REPLACEMENTS.items():
                 code = code.replace(replace_content, replace_to)
