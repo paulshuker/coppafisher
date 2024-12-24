@@ -20,11 +20,11 @@ STAGES: list[str] = [
 # The page names associated with each stage. For multiple pages, they must be separated by a comma followed by a
 # space.
 PAGE_NAMES: tuple[str] = (
-    "basic_info",
+    "basic_info and file_names",
     "extract",
-    "filter",
+    "filter and filter_debug",
     "find_spots",
-    "register",
+    "register and register_debug",
     "stitch",
     "ref_spots",
     "call_spots",
@@ -220,5 +220,5 @@ class CompatibilityTracker:
 
     def _get_stage_with_page_name(self, page_name: str) -> tuple[str, int]:
         for i, page_names in enumerate(PAGE_NAMES):
-            if page_name in page_names.split(", "):
+            if page_name in page_names.split(" and "):
                 return STAGES[i], i
