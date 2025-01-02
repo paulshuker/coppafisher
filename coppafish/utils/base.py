@@ -71,7 +71,7 @@ def reed_solomon_codes(n_genes: int, n_rounds: int, n_dyes: Optional[int] = None
             break
         degree += 1
         if degree == 20:
-            log.error(ValueError("Polynomial degree required is too large for generating the gene codes"))
+            raise ValueError("Polynomial degree required is too large for generating the gene codes")
     # Create a `degree` degree polynomial, where each coefficient goes between (0, n_rounds] to generate each unique
     # gene code
     codes = dict()
@@ -106,12 +106,11 @@ def reed_solomon_codes(n_genes: int, n_rounds: int, n_dyes: Optional[int] = None
     values = list(codes.values())
     if len(values) != len(set(values)):
         # Not every gene code is unique
-        log.error(
-            ValueError(
-                f"Could not generate {n_genes} unique gene codes with {n_rounds} rounds/dyes. "
-                + "Maybe try decreasing the number of genes or increasing the number of rounds."
-            )
+        raise ValueError(
+            f"Could not generate {n_genes} unique gene codes with {n_rounds} rounds/dyes. "
+            + "Maybe try decreasing the number of genes or increasing the number of rounds."
         )
+
     return codes
 
 

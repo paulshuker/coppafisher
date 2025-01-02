@@ -45,7 +45,7 @@ def set_basic_info(config: Config) -> NotebookPage:
     all_files.sort()
     if raw_extension == ".nd2":
         if config_file["round"] is None and config_file["anchor"] is None:
-            log.error(ValueError("config_file['round'] or config_file['anchor'] should not both be left blank"))
+            raise ValueError("config_file['round'] or config_file['anchor'] should not both be left blank")
         # load in metadata of nd2 file corresponding to first round
         # Allow for degenerate case when only anchor has been provided
         if config_file["round"] is not None:
@@ -58,22 +58,19 @@ def set_basic_info(config: Config) -> NotebookPage:
         # Load in metadata as dictionary from a json file
         metadata_file = [file for file in all_files if file.endswith(".json")][0]
         if metadata_file is None:
-            log.error(
-                ValueError(
-                    "There is no json metadata file in input_dir. This should have been set at the point of "
-                    "ND2 extraction to npy."
-                )
+            raise ValueError(
+                "There is no json metadata file in input_dir. This should have been set at the point of "
+                "ND2 extraction to npy."
             )
+
         metadata = json.load(open(metadata_file))
 
     elif raw_extension == "jobs":
         metadata = nd2.get_jobs_metadata(all_files, config_file["input_dir"], config=config)
     else:
-        log.error(
-            ValueError(
-                f"config_file['raw_extension'] should be either '.nd2' or '.npy' but it is "
-                f"{config_file['raw_extension']}."
-            )
+        raise ValueError(
+            f"config_file['raw_extension'] should be either '.nd2' or '.npy' but it is "
+            f"{config_file['raw_extension']}."
         )
 
     # Stage 2: Read in page contents from config that cannot be computed from metadata.
@@ -119,7 +116,7 @@ def set_basic_info(config: Config) -> NotebookPage:
             del nbp.anchor_round
             nbp.anchor_round = metadata["n_rounds"]
         if nbp.anchor_channel is None:
-            log.error(ValueError("Need to provide an anchor channel if using anchor!"))
+            raise ValueError("Need to provide an anchor channel if using anchor!")
     else:
         nbp.n_extra_rounds = 0
 

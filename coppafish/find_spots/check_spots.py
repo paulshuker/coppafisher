@@ -131,4 +131,4 @@ def check_n_spots(nb: Notebook):
             error_message + "\nThe command `python -m coppafish -fs /path/to/notebook` may be useful for "
             "investigating why the above tiles/rounds/channels had so few spots detected."
         )
-        log.error(ValueError(error_message))
+        raise ValueError(error_message)

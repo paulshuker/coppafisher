@@ -1,7 +1,7 @@
 import importlib.resources as importlib_resources
 import os
 
-from .. import log, utils
+from .. import utils
 from ..setup.config import Config
 from ..setup.notebook_page import NotebookPage
 from .tile_details import get_tile_file_names
@@ -50,7 +50,7 @@ def get_file_names(nbp_basic_info: NotebookPage, config_path: str) -> NotebookPa
     else:
         if config["round"] is None:
             if config["anchor"] is None:
-                log.error(ValueError("Neither imaging rounds nor anchor_round provided"))
+                raise ValueError("Neither imaging rounds nor anchor_round provided")
             config["round"] = tuple()  # Sometimes the case where just want to run the anchor round.
         config["round"] = tuple([r.replace(config["raw_extension"], "") for r in config["round"]])
 
@@ -63,13 +63,7 @@ def get_file_names(nbp_basic_info: NotebookPage, config_path: str) -> NotebookPa
     nbp.raw_metadata = config["raw_metadata"]
     nbp.initial_bleed_matrix = config["initial_bleed_matrix"]
     nbp.omp_mean_spot = config["omp_mean_spot"]
-
-    if config["code_book"] is not None:
-        config["code_book"] = config["code_book"].replace(".txt", "")
-        nbp.code_book = config["code_book"] + ".txt"
-    else:
-        # If the user has not put their code_book in, default to the one included in this project
-        config["code_book"] = os.path.join(os.getcwd(), "coppafish/setup/code_book_73g.txt")
+    nbp.code_book = config["code_book"]
 
     if config["psf"] is None:
         config["psf"] = str(importlib_resources.files("coppafish.setup").joinpath("default_psf.npz"))
