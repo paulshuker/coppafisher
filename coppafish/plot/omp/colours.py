@@ -101,7 +101,7 @@ class ViewOMPColourSum(Subplot):
             mpl.cm.ScalarMappable(cmap=self.cmap, norm=self.norm), cax=None, ax=(self.axes[0, -1], self.axes[1, -1])
         )
         self.draw_data()
-        self.fig.suptitle(f"{method.capitalize()} spot at {tuple(local_yxz)} OMP key colours")
+        self.fig.suptitle(f"{method.capitalize()} spot at {tuple(local_yxz.tolist())} OMP key colours")
         if show:
             self.fig.show()
 
