@@ -142,19 +142,18 @@ def set_basic_info(config: Config) -> NotebookPage:
     if len(nbp.use_channels) > 9:
         raise NotImplementedError("There must be 9 or fewer sequencing channels to run coppafish.")
 
-    # If no use_z given, default to all except the first if ignore_first_z_plane = True
+    # If no use_z given, default to all z planes.
     if nbp.use_z is None:
         del nbp.use_z
-        use_z = np.arange(int(config_basic["ignore_first_z_plane"]), metadata["nz"]).tolist()
+        use_z = np.arange(metadata["nz"]).tolist()
         use_z.sort()
         nbp.use_z = tuple(use_z)
+
     # This has not been assigned yet but now we can be sure that use_z not None!
     nbp.nz = len(nbp.use_z)
-    for i in range(nbp.nz):
-        if i == (nbp.nz - 1):
-            break
+    for i in range(nbp.nz - 1):
         if abs(nbp.use_z[i] - nbp.use_z[i + 1]) > 1:
-            raise ValueError("use_z contains z planes that are not connected. This may cause software instability")
+            raise ValueError("use_z must contain connected z planes.")
 
     if nbp.use_dyes is None:
         del nbp.use_dyes

@@ -143,7 +143,6 @@ class Config:
             "dye_names": ("tuple_str", "tuple-not-empty"),
             "is_3d": ("bool", ""),
             "bad_trc": ("maybe_tuple_int", "tuple-len-multiple-3"),
-            "ignore_first_z_plane": ("bool", ""),
             "reverse_tile_positions_x": ("bool", ""),
             "reverse_tile_positions_y": ("bool", ""),
             # From here onwards these are not compulsory to enter and will be taken from the metadata
