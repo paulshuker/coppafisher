@@ -409,7 +409,7 @@ The chain of transforms is captured in the figure below:
 Problems in registration can ruin several downstream analyses. These problems can be  diagnosed by looking at the Registration Viewer, as follows:
 
 ```py
-from coppafish import Notebook, RegistrationViewer
+from coppafisher import Notebook, RegistrationViewer
 
 nb_file = "/path/to/notebook"
 config_file = "/path/to/config.ini"
@@ -606,8 +606,8 @@ particular area of interest, you can view the final registered images for every 
 a tile. To do this
 
 ```py
-from coppafish import Notebook
-from coppafish.plot import view_registered_images
+from coppafisher import Notebook
+from coppafisher.plot import view_registered_images
 
 nb = Notebook("/path/to/notebook")
 view_registered_images(nb, tile)
@@ -617,8 +617,8 @@ where tile is the tile's index. By default, a 400x400x5 subset is gathered with 
 you can specify the region of interest by
 
 ```py
-from coppafish import Notebook
-from coppafish.plot import view_registered_images
+from coppafisher import Notebook
+from coppafisher.plot import view_registered_images
 
 nb = Notebook("/path/to/notebook")
 view_registered_images(nb, tile, ((ymin, ymax), (xmin, xmax), (zmin, zmax)))
@@ -626,7 +626,7 @@ view_registered_images(nb, tile, ((ymin, ymax), (xmin, xmax), (zmin, zmax)))
 
 where all minima and maxima must be integer numbers. The maxima are exclusive. As an example,
 `#!py ((2, 16), (0, 10), (5, 16))` would gather a 14x10x11 subset. See the
-[docstring](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/plot/register/registered_image.py) for further
-detail.
+[docstring](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/plot/register/registered_image.py) for
+further detail.
 
 Use the layer list on the left of the napari window to toggle the visibility of images.

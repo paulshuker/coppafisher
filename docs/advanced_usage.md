@@ -1,9 +1,9 @@
 ## Change configuration
 
-Each coppafish section is saved as separate notebook page(s). To change the config variables and re-run the coppafish
-pipeline, you can delete the notebook and all output directory files and re-run again. But, if you only wished to
-re-run starting from an intermediate stage, you can delete all subsequent stages and output files. To see what valid
-stages of coppafish you can re-run starting from, in chronological order, in the python terminal
+Each coppafisher section is saved as separate notebook page(s). To change the config variables and re-run the
+coppafisher pipeline, you can delete the notebook and all output directory files and re-run again. But, if you only
+wished to re-run starting from an intermediate stage, you can delete all subsequent stages and output files. To see what
+valid stages of coppafisher you can re-run starting from, in chronological order, in the python terminal
 
 ```py
 --8<-- "compatibility_tracker_stage_names.py"
@@ -21,7 +21,7 @@ you are told to delete notebook page(s), see [here](#delete-notebook-page).
 ## Skipping bad microscope images
 
 You may have one or more images that are taken which are corrupted, empty, or not as bright as expected. When this
-happens, you can tell coppafish to run without these images. To do this, specify each tile (`t`), round (`r`), channel
+happens, you can tell coppafisher to run without these images. To do this, specify each tile (`t`), round (`r`), channel
 (`c`) image by going to your custom config file and add the line
 
 ```ini
@@ -53,16 +53,16 @@ score_thresh and intensity_thresh must be numbers. Use the [Viewer](diagnostics.
 
 ## Create a background process
 
-Large datasets can have a long compute time (in the order of days). It is recommended to run these by setting them up
-as a background process. It is not recommended to run multiple large datasets at once since they will be fighting for
+Large datasets can have a long compute time (in the order of days). It is recommended to run these by setting them up as
+a background process. It is not recommended to run multiple large datasets at once since they will be fighting for
 memory, CPU, and disk I/O resources. Running in the background depends on the operating system:
 
 ### Linux
 
-Start a background process from a terminal with the coppafish conda environment activated
+Start a background process from a terminal with the coppafisher conda environment activated
 
 ```bash
-nohup python3 -m coppafish /path/to/config.ini &
+nohup python3 -m coppafisher /path/to/config.ini &
 ```
 
 the background process will run, even if the terminal is now closed. Follow its progress by
@@ -120,8 +120,8 @@ Generate gene codes automatically in the python terminal by
 
 where `n_gene_codes` is the number of gene codes desired, `n_rounds` is the number of sequencing rounds, and
 `n_channels` is the number of channels. An error is thrown if the number of unique gene codes desired is impossible to
-create. Each channel is labelled 0, 1, 2, ... and `codes` is a dictionary. Each gene code generated can be accessed.
-For example, to access the first gene code: `codes["gene_0"]`.
+create. Each channel is labelled 0, 1, 2, ... and `codes` is a dictionary. Each gene code generated can be accessed. For
+example, to access the first gene code: `codes["gene_0"]`.
 
 ## Retrieve the Notebook config
 

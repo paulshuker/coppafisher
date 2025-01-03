@@ -1,4 +1,4 @@
-The coppafish pipeline is separated into distinct sections. Some of these are for image pre-processing
+The coppafisher pipeline is separated into distinct sections. Some of these are for image pre-processing
 ([extract](#extract), [filter](#filter)), image alignment ([register](#register), [stitch](#stitch)) and spot
 detection/gene calling ([find spots](#find-spots), [call spots](#call-spots),
 [orthogonal matching pursuit](#orthogonal-matching-pursuit)). Below, each stage is given in chronological order. For
@@ -6,7 +6,7 @@ full detail on each pipeline section, click on a stage on the left panel.
 
 ## Extract
 
-All raw data is re-saved at the `tile_dir` in the `file_names` config section. Coppafish does this to:
+All raw data is re-saved at the `tile_dir` in the `file_names` config section. Coppafisher does this to:
 
 * Compress data.
 * Remove unused tiles, rounds, and channels that may be in the given raw files.
@@ -22,7 +22,7 @@ hence the name "Point Spread Function") and emphasise spots. A given point sprea
 the images.
 
 The point spread function is given as a .npz file under the `file_names` config section. The default is at
-`coppafish/setup/default_psf.npz`. Filtering is also affected by config parameters `wiener_constant` and
+`coppafisher/setup/default_psf.npz`. Filtering is also affected by config parameters `wiener_constant` and
 `wiener_pad_shape` inside the `filter` config section.
 
 After filtering is applied, the images are saved to the notebook as `float16` compressed zarr arrays.
@@ -34,7 +34,7 @@ detecting local maxima in image intensity around the rough spot size (specified 
 `radius_z` in the `find_spots` section). If two local maxima are the same value and in the same spot region, then one
 is chosen at random. Warnings and errors are raised if there are too few spots detected in a round/channel, these can
 be customised, see `find_spots` section in the
-<a href="https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/setup/settings.default.ini" target="_blank">
+<a href="https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/settings.default.ini" target="_blank">
 config</a> default file for variable names.
 
 ## Register
@@ -65,12 +65,12 @@ codes for each round and channel.
 
 ## Orthogonal Matching Pursuit
 
-Orthogonal Matching Pursuit (OMP) is the most sophisticated gene calling method used by coppafish, allowing for
+Orthogonal Matching Pursuit (OMP) is the most sophisticated gene calling method used by coppafisher, allowing for
 overlapping genes to be detected. It is an iterative,
 <a href="https://en.wikipedia.org/wiki/Greedy_algorithm" target="_blank">greedy algorithm</a> that runs on individual
 pixels of the images. At each OMP iteration, a new gene is assigned to the pixel. OMP is also self-correcting.
 "Orthogonal" refers to how OMP will re-compute every gene contribution (their pixel score) after each iteration by least
-squares. Background genes[^1] are considered valid genes in OMP. The iterations stop if:
+squares. Background genes are considered valid genes in OMP. The iterations stop if:
 
 * iteration number `max_genes` in the `omp` config section is reached.
 * assigning the next best gene to the pixel does not have a score above `dot_product_threshold` in the `omp` config.

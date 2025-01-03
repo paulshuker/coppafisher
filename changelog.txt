@@ -37,7 +37,7 @@
  * Filter: Images are now saved in the 'filter' notebook page.
  * Filter: Images are no longer multiplied by a scalar.
  * Filter: The PSF used for image filtering is no longer computed. It is a config input. There is a default PSF saved at
-    coppafish/setup/default_psf.npz.
+    coppafisher/setup/default_psf.npz.
  * Filter: Optimised zarr image chunking.
  * Filter: Removed legacy filter options: difference of Hanning, image smoothing, and dapi top hat filter.
  * Filter: Warning issues when a filtered image contains adjacent pixels at the maximum possible integer value.

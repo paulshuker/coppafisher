@@ -1,6 +1,6 @@
 # Orthogonal Matching Pursuit (OMP)
 
-OMP is coppafish's current best gene assignment algorithm. OMP runs independently, except requiring
+OMP is coppafisher's current best gene assignment algorithm. OMP runs independently, except requiring
 [register](overview.md#register) for image-alignment and [call spots](overview.md#call-spots) for dataset-accurate
 representation of each gene's unique barcode: its bled code, $\mathbf{B}$.
 
@@ -76,7 +76,7 @@ $$
 $\alpha$ is given by `alpha` (typically 120) and boosts the uncertainty on round-channel pairs already strongly
 weighted. $\beta$ is given by `beta` (typically 1) and gives every round-channel pair a constant uncertainty.
 
-??? info "Why do we need an uncertainty weighting ($\mathbf{\epsilon}^2$) for each round-channel pair?"
+??? question "Why do we need an uncertainty weighting ($\mathbf{\epsilon}^2$) for each round-channel pair?"
 
     On real datasets, subtracting the assigned, weighted bled code is not perfect for every round (shown below).
     Therefore, $\mathbf{\epsilon}$ is a way of estimating the uncertainty associated with the imperfect gene weights. It
@@ -167,7 +167,7 @@ A pixel score is made negative if the gene's weight is negative.
 
 Step 1 is now repeated on the remaining pixels unless $i$ is $\text{max\_genes}$ (i.e. the last iteration).
 
-??? info "Why not use the scores from step 1 as the pixel scores?"
+??? question "Why not use the scores from step 1 as the pixel scores?"
 
     If you recall, from [step 1](#2-next-gene-assignment), the assigned gene is given a preliminary score similar to
     step 3's score. This score is not used as the final OMP pixel scores (but, we did try). This is because the
@@ -196,7 +196,7 @@ local maxima using config parameters `radius_xy` (typically `3`) and `radius_z` 
 score threshold set by `score_threshold` (typically `0.1`). These are the final OMP gene reads shown in the
 [Viewer](diagnostics.md#viewer).
 
-??? info "Why not score each spot using a single pixel score value?"
+??? question "Why not score each spot using a single pixel score value?"
 
     Pixel scores can be inflated by single overly-bright round/channel anomalies since they are computed using a
     non-robust least squares calculation. This could be from real autofluorescence or from mistakes in registration.
