@@ -1,5 +1,5 @@
 build
-coppafish.egg-info
+coppafisher.egg-info
 **/__pycache__
 **/integration_dir*
 **/.integration_dir*
