@@ -73,7 +73,7 @@ def check_neighbour_intensity(image: np.ndarray, spot_yxz: np.ndarray, thresh: f
     elif image.ndim == 2:
         transforms = [[1, 0], [0, 1], [-1, 0], [0, -1]]
     else:
-        log.error(ValueError(f"image has to have two or three dimensions but given image has {image.ndim} dimensions."))
+        raise ValueError(f"image has to have two or three dimensions but given image has {image.ndim} dimensions.")
     keep = np.zeros((spot_yxz.shape[0], len(transforms)), dtype=bool)
     for i, t in enumerate(transforms):
         mod_spot_yx = spot_yxz + t

@@ -1,5 +1,5 @@
-from collections.abc import Callable, Iterable
 import math as maths
+from collections.abc import Callable, Iterable
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
@@ -71,7 +71,7 @@ def reed_solomon_codes(n_genes: int, n_rounds: int, n_dyes: Optional[int] = None
             break
         degree += 1
         if degree == 20:
-            log.error(ValueError("Polynomial degree required is too large for generating the gene codes"))
+            raise ValueError("Polynomial degree required is too large for generating the gene codes")
     # Create a `degree` degree polynomial, where each coefficient goes between (0, n_rounds] to generate each unique
     # gene code
     codes = dict()
@@ -106,12 +106,11 @@ def reed_solomon_codes(n_genes: int, n_rounds: int, n_dyes: Optional[int] = None
     values = list(codes.values())
     if len(values) != len(set(values)):
         # Not every gene code is unique
-        log.error(
-            ValueError(
-                f"Could not generate {n_genes} unique gene codes with {n_rounds} rounds/dyes. "
-                + "Maybe try decreasing the number of genes or increasing the number of rounds."
-            )
+        raise ValueError(
+            f"Could not generate {n_genes} unique gene codes with {n_rounds} rounds/dyes. "
+            + "Maybe try decreasing the number of genes or increasing the number of rounds."
         )
+
     return codes
 
 
@@ -128,7 +127,7 @@ def estimate_runtime() -> None:
     n_tiles = int(eval(input("Number of tiles: ")))
     has_gpu = input("Do you have a GPU available? (y/n): ")
     if has_gpu not in ("y", "n"):
-        raise ValueError(f"Must answer y or n")
+        raise ValueError("Must answer y or n")
     has_gpu = has_gpu == "y"
     # All times are in minutes.
     extract_compress_time = 7.3e-11 * n_tile_pixels * n_rounds * n_channels * n_tiles
