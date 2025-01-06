@@ -53,15 +53,15 @@ setup(
     package_data={
         "coppafisher.setup": [
             "default.ini",
-            "notebook_comments.json",
-            "default_bleed.npy",
             "default_psf.npz",
+            "dye_info_raw.npy",
         ],
+        "coppafisher.omp": ["mean_spot.npy"],
         "coppafisher.plot.results_viewer": ["cell_colour.csv", "cellClassColours.json", "gene_colour.csv"],
     },
     include_package_data=True,
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
