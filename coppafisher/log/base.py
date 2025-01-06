@@ -142,7 +142,7 @@ def log(msg: Union[str, Exception], severity: int, force_email: bool = False, no
             + "(https://paulshuker.github.io/coppafisher/troubleshoot/)"
         )
         send_email(
-            f"COPPAFISHer: {severity_to_name[severity]}",
+            f"COPPAFISHER: {severity_to_name[severity]}",
             email_message,
             _email_sender,
             _email_recipient,

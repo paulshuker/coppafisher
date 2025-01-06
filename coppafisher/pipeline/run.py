@@ -135,7 +135,7 @@ def initialize_notebook(config_path: str) -> Tuple[Notebook, NotebookPage, Confi
     )
     log.info("")
     log.info(
-        f" COPPAFISHer v{utils_system.get_software_version()} ".center(utils_system.get_terminal_size_xy(-33)[0], "=")
+        f" COPPAFISHER v{utils_system.get_software_version()} ".center(utils_system.get_terminal_size_xy(-33)[0], "=")
     )
     log.base.log_package_versions()
 
