@@ -1,4 +1,5 @@
-2025/mm/dd Version 1 Major Release (v1.0.0):
+2025/01/06 Version 1 Major Release (v1.0.0):
+ * General: Coppafish is now called Coppafisher.
  * General: Version 1.0.0 onwards automatically detects incompatible notebook versions. An automatic suggested course
     of action is given if a compatibility problem is found during runtime.
  * General: Pre-sequence channels are no longer supported.
