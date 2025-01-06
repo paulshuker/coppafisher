@@ -1,6 +1,5 @@
 import math as maths
 import os
-import pickle
 from typing import Tuple
 
 import numpy as np
@@ -12,7 +11,7 @@ from ..filter import base as filter_base
 from ..filter import deconvolution
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
-from ..utils import indexing, system, tiles_io
+from ..utils import indexing, tiles_io
 
 
 def run_filter(
@@ -38,18 +37,6 @@ def run_filter(
     nbp_debug = NotebookPage("filter_debug", filter_config)
 
     log.debug("Filter started")
-
-    # Remember the config values during a run.
-    filter_config[config.name]["version"] = system.get_software_version()
-    last_config = filter_config.copy()
-    config_path = os.path.join(nbp_file.output_dir, "filter_last_config.pkl")
-    if os.path.isfile(config_path):
-        with open(config_path, "rb") as config_file:
-            last_config = pickle.load(config_file)
-    assert type(last_config) is dict
-    config_unchanged = filter_config == last_config
-    with open(config_path, "wb") as config_file:
-        pickle.dump(last_config, config_file)
 
     indices = indexing.create(
         nbp_basic,
@@ -106,7 +93,7 @@ def run_filter(
 
     with tqdm(total=len(indices), desc="Filtering extract images") as pbar:
         for t, r, c in indices:
-            if config_unchanged and (t, r, c) in images.attrs["completed_indices"]:
+            if (t, r, c) in images.attrs["completed_indices"]:
                 # Already saved filtered images are not re-filtered.
                 pbar.update()
                 continue
@@ -132,7 +119,6 @@ def run_filter(
             pbar.update()
 
     nbp.images = images
-    os.remove(config_path)
     log.debug("Filter complete")
 
     return nbp, nbp_debug
