@@ -84,6 +84,17 @@
  * OMP: Faster compute times with and without cuda.
  * OMP: Better memory usage.
 
+2024/12/11 Alpha Update (v0.10.9):
+ * OMP now removes duplicate spots in tile overlap areas.
+ * OMP no longer saves progress after each tile is complete.
+
+
+2024/08/22 Alpha Update (v0.10.8):
+ * OMP saves progress after each tile is complete.
+
+
+2024/08/22 Alpha Update (v0.10.7):
+ * Filter intensity threshold can be zero integer edge case has been fixed.
 
 2024/05/15 Alpha Update (v0.10.6):
  * Disk loading of ND2 files is now faster during extract.

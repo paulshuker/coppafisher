@@ -33,13 +33,14 @@ def run_filter(
     Notes:
         - See `'filter'` and `'filter_debug'` sections of `notebook_page.py` file for description of variables.
     """
-    filter_config = {config.name: config.to_dict(), "version": {"0": system.get_software_version()}}
+    filter_config = {config.name: config.to_dict()}
     nbp = NotebookPage("filter", filter_config)
     nbp_debug = NotebookPage("filter_debug", filter_config)
 
     log.debug("Filter started")
 
     # Remember the config values during a run.
+    filter_config[config.name]["version"] = system.get_software_version()
     last_config = filter_config.copy()
     config_path = os.path.join(nbp_file.output_dir, "filter_last_config.pkl")
     if os.path.isfile(config_path):

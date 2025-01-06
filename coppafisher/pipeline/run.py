@@ -153,4 +153,5 @@ def initialize_notebook(config_path: str) -> Tuple[Notebook, NotebookPage, Confi
         nbp_basic = basic_info.set_basic_info(config)
         nb += nbp_basic
     nbp_file = file_names.get_file_names(nb.basic_info, config_path)
+
     return nb, nbp_file, config
