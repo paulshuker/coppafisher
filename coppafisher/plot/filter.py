@@ -37,16 +37,6 @@ def view_filtered_images(
     if channels is None:
         channels = nb.basic_info.use_channels.copy()
 
-    all_channels = list(set(nb.basic_info.use_channels + [nb.basic_info.anchor_channel]))
-    factor = np.ones(
-        (max(nb.basic_info.use_tiles) + 1, max(nb.basic_info.use_rounds) + 2, max(all_channels) + 1),
-        np.float32,
-    )
-    if apply_colour_norm_factor and nb.has_page("call_spots"):
-        factor[np.ix_(nb.basic_info.use_tiles, nb.basic_info.use_rounds, nb.basic_info.use_channels)] = (
-            nb.call_spots.colour_norm_factor.astype(np.float32)
-        )
-
     im_min = 1e20
     im_max = -1e20
     images = []
@@ -55,7 +45,10 @@ def view_filtered_images(
         image_trc: np.ndarray = nb.filter.images[t, r, c].astype(np.float32)
         # y, x, z -> z, y, x.
         image_trc = image_trc.swapaxes(1, 2).swapaxes(0, 1)
-        image_trc *= factor[t, r, c]
+        factor_trc = 1
+        if apply_colour_norm_factor and r != nb.basic_info.anchor_round and c != nb.basic_info.anchor_channel:
+            factor_trc = nb.call_spots.colour_norm_factor.astype(np.float32)
+        image_trc *= factor_trc
         images.append(image_trc)
         names.append(f"Filter {t=}, {r=}, {c=}")
         image_min = image_trc.min()
