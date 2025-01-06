@@ -1,21 +1,25 @@
-# <img src="/docs/images/logo.png" width="25"/> Coppafish
+# <img src="/docs/images/logo.png" width="25"/> Coppafisher
 
-![Continuous Integration](https://img.shields.io/github/actions/workflow/status/paulshuker/coppafish/integration.yaml?logo=github)
+![Continuous Integration](https://img.shields.io/github/actions/workflow/status/paulshuker/coppafisher/integration.yaml?logo=github)
 ![Status Badge](https://img.shields.io/badge/status-mature-blue)
-![GitHub License](https://img.shields.io/github/license/paulshuker/coppafish?color=blue)
-![GitHub Version](https://img.shields.io/github/v/tag/paulshuker/coppafish?label=version)
+![GitHub License](https://img.shields.io/github/license/paulshuker/coppafisher?color=blue)
+![GitHub Version](https://img.shields.io/github/v/tag/paulshuker/coppafisher?label=version)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ## Documentation
 
-* [Getting Started](https://paulshuker.github.io/coppafish/)
-* [Usage](https://paulshuker.github.io/coppafish/basic_usage/)
-* [Overview](https://paulshuker.github.io/coppafish/overview/)
-* [Method](https://paulshuker.github.io/coppafish/find_spots/)
-* [Diagnostics](https://paulshuker.github.io/coppafish/diagnostics/)
-* [Troubleshoot](https://paulshuker.github.io/coppafish/troubleshoot/)
-* [Glossary](https://paulshuker.github.io/coppafish/glossary/)
-* [Contributing](https://paulshuker.github.io/coppafish/contributing/)
+* [Getting Started](https://paulshuker.github.io/coppafisher/)
+* [Usage](https://paulshuker.github.io/coppafisher/basic_usage/)
+* [Overview](https://paulshuker.github.io/coppafisher/overview/)
+* [Method](https://paulshuker.github.io/coppafisher/find_spots/)
+* [Diagnostics](https://paulshuker.github.io/coppafisher/diagnostics/)
+* [Troubleshoot](https://paulshuker.github.io/coppafisher/troubleshoot/)
+* [Glossary](https://paulshuker.github.io/coppafisher/glossary/)
+* [Contributing](https://paulshuker.github.io/coppafisher/contributing/)
 
 
 ![](https://github.com/jduffield65/coppafish/blob/main/docs/images/readme_viewer.png?raw=true)
+
+Originally built in [Matlab](https://github.com/kdharris101/iss). It was then rewritten in
+[Python](https://github.com/jduffield65/coppafish), forked [again](https://github.com/reillytilbury/coppafish). Now it
+is forked once more and maintained here.

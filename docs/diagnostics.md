@@ -8,11 +8,11 @@ powered by [napari](https://github.com/napari/napari).
 
 ### Opening
 
-A Viewer can be displayed once coppafish has run through at least [call spots](overview.md#call-spots). From the python
+A Viewer can be displayed once coppafisher has run through at least [call spots](overview.md#call-spots). From the python
 terminal:
 
 ```py
-from coppafish import Notebook, Viewer
+from coppafisher import Notebook, Viewer
 
 nb = Notebook("/path/to/notebook")
 Viewer(nb)
@@ -21,7 +21,7 @@ Viewer(nb)
 or from the command line
 
 ```terminal
-python -m coppafish -v /path/to/notebook
+python -m coppafisher -v /path/to/notebook
 ```
 
 where a napari window will be opened.
@@ -29,7 +29,7 @@ where a napari window will be opened.
 You can specify the colour and symbols of genes using a .csv file, then the Viewer can be opened by
 
 ```py
-from coppafish import Notebook, Viewer
+from coppafisher import Notebook, Viewer
 
 nb = Notebook("/path/to/notebook")
 Viewer(nb, gene_marker_file="/path/to/custom/gene_marker_file.csv")
@@ -38,17 +38,17 @@ Viewer(nb, gene_marker_file="/path/to/custom/gene_marker_file.csv")
 or by the terminal
 
 ```terminal
-python -m coppafish -v /path/to/notebook --gene_marker /path/to/gene_marker.csv
+python -m coppafisher -v /path/to/notebook --gene_marker /path/to/gene_marker.csv
 ```
 
-see [here](https://github.com/paulshuker/coppafish/raw/HEAD/coppafish/plot/results_viewer/gene_colour.csv) for the
+see [here](https://github.com/paulshuker/coppafisher/raw/HEAD/coppafisher/plot/results_viewer/gene_colour.csv) for the
 default gene marker file.
 
 You can specify a custom background image in the python terminal. The default is a dapi image over all tiles produced
 during stitch.
 
 ```py
-from coppafish import Notebook, Viewer
+from coppafisher import Notebook, Viewer
 
 nb = Notebook("/path/to/notebook")
 Viewer(nb, background_image="/path/to/custom/background_image.npy")
@@ -57,7 +57,7 @@ Viewer(nb, background_image="/path/to/custom/background_image.npy")
 The background image must be of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` and can be a .npy file, a compressed
 .npz file with image at key `"arr_0"`, or a .tif file (based on package
 [tifffile](https://github.com/cgohlke/tifffile)). For further customisation, see the Viewer
-[docstring](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/plot/results_viewer/base.py).
+[docstring](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/plot/results_viewer/base.py).
 
 Close the Viewer and all subplots by pressing Ctrl + C in the terminal.
 
@@ -87,7 +87,7 @@ Orthogonal Matching Pursuit method (see [OMP](overview.md#orthogonal-matching-pu
 ### Opening
 
 ```python
-from coppafish import RegistrationViewer, Notebook
+from coppafisher import RegistrationViewer, Notebook
 
 nb = Notebook("/path/to/notebook")
 RegistrationViewer(nb, "/path/to/config.ini" t=t)
@@ -100,13 +100,13 @@ tile index is displayed.
 
 During a pipeline run, multiple .pdf files are created for different sections. These are located in the output
 directory. If you want the PDFs to be created again, delete the old ones first, then
-[run coppafish](basic_usage.md/#running) again.
+[run coppafisher](basic_usage.md/#running) again.
 
 ## Viewer2D
 
 To open
 ```python
-from coppafish import Notebook, Viewer2D
+from coppafisher import Notebook, Viewer2D
 
 nb = Notebook("/path/to/notebook")
 Viewer2D(nb)
@@ -121,7 +121,7 @@ The viewer is updated by typing commands in the terminal. To find out the availa
 Extracted images are identical to raw images, these are viewed by
 
 ```python
-from coppafish import Notebook, plot
+from coppafisher import Notebook, plot
 
 nb = Notebook("/path/to/notebook")
 plot.view_extracted_images(nb, "/path/to/config.ini", tiles, rounds, channels)
@@ -135,7 +135,7 @@ you wish to view all of the them from the sequencing images.
 Images after the [filter](overview.md#filter) stage are viewed by
 
 ```python
-from coppafish import Notebook, plot
+from coppafisher import Notebook, plot
 
 nb = Notebook("/path/to/notebook")
 plot.view_filtered_images(nb, tiles, rounds, channels, apply_colour_norm_factor=True, share_contrast_limits=True)
@@ -151,7 +151,7 @@ indices.
 You can view the computed intensities once call spots is complete. Do this by
 
 ```py
-from coppafish import Notebook, plot
+from coppafisher import Notebook, plot
 
 nb = Notebook("/path/to/notebook")
 plot.view_intensity_images(nb, tiles, z_planes=None)

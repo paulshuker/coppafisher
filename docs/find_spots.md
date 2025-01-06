@@ -13,8 +13,8 @@ $$
 \text{auto\_thresh}_{trc} = \text{median}(|I|_{trcxy})_{trc..} \times a
 $$
 
-where $|...|$ is the absolute value of each element separately. The median is computed over all x and y values to give
-a scalar that is a good lower bound estimate for the random noise amplitude. $a$ is the `auto_thresh_multiplier`
+where $|...|$ is the absolute value of each element separately. The median is computed over all x and y values to give a
+scalar that is a good lower bound estimate for the random noise amplitude. $a$ is the `auto_thresh_multiplier`
 (typically $20$). The higher `auto_thresh_multiplier` is, the stricter the find spots algorithm is. If the computed
 `auto_thresh` is zero, then it is set to `auto_thresh_multiplier`.
 
@@ -38,9 +38,8 @@ If too few spots are found for a tile/round/channel image, then a warning and/or
 ## 3: Spot Culling
 
 On sequencing rounds/channels, it is not important to capture every spot detection. But, the spots must be of high
-quality and about evenly distributed along the z planes for [registration](register.md). So, if there are too many
-spots detected, only the most intense spots are kept for each z plane. The maximum number of spots kept for each z
-plane is
+quality and about evenly distributed along the z planes for [registration](register.md). So, if there are too many spots
+detected, only the most intense spots are kept for each z plane. The maximum number of spots kept for each z plane is
 
 $$
 \frac{\text{max\_spots\_percent} \times L_{xy}^2}{100}
@@ -57,7 +56,7 @@ The calculated auto thresholds can be seen from the notebook. For tile `t`, roun
 value is saved as `float32` at
 
 ```py
-from coppafish import Notebook
+from coppafisher import Notebook
 
 nb = Notebook("/path/to/notebook")
 nb.find_spots.auto_thresh[t, r, c]
@@ -70,7 +69,7 @@ see the spot detection results. You can select any tile/round/channel combinatio
 round/channel is shown. To display the viewer, in the terminal
 
 ```terminal
-python -m coppafish -fs /path/to/notebook
+python -m coppafisher -fs /path/to/notebook
 ```
 
 and open the [link](http://127.0.0.1:8050/) shown in the terminal on a modern browser to show and interact with the

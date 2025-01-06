@@ -102,7 +102,7 @@ $$ \mathbb{P}[G = g \mid \mathbf{F} = \mathbf{f}] = \frac{\exp(\kappa \mathbf{b}
 
 where $\kappa$ is a concentration parameter which controls how much the probabilities are spread out among the genes.
 
-!!! tip "How to choose $\kappa$?"
+??? tip "How to choose $\kappa$?"
 
     The parameter $\kappa$ is set by adjusting the config parameter `kappa` and has default value 2. The value of $\kappa$ controls how much the probabilities are spread out among the genes, but does not influence the gene ordering.
 
@@ -490,7 +490,7 @@ Diagnosing the quality of the gene assignments is a crucial part of the pipeline
 ### View Scaling And BG Removal
 
 ```py
-from coppafish.plot.call_spots import ViewScalingAndBGRemoval
+from coppafisher.plot.call_spots import ViewScalingAndBGRemoval
 ViewScalingAndBGRemoval(nb)
 ```
 (or simply press 'N' in the main results' viewer)
@@ -514,7 +514,7 @@ This plot shows us a few things:
 ### View Bleed Matrix
 
 ```py
-from coppafish.plot.call_spots import ViewBleedMatrix
+from coppafisher.plot.call_spots import ViewBleedMatrix
 ViewBleedMatrix(nb)
 ```
 
@@ -537,7 +537,7 @@ This viewer shows 3 bleed matrices, each with columns (dyes) normalised.
 ### View Free And Constrained Bled Codes
 
 ```py
-from coppafish.plot.call_spots import ViewFreeAndConstrainedBledCodes
+from coppafisher.plot.call_spots import ViewFreeAndConstrainedBledCodes
 ViewFreeAndConstrainedBledCodes(nb)
 ```
 
@@ -562,7 +562,7 @@ If this works as expected, the constrained bled codes should have values close t
 ### View Target Regression
 
 ```py
-from coppafish.plot.call_spots import ViewTargetRegression
+from coppafisher.plot.call_spots import ViewTargetRegression
 ViewTargetRegression(nb)
 ```
 
@@ -595,7 +595,7 @@ It is important to check how well each round and channel is being scaled to its 
 ### View Tile Scale Regression
 
 ```py
-from coppafish.plot.call_spots import ViewTileScaleRegression
+from coppafisher.plot.call_spots import ViewTileScaleRegression
 ViewTileScaleRegression(nb, t)
 ```
 This function looks at a fixed tile and then shows the regression for the tile scale factor $Q_{trc}$ for each round and channel. Recall that this is the scale factor that multiplies the tile-dependent free bled codes $D_{gtrc}$ to get the constrained bled codes $K_{grc}$.
@@ -617,7 +617,7 @@ A couple of things to note:
 ### View Scale Factors
 
 ```py
-from coppafish.plot.call_spots import ViewScaleFactors
+from coppafisher.plot.call_spots import ViewScaleFactors
 ViewScaleFactors(nb)
 ```
 
@@ -637,7 +637,7 @@ What to expect:
 ### Gene Efficiency Viewer
 
 ```py
-from coppafish.plot.call_spots import ViewGeneEfficiencies
+from coppafisher.plot.call_spots import ViewGeneEfficiencies
 ViewGeneEfficiencies(nb, score_threshold=gamma, mode=gene_assignment_mode)
 ```
 
@@ -658,7 +658,7 @@ Look out for:
 
 ### Gene Spots Viewer
 ```py
-from coppafish.plot.call_spots import GeneSpotsViewer
+from coppafisher.plot.call_spots import GeneSpotsViewer
 GeneSpotsViewer(nb, score_threshold=gamma, gene_index=g, mode=gene_assignment_mode)
 ```
 

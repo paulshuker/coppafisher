@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 __version__ = ""
 
-with open("coppafish/_version.py", "r") as f:
+with open("coppafisher/_version.py", "r") as f:
     exec(f.read())
 
 with open("README.md", "r") as f:
@@ -11,7 +11,7 @@ with open("README.md", "r") as f:
 packages = [folder for folder in find_packages() if folder[-5:] != ".test"]  # Get rid of test packages
 
 setup(
-    name="coppafish",
+    name="coppafisher",
     version=__version__,
     description="coppaFISH software for Python",
     long_description=long_desc,
@@ -22,7 +22,7 @@ setup(
     maintainer_email="paul.shuker@outlook.com",
     license="MIT",
     python_requires=">=3.10, <3.12",
-    url="https://paulshuker.github.io/coppafish/",
+    url="https://paulshuker.github.io/coppafisher/",
     packages=packages,
     install_requires=[
         "dash",
@@ -51,13 +51,13 @@ setup(
         "zarr",
     ],
     package_data={
-        "coppafish.setup": [
+        "coppafisher.setup": [
             "default.ini",
             "notebook_comments.json",
             "default_bleed.npy",
             "default_psf.npz",
         ],
-        "coppafish.plot.results_viewer": ["cell_colour.csv", "cellClassColours.json", "gene_colour.csv"],
+        "coppafisher.plot.results_viewer": ["cell_colour.csv", "cellClassColours.json", "gene_colour.csv"],
     },
     include_package_data=True,
     classifiers=[

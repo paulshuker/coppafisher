@@ -1,6 +1,6 @@
 ## Input data
 
-Coppafish requires raw, `uint16` microscope images, metadata, and a configuration file. We currently only support raw
+Coppafisher requires raw, `uint16` microscope images, metadata, and a configuration file. We currently only support raw
 data in ND2, JOBs, or numpy format. If your data is not already in one of these formats, we recommend configuring your
 data into [numpy](#numpy) format.
 
@@ -10,18 +10,18 @@ planes that is a multiple of two.
 
 ### ND2
 
-ND2 files index tiles differently to coppafish. The difference is illustrated below on a 2x3 grid.
+ND2 files index tiles differently to coppafisher. The difference is illustrated below on a 2x3 grid.
 
 <figure markdown="span">
-  ![Image title](images/coppafish_and_nd2_tile_indices.svg){ width="600" }
+  ![Image title](images/coppafisher_and_nd2_tile_indices.svg){ width="600" }
   <figcaption>How six tiles are indexed.</figcaption>
 </figure>
 
 ### Numpy
 
 Each round is separated between directories. Label sequencing round directories `0`, `1`, etc. We recommend using
-[dask](https://docs.dask.org), this is installed in your coppafish environment by default. The code to save data in the
-right format would look something like
+[dask](https://docs.dask.org), this is installed in your coppafisher environment by default. The code to save data in
+the right format would look something like
 
 ```python
 import os
@@ -75,7 +75,7 @@ with open(file_path, "w") as f:
 
 ### Code book
 
-A code book is a `.txt` file that tells coppafish the gene codes for each gene. Each digit is the dye index for each
+A code book is a `.txt` file that tells coppafisher the gene codes for each gene. Each digit is the dye index for each
 sequencing round. An example of a four gene code book is
 
 ```text
@@ -85,18 +85,18 @@ gene_2 2301230
 gene_3 3012301
 ```
 
-the names (`gene_0`, `gene_1`, ...) can be changed. Do not assign any genes a constant gene code like `0000000`[^1]. To
+the names (`gene_0`, `gene_1`, ...) can be changed. Do not assign any genes a constant gene code like `0000000`. To
 learn how the codes can be generated, see [advanced usage](advanced_usage.md). For details on how the codes are best
 generated, see `reed_solomon_codes` in the
-[source code](https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/utils/base.py). See
+[source code](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/utils/base.py). See
 [Wikipedia](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction) for algorithmic details on how gene
 codes are best selected.
 
 ### Configuration
 
-There are configuration variables used throughout the coppafish pipeline. Most of these have reasonable default values,
-but some must be set by the user and you may wish to tweak other values for better performance. Save the config text
-file, like `dataset_name.ini`. The config file should contain, at the minimum:
+There are configuration variables used throughout the coppafisher pipeline. Most of these have reasonable default
+values, but some must be set by the user and you may wish to tweak other values for better performance. Save the config
+text file, like `dataset_name.ini`. The config file should contain, at the minimum:
 
 ```ini
 [file_names]
@@ -130,25 +130,25 @@ d_max = 0, 1, 2, 3
 
 where the `dapi_channel` is the index in the numpy arrays that the dapi channel is stored at. `use_channels` includes
 the `anchor_channel` in this case because the anchor channel can also be used as a sequencing channel in the sequencing
-rounds. `dye_names` does not have to be set explicitly if `n_seq_channels == n_dyes`. `expected_overlap` is the
-fraction of the tile in x (y) dimension that is overlapping between adjacent tiles, typically `0.1-0.15`. `use_z`
-contains all selected z planes, they should all be adjacent planes. It is recommended to use microscopic images where
-the middle z plane is roughly the brightest for best performance; this can be configured by changing the selected z
-planes in `use_z`. The z direction can be treated differently to the y and x directions because typically a z pixel
-corresponds to a larger, real distance. `tile_dir` is the tile directory, where extract images are saved to.
-`output_dir` is where the notebook and PDF diagnostics are saved. More details about every config variable can be found
-at <a href="https://github.com/paulshuker/coppafish/blob/HEAD/coppafish/setup/settings.default.ini" target="_blank">
-`coppafish/setup/settings.default.ini`</a> in the source code.
+rounds. `dye_names` does not have to be set explicitly if `n_seq_channels == n_dyes`. `expected_overlap` is the fraction
+of the tile in x (y) dimension that is overlapping between adjacent tiles, typically `0.1-0.15`. `use_z` contains all
+selected z planes, they should all be adjacent planes. It is recommended to use microscopic images where the middle z
+plane is roughly the brightest for best performance; this can be configured by changing the selected z planes in
+`use_z`. The z direction can be treated differently to the y and x directions because typically a z pixel corresponds to
+a larger, real distance. `tile_dir` is the tile directory, where extract images are saved to. `output_dir` is where the
+notebook and PDF diagnostics are saved. More details about every config variable can be found at
+<a href="https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/settings.default.ini" target="_blank">
+`coppafisher/setup/settings.default.ini`</a> in the source code.
 
 `target_values` and `d_max` must both have `n_seq_channels` numbers, one for each channel. See
 [call spots](call_spots.md#4-round-and-channel-normalisation) for details on how to set the values.
 
 ## Running
 
-Coppafish must be run with a [configuration](#configuration) file. In the command line
+Coppafisher must be run with a [configuration](#configuration) file. In the command line
 
 ```terminal
-python3 -m coppafish /path/to/config.ini
+python3 -m coppafisher /path/to/config.ini
 ```
 
 Or programmatically, using a python script
@@ -160,12 +160,12 @@ Or programmatically, using a python script
 which can then be run from the command line
 
 ```bash
-python3 coppafish_script_name.py
+python3 coppafisher_script_name.py
 ```
 
 ## Runtime
 
-For an estimate of your pipeline runtime[^2], in the Python terminal:
+For an estimate of your pipeline runtime[^1], in the Python terminal:
 
 ```python
 --8<-- "estimate_runtime.py"
@@ -175,9 +175,5 @@ then type in the relevant information when prompted.
 
 
 [^1]:
-    Background genes refer to constant pixel intensity across all sequencing rounds in one channel. This is an indicator
-    of an anomalous fluorescing artefact that is not a spot. No spot codes are made to be the same channel in all
-    rounds. This way spots are not mistaken for background fluorescence and vice versa.
-[^2]:
     All time estimations are made using an Intel i9-13900K @ 5.500GHz, NVIDIA RTX 4070Ti Super (optional), and NVMe
     local SSD. Raw, ND2 input files were saved on a server with read speed of ~200 MB/s.

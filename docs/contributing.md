@@ -1,17 +1,28 @@
-## The Algorithm
+## Algorithm
 
-Coppafish is built on the principle: An algorithm that performs well does not need to be changed. So, algorithms are
+Coppafisher is built on the principle: An algorithm that performs well does not need to be changed. So, algorithms are
 only updated when there is evidence that it can perform better and that the current algorithm is performing worse.
+
+## Installation
 
 We use a protected staging branch, like `v1.0.0`, for a future release. This must be pull requested into and must pass
 continuous integration tests. The `main` branch remains the latest stable release for users to easily install the
 software.
 
-While changing code, please install dev packages
+While changing code, [install](index.md#installation) coppafisher as usual but keep the downloaded local source code
+directory. Then install dev packages
 
 ```terminal
 pip install -r requirements-dev.txt
 ```
+
+Also, put coppafisher into editable mode while changing source code
+
+```terminal
+pip install -e .
+```
+
+Now all local code changes immediately take affect.
 
 ## Pre-Commit
 
@@ -43,7 +54,7 @@ Tests are run through [pytest](https://github.com/pytest-dev/pytest/). Scripts a
 scripts inside a directory called `test` within the script's directory. Every `test` directory must contain an empty
 `__init__.py` file. All test script file names should start with `test_`. The scripts must end with their relative
 directory (directories) and their script file name, separated by underscores. For example, the test script for
-`coppafish/omp/coefs.py` is named `test_omp_coefs.py`. Check existing tests for examples.
+`coppafisher/omp/coefs.py` is named `test_omp_coefs.py`. Check existing tests for examples.
 
 ## Run Tests
 
@@ -65,7 +76,7 @@ Run unit tests requiring a notebook (~60s)
 pytest -m notebook
 ```
 
-View code coverage by appending `--cov=coppafish --cov-report term` to each command.
+View code coverage by appending `--cov=coppafisher --cov-report term` to each command.
 
 ## Run Documentation Locally
 
@@ -86,8 +97,8 @@ Here are some specific standards to follow:
 * If a bug is found, the bug must be automatically found if it is to occur again.
 * All code is [black](https://github.com/psf/black) formatted.
 * Every time a function is modified or created, a new unit test must be created for the function. A pre-existing unit
-test can be drawn from to build a new unit test, but it should be clear in your mind that you are affectively building
-a new function.
+test can be drawn from to build a new unit test, but it should be clear in your mind that you are affectively building a
+new function.
 * Minimise `#!python if`/`#!python else` branching as much as possible. Exit `#!python if`/`#!python else` nesting as
 soon as possible through the use of keywords like `#!python raise`, `#!python continue`, `#!python break` and
 `#!python return`, whenever feasible.
@@ -96,8 +107,8 @@ soon as possible through the use of keywords like `#!python raise`, `#!python co
 * In most cases, a line of code should do only one operation.
 * Every docstring for a function must be complete so a developer can re-create the function without seeing any of the
 existing source code.
-* Each parameter in a function must have an independent, clear functionality. If two parameters are derivable from
-one another, you are doing something wrong. This also applies to the function's return variables.
+* Each parameter in a function must have an independent, clear functionality. If two parameters are derivable from one
+another, you are doing something wrong. This also applies to the function's return variables.
 * Minimise the number of data types a parameter can be and use common sense. For example, a parameter that can be
 `#!python int` or `#!python None` is reasonable. A parameter that can be `#!python bool` or `#!python float` is not
 reasonable.
@@ -109,7 +120,7 @@ makes this easier.
 While not all docstrings are consistent yet, future docstrings follow the rules below:
 
 * The code must be reproducible from the docstring alone.
-* Use [Google's style](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html).
+* Use [Google's style](https://google.github.io/styleguide/pyguide.html).
 * `` `ndarray` `` represents a numpy ndarray and `` `zarray` `` represents a zarr Array.
 * `` `zgroup` `` represents a zarr Group.
 * Specify datatype of a `ndarray`/`zarray` when applicable. For example, to represent any floating point datatype,
@@ -123,8 +134,8 @@ integer. Whereas, `n_rounds_use` refers to `#!py len(use_rounds)` which is the t
 integer value. These represent the sequencing channels. For example, `use_channels = 0, 5, ..., 27`. So, `n_channels`
 refers to size `#!py max(use_channels) + 1`, i.e. the smallest shape that can be indexed by `use_channels`. Whereas,
 `n_channels_use` means `#!py len(use_channels)` such that `0` represents `#!py use_channels[0]` etc. Note that neither
-of these definitions includes the dapi channel/anchor channel[^1], which can be found at `#!py nb.basic_info.dapi_channel`
-and `#!py nb.basic_info.anchor_channel` respectively.
+of these definitions includes the dapi channel/anchor channel[^1], which can be found at
+`#!py nb.basic_info.dapi_channel` and `#!py nb.basic_info.anchor_channel` respectively.
 
 Below is a docstring example that demonstrates most of the rules.
 

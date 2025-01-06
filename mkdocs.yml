@@ -1,6 +1,6 @@
-site_name: Coppafish Documentation
-repo_name: Coppafish
-repo_url: https://github.com/paulshuker/coppafish
+site_name: Coppafisher Documentation
+repo_name: Coppafisher
+repo_url: https://github.com/paulshuker/coppafisher
 
 theme:
   name: material
@@ -56,9 +56,9 @@ nav:
 markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
-  # Code snippets can now be embedded into the docs from coppafish/docs.
+  # Code snippets can now be embedded into the docs from coppafisher/docs.
   - pymdownx.snippets:
-      base_path: ["coppafish/docs"]
+      base_path: ["coppafisher/docs"]
   # Code can be highlighted, for example python code by code block: ``` python ...``` or inline: `#!python ...`.
   - admonition
   - pymdownx.details
