@@ -49,7 +49,7 @@ def run_filter(
     assert type(last_config) is dict
     config_unchanged = filter_config == last_config
     with open(config_path, "wb") as config_file:
-        pickle.dump(config, config_file)
+        pickle.dump(last_config, config_file)
 
     indices = indexing.create(
         nbp_basic,
