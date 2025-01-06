@@ -1,30 +1,34 @@
-site_name: Coppafish Documentation
-repo_url: https://github.com/paulshuker/coppafish
+site_name: Coppafisher Documentation
+repo_name: Coppafisher
+repo_url: https://github.com/paulshuker/coppafisher
 
 theme:
   name: material
   logo: images/logo.svg
 
+  icon:
+    repo: fontawesome/brands/github
+
   features:
-    # Cool section selection at top
+    # Cool section selection at top (sticky makes tabs stay shown when scrolling)
     - navigation.tabs
+    - navigation.tabs.sticky
     # Code blocks
     - content.code.annotation
     # Copy code button
     - content.code.copy
-  
+
   language: en
 
   palette:
     # Palette toggle for dark mode
     - scheme: slate
       primary: teal
-      scheme: slate
       accent: indigo
       toggle:
         icon: material/weather-night
         name: Switch to light mode
-    
+
     # Palette toggle for light mode
     - scheme: default
       toggle:
@@ -33,24 +37,56 @@ theme:
 
 nav:
   - Getting started: index.md
-  - Usage: basic_usage.md
-  - Method: method.md
+  - Usage:
+    - Basic Usage: basic_usage.md
+    - Advanced Usage: advanced_usage.md
+  - Method:
+    - Overview: overview.md
+    - Find Spots: find_spots.md
+    - Stitch: stitch.md
+    - Registration: register.md
+    - Call Spots: call_spots.md
+    - OMP: omp.md
   - Diagnostics: diagnostics.md
-  - Advanced Usage: advanced_usage.md
   - Troubleshoot: troubleshoot.md
   - Glossary: glossary.md
+  - Contributing: contributing.md
 
 # This part allows mathematics to be displayed LaTeX style, by using $...$ for in line or $$...$$ for multi-line.
 markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
+  # Code snippets can now be embedded into the docs from coppafisher/docs.
+  - pymdownx.snippets:
+      base_path: ["coppafisher/docs"]
+  # Code can be highlighted, for example python code by code block: ``` python ...``` or inline: `#!python ...`.
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+        alternate_style: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
   # Footnote support
   - footnotes
-  # Captions and aligned images support
+  # Captions and aligned images support, re-sizeable images, and grids.
   - md_in_html
-  # Re-sizeable images
   - attr_list
+  # Simple icons.
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search
+
+# Required for LaTeX maths support.
 extra_javascript:
   - javascripts/config.js
   - https://polyfill.io/v3/polyfill.min.js?features=es6
-  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js
+  - https://unpkg.com/katex@0/dist/katex.min.js
+  - https://unpkg.com/katex@0/dist/contrib/auto-render.min.js
+
+extra_css:
+  - css/extra.css
+  - https://unpkg.com/katex@0/dist/katex.min.css

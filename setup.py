@@ -1,6 +1,8 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
-with open("coppafish/_version.py", "r") as f:
+__version__ = ""
+
+with open("coppafisher/_version.py", "r") as f:
     exec(f.read())
 
 with open("README.md", "r") as f:
@@ -9,53 +11,57 @@ with open("README.md", "r") as f:
 packages = [folder for folder in find_packages() if folder[-5:] != ".test"]  # Get rid of test packages
 
 setup(
-    name="coppafish",
+    name="coppafisher",
     version=__version__,
     description="coppaFISH software for Python",
     long_description=long_desc,
     long_description_content_type="text/markdown",
     author="Josh Duffield",
     author_email="jduffield65@gmail.com",
-    maintainer="Reilly Tilbury, Paul Shuker",
-    maintainer_email="reillytilbury@gmail.com, paul.shuker@outlook.com",
+    maintainer="Paul Shuker",
+    maintainer_email="paul.shuker@outlook.com",
     license="MIT",
-    python_requires=">3.8, <3.11",
-    url="https://paulshuker.github.io/coppafish/",
+    python_requires=">=3.10, <3.12",
+    url="https://paulshuker.github.io/coppafisher/",
     packages=packages,
     install_requires=[
-        "numpy",
-        "numpy_indexed",
-        "tqdm",
-        "scipy",
-        "scikit-learn",
-        "opencv-python-headless",
-        "scikit-image",
-        "nd2",
-        "h5py",
-        "pandas",
+        "dash",
+        "dash-html-components",
+        "dash_daq",
         "dask",
-        "psutil",
-        "zarr",
-        "matplotlib",
         "distinctipy",
-        "PyQt5",
-        "mplcursors",
+        "h5py",
+        "joblib",
         "magicgui",
-        "napari[all]<=0.4.17",
-        "pydantic<=1.10.13",
+        "matplotlib",
+        "mplcursors",
+        "napari[pyqt5]",
+        "nd2",
+        "numpy<2.1",
+        "opencv-python-headless",
+        "pandas",
+        "psutil",
+        "plotly",
+        "PyQt5",
+        "scikit-image",
+        "scikit-learn",
+        "scipy",
+        "torch>=2",
+        "tqdm",
+        "zarr",
     ],
     package_data={
-        "coppafish.setup": [
-            "settings.default.ini",
-            "notebook_comments.json",
-            "dye_camera_laser_raw_intensity.csv",
-            "default_bleed.npy",
+        "coppafisher.setup": [
+            "default.ini",
+            "default_psf.npz",
+            "dye_info_raw.npy",
         ],
-        "coppafish.plot.results_viewer": ["cell_color.csv", "cellClassColors.json", "gene_color.csv"],
+        "coppafisher.omp": ["mean_spot.npy"],
+        "coppafisher.plot.results_viewer": ["cell_colour.csv", "cellClassColours.json", "gene_colour.csv"],
     },
     include_package_data=True,
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
@@ -65,5 +71,6 @@ setup(
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Operating System :: Unix",
+        "Operating System :: Windows",
     ],
 )

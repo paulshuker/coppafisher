@@ -1,15 +1,26 @@
-## Coppafish
+## __Coppafisher__
 
-Coppafish is an open source data analysis software for COmbinatorial Padlock-Probe-Amplified Fluorescence In Situ
-Hybridization (coppafish) datasets. A series of 3D microscope images are arranged into tiles, rounds and channels. For
-each sequencing round, every considered gene is fluoresced by a dye. By the end of all rounds, each gene has a unique,
-barcode-like sequence of dyes, called the gene code. For more details about coppafish's methodology, see the
-[method](method.md). See [installation](#installation) on how to install our software, and [usage](basic_usage.md) to
-run coppafish on your dataset. Some vocabulary might be unfamiliar, please see the [glossary](glossary.md) for
-reference.
+Coppafisher is an open source data analysis Python package for COmbinatorial Padlock-Probe-Amplified Fluorescence In
+Situ Hybridization (coppafish) datasets. A series of 3D microscope images are arranged into tiles, rounds and channels.
+For each sequencing round, every wanted gene spot is fluoresced by a dye. By the end of all rounds, each gene has a
+unique, barcode-like sequence of dyes called the gene code. Coppafisher is a data analysis pipeline to assign genes to
+spots by their gene codes in 3D.
+
+<div class="grid cards no-format" markdown>
+
+ - [:material-checkbox-multiple-blank: __Zarr__ for image compression](https://zarr.readthedocs.io/)
+ - [:material-fast-forward:  __PyTorch__ for GPU/CPU acceleration](https://pytorch.org/)
+ - [:material-eye:  __Napari__ for 3D visualisation](https://napari.org/)
+ - [:material-web:  __Dash__ for web interaction](https://dash.plotly.com/)
+
+</div>
+
+See [installation](#installation) on how to install our software, and [usage](basic_usage.md) to run coppafisher on your
+dataset. For details about coppafisher's methodology, see the [method](overview.md). Some
+vocabulary might be unfamiliar, please see the [glossary](glossary.md) for reference.
 
 <figure markdown="span">
-  ![Image title](images/coppafish_simple_schematic.png){ width="400" }
+  ![Simple Schematic](images/coppafisher_simple_schematic.png){ width="400" }
   <figcaption>Gene calling on a tile.</figcaption>
 </figure>
 
@@ -17,75 +28,92 @@ reference.
 
 ### Prerequisites
 
-* Windows or Linux operating system. MacOS is not tested.
-* At least 48GB of RAM for tile sizes `58x2048x2048`.
-* Python version 3.9 or 3.10.
+* Windows or Linux. MacOS is not tested.
+* Python 3.10 or 3.11.
 * [Git](https://git-scm.com/).
+* 64GB of memory for tile sizes `64x2048x2048` pixels (recommended).
+* Nvidia GPU with Cuda 12.4 support (optional).
 
 ### Environment
 
-Install coppafish software from within an environment. This can be a `venv` or `conda` (recommended) environment.
+Install coppafisher software from within an environment. We will use a conda environment, so
+[miniconda](https://docs.anaconda.com/miniconda/) or [anaconda](https://anaconda.org/anaconda/conda) is required.
 
-#### Conda
+First, build an environment
 
-For `conda`, build an environment by doing:
-```console
-conda create -n coppafish python=3.10
-conda activate coppafish
+```terminal
+conda create -n coppa python=3.11
+conda activate coppa
 ```
 
-#### venv
+coppa can be changed to any name.
 
-```console
-python -m venv /path/to/new/virtual/environment
-```
-then, in Linux and MacOS:
-```console
-source /path/to/new/virtual/environment/bin/activate
-```
-or windows:
-```console
-/path/to/new/virtual/environment/Scripts/activate.bat
-```
+??? note "Environment naming"
+
+    It is highly recommended to not name the environment `coppafisher` because this it is the same name as the Python
+    package, which can cause confusing bugs.
 
 ### Install
 
-Our latest coppafish release can be cloned locally
-```console
-git clone --depth 1 https://github.com/reillytilbury/coppafish
+Clone the latest coppafisher version locally
+
+```terminal
+git clone --depth 1 https://github.com/paulshuker/coppafisher
 ```
 
-to install the optimised, [pytorch](https://github.com/pytorch) GPU and CPU support
-```console
-cd coppafish
-python -m pip install --upgrade pip
-python -m pip install -r requirements-gpu.txt
-python -m pip install -e .
+or a specific version, like version 1.0.0
+
+```terminal
+git clone --depth 1 --branch 1.0.0 https://github.com/paulshuker/coppafisher
 ```
 
-By default, the GPU will be used if available, otherwise coppafish will revert back to the CPU. For the optimised, 
-[pytorch](https://github.com/pytorch) CPU-only support
-```console
-cd coppafish
-python -m pip install --upgrade pip
+install package dependencies
+
+```terminal
+cd coppafisher
 python -m pip install -r requirements.txt
-python -m pip install -e .
 ```
 
-If you do not wish to keep a local copy of coppafish (i.e. not interested in `git pull`ing higher coppafish versions
-later) then remove the `-e` option. The source code can then be deleted after installing.
+install [PyTorch](https://pytorch.org/) with both CPU and Cuda 12.4 support by
+
+```terminal
+python -m pip install -r requirements-torch.txt
+```
+
+??? tip "Check the GPU is detected"
+
+    If you have an Nvidia GPU with working drivers, you can check that it is detected in the python terminal
+
+    ```py
+    import torch
+    torch.cuda.is_available()
+    ```
+
+    which should show true.
+
+Finally, install coppafisher by
+
+```terminal
+python -m pip install .
+```
+
+You can now safely delete the locally cloned coppafisher repository.
 
 ## Updating
 
-Coppafish will not automatically install updates, but you will see a warning at the start of a pipeline if a new online
-version is available.
+Coppafisher will not automatically install updates. But, you will see a warning at the start of a pipeline if a new
+online version is available.
 
-If you already have the source code downloaded, navigate inside of the `coppafish` directory, then `git pull` the
-latest code changes. Then, follow the [install](#install) steps again, excluding the `git clone` command, while inside
-your coppafish environment.
+To update version, delete the old conda environment by
 
-If you do not have the source code downloaded anymore, follow all the [install](#install) again while inside your
-coppafish environment.
+```term
+conda env remove -n coppa
+```
 
-You can verify your install by running `pip show coppafish` in the coppafish environment to check you have the right
+Then follow all [installation](#installation) instructions again.
+
+You can verify your install by running `#!terminal pip show coppafisher` in the environment to check you have the correct
 version.
+
+Keep all output data (including the notebook) when updating coppafisher versions. If data saved to disk is now
+deprecated, coppafisher will automatically suggest a course of action when it is [run](basic_usage.md#running) again.
