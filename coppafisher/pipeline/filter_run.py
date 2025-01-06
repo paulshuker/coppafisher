@@ -71,7 +71,7 @@ def run_filter(
     # Bad trc images are filled with zeros.
     for t, r, c in nbp_basic.bad_trc:
         images[t, r, c] = 0
-        images.attrs["completed_indices"] = images.attrs["completed_indices"] + [(t, r, c)]
+        images.attrs["completed_indices"] = images.attrs["completed_indices"] + [[t, r, c]]
 
     wiener_filter = None
     if not os.path.isfile(nbp_file.psf):
@@ -93,7 +93,7 @@ def run_filter(
 
     with tqdm(total=len(indices), desc="Filtering extract images") as pbar:
         for t, r, c in indices:
-            if (t, r, c) in images.attrs["completed_indices"]:
+            if [t, r, c] in images.attrs["completed_indices"]:
                 # Already saved filtered images are not re-filtered.
                 pbar.update()
                 continue
@@ -114,7 +114,7 @@ def run_filter(
             im_filtered = im_filtered.astype(np.float16)
             images[t, r, c] = im_filtered
             del im_filtered
-            images.attrs["completed_indices"] = images.attrs["completed_indices"] + [(t, r, c)]
+            images.attrs["completed_indices"] = images.attrs["completed_indices"] + [[t, r, c]]
 
             pbar.update()
 
