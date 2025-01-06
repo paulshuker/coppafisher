@@ -160,7 +160,7 @@ Or programmatically, using a python script
 which can then be run from the command line
 
 ```bash
-python3 coppafish_script_nameer.py
+python3 coppafisher_script_name.py
 ```
 
 ## Runtime

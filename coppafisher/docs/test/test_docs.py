@@ -70,7 +70,7 @@ def test_all_docs() -> None:
     nb_path = path.join(path.dirname(config_path), "output_coppafisher", "notebook")
     tmp_dir = tempfile.TemporaryDirectory(prefix="coppafisher")
 
-    with tempfile.TemporaryDirectory(suffix="coppafish_nber") as temp_dir:
+    with tempfile.TemporaryDirectory(suffix="coppafisher_nb") as temp_dir:
         nb_path_copy = path.join(temp_dir, "notebook_copy")
         shutil.copytree(nb_path, nb_path_copy)
 

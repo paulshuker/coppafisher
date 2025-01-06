@@ -2,14 +2,14 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="368.61441"
+   width="345.45737"
    height="152.12599"
-   viewBox="0 0 97.529227 40.250001"
+   viewBox="0 0 91.402259 40.250001"
    version="1.1"
    id="svg1"
    inkscape:version="1.4 (86a8ad7, 2024-10-11)"
-   sodipodi:docname="coppafish_and_nd2_tile_indiceser.svg"
-   inkscape:export-filename="coppafish_and_nd2_tile_indices_2er.svg"
+   sodipodi:docname="coppafisher_and_nd2_tile_indices.svg"
+   inkscape:export-filename="coppafisher_and_nd2_tile_indices_2.svg"
    inkscape:export-xdpi="96"
    inkscape:export-ydpi="96"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
@@ -26,15 +26,15 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
-     inkscape:zoom="2"
-     inkscape:cx="64.25"
-     inkscape:cy="79.75"
+     inkscape:zoom="2.8284271"
+     inkscape:cx="173.24116"
+     inkscape:cy="70.533901"
      inkscape:window-width="1920"
      inkscape:window-height="1009"
      inkscape:window-x="-8"
      inkscape:window-y="-8"
      inkscape:window-maximized="1"
-     inkscape:current-layer="layer2"
+     inkscape:current-layer="layer1"
      inkscape:export-bgcolor="#ffffff00" />
   <defs
      id="defs1" />
@@ -43,7 +43,7 @@
      id="layer2"
      inkscape:label="Layer 2">
     <rect
-       style="fill:#000000;stroke-width:0.799999;stroke-linecap:round;fill-opacity:1"
+       style="fill:#000000;fill-opacity:1;stroke-width:0.799999;stroke-linecap:round"
        id="rect3"
        width="26.326042"
        height="6.1515622"
@@ -298,14 +298,14 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52778px;font-family:Calibri;-inkscape-font-specification:Calibri;text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#aaaaaa;fill-opacity:1;stroke:none;stroke-width:0.15;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
-       x="89.198967"
+       x="86.023964"
        y="16.41329"
        id="text4"><tspan
          sodipodi:role="line"
          id="tspan4"
          style="font-size:3.52778px;fill:#aaaaaa;fill-opacity:1;stroke:none;stroke-width:0.15;stroke-dasharray:none;stroke-opacity:1"
-         x="89.198967"
-         y="16.41329">Coppafisher Tile Index</tspan></text>
+         x="86.023964"
+         y="16.41329">Coppafisher Tile</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52778px;font-family:Calibri;-inkscape-font-specification:Calibri;text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#aaaaaa;fill-opacity:1;stroke:none;stroke-width:0.15;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
