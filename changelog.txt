@@ -1,3 +1,7 @@
+2025/MM/DD Version 1 Patch (v1.1.0):
+ * Viewer: Can now middle mouse click a gene spot in the gene legend to toggle the gene colour on/off.
+ * Viewer: Gene legend help when pressing 'h'.
+
 2025/01/06 Version 1 Major Release (v1.0.0):
  * General: Coppafish is now called Coppafisher.
  * General: Version 1.0.0 onwards automatically detects incompatible notebook versions. An automatic suggested course
@@ -15,7 +19,7 @@
  * General: The notebook can be moved location without breaking usages fix.
  * General: Incorrect numpy data types within the notebook fixed.
  * General: New basic_info config parameters reverse_tile_positions_x and reverse_tile_positions_y to reverse the tile
-   positions if they are in the wrong places along x and/or y.
+    positions if they are in the wrong places along x and/or y.
  * General: Clearer config warnings/errors.
  * General: Security patches for zipp, urllib3, scikit-learn, tornado, requests, and certifi.
  * General: Package versions are now logged in the pipeline.log file.
@@ -30,7 +34,6 @@
  * Viewer: Napari has been updated to version 0.5.4, improving stability.
  * Diagnostics: New find spots viewer.
  * PDF Diagnostics: New gene spatial heat map PDFs created at runtime.
- * PDF Diagnostics: New stitch PDF created at runtime.
  * Extract: Default z_plane_mean_warning 200 -> 125.
  * Extract: Images are now rotated during extract instead of filter. So, the config parameter `num_rotations` has been
     moved from `filter` to `extract`.
@@ -66,12 +69,13 @@
     importance on each sequencing round matching the gene bled code.
  * OMP: OMP is now truly orthogonal fix. Before, the new gene was weighted using only the residual pixel colour. Now,
     all genes are re-weighted using the full pixel colour and a new gene is found using the latest residual colour.
- * OMP: Gene assignment now uses a dot product with similar round contribution. This is identical to the anchor method
+ * OMP: Gene assignment now uses a dot product with similar round contribution. This is similar to the anchor method
     scoring.
  * OMP: OMP "coefficients" are now called "pixel scores" to differentiate them from gene weights.
  * OMP: The final OMP pixel scores are found after gene weights are computed. Check the OMP method documentation for
     details.
- * OMP: A pixel is not run through OMP if its intensity is below minimum_intensity in the omp config (default 0.15). A
+ * OMP: A pixel is not run through OMP if its intensity is below minimum_intensity. The minimum_intensity is computed as
+    the median over all intensities in the central z plane multiplied by minimum_intensity_multiplier (default 4). A
     pixel's intensity is defined as `min over rounds (max over channels (|I_rc|))`, where I_rc is the pixel's image
     intensity in sequencing round r, sequencing channel c after image registration and after call spot scaling.
  * OMP: After each tile, OMP saves the progress and can continue where it left off.
