@@ -287,7 +287,7 @@ class Viewer:
                 "View hotkeys",
                 "h",
                 "",
-                lambda _: self._add_subplot(self.view_hotkeys()),
+                lambda _: self._add_subplot(self.view_help()),
                 "Help",
                 False,
             ),
@@ -432,24 +432,24 @@ class Viewer:
         if closest_gene_index is None:
             return
         closest_gene = self.genes[closest_gene_index]
+
         if event.button.name == "LEFT":
             # Toggle the gene on and off that was clicked on.
             closest_gene.active = not closest_gene.active
         elif event.button.name == "RIGHT":
-            already_isolated = all([not gene.active for gene in self.genes if gene != closest_gene])
-            if closest_gene.active:
-                if already_isolated:
-                    for gene in self.genes:
-                        gene.active = True
-                else:
-                    for gene in self.genes:
-                        gene.active = False
-                    closest_gene.active = True
-            else:
-                for gene in self.genes:
-                    gene.active = True
+            gene_already_isolated = all([not gene.active for gene in self.genes if gene != closest_gene])
+
+            for gene in self.genes:
+                gene.active = gene_already_isolated
+            closest_gene.active = True
+        elif event.button.name == "MIDDLE":
+            genes_of_same_colour = [gene for gene in self.genes if (gene.colour == closest_gene.colour).all()]
+            all_colours_are_active = all([gene.active for gene in genes_of_same_colour])
+            for gene in genes_of_same_colour:
+                gene.active = not all_colours_are_active
         else:
             return
+
         self._update_gene_keep()
         self.update_viewer_data()
         self._update_gene_legend()
@@ -584,21 +584,20 @@ class Viewer:
 
     # ========== HOTKEY FUNCTIONS ==========
 
-    def view_hotkeys(self) -> Subplot:
+    def view_help(self) -> Subplot:
         self._free_subplot_spaces()
         fig, ax = plt.subplots(1, 1, figsize=(12, 8))
-        ax.set_title("Hotkeys", fontdict={"size": 20})
+        ax.set_title(r"$\mathbf{Hotkeys}$", fontdict={"size": 20, "va": "center"})
         ax.set_axis_off()
-        text = ""
+        text = r"$\mathbf{Legend}$" + "\n"
+        for help_line in self.legend_.get_help():
+            text += help_line + "\n"
         unique_sections = []
         for hotkey in self.hotkeys:
             if hotkey.section not in unique_sections:
                 unique_sections.append(hotkey.section)
-        first_section = unique_sections[0]
         for section in unique_sections:
-            if section != first_section:
-                text += "\n"
-            text += section.capitalize() + "\n"
+            text += "\n" + r"$\mathbf{" + section.capitalize().replace(" ", r"\ ") + r"}$" + "\n"
             section_hotkeys = [hotkey for hotkey in self.hotkeys if hotkey.section == section]
             for hotkey in section_hotkeys:
                 text += str(hotkey) + "\n"
@@ -901,7 +900,7 @@ class Viewer:
         if self.viewer_exists():
             # View hotkeys button.
             self.view_hotkeys_button = QPushButton(text="Hotkeys")
-            self.view_hotkeys_button.clicked.connect(self.view_hotkeys)
+            self.view_hotkeys_button.clicked.connect(self.view_help)
             self.viewer.window.add_dock_widget(self.view_hotkeys_button, area="left", name="Help")
             # Hide the layer list and layer controls.
             # FIXME: This leads to a future deprecation warning. Napari will hopefully add a proper way of doing this

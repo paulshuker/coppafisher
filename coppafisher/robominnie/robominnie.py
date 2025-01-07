@@ -524,17 +524,15 @@ class Robominnie:
             csvwriter.writerow(["", "GeneNames", "ColorR", "ColorG", "ColorB", "napari_symbol", "mpl_symbol"])
             for i, gene_name in enumerate(self.codes):
                 random_index = self.rng.integers(len(napari_symbols))
-                csvwriter.writerow(
-                    [
-                        f"{i}",
-                        f"{gene_name}",
-                        round(self.rng.random(), 2),
-                        round(self.rng.random(), 2),
-                        round(self.rng.random(), 2),
-                        napari_symbols[random_index],
-                        mpl_symbols[random_index],
-                    ]
-                )
+                colour = (round(self.rng.random(), 2), round(self.rng.random(), 2), round(self.rng.random(), 2))
+                napari_symbol = napari_symbols[random_index]
+                mpl_symbol = mpl_symbols[random_index]
+                if i < 3:
+                    # First three genes are set to the same colour for same colour testing.
+                    colour = (0.56, 0.71, 0.27)
+                    napari_symbol = napari_symbols[i]
+                    mpl_symbol = mpl_symbols[i]
+                csvwriter.writerow([f"{i}", f"{gene_name}", colour[0], colour[1], colour[2], napari_symbol, mpl_symbol])
 
         # Save the initial bleed matrix for the config file
         self.initial_bleed_matrix_filepath = os.path.join(output_dir, "bleed_matrix.npy")
