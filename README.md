@@ -20,6 +20,6 @@
 
 ![](https://github.com/jduffield65/coppafish/blob/main/docs/images/readme_viewer.png?raw=true)
 
-Originally built in [Matlab](https://github.com/kdharris101/iss). It was then rewritten in
-[Python](https://github.com/jduffield65/coppafish), forked [again](https://github.com/reillytilbury/coppafish). Now it
-is forked once more and maintained here.
+The code was originally built in [Matlab](https://github.com/kdharris101/iss). It was then rewritten in
+[Python](https://github.com/jduffield65/coppafish), forked [again](https://github.com/reillytilbury/coppafish). Now
+forked once more and maintained [here](https://github.com/paulshuker/coppafisher).
