@@ -102,18 +102,6 @@ During a pipeline run, multiple .pdf files are created for different sections. T
 directory. If you want the PDFs to be created again, delete the old ones first, then
 [run coppafisher](basic_usage.md/#running) again.
 
-## Viewer2D
-
-To open
-```python
-from coppafisher import Notebook, Viewer2D
-
-nb = Notebook("/path/to/notebook")
-Viewer2D(nb)
-```
-
-The viewer is updated by typing commands in the terminal. To find out the available commands, type `help` or `h`.
-
 ## Viewing images
 
 ### Extracted images
