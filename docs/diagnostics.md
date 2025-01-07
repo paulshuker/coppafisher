@@ -12,10 +12,7 @@ A Viewer can be displayed once coppafisher has run through at least [call spots]
 terminal:
 
 ```py
-from coppafisher import Notebook, Viewer
-
-nb = Notebook("/path/to/notebook")
-Viewer(nb)
+--8<-- "open_viewer_0.py"
 ```
 
 or from the command line
@@ -29,10 +26,7 @@ where a napari window will be opened.
 You can specify the colour and symbols of genes using a .csv file, then the Viewer can be opened by
 
 ```py
-from coppafisher import Notebook, Viewer
-
-nb = Notebook("/path/to/notebook")
-Viewer(nb, gene_marker_file="/path/to/custom/gene_marker_file.csv")
+--8<-- "open_viewer_1.py"
 ```
 
 or from the terminal
