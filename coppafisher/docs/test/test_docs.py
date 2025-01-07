@@ -1,8 +1,8 @@
+import multiprocessing
+import os
 import shutil
-import subprocess
 import tempfile
-import time
-from os import path
+from collections import OrderedDict
 
 import pytest
 
@@ -19,59 +19,47 @@ TEST_FILE_NAMES: tuple[tuple[str, int, bool]] = (
     ("nb_delete_page_0", 7, True),
     ("nb_delete_page_1", 7, True),
     ("omp_min_intensity", 10, False),
+    ("open_viewer_0", 7, False),
+    ("open_viewer_1", 7, False),
     ("retrieve_notebook_config", 20, False),
     ("run_pipeline_0", 10, False),
 )
 NB_REPLACE = '"/path/to/notebook"'
 CONFIG_REPLACE = '"/path/to/config.ini"'
-REPLACEMENTS = {
-    "method": '"prob"',
-    "{tile}": "1",
-    "n_rounds": "7",
-    "n_channels": "9",
-    "n_gene_codes": "11",
-    "score_thresh": "0.05",
-    "intensity_thresh": "0.05",
-    "page_name": "omp",
-}
-
-
-def run_python_script(script_path, timeout):
-    # Start the process and run the Python script
-    process = subprocess.Popen(["python", script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    # Wait for the process to complete, but give it a timeout (in seconds).
-    start_time = time.time()
-    while True:
-        if process.poll() is not None:
-            break
-        if time.time() - start_time > timeout:
-            print("Timeout exceeded. Killing the process.")
-            process.kill()
-            return
-        time.sleep(0.2)
-
-    # Get the output and errors from the process
-    stdout, stderr = process.communicate()
-
-    if process.returncode != 0 and "EOFError" not in stderr.decode():
-        raise AssertionError(f"Error occurred: {stderr.decode()}")
-    else:
-        print(f"Script output:\n{stdout.decode()}")
+GENE_MARKER_REPLACE = '"/path/to/custom/gene_marker_file.csv"'
+REPLACEMENTS = OrderedDict(
+    [
+        ("method", '"prob"'),
+        ("{tile}", "1"),
+        ("n_rounds", "7"),
+        ("n_channels", "9"),
+        ("n_gene_codes", "11"),
+        ("score_thresh", "0.05"),
+        ("intensity_thresh", "0.05"),
+        ("page_name", "omp"),
+        ("Viewer(nb)", 'Viewer(nb, gene_marker_filepath="/path/to/custom/gene_marker_file.csv")'),
+        ("Viewer(nb, ", "import matplotlib\nmatplotlib.use('Agg')\nViewer(nb, show=False, "),
+    ]
+)
 
 
 @pytest.mark.notebook
 def test_all_docs() -> None:
     # Snippets of code used in the docs are integration tested to ensure that they do not crash when run. All code is
-    # run with a timeout so code that hangs waiting for an input is not stuck forever.
-    docs_dir = path.dirname(path.dirname(__file__))
+    # run with a timeout so code that hangs waiting for an input (or takes a long compute time) is not stuck forever.
+    docs_dir = os.path.dirname(os.path.dirname(__file__))
 
-    config_path = path.join(path.dirname(docs_dir), "robominnie", "test", ".integration_dir", "robominnie.ini")
-    nb_path = path.join(path.dirname(config_path), "output_coppafisher", "notebook")
+    config_path = os.path.join(os.path.dirname(docs_dir), "robominnie", "test", ".integration_dir", "robominnie.ini")
+    gene_marker_path = os.path.join(
+        os.path.dirname(docs_dir), "robominnie", "test", ".integration_dir", "gene_colours.csv"
+    )
+    nb_path = os.path.join(os.path.dirname(config_path), "output_coppafisher", "notebook")
     tmp_dir = tempfile.TemporaryDirectory(prefix="coppafisher")
 
+    pool = multiprocessing.Pool(1)
+
     with tempfile.TemporaryDirectory(suffix="coppafisher_nb") as temp_dir:
-        nb_path_copy = path.join(temp_dir, "notebook_copy")
+        nb_path_copy = os.path.join(temp_dir, "notebook_copy")
         shutil.copytree(nb_path, nb_path_copy)
 
         last_test_modified_nb = False
@@ -79,30 +67,33 @@ def test_all_docs() -> None:
             if last_test_modified_nb:
                 # Make a copy of the notebook before trying our scripts on it, this way code that modifies the notebook
                 # won't modify the original.
-                if path.isdir(nb_path_copy):
+                if os.path.isdir(nb_path_copy):
                     shutil.rmtree(nb_path_copy)
                 shutil.copytree(nb_path, nb_path_copy)
 
-            script_file_path = path.join(docs_dir, file_name + ".py")
-            if path.isdir(script_file_path):
+            script_file_path = os.path.join(docs_dir, file_name + ".py")
+            if os.path.isdir(script_file_path):
                 continue
             if not script_file_path.endswith(".py"):
                 continue
 
             with open(script_file_path, "r") as file:
-                code = "".join(file.readlines())
+                code = "\n".join(file.readlines())
 
+            for replace_content, replace_to in REPLACEMENTS.items():
+                code = code.replace(replace_content, replace_to)
             # Replace any temp notebook paths with a real notebook path.
             code = code.replace(NB_REPLACE, f'r"{nb_path_copy}"')
             code = code.replace(CONFIG_REPLACE, f'r"{config_path}"')
-            for replace_content, replace_to in REPLACEMENTS.items():
-                code = code.replace(replace_content, replace_to)
+            code = code.replace(GENE_MARKER_REPLACE, f'r"{gene_marker_path}"')
 
-            new_script_path = path.join(tmp_dir.name, "python_temp_run.py")
-            with open(new_script_path, mode="w") as new_file:
-                new_file.write(code)
+            res = pool.apply_async(exec, [code])
+            try:
+                res.get(timeout=timeout)
+            except (EOFError, multiprocessing.TimeoutError):
+                # An EOFError occurs when there is the use of `input()` in the code being run.
+                pass
 
-            run_python_script(new_script_path, timeout)
             last_test_modified_nb = modifies_nb
 
     tmp_dir.cleanup()
