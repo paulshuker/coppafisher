@@ -5,6 +5,7 @@ repo_url: https://github.com/paulshuker/coppafisher
 theme:
   name: material
   logo: images/logo.svg
+  favicon: images/logo.png
 
   icon:
     repo: fontawesome/brands/github

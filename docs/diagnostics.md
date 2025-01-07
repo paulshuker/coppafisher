@@ -35,7 +35,7 @@ nb = Notebook("/path/to/notebook")
 Viewer(nb, gene_marker_file="/path/to/custom/gene_marker_file.csv")
 ```
 
-or by the terminal
+or from the terminal
 
 ```terminal
 python -m coppafisher -v /path/to/notebook --gene_marker /path/to/gene_marker.csv
@@ -93,8 +93,8 @@ nb = Notebook("/path/to/notebook")
 RegistrationViewer(nb, "/path/to/config.ini" t=t)
 ```
 
-where `t` is a tile index you want to view registration results for. If `t` is set to `None` (default), then the lowest
-tile index is displayed.
+`t` is a tile index you want to view registration results for. If `t` is set to `None` (default), then the lowest tile
+index is displayed.
 
 ## PDF Diagnostics
 
