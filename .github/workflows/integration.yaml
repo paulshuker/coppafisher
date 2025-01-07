@@ -3,7 +3,6 @@ name: CI
 # Trigger on any push or pull requests.
 on:
   push:
-  pull_request:
 
 jobs:
   run-tests:
