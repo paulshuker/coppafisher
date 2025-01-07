@@ -38,7 +38,7 @@ REPLACEMENTS = OrderedDict(
         ("intensity_thresh", "0.05"),
         ("page_name", "omp"),
         ("Viewer(nb)", 'Viewer(nb, gene_marker_filepath="/path/to/custom/gene_marker_file.csv")'),
-        ("Viewer(nb, ", "Viewer(nb, show=False, "),
+        ("Viewer(nb, ", "import matplotlib\nmatplotlib.use('Agg')\nViewer(nb, show=False, "),
     ]
 )
 
