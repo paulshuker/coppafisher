@@ -141,7 +141,7 @@ def initialize_notebook(config_path: str) -> Tuple[Notebook, NotebookPage, Confi
 
     # Check the notebook for backwards incompatibilities caused by old data.
     compatible_tracker = utils_version.CompatibilityTracker()
-    if not compatible_tracker.notebook_is_compatible(nb):
+    if not compatible_tracker.is_notebook_compatible(nb.get_all_versions()):
         raise ValueError("The notebook contains incompatible data. Please see the log above for advice")
 
     online_version = utils_system.get_remote_software_version()
