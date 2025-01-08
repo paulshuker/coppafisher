@@ -322,4 +322,3 @@ def test_Config() -> None:
 
     parent_dir.cleanup()
     tmpdir.cleanup()
-    tmpfile.close()
