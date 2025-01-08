@@ -1,7 +1,6 @@
 build
 **/integration_dir*
 **/.integration_dir*
-**/unit_test_dir
 **/.DS_Store
 **/.vscode
 **/temp/**

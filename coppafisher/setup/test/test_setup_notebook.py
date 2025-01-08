@@ -15,7 +15,8 @@ from coppafisher.utils import system
 def test_Notebook() -> None:
     rng = np.random.RandomState(0)
 
-    nb_path = os.path.join(os.getcwd(), ".notebook_test")
+    nb_temp_dir = tempfile.TemporaryDirectory("coppafisher_nb")
+    nb_path = os.path.join(nb_temp_dir.name, ".notebook_test")
     if os.path.isdir(nb_path):
         shutil.rmtree(nb_path)
     config_path = os.path.abspath("dslkhgdsjlgh")
@@ -211,9 +212,7 @@ def test_Notebook() -> None:
     assert not nb.has_page("debug")
     assert not os.path.exists(os.path.join(nb_path, "debug"))
 
-    # Delete the temporary notebook once done testing.
-    shutil.rmtree(nb_path)
-
     # Clean any temporary files/directories.
+    nb_temp_dir.cleanup()
     temp_zarr.cleanup()
     temp_zgroup.cleanup()

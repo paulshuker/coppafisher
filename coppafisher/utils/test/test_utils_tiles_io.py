@@ -1,4 +1,5 @@
 import os
+import tempfile
 
 import numpy as np
 
@@ -6,7 +7,8 @@ from coppafisher.utils import tiles_io
 
 
 def test_save_load_image():
-    directory = os.path.join(os.path.dirname(os.path.realpath(__file__)), "unit_test_dir")
+    temp_dir = tempfile.TemporaryDirectory("coppafisher_utils_tiles_io")
+    directory = os.path.join(temp_dir.name, "unit_test_dir")
 
     if not os.path.isdir(directory):
         os.mkdir(directory)
@@ -19,6 +21,8 @@ def test_save_load_image():
 
     array_1_returned = tiles_io._load_image(array_1_path)
     assert np.allclose(array_1_returned, array_1)
+
+    temp_dir.cleanup()
 
 
 # TODO: get_npy_tile_ind unit tests.
