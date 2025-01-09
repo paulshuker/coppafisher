@@ -2,6 +2,7 @@
  * Documentation: Hyperlink and OMP method fixes.
  * Viewer: Can now middle mouse click a gene spot in the gene legend to toggle the gene colour on/off.
  * Viewer: Gene legend help when pressing 'h'.
+ * Register: Larger correlation chunk size to improve compression and reduce file count.
  * Diagnostics: Viewer2D removed.
  * Spot Colours: Gathering of filter image data could crash if subset is small fix.
 

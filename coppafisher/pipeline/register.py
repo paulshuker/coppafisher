@@ -116,7 +116,7 @@ def register(
         mode="w",
         shape=raw_smooth_shape[:2] + raw_smooth_shape[3:],
         dtype=np.float16,
-        chunks=raw_smooth_chunks[:1] + raw_smooth_chunks[3:],
+        chunks=(1, 1, nbp_basic.tile_sz, nbp_basic.tile_sz, 1),
         zarr_version=2,
     )
     zarr.open_array(
