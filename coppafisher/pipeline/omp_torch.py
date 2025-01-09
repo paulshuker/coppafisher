@@ -128,7 +128,7 @@ def run_omp(
     if any([(dim % 2 == 0) and (dim > 0) for dim in mean_spot.shape]):
         raise ValueError(f"Mean spot must have all odd dimension shapes, got {mean_spot.shape}")
     if not np.allclose(mean_spot, mean_spot[:, :, ::-1]):
-        raise ValueError(f"The mean spot must be symmetrical along the middle z plane")
+        raise ValueError("The mean spot must be symmetrical along the middle z plane")
     nbp.mean_spot = np.array(mean_spot, np.float32)
     mean_spot = torch.from_numpy(nbp.mean_spot)
 

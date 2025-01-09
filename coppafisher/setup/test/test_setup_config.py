@@ -38,7 +38,8 @@ def test_Config() -> None:
         "23": ("maybe_tuple_file", "file-exists"),
         "24": ("maybe_tuple_dir", "dir-exists"),
     }
-    dir = os.path.dirname(__file__)
+    parent_dir = tempfile.TemporaryDirectory()
+    dir = parent_dir.name
     tmpdir = tempfile.TemporaryDirectory(dir=dir)
     tmpdir2 = tempfile.TemporaryDirectory(dir=dir)
     tmpfile = tempfile.NamedTemporaryFile(dir=dir)
@@ -319,5 +320,5 @@ def test_Config() -> None:
         except Config.ParamError as e:
             assert " " + param_name + " " in str(e)
 
+    parent_dir.cleanup()
     tmpdir.cleanup()
-    tmpfile.close()

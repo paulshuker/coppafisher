@@ -58,11 +58,10 @@ Close the Viewer and all subplots by pressing Ctrl + C in the terminal.
 ### Description
 
 The greyscale signal in the background is the DAPI by default, where whiter regions indicate cells. Each gene is given
-a unique shape and colour, shown in the gene legend. A gene can be toggled by left clicking on it in the gene legend,
-right click a gene to show only that type. Right click it again to show all genes again.
+a shape and colour, shown in the gene legend.
 
-For help with Viewer hotkeys, press h. This includes further diagnostic subplots in the Viewer. Some require a selected
-spot. Select a spot by pressing 3 and clicking on a spot. Press 4 to continue panning.
+For help with Viewer hotkeys and gene selection, press h. This includes further diagnostic subplots in the Viewer. Some
+require a selected spot. Select a spot by pressing 3 and clicking on a spot. Then press 4 to continue panning.
 
 The "Background Contrast" slider will affect the colour scale of the background image. "Marker Size" will change the
 size of gene spots. "Z Thickness" allows for multiple z planes to be displayed at once. The "Score Thresholds" allows
