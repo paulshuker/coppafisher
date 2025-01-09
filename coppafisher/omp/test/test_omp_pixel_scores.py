@@ -6,7 +6,74 @@ from coppafisher.omp.pixel_scores import PixelScoreSolver
 
 # TODO: Create solid pixel score compute assertions for this unit test. The bled codes and pixel colours are L2
 # normalised now during semi dot product scoring, so this needs updating.
-def test_solve() -> None: ...
+def test_solve() -> None:
+    rng = np.random.RandomState(0)
+
+    dtype = np.float32
+    n_pixels = 5
+    n_genes = 7
+    n_rounds = 2
+    n_channels = 3
+
+    solver = PixelScoreSolver()
+    pixel_colours = rng.rand(n_pixels, n_rounds, n_channels).astype(dtype)
+    bled_codes = rng.rand(n_genes, n_rounds, n_channels).astype(dtype)
+    bled_codes /= np.linalg.norm(bled_codes, axis=(-1, -2), keepdims=True)
+    bg_codes = solver.create_background_bled_codes(n_rounds, n_channels)
+    maximum_iterations = 4
+    dot_product_threshold = 0.001
+    minimum_intensity = 0.0
+    alpha = 0.0
+    beta = 1.0
+
+    # Simple checks for consistent results and correct shapes.
+    previous_result = None
+    for return_all_scores in (True, False):
+        for return_all_residuals in (True, False):
+            result = solver.solve(
+                pixel_colours,
+                bled_codes,
+                bg_codes,
+                maximum_iterations,
+                dot_product_threshold,
+                minimum_intensity,
+                alpha,
+                beta,
+                return_all_scores=return_all_scores,
+                return_all_residuals=return_all_residuals,
+            )
+            if return_all_scores:
+                assert type(result[1]) is np.ndarray
+                assert result[1].shape[0] >= 1
+                assert result[1].shape[1:] == (n_pixels, n_genes + n_channels)
+                assert result[1].dtype == dtype
+                assert (result[1] >= 0).all()
+            if return_all_residuals:
+                assert type(result[1 + int(return_all_scores)]) is np.ndarray
+                assert result[1 + int(return_all_scores)].shape == (n_pixels, n_genes, n_rounds, n_channels)
+                assert result[1 + int(return_all_scores)].dtype == dtype
+            if type(result) is tuple:
+                result = result[0]
+            assert type(result) is np.ndarray
+            assert result.shape == (n_pixels, n_genes)
+            assert result.dtype == dtype
+            if previous_result is not None:
+                assert np.allclose(result, previous_result)
+            previous_result = result
+
+    # Ensure the number of assigned genes only decreases as the dot product threshold increases.
+    previous_n_genes_assigned = n_pixels * n_genes + 1
+    for dp_threshold in [dot_product_threshold + 0.001 * i for i in range(1, 100)]:
+        result = solver.solve(
+            pixel_colours, bled_codes, bg_codes, maximum_iterations, dp_threshold, minimum_intensity, alpha, beta
+        )
+        n_genes_assigned = (~np.isclose(result, 0)).sum()
+        assert n_genes_assigned < n_pixels * n_genes + 1
+        assert n_genes_assigned <= previous_n_genes_assigned
+
+        previous_n_genes_assigned = n_genes_assigned
+
+    # TODO: Run with obvious expected gene assignments.
 
 
 def test_get_next_gene_assignments() -> None:

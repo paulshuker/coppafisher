@@ -49,7 +49,8 @@ class PixelScoreSolver:
         Args:
             pixel_colours (`(n_pixels x n_rounds_use x n_channels_use) ndarray[float]`): pixel intensity in each
                 sequencing round and channel.
-            bled_codes (`(n_genes x n_rounds_use x n_channels_use) ndarray[float32]`): every gene bled code.
+            bled_codes (`(n_genes x n_rounds_use x n_channels_use) ndarray[float32]`): every gene bled code. Each gene
+                must be L2 normalised over all rounds and channels.
             background_codes (`(n_channels_use x n_rounds_use x n_channels_use) tensor[float]`): the background bled
                 codes. These are simply uniform brightness in one channel for all rounds. background_codes[0] is the
                 first code, background_codes[1] is the second code, etc.
@@ -63,7 +64,7 @@ class PixelScoreSolver:
             return_all_scores (bool, optional): return all gene round dot product scores on each iteration. Default:
                 false.
             return_all_weights (bool, optional): return all gene bled code weights for every gene that was assigned.
-                Default: false.
+                This only works for when n_pixels is 1. Default: false.
             return_all_residuals (bool, optional): return all residual colours used to compute the final pixel scores.
                 Default: false.
             force_cpu (bool, optional): only use the CPU to solve. Default: true.
@@ -87,7 +88,8 @@ class PixelScoreSolver:
 
         Notes:
             - All computations are run with 32-bit float precision.
-            - The boolean flags are only used in OMP subplots to gather additional OMP insight.
+            - The boolean flags are only used in OMP subplots to gather additional insight, they do not affect the final
+                  pixel score results.
         """
         n_pixels, n_rounds_use, n_channels_use = pixel_colours.shape
         n_rounds_channels_use = n_rounds_use * n_channels_use
@@ -102,6 +104,8 @@ class PixelScoreSolver:
         assert type(beta) is float
         assert type(return_all_scores) is bool
         assert type(return_all_weights) is bool
+        if return_all_weights:
+            assert n_pixels == 1
         assert type(return_all_residuals) is bool
         assert type(force_cpu) is bool
         assert maximum_iterations > 0
