@@ -8,7 +8,7 @@ class CompatibilityTracker:
     # Every key is a pipeline stage, given in order. Each value are the page names produced during the stage.
     # The pipeline stages are given in chronological order.
     _stages: OrderedDict[str, str] = OrderedDict(
-        [
+        (
             ("initialisation", "basic_info"),
             ("extract", "extract"),
             ("filter", "filter and filter_debug"),
@@ -19,19 +19,19 @@ class CompatibilityTracker:
             ("call_spots", "call_spots"),
             ("omp", "omp"),
             ("none", "none"),
-        ]
+        )
     )
     # For each coppafisher version, this is the earliest stage that requires re-running as a result of the changes is
     # given relative to the version before.
     # NOTE: This must be appended to for each future version release.
     _version_compatibility: OrderedDict[str, str] = OrderedDict(
-        [
+        (
             ("0.10.6", "extract"),
             ("0.10.7", "filter"),
             ("0.10.8", "none"),
             ("1.0.0", "initialisation"),
-            ("1.1.0", "none"),
-        ]
+            ("1.0.1", "none"),
+        )
     )
     _stage_instructions: list[tuple[str, ...]]
 

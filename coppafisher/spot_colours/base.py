@@ -271,12 +271,12 @@ def get_spot_colours_new(
 
     # Gather the smallest sized cuboid of filter image data to bilinear-interpolate all yxz_t coordinates.
     # This saves tons of disk read time and avoids memory crashing.
-    yxz_t_min = yxz_t.min(0)[0].min(0)[0].min(0)[0].floor().clamp(0)
-    yxz_t_max = yxz_t.max(0)[0].max(0)[0].max(0)[0].ceil().clamp(yxz_t_min, torch.tensor(tile_shape)).int().tolist()
+    yxz_t_min = yxz_t.amin(dim=(0, 1, 2)).floor().clamp(torch.zeros(3), torch.tensor(tile_shape) - 1)
+    yxz_t_max = yxz_t.amax(dim=(0, 1, 2)).ceil().clamp(yxz_t_min, torch.tensor(tile_shape) - 1) + 1
     yxz_t_min = yxz_t_min.int().tolist()
-    yxz_t_max = [min(dim + 1, tile_shape[i]) for i, dim in enumerate(yxz_t_max)]
-    subset_tile_shape: tuple[int] = tuple([yxz_t_max[i] - yxz_t_min[i] for i in range(3)])
-    subset_tile_shape = tuple([max(shape, 1) for shape in subset_tile_shape])
+    yxz_t_max = yxz_t_max.int().tolist()
+    subset_tile_shape: tuple[int, int, int] = tuple([yxz_t_max[i] - yxz_t_min[i] for i in range(3)])
+
     image_t = torch.zeros((len(use_rounds), len(use_channels), 1) + subset_tile_shape, dtype=torch.float32)
     for r in use_rounds:
         for c_index, c in enumerate(use_channels):
