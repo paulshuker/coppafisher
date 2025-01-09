@@ -1,6 +1,6 @@
 name: CI
 
-# Trigger on any push or pull requests.
+# Trigger on commits.
 on:
   push:
 
