@@ -3,7 +3,6 @@ import os
 
 import numpy as np
 
-from .. import log
 from ..extract import nd2
 from ..setup import tile_details
 from ..setup.config import Config

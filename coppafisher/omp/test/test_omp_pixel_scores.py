@@ -2,10 +2,9 @@ import numpy as np
 import torch
 
 from coppafisher.omp.pixel_scores import PixelScoreSolver
+from coppafisher.utils import base
 
 
-# TODO: Create solid pixel score compute assertions for this unit test. The bled codes and pixel colours are L2
-# normalised now during semi dot product scoring, so this needs updating.
 def test_solve() -> None:
     rng = np.random.RandomState(0)
 
@@ -63,7 +62,7 @@ def test_solve() -> None:
 
     # Ensure the number of assigned genes only decreases as the dot product threshold increases.
     previous_n_genes_assigned = n_pixels * n_genes + 1
-    for dp_threshold in [dot_product_threshold + 0.001 * i for i in range(1, 100)]:
+    for dp_threshold in [dot_product_threshold + 0.001 * i for i in range(1, 100)] + [10.0]:
         result = solver.solve(
             pixel_colours, bled_codes, bg_codes, maximum_iterations, dp_threshold, minimum_intensity, alpha, beta
         )
@@ -73,7 +72,54 @@ def test_solve() -> None:
 
         previous_n_genes_assigned = n_genes_assigned
 
-    # TODO: Run with obvious expected gene assignments.
+    # Run with obvious expected gene assignments.
+    n_channels = 4
+    n_rounds = 5
+    n_pixels = 8
+    pixel_colours = np.zeros((n_pixels, n_rounds, n_channels), dtype)
+    bled_codes = np.zeros((n_genes, n_rounds, n_channels), dtype)
+    bg_codes = solver.create_background_bled_codes(n_rounds, n_channels)
+    minimum_intensity = 0.2
+    reed_bled_codes = base.reed_solomon_codes(n_genes, n_rounds, n_channels)
+    for g, gene_code in enumerate(reed_bled_codes.values()):
+        for r, digit in enumerate(gene_code):
+            bled_codes[g, r, int(digit)] = 2
+    bled_codes += rng.rand(n_genes, n_rounds, n_channels) * 0.02
+    bled_codes /= np.linalg.norm(bled_codes, axis=(-1, -2), keepdims=True)
+    maximum_iterations = 2
+    dot_product_threshold = 0.5
+    expected_gene_assignments = [(0, 2), (1, 2), (4, 5), (4,), (6,), (0, 6), tuple(), (0,)]
+    for p, gene_assignments in enumerate(expected_gene_assignments):
+        pixel_colours[p] = 0
+        for g in gene_assignments:
+            pixel_colours[p] += (rng.rand() + 2) * bled_codes[g]
+    result = solver.solve(
+        pixel_colours, bled_codes, bg_codes, maximum_iterations, dot_product_threshold, minimum_intensity, alpha, beta
+    )
+    for p in range(n_pixels):
+        assert (~np.isclose(result[p], 0)).sum() == len(expected_gene_assignments[p])
+        for g in expected_gene_assignments[p]:
+            assert (result[p] > 0)[g]
+
+    # Check gene assignments fail if the pixel colour is too low in intensity.
+    dim_gene_assignments = [True, False, True, True, False, False, False, True]
+    for p, dim in enumerate(dim_gene_assignments):
+        if not dim:
+            continue
+        intensity = np.abs(pixel_colours[p].copy()).max(1).min(0).item()
+        pixel_colours[p] *= (0.9 + rng.rand() * 0.1) * minimum_intensity / intensity
+        intensity = np.abs(pixel_colours[p].copy()).max(1).min(0).item()
+        assert intensity < minimum_intensity
+    result = solver.solve(
+        pixel_colours, bled_codes, bg_codes, maximum_iterations, dot_product_threshold, minimum_intensity, alpha, beta
+    )
+    for p, dim in enumerate(dim_gene_assignments):
+        if dim:
+            assert (~np.isclose(result[p], 0)).sum() == 0
+            continue
+        assert (~np.isclose(result[p], 0)).sum() == len(expected_gene_assignments[p])
+        for g in expected_gene_assignments[p]:
+            assert (result[p] > 0)[g]
 
 
 def test_get_next_gene_assignments() -> None:

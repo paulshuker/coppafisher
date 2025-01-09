@@ -4,8 +4,6 @@ import numpy as np
 import scipy
 import torch
 
-from .. import log
-
 
 def get_isolated_spots(
     yxz_positions: Union[torch.Tensor, np.ndarray],

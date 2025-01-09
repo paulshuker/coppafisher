@@ -10,8 +10,6 @@ end_of_line = crlf
 indent_style = space
 indent_size = 4
 
-[*.md]
-max_line_length = 120
-
-[*.ini]
-max_line_length = 120
+[*.toml]
+indent_style = space
+indent_size = 4
