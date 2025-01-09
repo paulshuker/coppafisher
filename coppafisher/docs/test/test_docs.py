@@ -54,7 +54,6 @@ def test_all_docs() -> None:
         os.path.dirname(docs_dir), "robominnie", "test", ".integration_dir", "gene_colours.csv"
     )
     nb_path = os.path.join(os.path.dirname(config_path), "output_coppafisher", "notebook")
-    tmp_dir = tempfile.TemporaryDirectory(prefix="coppafisher")
 
     pool = multiprocessing.Pool(1)
 
@@ -95,5 +94,3 @@ def test_all_docs() -> None:
                 pass
 
             last_test_modified_nb = modifies_nb
-
-    tmp_dir.cleanup()

@@ -6,8 +6,6 @@ import numpy as np
 import tqdm
 import zarr
 
-from .. import log
-
 
 def deep_convert(value: Iterable[Any], conversion: Callable = tuple, /) -> Tuple[Any]:
     """
