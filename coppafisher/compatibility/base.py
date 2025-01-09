@@ -43,7 +43,7 @@ class CompatibilityTracker:
             ("0.10.7", "filter"),
             ("0.10.8", "none"),
             ("1.0.0", "initialisation"),
-            ("1.1.0", "none"),
+            ("1.0.1", "none"),
         )
     )
     # For each stage, instructions are given on how to remove all data during and after said stage.
