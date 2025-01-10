@@ -143,6 +143,19 @@ class Legend:
             return self._plot_index_to_gene_index.tolist()[plot_index]
         return None
 
+    def get_help(self) -> tuple[str, ...]:
+        """
+        Get lines of help for interacting with the legend.
+
+        Returns:
+            (tuple of str): help_lines. Each line of help.
+        """
+        return (
+            "(Left mouse click gene symbol) toggle the gene on/off",
+            "(Right mouse click gene symbol) toggle showing the gene alone",
+            "(Middle mouse click gene symbol) toggle the genes with the same colour on/off",
+        )
+
     def _hue_sort(self, colours: np.ndarray[float]) -> np.ndarray[float]:
         """
         The given colours are sorted based on their hues.

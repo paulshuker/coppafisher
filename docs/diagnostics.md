@@ -12,10 +12,7 @@ A Viewer can be displayed once coppafisher has run through at least [call spots]
 terminal:
 
 ```py
-from coppafisher import Notebook, Viewer
-
-nb = Notebook("/path/to/notebook")
-Viewer(nb)
+--8<-- "open_viewer_0.py"
 ```
 
 or from the command line
@@ -29,13 +26,10 @@ where a napari window will be opened.
 You can specify the colour and symbols of genes using a .csv file, then the Viewer can be opened by
 
 ```py
-from coppafisher import Notebook, Viewer
-
-nb = Notebook("/path/to/notebook")
-Viewer(nb, gene_marker_file="/path/to/custom/gene_marker_file.csv")
+--8<-- "open_viewer_1.py"
 ```
 
-or by the terminal
+or from the terminal
 
 ```terminal
 python -m coppafisher -v /path/to/notebook --gene_marker /path/to/gene_marker.csv
@@ -64,11 +58,10 @@ Close the Viewer and all subplots by pressing Ctrl + C in the terminal.
 ### Description
 
 The greyscale signal in the background is the DAPI by default, where whiter regions indicate cells. Each gene is given
-a unique shape and colour, shown in the gene legend. A gene can be toggled by left clicking on it in the gene legend,
-right click a gene to show only that type. Right click it again to show all genes again.
+a shape and colour, shown in the gene legend.
 
-For help with Viewer hotkeys, press h. This includes further diagnostic subplots in the Viewer. Some require a selected
-spot. Select a spot by pressing 3 and clicking on a spot. Press 4 to continue panning.
+For help with Viewer hotkeys and gene selection, press h. This includes further diagnostic subplots in the Viewer. Some
+require a selected spot. Select a spot by pressing 3 and clicking on a spot. Then press 4 to continue panning.
 
 The "Background Contrast" slider will affect the colour scale of the background image. "Marker Size" will change the
 size of gene spots. "Z Thickness" allows for multiple z planes to be displayed at once. The "Score Thresholds" allows
@@ -93,26 +86,14 @@ nb = Notebook("/path/to/notebook")
 RegistrationViewer(nb, "/path/to/config.ini" t=t)
 ```
 
-where `t` is a tile index you want to view registration results for. If `t` is set to `None` (default), then the lowest
-tile index is displayed.
+`t` is a tile index you want to view registration results for. If `t` is set to `None` (default), then the lowest tile
+index is displayed.
 
 ## PDF Diagnostics
 
 During a pipeline run, multiple .pdf files are created for different sections. These are located in the output
 directory. If you want the PDFs to be created again, delete the old ones first, then
 [run coppafisher](basic_usage.md/#running) again.
-
-## Viewer2D
-
-To open
-```python
-from coppafisher import Notebook, Viewer2D
-
-nb = Notebook("/path/to/notebook")
-Viewer2D(nb)
-```
-
-The viewer is updated by typing commands in the terminal. To find out the available commands, type `help` or `h`.
 
 ## Viewing images
 

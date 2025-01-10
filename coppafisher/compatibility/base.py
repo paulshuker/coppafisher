@@ -1,39 +1,26 @@
 from collections import OrderedDict
 
 from .. import log
-from ..setup.notebook import Notebook
 from ..utils import system
-
-# Each pipeline stage, this is slightly different to each coppafisher page.
-STAGES: list[str] = [
-    "initialisation",
-    "extract",
-    "filter",
-    "find_spots",
-    "register",
-    "stitch",
-    "ref_spots",
-    "call_spots",
-    "omp",
-    "none",
-]
-# The page names associated with each stage. For multiple pages, they must be separated by a comma followed by a
-# space.
-PAGE_NAMES: tuple[str] = (
-    "basic_info and file_names",
-    "extract",
-    "filter and filter_debug",
-    "find_spots",
-    "register and register_debug",
-    "stitch",
-    "ref_spots",
-    "call_spots",
-    "omp",
-    "none",
-)
 
 
 class CompatibilityTracker:
+    # Every key is a pipeline stage, given in order. Each value are the page names produced during the stage.
+    # The pipeline stages are given in chronological order.
+    _stages: OrderedDict[str, str] = OrderedDict(
+        (
+            ("initialisation", "basic_info"),
+            ("extract", "extract"),
+            ("filter", "filter and filter_debug"),
+            ("find_spots", "find_spots"),
+            ("register", "register and register_debug"),
+            ("stitch", "stitch"),
+            ("ref_spots", "ref_spots"),
+            ("call_spots", "call_spots"),
+            ("omp", "omp"),
+            ("none", "none"),
+        )
+    )
     # For each coppafisher version, this is the earliest stage that requires re-running as a result of the changes is
     # given relative to the version before.
     # NOTE: This must be appended to for each future version release.
@@ -43,57 +30,61 @@ class CompatibilityTracker:
             ("0.10.7", "filter"),
             ("0.10.8", "none"),
             ("1.0.0", "initialisation"),
+            ("1.0.1", "none"),
         )
     )
-    # For each stage, instructions are given on how to remove all data during and after said stage.
-    _stage_instructions: list[tuple[str]] = [
-        (
-            "Clear the output directory. Delete the notebook",
-            "Delete the 'extract' subdirectory inside of the 'tiles' directory",
-        ),
-        (
-            "Clear the output directory. Delete the notebook",
-            "Delete the 'extract' subdirectory inside of the 'tiles' directory",
-        ),
-        ("Clear the output directory. Delete the notebook",),
-        (
-            "Clear the output directory except the notebook",
-            f"Remove notebook page {PAGE_NAMES[3]} and all later pages",
-        ),
-        (
-            "Clear the output directory except the notebook",
-            f"Remove notebook page {PAGE_NAMES[4]} and all later pages",
-        ),
-        (
-            "Clear the output directory except the notebook",
-            f"Remove notebook page {PAGE_NAMES[5]} and all later pages",
-        ),
-        (
-            "Clear the output directory except the notebook",
-            f"Remove notebook page {PAGE_NAMES[6]} and all later pages",
-        ),
-        (
-            "Clear the output directory except the notebook",
-            f"Remove notebook page {PAGE_NAMES[7]} and all later pages",
-        ),
-        (
-            "Clear the output directory except the notebook",
-            f"Remove notebook page {PAGE_NAMES[8]} and all later pages",
-        ),
-        ("Do nothing",),
-    ]
+    _stage_instructions: list[tuple[str, ...]]
 
     def __init__(self) -> None:
-        assert len(PAGE_NAMES) == len(STAGES)
-        assert len(STAGES) == len(self._stage_instructions)
+        # For each stage, instructions are given on how to remove all data during and after said stage.
+        self._stage_instructions = [
+            (
+                "Clear the output directory. Delete the notebook",
+                "Delete the 'extract' subdirectory inside of the 'tiles' directory",
+            ),
+            (
+                "Clear the output directory. Delete the notebook",
+                "Delete the 'extract' subdirectory inside of the 'tiles' directory",
+            ),
+            ("Clear the output directory. Delete the notebook",),
+            (
+                "Clear the output directory except the notebook",
+                f"Remove notebook page {list(self._stages.values())[3]} and all later pages",
+            ),
+            (
+                "Clear the output directory except the notebook",
+                f"Remove notebook page {list(self._stages.values())[4]} and all later pages",
+            ),
+            (
+                "Clear the output directory except the notebook",
+                f"Remove notebook page {list(self._stages.values())[5]} and all later pages",
+            ),
+            (
+                "Clear the output directory except the notebook",
+                f"Remove notebook page {list(self._stages.values())[6]} and all later pages",
+            ),
+            (
+                "Clear the output directory except the notebook",
+                f"Remove notebook page {list(self._stages.values())[7]} and all later pages",
+            ),
+            (
+                "Clear the output directory except the notebook",
+                f"Remove notebook page {list(self._stages.values())[8]} and all later pages",
+            ),
+            ("Do nothing",),
+        ]
+        assert len(self._stages) == len(self._stage_instructions)
 
-    def check(self, from_version: str, to_version: str) -> None:
+    def check(self, from_version: str, to_version: str) -> tuple[str, ...]:
         """
         Check what output files can be kept when migrating between software versions.
 
         Args:
-            - from_version (str): old software version.
-            - to_version (str): software version migrating to.
+            from_version (str): old software version.
+            to_version (str): software version migrating to.
+
+        Returns:
+            (tuple of str): output. Each given line of output.
         """
         assert type(from_version) is str
         assert type(to_version) is str
@@ -108,28 +99,38 @@ class CompatibilityTracker:
         earliest_stage, _ = self._get_earliest_stage_between(from_version, to_version)
 
         # Find and print the instructions to migrate from the earliest stage.
-        log.info(f"Migrating from coppafisher {from_version} to {to_version}:")
-        self.print_start_from(earliest_stage)
-        log.info(
+        instructions = []
+        instructions.append(f"Migrating from coppafisher {from_version} to {to_version}:")
+        instructions += self.get_start_from(earliest_stage)
+        instructions.append(
             "To delete notebook pages, see Usage -> Advanced Usage at "
             + "https://paulshuker.github.io/coppafisher/advanced_usage/#delete-notebook-page in the documentation"
         )
+        for instruction in instructions:
+            log.info(instruction)
 
-    def notebook_is_compatible(self, nb: Notebook) -> bool:
+        return instructions
+
+    def is_notebook_compatible(self, nb_page_versions: dict[str, str], current_version: str | None = None) -> bool:
         """
         Check if the notebook contains incompatible data from older software versions. If so, a warning is printed and
         false is returned.
 
         Args:
-            nb (Notebook): the notebook.
+            nb_page_versions (dict[str, str]): every notebook page name as a key, each value is the notebook page's
+                software version when it was created.
+            current_version (str, optional): this current software version. Default: value in coppafisher/_version.py.
 
         Returns:
             (bool): valid. Whether all the notebook's data is compatible for this version of coppafisher.
         """
-        assert type(nb) is Notebook
+        assert type(nb_page_versions) is dict
+        if current_version is None:
+            current_version = system.get_software_version()
+        assert type(current_version) is str
+        assert current_version in self._version_compatibility, f"Unknown version {current_version} given"
 
-        current_version = system.get_software_version()
-        for page_name, page_version in nb.get_all_versions().items():
+        for page_name, page_version in nb_page_versions.items():
             _, page_stage_index = self._get_stage_with_page_name(page_name)
             if page_version not in self._version_compatibility:
                 raise ValueError(f"Notebook page {page_name} has unknown software version: {page_version}")
@@ -143,29 +144,42 @@ class CompatibilityTracker:
                     + f"{page_version} compared to current version {current_version}."
                 )
                 log.warn("The suggested course of action is:")
-                self.print_start_from(earliest_stage)
-                return False
-        return self._check_notebook_for_downgrade(nb)
+                [log.info(instruction) for instruction in self.get_start_from(earliest_stage)]
 
-    def print_start_from(self, stage: str) -> None:
+                return False
+
+        return not self._notebook_has_downgrade(nb_page_versions, current_version)
+
+    def get_start_from(self, stage: str) -> tuple[str, ...]:
         """
         Print the instructions on how to prepare the coppafisher pipeline to start from the given stage.
 
         Args:
             stage (str): the stage to start again from.
-        """
-        [log.info(f"    - {instruction}.") for instruction in self._stage_instructions[STAGES.index(stage)]]
 
-    def print_stage_names(self) -> None:
+        Returns:
+            (tuple of str): each instruction given.
+        """
+        instructions = self._stage_instructions[self._get_stage_index(stage)]
+
+        return instructions
+
+    def print_stage_names(self) -> str:
         """
         Print every stage that is part of coppafisher's pipeline in chronological order.
+
+        Returns:
+            (str): message. The message printed.
         """
         stage_names = []
-        for stage_name in STAGES:
+        for stage_name in self._stages:
             if stage_name == "none":
                 continue
             stage_names.append(stage_name)
-        print(f"Coppafisher stages: {', '.join(stage_names)}")
+        message = f"Coppafisher stages: {', '.join(stage_names)}"
+        print(message)
+
+        return message
 
     def has_version(self, version: str) -> bool:
         """
@@ -179,22 +193,24 @@ class CompatibilityTracker:
         """
         return version in self._version_compatibility
 
-    def _check_notebook_for_downgrade(self, nb: Notebook) -> bool:
+    def _notebook_has_downgrade(self, nb_page_versions: dict[str, str], current_version: str) -> bool:
         """
-        Check the given notebook for a version drop when going through the stages, which should be impossible. We do
-        not support users reverting back versions of the software and continuing a pipeline run as this has
+        Check the given notebook for a version drop when going through the stages in order, which should be impossible.
+        We do not support users reverting back versions of the software and continuing a pipeline run as this has
         unpredictable consequences.
 
         Args:
-            - nb (Notebook): the notebook to check. Does not have to contain all pages.
+            nb_page_versions (dict[str, str]): every notebook page name as a key, each value is the notebook page's
+                software version when it was created.
+            current_version (str): this current software version.
 
         Returns:
-            (bool) valid: true if the software version did not downgrade.
+            (bool) has_downgrade: true if the software version did downgrade.
         """
-        current_version = system.get_software_version()
-        current_version_index = list(self._version_compatibility.keys()).index(current_version)
-        for page_name, page_version in nb.get_all_versions().items():
-            page_version_index = list(self._version_compatibility.keys()).index(page_version)
+        ordered_version_list = list(self._version_compatibility)
+        current_version_index = ordered_version_list.index(current_version)
+        for page_name, page_version in nb_page_versions.items():
+            page_version_index = ordered_version_list.index(page_version)
             if page_version_index > current_version_index:
                 log.warn(
                     f"Notebook contains page {page_name} run on version {page_version} which is higher than the "
@@ -202,8 +218,8 @@ class CompatibilityTracker:
                 )
                 log.warn("The suggested course of action is:")
                 log.warn(f"    - Update coppafisher version to >= {page_version} before re-running.")
-                return False
-        return True
+                return True
+        return False
 
     def _get_earliest_stage_between(self, from_version_exclusive: str, to_version_inclusive: str) -> tuple[str, int]:
         index_start = list(self._version_compatibility.keys()).index(from_version_exclusive) + 1
@@ -212,13 +228,19 @@ class CompatibilityTracker:
         earliest_stage_index = 999
         for index in range(index_start, index_end):
             stage = list(self._version_compatibility.values())[index]
-            index = STAGES.index(stage)
+            index = self._get_stage_index(stage)
             if index < earliest_stage_index:
                 earliest_stage = stage
                 earliest_stage_index = index
         return earliest_stage, earliest_stage_index
 
+    def _get_stage_index(self, stage: str) -> int:
+        for i, s in enumerate(self._stages):
+            if s == stage:
+                return i
+        raise ValueError(f"Failed to find a stage called {stage}")
+
     def _get_stage_with_page_name(self, page_name: str) -> tuple[str, int]:
-        for i, page_names in enumerate(PAGE_NAMES):
+        for i, (stage_name, page_names) in enumerate(self._stages.items()):
             if page_name in page_names.split(" and "):
-                return STAGES[i], i
+                return stage_name, i

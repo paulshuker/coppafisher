@@ -153,28 +153,26 @@ class Notebook:
 
     def delete_page(self, page_name: str, prompt: bool = True) -> None:
         """
-        Delete a notebook page from disk and memory.
+        Delete a notebook page from disk and memory. This cannot be undone!
 
         Args:
-            - page_name (str): page name to delete.
-            - prompt (bool, optional): give the user a y/n prompt for other suggestions to the notebook. Default: true.
+            page_name (str): page name to delete.
+            prompt (bool, optional): give the user a y/n prompt for other suggestions to the notebook. Default: true.
 
         Notes:
             - This function is helpful for users when they have finished version compatibility checks using the
-            CompatibilityTracker and now wish to delete incompatible notebook pages.
+                CompatibilityTracker and now wish to delete incompatible notebook pages.
         """
         assert type(page_name) is str
         if not self.has_page(page_name):
             raise ValueError(f"Page name {page_name} not found")
-        if prompt:
-            earlier_pages = self._get_page_names_after_page(page_name)
-            if len(earlier_pages) > 0:
-                print(f"The notebook contains pages {', '.join(earlier_pages)} that were added after page {page_name}.")
-                result = input("Do you want to delete these pages too (recommended)? (y/n): ")
-                if result == "y":
-                    for earlier_page_name in earlier_pages:
-                        self.delete_page(earlier_page_name, prompt=False)
-                        print(f"{earlier_page_name} deleted")
+        earlier_pages = self._get_page_names_after_page(page_name)
+        if prompt and len(earlier_pages) > 0:
+            print(f"The notebook contains pages {', '.join(earlier_pages)} that were added after page {page_name}.")
+            result = input("Do you want to delete these pages too (recommended)? (y/n): ")
+            if result == "y":
+                for earlier_page_name in earlier_pages:
+                    self.delete_page(earlier_page_name, prompt=False)
         page_name_directory = self._get_page_directory(page_name)
         shutil.rmtree(page_name_directory)
         self.__delattr__(page_name)
@@ -272,14 +270,14 @@ class Notebook:
             loaded_page.load(page_path)
             self.__setattr__(page_name, loaded_page)
 
-    def _get_added_pages(self) -> Tuple[NotebookPage]:
+    def _get_added_pages(self) -> Tuple[NotebookPage, ...]:
         pages = []
         for page_name in self._options.keys():
             if self.has_page(page_name):
                 pages.append(self.__getattribute__(page_name))
         return tuple(pages)
 
-    def _get_added_page_names(self) -> Tuple[str]:
+    def _get_added_page_names(self) -> Tuple[str, ...]:
         pages = self._get_added_pages()
         names = []
         for page in pages:
@@ -291,7 +289,7 @@ class Notebook:
 
         return str(os.path.join(self._directory, page_name))
 
-    def _get_modified_config_variables(self) -> Tuple[str]:
+    def _get_modified_config_variables(self) -> Tuple[str, ...]:
         assert self.config_path is not None
 
         modified_variables = tuple()
@@ -357,7 +355,7 @@ class Notebook:
     def _get_metadata_path(self) -> str:
         return os.path.join(self._directory, self._metadata_name)
 
-    def _get_page_names_after_page(self, page_name: str) -> tuple[str]:
+    def _get_page_names_after_page(self, page_name: str) -> tuple[str, ...]:
         """
         Get all the pages added to the notebook before the given notebook page.
         """

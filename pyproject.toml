@@ -13,6 +13,8 @@ indent-width = 4
 [tool.ruff.lint]
 exclude = [ "**/temp", "temp.py", "**/coppafisher/docs/*.py", "**/.integration_dir", "**/.notebook_test", "**/__pycache__", "**/build/lib" ]
 select = [
+    # pyflakes
+    "F",
     # flake8-bugbear
     "B",
     # isort

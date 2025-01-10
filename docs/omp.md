@@ -4,8 +4,8 @@ OMP is coppafisher's current best gene assignment algorithm. OMP runs independen
 [register](overview.md#register) for image-alignment and [call spots](overview.md#call-spots) for dataset-accurate
 representation of each gene's unique barcode: its bled code, $\mathbf{B}$.
 
-A pixel score image is produced for every pixel and every gene by iterating through steps 1-3. Then, the final gene
-reads are found in step 4.
+A pixel score image is produced for every pixel and every gene by iterating through steps 2-4. Then, the final gene
+reads are found in step 5.
 
 ## Definitions
 
@@ -14,7 +14,7 @@ reads are found in step 4.
 - $S_{prc}$ is pixel $p$'s colour in round $r$, channel $c$, after pre-processing is applied.
 - $c_{pgi}$ is the OMP pixel score given to gene $g$ at pixel $p$ on the $i$'th OMP iteration.
 - $w_{pgi}$ is the OMP gene weight given to gene $g$ for image pixel $p$ on the $i$'th iteration. This is computed by
-least squares in [step 2](#2-gene-weights). $i$ takes values $1, 2, 3, ...$
+least squares in [step 3](#3-gene-weights). $i$ takes values $1, 2, 3, ...$
 - $||A||_{...}$ represents an L2 norm of $A$ (or Frobenius norm for a matrix) over all indices replaced by a dot ($.$).
 
 ## 0: Pre-processing
@@ -84,7 +84,7 @@ weighted. $\beta$ is given by `beta` (typically 1) and gives every round-channel
 
     By default, $\alpha >> \beta$ so it is unlikely to assign two genes bright in the same round-channel pairs.
 
-    If you fully trusted the weightings to be accurate. Then you set can `alpha` to zero in the config.
+    If you fully trust the weightings to be accurate, set `alpha` to zero in the config.
 
     <figure markdown="span">
       ![Image title](images/algorithm/omp/poor_gene_weight_example.png){ height="300" }
@@ -95,7 +95,7 @@ weighted. $\beta$ is given by `beta` (typically 1) and gives every round-channel
 
 A gene is successfully assigned to a pixel when all conditions are met:
 
-- The best gene score is above `dot_product_threshold` (typically 0.4).
+- The best gene score is above `dot_product_threshold` (typically 0.5).
 - The best gene is not already assigned to the pixel.
 - The best gene is not a background gene.
 - The residual colour's intensity is at least $\text{minimum\_intensity}_t$. The intensity of a pixel is defined as
@@ -118,13 +118,13 @@ g_{\text{new}} = \text{argmax}_g(\text{(gene\_scores)}_{pgi})\text{,}\space\spac
 $$
 
 If all remaining pixels fail the conditions, then the iterations stop and the current pixel scores $\mathbf{c}$ are kept
-as final for [step 3](#4-spot-scoring-and-spot-detection).
+as final for [step 5](#5-spot-scoring-and-spot-detection).
 
-## 2: Gene Weights
+## 3: Gene Weights
 
 On each iteration, the gene weights are re-computed for all genes assigned to pixel $p$ to best represent the pixel's
 colour. All unassigned genes have a zero weight, so $g$ here represents only the assigned genes ($i$ assigned genes)
-for pixels that passed [step 1](#2-next-gene-assignment). The weights, $w_{pgi}$, are computed through the
+for pixels that passed [step 2](#2-next-gene-assignment). The weights, $w_{pgi}$, are computed through the
 method of least squares by minimising the scalar residual
 
 $$
@@ -141,7 +141,7 @@ where $\bar{(...)}$ represents flattening the round and channel dimensions into 
 $\bar{\mathbf{B}}$ is of shape $\text{genes assigned}$ by $\text{rounds}*\text{channels}$ and $\bar{\mathbf{S}}$ is of
 shape $\text{rounds} * \text{channels}$. $(...)^{-1}$ is the Moore-Penrose matrix inverse (a pseudo-inverse).
 
-## 3: Pixel Scores
+## 4: Pixel Scores
 
 After updating the gene weights, every assigned gene pixel score is (re)computed for pixels that passed gene assignment.
 The pixel score for assigned gene $g$ in pixel $p$ is given by
@@ -165,20 +165,20 @@ $$
 
 A pixel score is made negative if the gene's weight is negative.
 
-Step 1 is now repeated on the remaining pixels unless $i$ is $\text{max\_genes}$ (i.e. the last iteration).
+Step 2 is now repeated on the remaining pixels unless $i$ is $\text{max\_genes}$ (i.e. the last iteration).
 
-??? question "Why not use the scores from step 1 as the pixel scores?"
+??? question "Why not use the scores from step 2 as the pixel scores?"
 
-    If you recall, from [step 1](#2-next-gene-assignment), the assigned gene is given a preliminary score similar to
-    step 3's score. This score is not used as the final OMP pixel scores (but, we did try). This is because the
+    If you recall, from [step 2](#2-next-gene-assignment), the assigned gene is given a preliminary score similar to
+    step 4's pixel score. This score is not used as the final OMP pixel scores (but, we did try). This is because the
     pleminary score has lowered the scores because they overlap with other genes. In other words, the scores are lowered
     by brightness in other rounds-channel pairs.
 
-    The step 3 scoring method gets around this. Assuming that all gene assignments are perfect, by subtracting those
+    The step 4 scoring method gets around this. Assuming that all gene assignments are perfect, by subtracting those
     assignments off except gene g, then gene g is given a fairer chance of scoring highly, hopefully without the
     brightness of other genes.
 
-## 4: Spot Scoring and Spot Detection
+## 5: Spot Scoring and Spot Detection
 
 The gene pixel score images are converted to gene score images by convolving with the mean spot given as a numpy .npy
 file at file path `omp_mean_spot` in the `file_names` config section. If `omp_mean_spot` is not given, the default mean

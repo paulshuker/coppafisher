@@ -1,15 +1,15 @@
 root = true
 
 [*]
+charset = utf-8
 trim_trailing_whitespace = true
+max_line_length = 120
+end_of_line = crlf
 
 [*.py]
-max_line_length = 120
 indent_style = space
 indent_size = 4
 
-[*.md]
-max_line_length = 120
-
-[*.ini]
-max_line_length = 120
+[*.toml]
+indent_style = space
+indent_size = 4
