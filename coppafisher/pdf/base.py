@@ -30,7 +30,7 @@ class BuildPDF:
     GENE_PROB_THRESHOLD = 0.7
     DEFAULT_REF_SCORE_THRESHOLD = 0.3
     DEFAULT_OMP_SCORE = 0.3
-    HEATMAP_BIN_SIZE = 10  # In pixel count
+    HEATMAP_BIN_SIZE = 12  # In pixel count
     HEATMAP_PROB_SCORE_THRESH = 0.5
     HEATMAP_ANCHOR_SCORE_THRESH = 0.5
     HEATMAP_OMP_SCORE_THRESH = 0.2
@@ -899,7 +899,7 @@ class BuildPDF:
         global_maximums_yxz = global_yxzs.max(0)
         bin_counts = np.ceil(global_maximums_yxz / self.HEATMAP_BIN_SIZE)[:2].astype(int).tolist()
         hist_range = ((0, bin_counts[0] * self.HEATMAP_BIN_SIZE), (0, bin_counts[1] * self.HEATMAP_BIN_SIZE))
-        cmap = mpl.cm.Reds
+        cmap = mpl.cm.viridis
 
         for g, gene_name in enumerate(gene_names):
             spot_passes = scores >= score_threshold

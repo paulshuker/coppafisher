@@ -102,6 +102,20 @@ For example, to remove the stitch page
 Any page's added after stitch are warned about. It is recommended to delete these pages as well by typing `y` then
 pressing enter.
 
+## Disable GPU
+
+You can force coppafisher to run on the CPU only by adding to the config file
+
+```ini
+[filter]
+force_cpu = true
+
+[omp]
+force_cpu = true
+```
+
+Filter and OMP are the only stages that leverage the GPU.
+
 ## Email notification
 
 To be emailed when the pipeline crashes or finishes, under section `[notifications]` in the config, add the variable
