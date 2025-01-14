@@ -49,6 +49,7 @@ class Legend:
         "clobber": r"$\clubsuit$",
         "x": "x",
         "diamond": "d",
+        "tailed_arrow": r"$\rightarrow$",
     }
 
     def __init__(self) -> None:
