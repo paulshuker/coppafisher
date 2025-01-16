@@ -64,6 +64,7 @@ class Viewer:
     nbp_call_spots: NotebookPage
     nbp_omp: NotebookPage | None
     background_image: np.ndarray | None
+    # A 2 dimensional ndarray of the Max Intensity Projected (MIP) background image.
     mip_background_image: np.ndarray | None
     background_image_layer: napari.layers.Image | None
     max_intensity_project: bool
@@ -805,11 +806,11 @@ class Viewer:
                 raise ValueError(f"background_image must have float or int dtype, got {self.background_image.dtype}")
 
     def _place_background(self, colour_map: str) -> None:
+        z_count: int = 1
         if self.background_image_layer is not None:
             z_count = self.background_image.shape[0]
-            self.mip_background_image = self.background_image.copy().max(0, keepdims=True).repeat(z_count, 0)
             # Keep the max intensity projected background image in self.
-            self.mip_background_image = self.mip_background_image
+            self.mip_background_image = self.background_image.copy().max(0)
             if not self.viewer_exists():
                 return
             self.background_image_layer = self.viewer.add_image(
@@ -819,9 +820,10 @@ class Viewer:
                 colormap=colour_map,
                 contrast_limits=self.contrast_limits[self.max_intensity_project],
             )
-        elif self.viewer_exists():
-            # Place a blank, 3D image to make the napari Viewer have the z slider.
-            self.viewer.add_image(np.zeros((z_count, 1, 1), dtype=np.int8), rgb=False)
+
+        if self.viewer_exists():
+            # Place a blank, 3D image so the Viewer always has a z slider.
+            self.viewer.add_image(np.zeros((z_count, 1, 1), dtype=np.int8), rgb=False, visible=False)
 
     def _build_UI(self) -> None:
         min_yxz = np.array([0, 0, 0], np.float32)
