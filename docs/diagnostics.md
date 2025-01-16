@@ -36,7 +36,8 @@ python -m coppafisher -v /path/to/notebook --gene_marker /path/to/gene_marker.cs
 ```
 
 see [here](https://github.com/paulshuker/coppafisher/raw/HEAD/coppafisher/plot/results_viewer/gene_colour.csv) for the
-default gene marker file.
+default gene marker file. The gene marker file supports all napari symbols that are shown under the `symbol` parameter
+in their [documentation](https://napari.org/0.5.4/api/napari.layers.Points.html).
 
 You can specify a custom background image in the python terminal. The default is a dapi image over all tiles produced
 during stitch.
