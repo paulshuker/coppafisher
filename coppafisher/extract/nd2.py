@@ -4,7 +4,6 @@ import nd2
 import numpy as np
 from tqdm import tqdm
 
-from .. import setup
 from ..setup import tile_details
 
 # bioformats ssl certificate error solution:
@@ -21,7 +20,7 @@ def get_raw_extension(input_dir: str) -> str:
     """
     # Want to list all files in input directory and all subdirectories. We'll use os.walk
     files = []
-    for root, directories, filenames in os.walk(input_dir):
+    for root, _, filenames in os.walk(input_dir):
         for filename in filenames:
             files.append(os.path.join(root, filename))
     files.sort()
@@ -144,7 +143,7 @@ def get_jobs_metadata(files: list, input_dir: str, config: dict) -> dict:
     camera = []
 
     # Only want to extract metadata from round 0
-    for f_id, f in tqdm(enumerate(files), desc="Reading metadata from all files"):
+    for _, f in tqdm(enumerate(files), desc="Reading metadata from all files"):
         with nd2.ND2File(os.path.join(input_dir, f)) as im:
             stage_position = [int(x) for x in im.frame_metadata(0).channels[0].position.stagePositionUm[:2]]
             # We want to append if this stage position is new
@@ -178,7 +177,7 @@ def get_jobs_metadata(files: list, input_dir: str, config: dict) -> dict:
     xy_pos = np.array(xy_pos)
     xy_pos = (xy_pos - np.min(xy_pos, axis=0)) / cal
     metadata["xy_pos"] = xy_pos
-    metadata["tilepos_yx_nd2"], metadata["tilepos_yx"] = setup.get_tilepos(
+    metadata["tilepos_yx_nd2"], metadata["tilepos_yx"] = tile_details.get_tilepos(
         xy_pos=xy_pos, tile_sz=metadata["tile_sz"], expected_overlap=config["stitch"]["expected_overlap"]
     )
     metadata["n_tiles"] = len(metadata["tilepos_yx_nd2"])
