@@ -1,4 +1,5 @@
 2025/MM/DD Version 1 Patch (v1.0.2):
+ * Viewer: Now supports multiple background images.
  * Viewer: `tailed_arrow` napari symbol now supported in the gene marker files.
  * PDF Diagnostics: Gene heat map colour scale is now logarithmic.
 
