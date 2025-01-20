@@ -57,6 +57,8 @@ compressed .npz file with image at key `"arr_0"`, or a .tif file (based on the
 [tifffile](https://github.com/cgohlke/tifffile) package). For further customisation, see the Viewer
 [docstring](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/plot/results_viewer/base.py).
 
+Specify no background images by setting `#!python background_images=[]`
+
 Close the Viewer and all subplots by pressing Ctrl + C in the terminal.
 
 ### Description

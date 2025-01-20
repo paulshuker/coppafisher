@@ -259,16 +259,14 @@ class Viewer:
         self.background_image_names = []
         self.background_image_layers = []
         self.max_intensity_project = False
-        if background_images is not None:
-            for background_image in background_images:
-                self._load_background(background_image)
+        for background_image in background_images:
+            self._load_background(background_image)
 
         print("Building UI")
         self._build_UI()
 
         print("Placing background image")
-        if background_images is not None:
-            self._place_backgrounds(background_image_colours)
+        self._place_backgrounds(background_image_colours)
 
         print("Placing spots")
         self.point_layers = {}
