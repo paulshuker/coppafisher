@@ -99,6 +99,7 @@ def test_Viewer() -> None:
     background_images.append([npy_filepath])
     background_images.append([npz_filepath])
     background_images.append([tiff_filepath])
+    background_images.append([npy_filepath, "dapi", tiff_filepath])
     for background_image in background_images:
         viewer = Viewer(
             background_images=background_image,
