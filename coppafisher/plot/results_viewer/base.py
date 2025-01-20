@@ -41,7 +41,7 @@ class Viewer:
     # Constants:
     _required_page_names: tuple[str, ...] = ("basic_info", "filter", "register", "stitch", "ref_spots", "call_spots")
     _method_to_string: dict[str, str] = {"prob": "Probability", "anchor": "Anchor", "omp": "OMP"}
-    _gene_legend_order_by_options: tuple[str, ...] = ("row", "colour")
+    _gene_legend_order_by_options: tuple[str, ...] = ("row", "colour", "cell_type")
     _starting_score_thresholds: dict[str, tuple[float, float | None]] = {
         "prob": (0.5, None),
         "anchor": (0.5, None),
@@ -98,7 +98,7 @@ class Viewer:
         self,
         nb: Optional[Notebook] = None,
         gene_marker_filepath: Optional[str] = None,
-        gene_legend_order_by: str = "colour",
+        gene_legend_order_by: str = "cell_type",
         background_image: Optional[str] = "dapi",
         background_image_colour: str = "gray",
         nbp_basic: Optional[NotebookPage] = None,
@@ -976,8 +976,9 @@ class Viewer:
                 continue
             colour = gene_legend_info[gene_legend_info["GeneNames"] == g][["ColorR", "ColorG", "ColorB"]].values[0]
             symbol_napari = gene_legend_info[gene_legend_info["GeneNames"] == g]["napari_symbol"].values[0]
+            cell_type = gene_legend_info[gene_legend_info["GeneNames"] == g]["cell_type"].values[0] if "cell_type" in gene_legend_info.columns else None
             new_gene: Viewer.Gene = self.Gene(
-                name=g, notebook_index=i, colour=colour, symbol_napari=symbol_napari, active=True
+                name=g, notebook_index=i, colour=colour, symbol_napari=symbol_napari, cell_type=cell_type, active=True,
             )
             genes.append(new_gene)
 
@@ -1059,6 +1060,7 @@ class Viewer:
             notebook_index: int,
             colour: np.ndarray,
             symbol_napari: str,
+            cell_type: str,
             active: bool = True,
         ):
             """
@@ -1069,6 +1071,7 @@ class Viewer:
                 notebook_index: (int) index of the gene within the notebook.
                 colour: (np.ndarray) of shape (3,) with the RGB colour of the gene.
                 symbol_napari: (str) symbol used to plot in napari.
+                cell_type: (str) name of the cell class most associated with the gene.
                 active: (bool, optional) whether the gene is currently visible in the Viewer. Used for toggling gene
                     visibility.
             """
@@ -1076,4 +1079,5 @@ class Viewer:
             self.notebook_index = notebook_index
             self.colour = colour
             self.symbol_napari = symbol_napari
+            self.cell_type = cell_type
             self.active = active
