@@ -128,12 +128,12 @@ class Viewer:
             gene_legend_order_by (str, optional): how to order the genes in the legend. Use "row" to order genes by each
                 row in the gene marker file. Use "colour" to group genes based on their colour RGB's. Each colour group
                 is sorted by hue and each gene name in each colour group is sorted alphabetically. Default: "colour".
-            background_images (iterable[str] or none, optional): what to use as the background image(s), each background
+            background_images (iterable[str], optional): what to use as the background image(s), each background
                 image can be none, "dapi" or a file path to a .npy, .npz, or .tif file. The array at a file path must be
                 a numpy array of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the background image
-                must be located at key 'arr_0'. Set to None for no background image. Default: ("dapi",).
-            background_image_colours (str or iterable[str], optional): the napari colour mapping(s) used for the
-                background image(s). Default: ("gray",).
+                must be located at key 'arr_0'. Set to `[]` for no background images. Default: ("dapi",).
+            background_image_colours (iterable[str], optional): the napari colour mapping(s) used for the background
+                image(s). Default: ("gray",).
             nbp_basic (NotebookPage, optional): `basic_info` notebook page. Default: not given.
             nbp_filter (NotebookPage, optional): `filter` notebook page. Default: not given.
             nbp_register (NotebookPage, optional): `register` notebook page. Default: not given.
@@ -792,7 +792,8 @@ class Viewer:
         self.viewer.close()
         del self.viewer
 
-    def _load_background(self, image: str | None) -> None:
+    def _load_background(self, image: str) -> None:
+        assert type(image) is str
         new_image, new_image_name = None, None
         if image is not None and image != "dapi" and not path.isfile(image):
             raise FileNotFoundError(f"Cannot find background image at given file path: {image}")
@@ -810,13 +811,13 @@ class Viewer:
             with tifffile.TiffFile(image) as tif:
                 new_image = tif.asarray()
             new_image_name = path.basename(image)
-        elif type(image) is str:
+        else:
             raise ValueError(f"background_image must end with .npy, .npz, .tif or be equal to dapi, got {image}")
 
         if new_image.ndim not in (2, 3):
             raise ValueError(f"background_image must have 2 or 3 dimensions, got {new_image.ndim}")
         if new_image.ndim == 3 and new_image.shape[0] != self.n_z_planes:
-            raise ValueError(f"background_image should have {self.n_z_planes} z planes, but got {new_image.shape[0]}")
+            print(f"WARN: background_image has {new_image.shape[0]} z planes; coppafisher expected {self.n_z_planes}")
         if not np.issubdtype(new_image.dtype, np.number):
             raise TypeError(f"background_image must have float or int dtype, got {new_image.dtype}")
 
