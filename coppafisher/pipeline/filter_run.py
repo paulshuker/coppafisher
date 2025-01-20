@@ -11,7 +11,9 @@ from ..filter import base as filter_base
 from ..filter import deconvolution
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
-from ..utils import indexing, tiles_io
+from ..utils import indexing, zarray
+
+FILTER_DTYPE = np.float16
 
 
 def run_filter(
@@ -64,7 +66,7 @@ def run_filter(
         chunks=chunks,
         fill_value=np.nan,
         zarr_version=2,
-        dtype=np.float16,
+        dtype=FILTER_DTYPE,
     )
     if "completed_indices" not in images.attrs:
         images.attrs["completed_indices"] = []
@@ -98,12 +100,13 @@ def run_filter(
                 pbar.update()
                 continue
             file_path_raw = nbp_file.tile_unfiltered[t][r][c]
-            raw_image_exists = tiles_io.image_exists(file_path_raw)
+            raw_image_exists = zarray.image_exists(file_path_raw)
             pbar.set_postfix({"round": r, "tile": t, "channel": c})
-            assert raw_image_exists, f"Raw, extracted file at\n\t{file_path_raw}\nnot found"
+            if not raw_image_exists:
+                raise FileNotFoundError(f"Raw, extracted file at\n\t{file_path_raw}\nnot found")
 
             # Get t, r, c image from raw files
-            im_filtered = tiles_io._load_image(file_path_raw)[:]
+            im_filtered = zarr.open_array(file_path_raw, mode="r")[:]
             # Move to floating point before filtering.
             im_filtered = im_filtered.astype(np.float64)
 
@@ -111,7 +114,7 @@ def run_filter(
             im_filtered = deconvolution.wiener_deconvolve(
                 im_filtered, config["wiener_pad_shape"], wiener_filter, config["force_cpu"]
             )
-            im_filtered = im_filtered.astype(np.float16)
+            im_filtered = im_filtered.astype(FILTER_DTYPE)
             images[t, r, c] = im_filtered
             del im_filtered
             images.attrs["completed_indices"] = images.attrs["completed_indices"] + [[t, r, c]]
