@@ -49,11 +49,14 @@ nb = Notebook("/path/to/notebook")
 Viewer(nb, background_images=["/path/to/custom/background_image.npy", "dapi"], background_image_colours=["Reds", "gray"])
 ```
 
+You can specify the background_images to be `#!python ["dapi_detailed"]` or `#!python ["anchor_detailed"]` for
+higher precision background images.
+
 The colourmaps can be any [vispy](https://vispy.org/api/vispy.color.colormap.html#vispy.color.colormap.get_colormaps)
 or [matplotlib](https://matplotlib.org/stable/users/explain/colors/colormaps.html) colourmap.
 
-The background image(s) must be of shape `(im_y x im_x)` or `(im_z x im_y x im_x)`. They can be a .npy file, a
-compressed .npz file with image at key `"arr_0"`, or a .tif file (based on the
+If the background image(s) are custom files, they must be of shape `(im_y x im_x)` or `(im_z x im_y x im_x)`. They can
+be a .npy file, a compressed .npz file with image at key `"arr_0"`, or a .tif file (based on the
 [tifffile](https://github.com/cgohlke/tifffile) package). For further customisation, see the Viewer
 [docstring](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/plot/results_viewer/base.py).
 

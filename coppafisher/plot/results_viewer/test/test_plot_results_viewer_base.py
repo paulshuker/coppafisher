@@ -34,6 +34,9 @@ def test_Viewer() -> None:
     nbp_basic.use_z = use_z
     nbp_basic.use_rounds = tuple(range(n_rounds_use))
     nbp_basic.use_channels = tuple(range(n_channels_use))
+    nbp_basic.anchor_round = n_rounds_use - 1
+    nbp_basic.dapi_channel = n_channels_use - 1
+    nbp_basic.anchor_channel = n_channels_use - 2
     nbp_filter = NotebookPage("filter")
     nbp_filter.images = zarr.array(
         200 * rng.rand(n_tiles, n_rounds_use, n_channels_use, tile_sz, tile_sz, len(use_z)).astype(np.float16) - 50
@@ -47,9 +50,9 @@ def test_Viewer() -> None:
     tile_origin = np.zeros((n_tiles, 3), np.float32)
     for t in range(n_tiles):
         # All tiles align along the x axis.
-        tile_origin[t, 1] = tile_sz * t
+        tile_origin[t, 1] = tile_sz * t - (0.1 * tile_sz)
         # Random offsets.
-        tile_origin[t] += rng.rand()
+        tile_origin[t] += 2 * rng.rand()
     nbp_stitch.tile_origin = tile_origin
     dapi_image_shape = (
         (tile_origin.max(0)[[2, 0, 1]] + np.array([len(use_z), tile_sz, tile_sz], int)).astype(int).tolist()
@@ -94,15 +97,23 @@ def test_Viewer() -> None:
 
     # Try different background image valid parameters.
     background_images = []
+    background_image_colours = []
     background_images.append(("dapi",))
+    background_image_colours.append(["Reds"])
     background_images.append(list())
+    background_image_colours.append([])
     background_images.append([npy_filepath])
+    background_image_colours.append(["Greens"])
     background_images.append([npz_filepath])
+    background_image_colours.append(["Greens"])
     background_images.append([tiff_filepath])
+    background_image_colours.append(["Greens"])
     background_images.append([npy_filepath, "dapi", tiff_filepath])
-    for background_image in background_images:
+    background_image_colours.append(["Greens", "Reds", "Greys"])
+    for background_image, colour_maps in zip(background_images, background_image_colours):
         viewer = Viewer(
             background_images=background_image,
+            background_image_colours=colour_maps,
             gene_legend_order_by="row",
             nbp_basic=nbp_basic,
             nbp_filter=nbp_filter,
@@ -121,7 +132,8 @@ def test_Viewer() -> None:
         viewer.close_all_subplots()
         viewer.close()
     viewer = Viewer(
-        background_images=("dapi",),
+        background_images=("dapi_detailed", "anchor_detailed"),
+        background_image_colours=("Reds", "Greens"),
         nbp_basic=nbp_basic,
         nbp_filter=nbp_filter,
         nbp_register=nbp_register,

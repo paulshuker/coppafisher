@@ -33,7 +33,7 @@ from ..call_spots import bleed_matrix, spot_colours
 from ..omp.colours import ViewOMPColourSum
 from ..omp.pixel_scores import ViewOMPPixelScoreImage
 from ..omp.scores import ViewOMPGeneScores
-from . import distribution, legend
+from . import background, distribution, legend
 from .hotkeys import Hotkey
 from .subplot import Subplot
 
@@ -54,6 +54,7 @@ class Viewer:
         "omp": (0.15, None),
     }
     _default_spot_size: float = 8.0
+    _bg_opts: tuple[str, ...] = ("dapi", "dapi_detailed", "anchor_detailed")
     _max_open_subplots: int = 7
 
     # Attributes:
@@ -129,9 +130,10 @@ class Viewer:
                 row in the gene marker file. Use "colour" to group genes based on their colour RGB's. Each colour group
                 is sorted by hue and each gene name in each colour group is sorted alphabetically. Default: "colour".
             background_images (iterable[str], optional): what to use as the background image(s), each background
-                image can be none, "dapi" or a file path to a .npy, .npz, or .tif file. The array at a file path must be
-                a numpy array of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the background image
-                must be located at key 'arr_0'. Set to `[]` for no background images. Default: ("dapi",).
+                image can be "dapi", "dapi_detailed", or a file path to a .npy, .npz, or .tif file. The array at a file
+                path must be a numpy array of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the
+                background image must be located at key 'arr_0'. Set to `[]` for no background images. Default:
+                ("dapi",).
             background_image_colours (iterable[str], optional): the napari colour mapping(s) used for the background
                 image(s). Default: ("gray",).
             nbp_basic (NotebookPage, optional): `basic_info` notebook page. Default: not given.
@@ -157,10 +159,20 @@ class Viewer:
         for background_image in background_images:
             if type(background_image) is not str:
                 raise TypeError(f"Expected str inside background_images, but got type {type(background_image)}")
-            if not background_image.endswith((".npy", ".npz", ".tif")) and background_image not in ("dapi",):
-                raise ValueError(f"Background must end with .npy, .npz, .tif, or 'dapi', got {background_image}")
-            if background_image not in ("dapi",) and not path.isfile(background_image):
+            if not background_image.endswith((".npy", ".npz", ".tif")) and background_image not in self._bg_opts:
+                raise ValueError(
+                    f"Background image must be .npy, .npz, .tif file, or one of {self._bg_opts}, got {background_image}"
+                )
+            if background_image not in self._bg_opts and not path.isfile(background_image):
                 raise FileNotFoundError(f"No background image file at {background_image}")
+        if not hasattr(background_image_colours, "__iter__"):
+            raise TypeError(f"background_image_colours must be an iterable, but got {type(background_images)}")
+        if not all(type(colour) is str for colour in background_image_colours):
+            raise TypeError("background_image_colours can only contain strings")
+        if len(background_images) != len(background_image_colours):
+            raise ValueError(
+                f"Got {len(background_images)} background images but {len(background_image_colours)} colour maps"
+            )
 
         assert type(nbp_basic) is NotebookPage or nbp_basic is None
         assert type(nbp_filter) is NotebookPage or nbp_filter is None
@@ -790,11 +802,17 @@ class Viewer:
     def _load_background(self, image: str) -> None:
         assert type(image) is str
         new_image, new_image_name = None, None
-        if image is not None and image != "dapi" and not path.isfile(image):
+        if image is not None and image not in self._bg_opts and not path.isfile(image):
             raise FileNotFoundError(f"Cannot find background image at given file path: {image}")
 
         if image == "dapi":
             new_image = self.nbp_stitch.dapi_image[:]
+            new_image_name = image.capitalize()
+        elif image == "dapi_detailed":
+            new_image = background.generate_global_image("dapi", self.nbp_basic, self.nbp_filter, self.nbp_stitch)
+            new_image_name = image.capitalize()
+        elif image == "anchor_detailed":
+            new_image = background.generate_global_image("anchor", self.nbp_basic, self.nbp_filter, self.nbp_stitch)
             new_image_name = image.capitalize()
         elif type(image) is str and image.endswith(".npy"):
             new_image = np.load(image)
@@ -807,7 +825,9 @@ class Viewer:
                 new_image = tif.asarray()
             new_image_name = path.basename(image)
         else:
-            raise ValueError(f"background_image must end with .npy, .npz, .tif or be equal to dapi, got {image}")
+            raise ValueError("This should not happen")
+
+        new_image_name += "-" + str(len(self.background_images) + 1)
 
         if new_image.ndim not in (2, 3):
             raise ValueError(f"background_image must have 2 or 3 dimensions, got {new_image.ndim}")
@@ -839,7 +859,7 @@ class Viewer:
                 axis_labels=("Z", "Y", "X"),
                 colormap=colour_map,
                 contrast_limits=self.contrast_limits[self.max_intensity_project] if image_count == 1 else None,
-                translate=None if name == "dapi" else min_tile_origins_zyx,
+                translate=None if name.startswith("dapi-") else min_tile_origins_zyx,
             )
             self.background_image_layers.append(new_layer)
 
