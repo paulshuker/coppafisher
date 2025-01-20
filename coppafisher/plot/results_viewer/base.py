@@ -749,14 +749,11 @@ class Viewer:
     def toggle_background(self, _=None) -> None:
         if not self.show:
             return
-        if self.background_image_layers is None:
-            return
-        self.background_image_layers.visible = not self.background_image_layers.visible
+        for layer in self.background_image_layers:
+            layer.visible = not layer.visible
 
     def toggle_max_intensity_project(self, _=None) -> None:
         if not self.show:
-            return
-        if self.background_image_layers is None:
             return
         self.max_intensity_project = not self.max_intensity_project
         images = self.mip_background_images if self.max_intensity_project else self.background_images
