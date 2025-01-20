@@ -10,7 +10,7 @@ from ..setup.config import Config
 from ..setup.notebook import Notebook
 from ..setup.notebook_page import NotebookPage
 from ..utils import system as utils_system
-from ..utils import tiles_io as utils_tiles_io
+from ..utils import zarray as utils_zarray
 from . import (
     basic_info,
     call_reference_spots,
@@ -34,7 +34,7 @@ def run_pipeline(config_file: str) -> Notebook:
     Returns:
         Notebook: notebook containing all information gathered during the pipeline.
     """
-    utils_tiles_io.set_zarr_global_configs()
+    utils_zarray.set_zarr_global_configs()
     nb, nbp_file, config = initialize_notebook(config_file)
 
     if not nb.has_page("extract"):

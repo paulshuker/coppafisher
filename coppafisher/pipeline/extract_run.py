@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import zarr
 from tqdm import tqdm
 
 from .. import log
@@ -10,7 +11,9 @@ from ..extract.raw_numpy import NumpyReader
 from ..extract.raw_reader import RawReader
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
-from ..utils import indexing, system, tiles_io
+from ..utils import indexing, system, zarray
+
+EXTRACT_DTYPE = np.uint16
 
 
 def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: NotebookPage) -> NotebookPage:
@@ -53,6 +56,14 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
         with open(version_path, "w") as file:
             file.write(system.get_software_version())
 
+    zarray_kwargs = {
+        "shape": (nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z)),
+        "mode": "w",
+        "zarr_version": 2,
+        "chunks": (nbp_basic.tile_sz, nbp_basic.tile_sz, 1),
+        "dtype": EXTRACT_DTYPE,
+    }
+
     indices = indexing.create(
         nbp_basic,
         include_anchor_round=True,
@@ -72,7 +83,7 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
 
                 channels = list(indexing.find_channels_for(indices, tile=t, round=r))
                 file_paths = [nbp_file.tile_unfiltered[t][r][c] for c in channels]
-                files_exist = [tiles_io.image_exists(file_path) for file_path in file_paths]
+                files_exist = [zarray.image_exists(file_path) for file_path in file_paths]
 
                 if all(files_exist):
                     pbar.update()
@@ -85,7 +96,7 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
                 for im, c, file_path, file_exists in zip(channel_images, channels, file_paths, files_exist):
                     if file_exists:
                         continue
-                    im = im.astype(np.uint16, casting="safe")
+                    im = im.astype(EXTRACT_DTYPE, casting="safe")
                     im = np.rot90(im, k=config["num_rotations"], axes=(0, 1))
                     z_plane_means = im.mean((0, 1))
                     if (z_plane_means < config["z_plane_mean_warning"]).any():
@@ -95,8 +106,9 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
                             + f"wish to remove the affected image by setting `bad_trc = {t}, {r}, {c}, ...` in "
                             + "the basic_info config then re-run the pipeline with an empty output directory."
                         )
-                    tiles_io._save_image(im, file_path)
-                    del im
+                    new_zarray = zarr.open_array(file_path, **zarray_kwargs)
+                    new_zarray[:] = im
+                    del im, new_zarray
                 pbar.update()
     log.debug("Extraction complete")
     return nbp
