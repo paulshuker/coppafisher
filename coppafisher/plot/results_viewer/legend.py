@@ -121,7 +121,6 @@ class Legend:
             self.scatter_axes.append(self.canvas.axes.scatter(x, y, marker=marker, color=gene.colour, **scatter_kwargs))
             X.append(x)
             Y.append(y)
-        self.canvas.axes.set_title("Gene Legend")
         self.canvas.axes.set_xlim(min(X)-.21, max(X)+.15 + self._text_scatter_separation)
         self.canvas.axes.set_ylim(max(Y) + 0.15, min(Y) - 0.15)
         self.canvas.axes.set_xticks([])

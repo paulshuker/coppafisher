@@ -976,7 +976,7 @@ class Viewer:
                 continue
             colour = gene_legend_info[gene_legend_info["GeneNames"] == g][["ColorR", "ColorG", "ColorB"]].values[0]
             symbol_napari = gene_legend_info[gene_legend_info["GeneNames"] == g]["napari_symbol"].values[0]
-            cell_type = gene_legend_info[gene_legend_info["GeneNames"] == g]["cell_type"].values[0] if "cell_type" in gene_legend_info.columns else None
+            cell_type = gene_legend_info[gene_legend_info["GeneNames"] == g]["cell_type"].values[0] if "cell_type" in gene_legend_info.columns else ""
             new_gene: Viewer.Gene = self.Gene(
                 name=g, notebook_index=i, colour=colour, symbol_napari=symbol_napari, cell_type=cell_type, active=True,
             )
