@@ -3,6 +3,7 @@ import math as maths
 import sys
 import time
 import warnings
+from collections.abc import Iterable
 from os import path
 from typing import Optional
 
@@ -63,11 +64,16 @@ class Viewer:
     nbp_ref_spots: NotebookPage
     nbp_call_spots: NotebookPage
     nbp_omp: NotebookPage | None
-    background_image: np.ndarray | None
-    mip_background_image: np.ndarray | None
-    background_image_layer: napari.layers.Image | None
+    # When False, there is no napari Viewer created. Used for headless testing.
+    show: bool
+    n_z_planes: int
+    background_images: list[np.ndarray]
+    background_image_names: list[str]
+    # A 2 dimensional ndarray of the Max Intensity Projected (MIP) background images.
+    mip_background_images: list[np.ndarray]
+    background_image_layers: list[napari.layers.Image]
     max_intensity_project: bool
-    spot_data: dict[str, "Viewer.MethodData"]
+    spot_data: dict[str, MethodData]
     genes: tuple["Viewer.Gene"]
     selected_method: str
     selected_spot: int | None
@@ -99,8 +105,8 @@ class Viewer:
         nb: Optional[Notebook] = None,
         gene_marker_filepath: Optional[str] = None,
         gene_legend_order_by: str = "cell_type",
-        background_image: Optional[str] = "dapi",
-        background_image_colour: str = "gray",
+        background_images: Iterable[str] = ("dapi",),
+        background_image_colours: Iterable[str] = ("gray",),
         nbp_basic: Optional[NotebookPage] = None,
         nbp_filter: Optional[NotebookPage] = None,
         nbp_register: Optional[NotebookPage] = None,
@@ -119,15 +125,15 @@ class Viewer:
                 none, then all nbp_* notebook pages must be given except nbp_omp which is optional. Default: none.
             gene_marker_filepath (str, optional): the file path to the gene marker file. Default: use the default gene
                 marker at coppafisher/plot/results_viewer/gene_colour.csv.
-            gene_legend_order_by (str, optional): how to order the genes in the legend. Use "row" to order genes row by
-                row in the gene marker file. "colour" will group genes based on their colourRGB's, each colour group is
-                sorted by hue. Each gene name in a colour group is sorted alphabetically. Default: "colour".
-            background_image (str or none, optional): what to use as the background image, can be none, "dapi" or a
-                file path to a .npy, .npz, or .tif file. The array at a file path must be a numpy array of shape
-                `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the background image must be located at key
-                'arr_0'. Set to None for no background image. Default: "dapi".
-            background_image_colour (str, optional): the napari colour mapping used for the background image. Default:
-                "gray".
+            gene_legend_order_by (str, optional): how to order the genes in the legend. Use "row" to order genes by each
+                row in the gene marker file. Use "colour" to group genes based on their colour RGB's. Each colour group
+                is sorted by hue and each gene name in each colour group is sorted alphabetically. Default: "colour".
+            background_images (iterable[str], optional): what to use as the background image(s), each background
+                image can be none, "dapi" or a file path to a .npy, .npz, or .tif file. The array at a file path must be
+                a numpy array of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the background image
+                must be located at key 'arr_0'. Set to `[]` for no background images. Default: ("dapi",).
+            background_image_colours (iterable[str], optional): the napari colour mapping(s) used for the background
+                image(s). Default: ("gray",).
             nbp_basic (NotebookPage, optional): `basic_info` notebook page. Default: not given.
             nbp_filter (NotebookPage, optional): `filter` notebook page. Default: not given.
             nbp_register (NotebookPage, optional): `register` notebook page. Default: not given.
@@ -144,12 +150,18 @@ class Viewer:
         self.legend_ = legend.Legend()
         if gene_legend_order_by not in self.legend_.order_by_options:
             raise ValueError(f"gene_legend_order_by must be one of {self.legend_.order_by_options}")
-        if background_image is not None and type(background_image) is not str:
-            raise TypeError(f"background_image must be type str, got type {type(background_image)}")
-        if background_image is not None and background_image not in ("dapi",) and type(background_image) is not str:
-            raise ValueError(f"Unknown given background_image: {background_image} of type {type(background_image)}")
-        if type(background_image) is str and background_image not in ("dapi",) and not path.isfile(background_image):
-            raise FileNotFoundError(f"No background_image file at {background_image}")
+        if not hasattr(background_images, "__iter__"):
+            raise TypeError(f"background_images must be an iterable, but got type {type(background_images)}")
+        if len(background_images) != len(set(background_images)):
+            raise ValueError("background_images contains repeated images")
+        for background_image in background_images:
+            if type(background_image) is not str:
+                raise TypeError(f"Expected str inside background_images, but got type {type(background_image)}")
+            if not background_image.endswith((".npy", ".npz", ".tif")) and background_image not in ("dapi",):
+                raise ValueError(f"Background must end with .npy, .npz, .tif, or 'dapi', got {background_image}")
+            if background_image not in ("dapi",) and not path.isfile(background_image):
+                raise FileNotFoundError(f"No background image file at {background_image}")
+
         assert type(nbp_basic) is NotebookPage or nbp_basic is None
         assert type(nbp_filter) is NotebookPage or nbp_filter is None
         assert type(nbp_register) is NotebookPage or nbp_register is None
@@ -158,6 +170,7 @@ class Viewer:
         assert type(nbp_call_spots) is NotebookPage or nbp_call_spots is None
         assert type(nbp_omp) is NotebookPage or nbp_omp is None
         assert type(show) is bool
+
         self.show = show
         self.ignore_events = True
         if nb is not None:
@@ -181,6 +194,7 @@ class Viewer:
             self.nbp_call_spots = nbp_call_spots
             self.nbp_omp = nbp_omp
             del nbp_basic, nbp_filter, nbp_register, nbp_stitch, nbp_ref_spots, nbp_call_spots, nbp_omp
+
         assert self.nbp_basic is not None
         assert self.nbp_filter is not None
         assert self.nbp_register is not None
@@ -234,24 +248,30 @@ class Viewer:
         print("Building gene legend")
         self.legend_.create_gene_legend(self.genes, gene_legend_order_by)
         self.legend_.canvas.mpl_connect("button_press_event", self.legend_clicked)
-        if self.viewer_exists():
+        if self.show:
             self.viewer.window.add_dock_widget(self.legend_.canvas, name="Gene Legend", area="left")
         self._update_gene_legend()
 
         print("Loading background image")
-        self._load_background(background_image)
+        self.n_z_planes = len(self.nbp_basic.use_z)
+        self.background_images = []
+        self.mip_background_images = []
+        self.background_image_names = []
+        self.background_image_layers = []
+        self.max_intensity_project = False
+        for background_image in background_images:
+            self._load_background(background_image)
 
         print("Building UI")
         self._build_UI()
 
         print("Placing background image")
-        self._place_background(background_image_colour)
+        self._place_backgrounds(background_image_colours)
 
         print("Placing spots")
         self.point_layers = {}
         # Display the correct spot data based on current thresholds.
-        n_z_planes = self.background_image.shape[0] if self.background_image is not None else 1
-        self.z = n_z_planes // 2 - int(n_z_planes % 2 == 0)
+        self.z = self.n_z_planes // 2 - int(self.n_z_planes % 2 == 0)
         self._update_all_keep()
         for method in self.spot_data.keys():
             spot_gene_numbers = self.spot_data[method].gene_no.copy()
@@ -264,7 +284,7 @@ class Viewer:
             shown = True
             if method == self.selected_method:
                 shown = self.keep_scores & self.keep_intensities & self.keep_zs & self.keep_genes
-            if self.viewer_exists():
+            if self.show:
                 # Points are 2D to improve performance.
                 self.point_layers[method] = self.viewer.add_points(
                     self.spot_data[method].yxz[:, :2],
@@ -377,14 +397,14 @@ class Viewer:
         )
         # Some Hotkeys invoke functions.
         for hotkey in self.hotkeys:
-            if not self.viewer_exists():
+            if not self.show:
                 continue
             if hotkey.invoke is None:
                 continue
             self.viewer.bind_key(hotkey.key_press)(hotkey.invoke)
 
         # Give the Viewer a larger window.
-        if self.viewer_exists():
+        if self.show:
             self.viewer.window.resize(1400, 900)
             self.viewer.window.activate()
 
@@ -396,7 +416,7 @@ class Viewer:
         print(f"Viewer built in {'{:.1f}'.format(end_time - start_time)}s")
 
         self.ignore_events = False
-        if self.viewer_exists():
+        if self.show:
             self.viewer.show()
             try:
                 napari.run()
@@ -528,13 +548,13 @@ class Viewer:
         self.set_spot_size_to(self.spot_size)
 
     def contrast_limits_changed(self) -> None:
-        if self.ignore_events:
+        if self.ignore_events or self.background_images is None or len(self.background_images) > 1:
             return
         new_contrast_limits = self.contrast_slider.value()
         if new_contrast_limits == self.contrast_limits[self.max_intensity_project]:
             return
         self.contrast_limits[self.max_intensity_project] = new_contrast_limits
-        self.background_image_layer.contrast_limits = self.contrast_limits[self.max_intensity_project]
+        self.background_image_layers[0].contrast_limits = self.contrast_limits[self.max_intensity_project]
 
     def update_widget_values(self) -> None:
         """
@@ -550,7 +570,7 @@ class Viewer:
         threshold, or score threshold changes. Called when the Viewer first opens too.
         """
         self.clear_spot_selections()
-        if not self.viewer_exists():
+        if not self.show:
             return
         for method in self.spot_data.keys():
             if method != self.selected_method:
@@ -564,7 +584,7 @@ class Viewer:
             self.viewer.layers.selection.active = self.point_layers[method]
 
     def clear_spot_selections(self) -> None:
-        if not self.viewer_exists():
+        if not self.show:
             return
         for method in self.spot_data.keys():
             if self.point_layers[method].selected_data.active is None:
@@ -727,30 +747,25 @@ class Viewer:
         )
 
     def toggle_background(self, _=None) -> None:
-        if not self.viewer_exists():
+        if not self.show:
             return
-        if self.background_image_layer is None:
-            return
-        self.background_image_layer.visible = not self.background_image_layer.visible
+        for layer in self.background_image_layers:
+            layer.visible = not layer.visible
 
     def toggle_max_intensity_project(self, _=None) -> None:
-        if not self.viewer_exists():
-            return
-        if self.background_image_layer is None:
+        if not self.show:
             return
         self.max_intensity_project = not self.max_intensity_project
-        data = self.background_image
-        if self.max_intensity_project:
-            data = self.mip_background_image
+        images = self.mip_background_images if self.max_intensity_project else self.background_images
+        for image, layer in zip(images, self.background_image_layers):
+            # TODO: Does this ruin layer's translation that was set at the Viewer's start up or not? Needs checking.
+            layer.data = image
+        if len(images) == 1:
+            self.background_image_layers[0].contrast_limits = self.contrast_limits[self.max_intensity_project]
+            self.contrast_slider.setValue(self.background_image_layers[0].contrast_limits)
         print(f"Max Intensity Projection: {self.max_intensity_project}")
-        self.background_image_layer.data = data
-        self.background_image_layer.contrast_limits = self.contrast_limits[self.max_intensity_project]
-        self.contrast_slider.setValue(self.background_image_layer.contrast_limits)
 
     # ======================================
-
-    def viewer_exists(self) -> bool:
-        return self.viewer is not None
 
     def close_all_subplots(self) -> None:
         """
@@ -767,61 +782,72 @@ class Viewer:
         self.close_all_subplots()
         plt.close("all")
         plt.style.use("default")
-        if not self.viewer_exists():
+        if not self.show:
             return
         self.viewer.close()
         del self.viewer
 
-    def _load_background(self, image: Optional[str]) -> None:
-        z_count = max(self.nbp_basic.use_z)
-        self.background_image = None
-        self.background_image_layer = None
-        self.max_intensity_project = False
+    def _load_background(self, image: str) -> None:
+        assert type(image) is str
+        new_image, new_image_name = None, None
         if image is not None and image != "dapi" and not path.isfile(image):
             raise FileNotFoundError(f"Cannot find background image at given file path: {image}")
+
         if image == "dapi":
-            self.background_image = self.nbp_stitch.dapi_image[:]
-            self.background_image_layer = self.background_image
+            new_image = self.nbp_stitch.dapi_image[:]
+            new_image_name = image.capitalize()
         elif type(image) is str and image.endswith(".npy"):
-            self.background_image: np.ndarray = np.load(image)
-            if self.background_image.ndim == 2:
-                self.background_image = self.background_image[None].repeat(z_count, 0)
-            self.background_image_layer = self.background_image
+            new_image = np.load(image)
+            new_image_name = path.basename(image)
         elif type(image) is str and image.endswith(".npz"):
-            self.background_image: np.ndarray = np.load(image)["arr_0"]
-            if self.background_image.ndim == 2:
-                self.background_image = self.background_image[None].repeat(z_count, 0)
-            self.background_image_layer = self.background_image
+            new_image = np.load(image)["arr_0"]
+            new_image_name = path.basename(image)
         elif type(image) is str and image.endswith(".tif"):
             with tifffile.TiffFile(image) as tif:
-                self.background_image = tif.asarray()
-        elif type(image) is str:
+                new_image = tif.asarray()
+            new_image_name = path.basename(image)
+        else:
             raise ValueError(f"background_image must end with .npy, .npz, .tif or be equal to dapi, got {image}")
 
-        if self.background_image is not None:
-            if self.background_image.ndim not in (2, 3):
-                raise ValueError(f"background_image must have 2 or 3 dimensions, got {self.background_image.ndim}")
-            if not np.issubdtype(self.background_image.dtype, np.number):
-                raise ValueError(f"background_image must have float or int dtype, got {self.background_image.dtype}")
+        if new_image.ndim not in (2, 3):
+            raise ValueError(f"background_image must have 2 or 3 dimensions, got {new_image.ndim}")
+        if new_image.ndim == 3 and new_image.shape[0] != self.n_z_planes:
+            print(f"WARN: background_image has {new_image.shape[0]} z planes; coppafisher expected {self.n_z_planes}")
+        if not np.issubdtype(new_image.dtype, np.number):
+            raise TypeError(f"background_image must have float or int dtype, got {new_image.dtype}")
 
-    def _place_background(self, colour_map: str) -> None:
-        if self.background_image_layer is not None:
-            z_count = self.background_image.shape[0]
-            self.mip_background_image = self.background_image.copy().max(0, keepdims=True).repeat(z_count, 0)
+        assert type(new_image) is np.ndarray
+        assert type(new_image_name) is str
+        self.background_images.append(new_image)
+        self.background_image_names.append(new_image_name)
+
+    def _place_backgrounds(self, colour_maps: Iterable[str]) -> None:
+        if not self.show:
+            return
+        image_count: int = len(self.background_images)
+        min_tile_origins_zyx = (0,) + tuple(self.nbp_stitch.tile_origin[:, :2].min(0).tolist())
+        for background_image, name, colour_map in zip(self.background_images, self.background_image_names, colour_maps):
             # Keep the max intensity projected background image in self.
-            self.mip_background_image = self.mip_background_image
-            if not self.viewer_exists():
-                return
-            self.background_image_layer = self.viewer.add_image(
-                self.background_image,
+            if background_image.ndim == 3:
+                self.mip_background_images.append(background_image.copy().max(0))
+            else:
+                self.mip_background_images.append(background_image.copy())
+            new_layer = self.viewer.add_image(
+                background_image,
+                name=name,
                 rgb=False,
                 axis_labels=("Z", "Y", "X"),
                 colormap=colour_map,
-                contrast_limits=self.contrast_limits[self.max_intensity_project],
+                contrast_limits=self.contrast_limits[self.max_intensity_project] if image_count == 1 else None,
+                translate=None if name == "dapi" else min_tile_origins_zyx,
             )
-        elif self.viewer_exists():
-            # Place a blank, 3D image to make the napari Viewer have the z slider.
-            self.viewer.add_image(np.zeros((z_count, 1, 1), dtype=np.int8), rgb=False)
+            self.background_image_layers.append(new_layer)
+
+        if self.show and self.n_z_planes > 1:
+            # Place a blank, 3D image so the Viewer always has a z slider.
+            self.viewer.add_image(
+                np.zeros((self.n_z_planes, 1, 1)), rgb=False, visible=False, translate=min_tile_origins_zyx
+            )
 
     def _build_UI(self) -> None:
         min_yxz = np.array([0, 0, 0], np.float32)
@@ -854,7 +880,7 @@ class Viewer:
                 self.intensity_threshs[method] = (intensity_thresh[0], max_intensity)
         self.spot_size = self._default_spot_size
 
-        if self.viewer_exists():
+        if self.show:
             # Method selection as a dropdown box containing every gene call method available.
             self.method_combo_box = QComboBox()
             for method in self.spot_data.keys():
@@ -886,18 +912,19 @@ class Viewer:
             self.viewer.window.add_dock_widget(self.score_slider, area="left", name="Score Thresholds")
             self.viewer.window.add_dock_widget(self.intensity_slider, area="left", name="Intensity Thresholds")
             self.viewer.window.add_dock_widget(self.marker_size_slider, area="left", name="Marker Size")
-        if self.background_image_layer is not None:
+        if self.background_image_layers is not None and len(self.background_images) == 1:
             # Background image contrast limits for Max Intensity Projection (MIP) true and MIP false.
-            contrast_range = (self.background_image.min(), self.background_image.max())
-            starting_value = (np.median(self.background_image) * 1, self.background_image.max())
+            image_max = self.background_images[0].max()
+            contrast_range = (self.background_images[0].min(), image_max)
+            starting_value = (np.median(self.background_images[0]) * 1, image_max)
             self.contrast_limits = {False: starting_value, True: starting_value}
-            if self.viewer_exists():
+            if self.show:
                 self.contrast_slider = QDoubleRangeSlider(Qt.Orientation.Horizontal)
                 self.contrast_slider.setRange(*contrast_range)
                 self.contrast_slider.setValue(self.contrast_limits[self.max_intensity_project])
                 self.contrast_slider.sliderReleased.connect(self.contrast_limits_changed)
                 self.viewer.window.add_dock_widget(self.contrast_slider, area="left", name="Background Contrast")
-        if self.viewer_exists():
+        if self.show:
             # View hotkeys button.
             self.view_hotkeys_button = QPushButton(text="Hotkeys")
             self.view_hotkeys_button.clicked.connect(self.view_help)

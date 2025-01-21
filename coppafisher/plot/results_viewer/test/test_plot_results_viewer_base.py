@@ -94,14 +94,15 @@ def test_Viewer() -> None:
 
     # Try different background image valid parameters.
     background_images = []
-    background_images.append("dapi")
-    background_images.append(None)
-    background_images.append(npy_filepath)
-    background_images.append(npz_filepath)
-    background_images.append(tiff_filepath)
+    background_images.append(("dapi",))
+    background_images.append(list())
+    background_images.append([npy_filepath])
+    background_images.append([npz_filepath])
+    background_images.append([tiff_filepath])
+    background_images.append([npy_filepath, "dapi", tiff_filepath])
     for background_image in background_images:
         viewer = Viewer(
-            background_image=background_image,
+            background_images=background_image,
             gene_legend_order_by="row",
             nbp_basic=nbp_basic,
             nbp_filter=nbp_filter,
@@ -120,7 +121,7 @@ def test_Viewer() -> None:
         viewer.close_all_subplots()
         viewer.close()
     viewer = Viewer(
-        background_image="dapi",
+        background_images=("dapi",),
         nbp_basic=nbp_basic,
         nbp_filter=nbp_filter,
         nbp_register=nbp_register,
@@ -176,7 +177,7 @@ def test_Viewer() -> None:
         subgroup.colours[:] = rng.rand(*subgroup.colours.shape).astype(np.float16)
     nbp_omp.results = group
     viewer = Viewer(
-        background_image="dapi",
+        background_images=("dapi",),
         nbp_basic=nbp_basic,
         nbp_filter=nbp_filter,
         nbp_register=nbp_register,

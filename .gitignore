@@ -1,10 +1,13 @@
 build
-**/integration_dir*
+.DS_Store
+.vscode/
+
+# Integration output
 **/.integration_dir*
-**/.DS_Store
-**/.vscode
-**/temp/**
-**/temp.*
+
+# Temporary files
+temp/**
+temp.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
