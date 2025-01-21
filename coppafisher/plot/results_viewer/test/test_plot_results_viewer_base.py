@@ -46,7 +46,7 @@ def test_Viewer() -> None:
     affine = np.zeros((n_tiles, n_rounds_use, n_channels_use, 4, 3))
     affine[:, :, :, :3] = np.eye(3)
     nbp_register.icp_correction = affine
-    nbp_stitch = NotebookPage("stitch")
+    nbp_stitch = NotebookPage("stitch", {"stitch": {"expected_overlap": 0.5}})
     tile_origin = np.zeros((n_tiles, 3), np.float32)
     for t in range(n_tiles):
         # All tiles align along the x axis.
