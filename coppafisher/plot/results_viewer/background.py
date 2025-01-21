@@ -12,8 +12,8 @@ def generate_global_image(
     nbp_stitch: NotebookPage,
 ) -> np.ndarray[np.float16]:
     """
-    Produce a high-resolution, filtered global background image based on register and stitch results. This is used for
-    detailed background images in the Viewer.
+    Produce a high-resolution, filtered global background image based on stitch results. This is used for detailed
+    background images in the Viewer.
 
     Args:
         name (str): the background image type. Can be "dapi" or "anchor".
@@ -22,7 +22,8 @@ def generate_global_image(
         nbp_stitch (NotebookPage): `stitch` notebook page.
 
     Returns:
-        (`(big_im_z x big_im_y x big_im_x) ndarray[float16]`): fused_image. The large, global background image.
+        (`(big_im_z x big_im_y x big_im_x) ndarray[float16]`): fused_image. The large, global background image. The
+            image's origin is relative to `nbp_stitch.tile_origin.min(0)`.
     """
     assert type(name) is str
     assert name in ("dapi", "anchor")
