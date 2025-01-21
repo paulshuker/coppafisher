@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 import tabulate
 import tifffile
+import torch
 from matplotlib.figure import Figure
 from napari.layers import Points
 from napari.utils.events import Selection
@@ -101,6 +102,8 @@ class Viewer:
     score_slider: QDoubleRangeSlider
     intensity_slider: QDoubleRangeSlider
 
+    # TODO: Combine background_images and background_image_colours into one dictionary parameter. Each key will be a
+    # given background image type/file path, each value will be the colour map it has.
     def __init__(
         self,
         nb: Optional[Notebook] = None,
@@ -831,8 +834,8 @@ class Viewer:
 
         if new_image.ndim not in (2, 3):
             raise ValueError(f"background_image must have 2 or 3 dimensions, got {new_image.ndim}")
-        if new_image.ndim == 3 and new_image.shape[0] != self.n_z_planes:
-            print(f"WARN: background_image has {new_image.shape[0]} z planes; coppafisher expected {self.n_z_planes}")
+        if new_image.ndim == 3 and new_image.shape[0] > self.n_z_planes * 2:
+            print(f"Background image has {new_image.shape[0]} z planes; coppafisher expected {self.n_z_planes}")
         if not np.issubdtype(new_image.dtype, np.number):
             raise TypeError(f"background_image must have float or int dtype, got {new_image.dtype}")
 
@@ -852,13 +855,21 @@ class Viewer:
                 self.mip_background_images.append(background_image.copy().max(0))
             else:
                 self.mip_background_images.append(background_image.copy())
+            if image_count == 1:
+                im_torch = torch.from_numpy(self.mip_background_images[0]).float()
+                self.contrast_limits[True] = (im_torch.min().item(), self.contrast_limits[False][1])
+                contrast_limits = self.contrast_limits[self.max_intensity_project]
+                del im_torch
+            else:
+                im_torch = torch.from_numpy(background_image).float()
+                contrast_limits = (im_torch.min().item(), im_torch.max().item())
             new_layer = self.viewer.add_image(
                 background_image,
                 name=name,
                 rgb=False,
                 axis_labels=("Z", "Y", "X"),
                 colormap=colour_map,
-                contrast_limits=self.contrast_limits[self.max_intensity_project] if image_count == 1 else None,
+                contrast_limits=contrast_limits,
                 translate=None if name.startswith("dapi-") else min_tile_origins_zyx,
             )
             self.background_image_layers.append(new_layer)
@@ -866,7 +877,7 @@ class Viewer:
         if self.show and self.n_z_planes > 1:
             # Place a blank, 3D image so the Viewer always has a z slider.
             self.viewer.add_image(
-                np.zeros((self.n_z_planes, 1, 1)), rgb=False, visible=False, translate=min_tile_origins_zyx
+                np.zeros((self.n_z_planes, 1, 1)), name="Z", rgb=False, visible=False, translate=min_tile_origins_zyx
             )
 
     def _build_UI(self) -> None:
@@ -932,12 +943,14 @@ class Viewer:
             self.viewer.window.add_dock_widget(self.score_slider, area="left", name="Score Thresholds")
             self.viewer.window.add_dock_widget(self.intensity_slider, area="left", name="Intensity Thresholds")
             self.viewer.window.add_dock_widget(self.marker_size_slider, area="left", name="Marker Size")
-        if self.background_image_layers is not None and len(self.background_images) == 1:
+        if len(self.background_images) == 1:
             # Background image contrast limits for Max Intensity Projection (MIP) true and MIP false.
-            image_max = self.background_images[0].max()
-            contrast_range = (self.background_images[0].min(), image_max)
-            starting_value = (np.median(self.background_images[0]) * 1, image_max)
-            self.contrast_limits = {False: starting_value, True: starting_value}
+            image_min = self.background_images[0].min().item()
+            image_max = self.background_images[0].max().item()
+            contrast_range = (image_min, image_max)
+            starting_value = (image_min, image_max)
+            # The MIP starting value will be set once the MIP background image is created.
+            self.contrast_limits = {False: starting_value, True: None}
             if self.show:
                 self.contrast_slider = QDoubleRangeSlider(Qt.Orientation.Horizontal)
                 self.contrast_slider.setRange(*contrast_range)

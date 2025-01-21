@@ -38,6 +38,7 @@ def generate_global_image(
     tile_centres_yxz = np.rint(tile_origins_yxz + [s / 2 for s in tile_shape]).astype(int)
     min_yxz = tile_origins_yxz.min(0)
     max_yxz = tile_origins_yxz.max(0) + tile_shape
+    expected_overlap = nbp_stitch.associated_configs["stitch"]["expected_overlap"]
 
     output_shape = (max_yxz - min_yxz).tolist()
     output = np.zeros(output_shape, np.float16)
@@ -53,10 +54,13 @@ def generate_global_image(
         for dim in (0, 1):
             for on_left_or_bottom in (True, False):
                 # Positive for right-sided tiles, negative for left-sided tiles.
-                tile_distances: np.ndarray[int] = tile_centres_except_t - t_centre[np.newaxis]
-                tile_distances = tile_distances.take(range(n_tiles - 1), axis=dim)
+                tile_distances: np.ndarray[int] = tile_centres_except_t.copy() - t_centre[np.newaxis]
+                tile_distances = tile_distances[:, dim]
+                # Really close tile distances are probably aligned along that direction, so remove them.
+                # TODO: This can be done more robustly by using the tilepos_yx in nbp_basic.
+                tile_distances = tile_distances[np.abs(tile_distances) > (nbp_basic.tile_sz * 0.5 * expected_overlap)]
                 if on_left_or_bottom:
-                    tile_distances = np.abs(tile_distances[tile_distances < 0])
+                    tile_distances = -tile_distances[tile_distances < 0]
                 else:
                     tile_distances = tile_distances[tile_distances > 0]
                 if tile_distances.size == 0:
@@ -79,8 +83,10 @@ def generate_global_image(
                 else:
                     t_image[:, ind_min:ind_max] *= multiplier[np.newaxis, :, np.newaxis]
 
+        t_image = t_image.astype(np.float16)
+
         t_origin = tile_origins_yxz[t]
-        t_ind_start = t_origin + min_yxz
+        t_ind_start = t_origin - min_yxz
         t_ind_end = (t_ind_start + tile_shape).tolist()
         output[t_ind_start[0] : t_ind_end[0], t_ind_start[1] : t_ind_end[1], t_ind_start[2] : t_ind_end[2]] += t_image
 
