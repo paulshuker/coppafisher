@@ -32,6 +32,7 @@ class CompatibilityTracker:
             ("1.0.0", "initialisation"),
             ("1.0.1", "none"),
             ("1.0.2", "none"),
+            ("1.0.3", "none"),
         )
     )
     _stage_instructions: list[tuple[str, ...]]

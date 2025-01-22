@@ -78,8 +78,14 @@ class Legend:
         self._plot_index_to_gene_index = np.linspace(0, active_count - 1, active_count, dtype=int)
         if order_by in ["colour", "cell_type"]:
             index_min = 0
-            active_categories = np.array([(gene.colour if order_by == "colour" else gene.cell_type) for gene in genes if gene.active])
-            sorted_categories = self._hue_sort(np.unique(active_categories, axis=0)) if order_by == "colour" else np.sort(np.unique(active_categories))
+            active_categories = np.array(
+                [(gene.colour if order_by == "colour" else gene.cell_type) for gene in genes if gene.active]
+            )
+            sorted_categories = (
+                self._hue_sort(np.unique(active_categories, axis=0))
+                if order_by == "colour"
+                else np.sort(np.unique(active_categories))
+            )
             for unique_category in sorted_categories:
                 ####  TODO DEBUG HERE
                 unique_category_indices = np.atleast_2d((active_categories == unique_category).T).T.all(1).nonzero()[0]
@@ -90,7 +96,6 @@ class Legend:
                 index_max = index_min + len(unique_category_names)
                 self._plot_index_to_gene_index[index_min:index_max] = unique_category_indices
                 index_min = index_max
-        row_count = maths.ceil(active_count / self._max_columns)
         text_kwargs = dict(fontsize=5 + 20 / maths.sqrt(active_count), ha="left", va="center", c="grey")
         assert np.unique(self._plot_index_to_gene_index).size == self._plot_index_to_gene_index.size
         active_genes = [active_genes[i] for i in self._plot_index_to_gene_index]
@@ -102,7 +107,7 @@ class Legend:
                 prev_cat = gene.cell_type
                 if col != 0:
                     row += 1
-                self.canvas.axes.text(-.2, row, prev_cat, fontweight="bold", **text_kwargs)
+                self.canvas.axes.text(-0.2, row, prev_cat, fontweight="bold", **text_kwargs)
                 row += 1
                 col = 0
             x = col * self._x_separation
@@ -121,7 +126,7 @@ class Legend:
             self.scatter_axes.append(self.canvas.axes.scatter(x, y, marker=marker, color=gene.colour, **scatter_kwargs))
             X.append(x)
             Y.append(y)
-        self.canvas.axes.set_xlim(min(X)-.21, max(X)+.15 + self._text_scatter_separation)
+        self.canvas.axes.set_xlim(min(X) - 0.21, max(X) + 0.15 + self._text_scatter_separation)
         self.canvas.axes.set_ylim(max(Y) + 0.15, min(Y) - 0.15)
         self.canvas.axes.set_xticks([])
         self.canvas.axes.set_yticks([])
