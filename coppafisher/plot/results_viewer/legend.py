@@ -32,7 +32,7 @@ class Legend:
     _unselected_opacity: float = 0.25
     _selected_opacity: float = 1.0
     _selection_radius: float = 0.25
-    _order_by_options: tuple[str] = ("row", "colour")
+    _order_by_options: tuple[str] = ("row", "colour", "cell_type")
     _plot_index_to_gene_index: np.ndarray[int]
     # A conversion from a napari marker to a matplotlib marker equivalent.
     _napari_to_mpl_marker: dict[str, str] = {
@@ -76,25 +76,41 @@ class Legend:
         active_genes = [gene for gene in genes if gene.active]
         active_count = len(active_genes)
         self._plot_index_to_gene_index = np.linspace(0, active_count - 1, active_count, dtype=int)
-        if order_by == "colour":
+        if order_by in ["colour", "cell_type"]:
             index_min = 0
-            active_colours = np.array([gene.colour for gene in genes if gene.active])
-            for unique_colour in self._hue_sort(np.unique(active_colours, axis=0)):
-                unique_colour_indices = (active_colours == unique_colour).all(1).nonzero()[0]
-                unique_colour_names = [active_genes[i].name.lower() for i in unique_colour_indices]
-                names_sorted_indices = np.argsort(unique_colour_names)
+            active_categories = np.array([(gene.colour if order_by == "colour" else gene.cell_type) for gene in genes if gene.active])
+            sorted_categories = self._hue_sort(np.unique(active_categories, axis=0)) if order_by == "colour" else np.sort(np.unique(active_categories))
+            for unique_category in sorted_categories:
+                ####  TODO DEBUG HERE
+                unique_category_indices = np.atleast_2d((active_categories == unique_category).T).T.all(1).nonzero()[0]
+                unique_category_names = [active_genes[i].name.lower() for i in unique_category_indices]
+                names_sorted_indices = np.argsort(unique_category_names)
                 # The unique colour genes are then sorted by their names alphabetically.
-                unique_colour_indices = unique_colour_indices[names_sorted_indices]
-                index_max = index_min + len(unique_colour_names)
-                self._plot_index_to_gene_index[index_min:index_max] = unique_colour_indices
+                unique_category_indices = unique_category_indices[names_sorted_indices]
+                index_max = index_min + len(unique_category_names)
+                self._plot_index_to_gene_index[index_min:index_max] = unique_category_indices
                 index_min = index_max
         row_count = maths.ceil(active_count / self._max_columns)
         text_kwargs = dict(fontsize=5 + 20 / maths.sqrt(active_count), ha="left", va="center", c="grey")
         assert np.unique(self._plot_index_to_gene_index).size == self._plot_index_to_gene_index.size
         active_genes = [active_genes[i] for i in self._plot_index_to_gene_index]
-        for i, gene in enumerate(active_genes):
-            x = (i % self._max_columns) * self._x_separation
-            y = 1 - (i - (i % self._max_columns)) / row_count
+        row = 1
+        col = 0
+        prev_cat = None
+        for gene in active_genes:
+            if order_by == "cell_type" and prev_cat != gene.cell_type:
+                prev_cat = gene.cell_type
+                if col != 0:
+                    row += 1
+                self.canvas.axes.text(-.2, row, prev_cat, fontweight="bold", **text_kwargs)
+                row += 1
+                col = 0
+            x = col * self._x_separation
+            y = row
+            col += 1
+            if col == self._max_columns:
+                col = 0
+                row += 1
             self.canvas.axes.text(x + self._text_scatter_separation, y, gene.name, **text_kwargs)
             marker = self._napari_to_mpl_marker[gene.symbol_napari]
             scatter_kwargs = dict()
@@ -105,9 +121,8 @@ class Legend:
             self.scatter_axes.append(self.canvas.axes.scatter(x, y, marker=marker, color=gene.colour, **scatter_kwargs))
             X.append(x)
             Y.append(y)
-        self.canvas.axes.set_title("Gene Legend")
-        self.canvas.axes.set_xlim(min(X), max(X) + self._text_scatter_separation)
-        self.canvas.axes.set_ylim(min(Y) - 0.03, max(Y) + 0.03)
+        self.canvas.axes.set_xlim(min(X)-.21, max(X)+.15 + self._text_scatter_separation)
+        self.canvas.axes.set_ylim(max(Y) + 0.15, min(Y) - 0.15)
         self.canvas.axes.set_xticks([])
         self.canvas.axes.set_yticks([])
         self.canvas.axes.spines.clear()

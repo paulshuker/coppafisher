@@ -2,11 +2,12 @@ import itertools
 from typing import List, Optional
 
 import napari
+import zarr
 
 from .. import log
 from ..setup import file_names
 from ..setup.notebook import Notebook
-from ..utils import tiles_io
+from ..utils import zarray
 
 
 def view_extracted_images(
@@ -41,10 +42,10 @@ def view_extracted_images(
 
     for t, r, c in itertools.product(tiles, rounds, channels):
         file_path = nbp_file.tile_unfiltered[t][r][c]
-        if not tiles_io.image_exists(file_path):
+        if not zarray.image_exists(file_path):
             log.warn(f"Image at {file_path} not found, skipping")
             continue
-        image_trc = tiles_io._load_image(file_path)
+        image_trc = zarr.open_array(file_path, mode="r")[:]
         viewer.add_image(image_trc, name=f"{t=}, {r=}, {c=}")
 
     napari.run()
