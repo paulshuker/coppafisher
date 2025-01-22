@@ -29,7 +29,7 @@ vocabulary might be unfamiliar, please see the [glossary](glossary.md) for refer
 ### Prerequisites
 
 * Windows or Linux. MacOS is not tested.
-* Python 3.10 or 3.11.
+* Python 3.11.
 * [Git](https://git-scm.com/).
 * 64GB of memory for tile sizes `64x2048x2048` pixels (recommended).
 * Nvidia GPU with Cuda 12.4 support (optional).
