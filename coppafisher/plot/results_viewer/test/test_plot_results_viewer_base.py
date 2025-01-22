@@ -1,4 +1,6 @@
+import csv
 import os
+import random
 import tempfile
 
 import matplotlib
@@ -131,9 +133,20 @@ def test_Viewer() -> None:
             viewer.clear_spot_selections()
         viewer.close_all_subplots()
         viewer.close()
+
+    # Use a custom gene marker file without the cell types column.
+    temp_dir = tempfile.TemporaryDirectory("coppafisher")
+    gene_marker_filepath = os.path.join(temp_dir.name, "gene_colours.csv")
+    with open(gene_marker_filepath, "w") as file:
+        writer = csv.writer(file, delimiter=",")
+        writer.writerow(("ID", "GeneNames", "ColorR", "ColorG", "ColorB", "napari_symbol"))
+        for i, gene_name in enumerate(nbp_call_spots.gene_names):
+            writer.writerow((i, gene_name, rng.rand(), rng.rand(), rng.rand(), random.choice(("cross", "disc"))))
     viewer = Viewer(
         background_images=("dapi_detailed", "anchor_detailed"),
         background_image_colours=("Reds", "Greens"),
+        gene_marker_filepath=gene_marker_filepath,
+        gene_legend_order_by="colour",
         nbp_basic=nbp_basic,
         nbp_filter=nbp_filter,
         nbp_register=nbp_register,
@@ -151,6 +164,7 @@ def test_Viewer() -> None:
         viewer.clear_spot_selections()
         viewer.clear_spot_selections()
     viewer.close()
+    temp_dir.cleanup()
 
     n_omp_spots = 85 // n_tiles
     omp_config = {

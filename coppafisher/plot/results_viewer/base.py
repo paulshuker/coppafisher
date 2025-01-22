@@ -1012,6 +1012,7 @@ class Viewer:
                     * ColorG - float, rGb color for plotting
                     * ColorB - float, rgB color for plotting
                     * napari_symbol - str, symbol used to plot in napari
+                    * cell_type - str (optional column), name of cell most associated with the gene
                 All RGB values must be between 0 and 1. The first line must be the heading names. Default: use the
                 default gene marker file found at coppafisher/plot/results_viewer/gene_colour.csv.
 
