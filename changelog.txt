@@ -1,4 +1,5 @@
 2025/MM/DD Version 1 Patch (v1.0.3):
+ * General: Dropped Python 3.10 support.
  * Viewer: Now supports multiple background images.
  * Viewer: New gene ordering by cell type default option.
  * Viewer: New `dapi_detailed` and `anchor_detailed` background image options.
