@@ -86,7 +86,7 @@ Orthogonal Matching Pursuit method (see [OMP](overview.md#orthogonal-matching-pu
     windows, you have full control over the background images by selecting one. You can change their blending mode and
     opacity so you can see all your background images at once.
 
-??? note "Max Intensity Projection Toggle"
+??? bug "Max Intensity Projection Toggle"
 
     It is a [known issue](https://github.com/paulshuker/coppafisher/issues/201) that toggling the Max Intensity
     Projection off displays the wrong z plane in the Viewer since it always shows the first z plane. To fix this, just

@@ -51,6 +51,49 @@ minimum threshold:
 
 score_thresh and intensity_thresh must be numbers. Use the [Viewer](diagnostics.md#viewer) to help decide on thresholds.
 
+## Additional Image Registration and Stitching
+
+There is a built-in tool to stitch then register additional images, (typically these are IF images, so it will called as
+such from now on). Registration uses the older method of sub volume registration (see
+[issue](https://github.com/paulshuker/coppafisher/issues/210) for a future optical flow enhancement).
+
+### Extract the additional image(s)
+
+The additional images must be extracted from the ND2 files. They are saved as tiff files. If you do not have ND2 input
+files, you need to manually convert them to tiff files.
+
+```py
+from coppafisher.if_alignment import extract_raw
+from coppafish import Notebook
+
+nb_file = "/path/to/notebook"
+if_nd2_dir = "/path/to/input/file.nd2"
+if_output_dir = "/path/to/output/directory"
+
+nb = Notebook(nb_file)
+extract_raw(nb, save_dir=if_output_dir, read_dir=if_nd2_dir, use_tiles=nb.basic_info.use_tiles, use_channels=[0,9,18,23])
+```
+
+where use_channels can be any number of channels.
+
+### Stitch
+
+Generate a globally-stitched image based on the coppafisher stitching results from the notebook.
+
+```py
+from coppafisher.if_alignment import stitch_if_and_dapi
+
+stitch_if_and_dapi(nb, if_output_dir, use_channels=[0,9,18,23])
+```
+
+### Register
+
+```py
+from coppafisher.if_alignment import register_if
+
+transform = register_if(seq_im, if_im, downsample_factor_yx=4, transform_save_dir=transform_save_dir, reg_parameters = reg_parameters)
+```
+
 ## Create a background process
 
 Large datasets can have a long compute time (in the order of days). It is recommended to run these by setting them up as
