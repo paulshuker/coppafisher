@@ -322,7 +322,3 @@ def test_Config() -> None:
 
     tmpdir.cleanup()
     parent_dir.cleanup()
-
-
-if __name__ == "__main__":
-    test_Config()
