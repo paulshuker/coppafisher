@@ -38,12 +38,12 @@ def test_Config() -> None:
         "23": ("maybe_tuple_file", "file-exists"),
         "24": ("maybe_tuple_dir", "dir-exists"),
     }
-    parent_dir = tempfile.TemporaryDirectory()
+    parent_dir = tempfile.TemporaryDirectory(ignore_cleanup_errors=True)
     dir = parent_dir.name
-    tmpdir = tempfile.TemporaryDirectory(dir=dir)
-    tmpdir2 = tempfile.TemporaryDirectory(dir=dir)
-    tmpfile = tempfile.NamedTemporaryFile(dir=dir)
-    tmpfile2 = tempfile.NamedTemporaryFile(dir=dir)
+    tmpdir = tempfile.TemporaryDirectory(dir=dir, ignore_cleanup_errors=True)
+    tmpdir2 = tempfile.TemporaryDirectory(dir=dir, ignore_cleanup_errors=True)
+    tmpfile = tempfile.NamedTemporaryFile(dir=dir, delete=False)
+    tmpfile2 = tempfile.NamedTemporaryFile(dir=dir, delete=False)
     config_filepath = os.path.join(tmpdir.name, "test_config.ini")
 
     # Build a default config file with all parameters wrongly assigned.
@@ -123,15 +123,15 @@ def test_Config() -> None:
             assert f" {i} " in str(e)
             assert "debug" in str(e)
 
-    tmpdir.cleanup()
-    tmpdir2.cleanup()
     tmpfile.close()
     tmpfile2.close()
+    tmpdir.cleanup()
+    tmpdir2.cleanup()
     del config, config_content, config_content_wrong, config_filepath, default_config_filepath
     del tmpdir, tmpdir2, tmpfile, tmpfile2
 
-    tmpfile = tempfile.NamedTemporaryFile(dir=dir)
-    tmpdir = tempfile.TemporaryDirectory(dir=dir)
+    tmpfile = tempfile.NamedTemporaryFile(dir=dir, delete=False)
+    tmpdir = tempfile.TemporaryDirectory(dir=dir, ignore_cleanup_errors=False)
 
     # Create a correct config file and ensure the formatted values are all correct.
     config = Config()
@@ -320,5 +320,9 @@ def test_Config() -> None:
         except Config.ParamError as e:
             assert " " + param_name + " " in str(e)
 
-    parent_dir.cleanup()
     tmpdir.cleanup()
+    parent_dir.cleanup()
+
+
+if __name__ == "__main__":
+    test_Config()
