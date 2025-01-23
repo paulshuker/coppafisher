@@ -155,6 +155,8 @@ class Viewer:
         self.legend_ = legend.Legend()
         if gene_legend_order_by not in self.legend_.order_by_options:
             raise ValueError(f"gene_legend_order_by must be one of {self.legend_.order_by_options}")
+        if type(background_images) is str:
+            raise TypeError("background_images must be an iterable, not a string")
         if not hasattr(background_images, "__iter__"):
             raise TypeError(f"background_images must be an iterable, but got type {type(background_images)}")
         if len(background_images) != len(set(background_images)):
@@ -811,11 +813,11 @@ class Viewer:
         if image == "dapi":
             new_image = self.nbp_stitch.dapi_image[:]
             new_image_name = image.capitalize()
-        elif image == "dapi_detailed":
-            new_image = background.generate_global_image("dapi", self.nbp_basic, self.nbp_filter, self.nbp_stitch)
-            new_image_name = image.capitalize()
-        elif image == "anchor_detailed":
-            new_image = background.generate_global_image("anchor", self.nbp_basic, self.nbp_filter, self.nbp_stitch)
+        elif image in ("dapi_detailed", "anchor_detailed"):
+            channel = self.nbp_basic.dapi_channel if image.startswith("dapi") else self.nbp_basic.anchor_channel
+            tiles = self.nbp_basic.use_tiles
+            images = [self.nbp_filter.images[t, self.nbp_basic.anchor_round, channel] for t in tiles]
+            new_image = background.generate_global_image(images, tiles, self.nbp_basic, self.nbp_stitch)
             new_image_name = image.capitalize()
         elif type(image) is str and image.endswith(".npy"):
             new_image = np.load(image)
