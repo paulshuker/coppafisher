@@ -11,21 +11,30 @@ import tqdm
 import zarr
 
 from ..extract import raw_nd2
+from ..setup import file_names
 from ..setup.notebook import Notebook
 from . import preprocessing, subvol_registration
 
 
-def extract_raw(nb: Notebook, read_dir: str, save_dir: str, use_tiles: list, use_channels: list) -> None:
+def extract_raw(
+    nb: Notebook, config_file_path: str, read_dir: str, save_dir: str, use_tiles: list, use_channels: list
+) -> None:
     """
     Extract images from the given ND2 file and save them as .tif files without filtering.
 
     Args:
         nb (Notebook): notebook of the initial experiment.
+        config_file (str): the config file used in the experiment.
         read_dir (str): the directory of the raw data as an ND2 file.
         save_dir (str): the directory where the images are saved.
         use_tiles (list): list of tiles to use.
         use_channels (list): list of channels to use.
     """
+    if not os.path.isfile(config_file_path):
+        raise FileNotFoundError(f"No config file at {config_file_path}")
+
+    nbp_file_names = file_names.get_file_names(nb.basic_info, config_file_path)
+
     if type(use_channels) == int:
         use_channels = [use_channels]
     # Check if directories exist
@@ -52,19 +61,19 @@ def extract_raw(nb: Notebook, read_dir: str, save_dir: str, use_tiles: list, use
         nd2_file = f.to_dask()
 
     # 1. Collect extracted DAPI from seq images.
-    for t in tqdm(use_tiles, desc="Extracting DAPI from seq images", total=len(use_tiles)):
+    for t in tqdm.tqdm(use_tiles, desc="Extracting DAPI from seq images", total=len(use_tiles)):
         y, x = tilepos_yx[t]
         save_path = os.path.join(save_dir, "seq", f"channel_{c_dapi}", f"{x}_{y}.tif")
         if os.path.isfile(save_path):
             continue
         # Load raw image.
-        raw_path = nb.file_names.tile_unfiltered[t][nb.basic_info.anchor_round][c_dapi]
+        raw_path = nbp_file_names.tile_unfiltered[t][nb.basic_info.anchor_round][c_dapi]
         image_raw: npt.NDArray[np.uint16] = zarr.open_array(raw_path, "r")[:]
         # Save image in the format `x_y.tif`.
         tifffile.imwrite(save_path, image_raw)
 
     # 2. extract all relevant channels from the IF images
-    for t in tqdm(use_tiles, desc="Extracting IF images", total=len(use_tiles)):
+    for t in tqdm.tqdm(use_tiles, desc="Extracting IF images", total=len(use_tiles)):
         for c in use_channels:
             y, x = tilepos_yx[t]
             save_path = os.path.join(save_dir, "if", f"channel_{c}", f"{x}_{y}.tif")

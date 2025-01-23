@@ -64,14 +64,14 @@ files, you need to manually convert them to tiff files.
 
 ```py
 from coppafisher.if_alignment import extract_raw
-from coppafish import Notebook
+from coppafisher import Notebook
 
-nb_file = "/path/to/notebook"
+config_file = "/path/to/used/config.ini"
 if_nd2_dir = "/path/to/input/file.nd2"
 if_output_dir = "/path/to/output/directory"
 
-nb = Notebook(nb_file)
-extract_raw(nb, save_dir=if_output_dir, read_dir=if_nd2_dir, use_tiles=nb.basic_info.use_tiles, use_channels=[0,9,18,23])
+nb = Notebook("/path/to/notebook")
+extract_raw(nb, config_file, save_dir=if_output_dir, read_dir=if_nd2_dir, use_tiles=nb.basic_info.use_tiles, use_channels=[0,9,18,23])
 ```
 
 where use_channels can be any number of channels.
