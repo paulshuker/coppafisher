@@ -58,3 +58,27 @@ def test_generate_global_image() -> None:
     assert np.allclose(result[:, 16, 10:17], 5)
     assert np.allclose(result[:, 15, 10:17], 4 * 0.5 + 5 * 0.5)
     assert np.allclose(result[:, 14, 10:17], 4)
+
+    # Case where all tiles have no overlap.
+    tile_origins = np.zeros((n_tiles, 3), float)
+    t = 0
+    for x in range(n_tiles_x):
+        for y in range(n_tiles_y):
+            tile_origins[t] = np.array([y * tile_shape_yxz[0], x * tile_shape_yxz[1], 0], float)
+            t += 1
+    nbp_stitch = NotebookPage("stitch", {"stitch": {"expected_overlap": 0}})
+    nbp_stitch.tile_origin = tile_origins
+
+    # Every tile is filled with a unique, constant value for simplicity.
+    images = [np.ones(tile_shape_yxz, np.float16) * t for t in range(n_tiles)]
+
+    result = background.generate_global_image(images, nbp_basic.use_tiles, nbp_basic, nbp_stitch)
+    assert type(result) is np.ndarray
+    assert result.shape == (tile_shape_yxz[2], tile_shape_yxz[0] * n_tiles_y, tile_shape_yxz[1] * n_tiles_x)
+    t = 0
+    for x in range(n_tiles_x):
+        for y in range(n_tiles_y):
+            x_min, x_max = x * tile_shape_yxz[1], (x + 1) * tile_shape_yxz[1]
+            y_min, y_max = y * tile_shape_yxz[0], (y + 1) * tile_shape_yxz[0]
+            assert np.allclose(result[:, y_min:y_max, x_min:x_max], t)
+            t += 1
