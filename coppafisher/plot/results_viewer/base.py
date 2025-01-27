@@ -850,7 +850,7 @@ class Viewer:
         if not self.show:
             return
         image_count: int = len(self.background_images)
-        min_tile_origins_zyx = (0,) + tuple(self.nbp_stitch.tile_origin[:, :2].min(0).tolist())
+        min_tile_origins_zyx = tuple(self.nbp_stitch.tile_origin[self.nbp_basic.use_tiles].min(0)[[2, 0, 1]].tolist())
         for background_image, name, colour_map in zip(self.background_images, self.background_image_names, colour_maps):
             # Keep the max intensity projected background image in self.
             if background_image.ndim == 3:
@@ -870,6 +870,7 @@ class Viewer:
                 name=name,
                 rgb=False,
                 axis_labels=("Z", "Y", "X"),
+                multiscale=False,
                 colormap=colour_map,
                 contrast_limits=contrast_limits,
                 translate=None if name.startswith("dapi-") else min_tile_origins_zyx,

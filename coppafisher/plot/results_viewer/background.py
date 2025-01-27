@@ -33,9 +33,8 @@ def generate_global_image(
     assert type(nbp_basic) is NotebookPage
     assert type(nbp_stitch) is NotebookPage
 
-    n_tiles = len(nbp_basic.use_tiles)
     tile_shape = (nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z))
-    tile_origins_yxz: np.ndarray = nbp_stitch.tile_origin
+    tile_origins_yxz: np.ndarray = nbp_stitch.tile_origin[nbp_basic.use_tiles]
     tile_origins_yxz = np.rint(tile_origins_yxz).astype(int)
     tile_centres_yxz = np.rint(tile_origins_yxz + [s // 2 for s in tile_shape]).astype(int)
     # Inclusive.
@@ -46,14 +45,13 @@ def generate_global_image(
 
     output_shape = (max_yxz - min_yxz).tolist()
     output = np.zeros(output_shape, np.float16)
-    for _ in range(len(images)):
-        t = tiles_given.pop()
-        t_centre = tile_centres_yxz[t]
-        tile_centres_except_t = np.full((n_tiles - 1, 3), 0, int)
-        tile_centres_except_t[:t] = tile_centres_yxz[:t]
-        tile_centres_except_t[t:] = tile_centres_yxz[t + 1 :]
+    for t_i, t in enumerate(nbp_basic.use_tiles):
+        t_index = tiles_given.index(t)
+        tiles_given.remove(t)
+        t_centre = tile_centres_yxz[t_i]
+        tile_centres_except_t = np.concat((tile_centres_yxz[:t], tile_centres_yxz[t + 1 :]), axis=0)
 
-        t_image = images.pop().astype(np.float32)
+        t_image = images.pop(t_index).astype(np.float32)
 
         # Taper along the x and y axes if there is an overlapping tile.
         for dim in (0, 1):
@@ -90,7 +88,7 @@ def generate_global_image(
 
         t_image = t_image.astype(np.float16)
 
-        t_origin = tile_origins_yxz[t]
+        t_origin = tile_origins_yxz[t_i]
         t_ind_start = t_origin - min_yxz
         t_ind_end = t_ind_start + tile_shape
         output[t_ind_start[0] : t_ind_end[0], t_ind_start[1] : t_ind_end[1], t_ind_start[2] : t_ind_end[2]] += t_image
