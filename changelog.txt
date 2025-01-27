@@ -3,6 +3,7 @@
  * Viewer: Now supports multiple background images.
  * Viewer: New gene ordering by cell type default option.
  * Viewer: New `dapi_detailed` and `anchor_detailed` background image options.
+ * Viewer: Default background image is now `dapi_detailed`.
  * Viewer: `tailed_arrow` napari symbol now supported in the gene marker files.
  * PDF Diagnostics: Gene heat map colour scale is now logarithmic.
 
