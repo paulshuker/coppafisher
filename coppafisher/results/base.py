@@ -78,6 +78,7 @@ class MethodData:
             self.colours = omp_base.get_all_colours(nbp_basic, nbp_omp)[0].astype(np.float32)
             self.intensity = omp_base.get_all_intensities(nbp_basic, nbp_call_spots, nbp_omp)
 
+        self.yxz -= np.floor(nbp_stitch.tile_origin[nbp_basic.use_tiles].min(0))[np.newaxis]
         self.indices = np.linspace(0, self.score.size - 1, self.score.size, dtype=np.uint32)
 
         # Sanity check spot data.

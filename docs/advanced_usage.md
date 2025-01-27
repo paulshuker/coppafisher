@@ -35,8 +35,16 @@ results to be salvaged from an incomplete tile.
 
 ## Export for pciSeq
 
-For probabilistic cell typing with [pciSeq](https://github.com/acycliq/pciSeq), you can export gene reads into a
-compatible csv file by
+For probabilistic cell typing with [pciSeq](https://github.com/acycliq/pciSeq), a DAPI background image and gene spot
+positions must be exported.
+
+To export the anchor's DAPI image
+
+```py
+--8<-- "export_dapi_to_pciseq.py"
+```
+
+Export gene reads into a compatible csv file by
 
 ```py
 --8<-- "export_to_pciseq_0.py"
@@ -50,6 +58,7 @@ minimum threshold:
 ```
 
 score_thresh and intensity_thresh must be numbers. Use the [Viewer](diagnostics.md#viewer) to help decide on thresholds.
+intensity_thresh is set to `0.15` in the Viewer by default.
 
 ## Additional Image Registration and Stitching
 

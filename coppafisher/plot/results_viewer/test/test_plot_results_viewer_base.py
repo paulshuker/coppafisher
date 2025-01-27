@@ -100,8 +100,6 @@ def test_Viewer() -> None:
     # Try different background image valid parameters.
     background_images = []
     background_image_colours = []
-    background_images.append(("dapi",))
-    background_image_colours.append(["Reds"])
     background_images.append(list())
     background_image_colours.append([])
     background_images.append([npy_filepath])
@@ -110,7 +108,7 @@ def test_Viewer() -> None:
     background_image_colours.append(["Greens"])
     background_images.append([tiff_filepath])
     background_image_colours.append(["Greens"])
-    background_images.append([npy_filepath, "dapi", tiff_filepath])
+    background_images.append([npy_filepath, "dapi_detailed", tiff_filepath])
     background_image_colours.append(["Greens", "Reds", "Greys"])
     for background_image, colour_maps in zip(background_images, background_image_colours):
         viewer = Viewer(
@@ -203,7 +201,7 @@ def test_Viewer() -> None:
         subgroup.colours[:] = rng.rand(*subgroup.colours.shape).astype(np.float16)
     nbp_omp.results = group
     viewer = Viewer(
-        background_images=("dapi",),
+        background_images=("dapi_detailed",),
         nbp_basic=nbp_basic,
         nbp_filter=nbp_filter,
         nbp_register=nbp_register,

@@ -55,7 +55,7 @@ class Viewer:
         "omp": (0.15, None),
     }
     _default_spot_size: float = 8.0
-    _bg_opts: tuple[str, ...] = ("dapi", "dapi_detailed", "anchor_detailed")
+    _bg_opts: tuple[str, ...] = ("dapi_detailed", "anchor_detailed")
     _max_open_subplots: int = 7
 
     # Attributes:
@@ -132,11 +132,10 @@ class Viewer:
             gene_legend_order_by (str, optional): how to order the genes in the legend. Use "row" to order genes by each
                 row in the gene marker file. Use "colour" to group genes based on their colour RGB's. Each colour group
                 is sorted by hue and each gene name in each colour group is sorted alphabetically. Default: "colour".
-            background_images (iterable[str], optional): what to use as the background image(s), each background
-                image can be "dapi", "dapi_detailed", or a file path to a .npy, .npz, or .tif file. The array at a file
-                path must be a numpy array of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the
-                background image must be located at key 'arr_0'. Set to `[]` for no background images. Default:
-                ("dapi",).
+            background_images (iterable[str], optional): what to use as the background image(s), each background image
+                can be "dapi_detailed" or a file path to a .npy, .npz, or .tif file. The array at a file path must be a
+                numpy array of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the background image must
+                be located at key 'arr_0'. Set to `[]` for no background images. Default: ("dapi_detailed",).
             background_image_colours (iterable[str], optional): the napari colour mapping(s) used for the background
                 image(s). Default: ("gray",).
             nbp_basic (NotebookPage, optional): `basic_info` notebook page. Default: not given.
@@ -270,7 +269,9 @@ class Viewer:
         self._update_gene_legend()
 
         print("Loading background image")
-        self.n_z_planes = len(self.nbp_basic.use_z)
+        tile_z_positions = self.nbp_stitch.tile_origin[self.nbp_basic.use_tiles, 2]
+        tile_z_range = np.ceil(tile_z_positions.max()) - np.floor(tile_z_positions.min()) + len(self.nbp_basic.use_z)
+        self.n_z_planes = tile_z_range.astype(int).item()
         self.background_images = []
         self.mip_background_images = []
         self.background_image_names = []
@@ -810,10 +811,7 @@ class Viewer:
         if image is not None and image not in self._bg_opts and not path.isfile(image):
             raise FileNotFoundError(f"Cannot find background image at given file path: {image}")
 
-        if image == "dapi":
-            new_image = self.nbp_stitch.dapi_image[:]
-            new_image_name = image.capitalize()
-        elif image in ("dapi_detailed", "anchor_detailed"):
+        if image in ("dapi_detailed", "anchor_detailed"):
             channel = self.nbp_basic.dapi_channel if image.startswith("dapi") else self.nbp_basic.anchor_channel
             tiles = self.nbp_basic.use_tiles
             images = [self.nbp_filter.images[t, self.nbp_basic.anchor_round, channel] for t in tiles]
@@ -850,7 +848,6 @@ class Viewer:
         if not self.show:
             return
         image_count: int = len(self.background_images)
-        min_tile_origins_zyx = tuple(self.nbp_stitch.tile_origin[self.nbp_basic.use_tiles].min(0)[[2, 0, 1]].tolist())
         for background_image, name, colour_map in zip(self.background_images, self.background_image_names, colour_maps):
             # Keep the max intensity projected background image in self.
             if background_image.ndim == 3:
@@ -868,20 +865,17 @@ class Viewer:
             new_layer = self.viewer.add_image(
                 background_image,
                 name=name,
-                rgb=False,
                 axis_labels=("Z", "Y", "X"),
+                rgb=False,
                 multiscale=False,
                 colormap=colour_map,
                 contrast_limits=contrast_limits,
-                translate=None if name.startswith("dapi-") else min_tile_origins_zyx,
             )
             self.background_image_layers.append(new_layer)
 
         if self.show and self.n_z_planes > 1:
             # Place a blank, 3D image so the Viewer always has a z slider.
-            self.viewer.add_image(
-                np.zeros((self.n_z_planes, 1, 1)), name="Z", rgb=False, visible=False, translate=min_tile_origins_zyx
-            )
+            self.viewer.add_image(np.zeros((self.n_z_planes, 1, 1)), name="Z", rgb=False, visible=False)
 
     def _build_UI(self) -> None:
         min_yxz = np.array([0, 0, 0], np.float32)

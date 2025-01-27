@@ -46,11 +46,11 @@ custom images and their colour mappings in python
 from coppafisher import Notebook, Viewer
 
 nb = Notebook("/path/to/notebook")
-Viewer(nb, background_images=["/path/to/custom/background_image.npy", "dapi"], background_image_colours=["Reds", "gray"])
+Viewer(nb, background_images=["/path/to/custom/background_image.npy", "dapi_detailed"], background_image_colours=["Reds", "gray"])
 ```
 
 You can specify the background_images to be `#!python ["dapi_detailed"]` or `#!python ["anchor_detailed"]` for
-higher precision background images.
+16-bit precision background images.
 
 The colourmaps can be any [vispy](https://vispy.org/api/vispy.color.colormap.html#vispy.color.colormap.get_colormaps)
 or [matplotlib](https://matplotlib.org/stable/users/explain/colors/colormaps.html) colourmap.
