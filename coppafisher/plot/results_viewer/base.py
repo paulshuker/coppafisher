@@ -109,7 +109,7 @@ class Viewer:
         nb: Optional[Notebook] = None,
         gene_marker_filepath: Optional[str] = None,
         gene_legend_order_by: str = "cell_type",
-        background_images: Iterable[str] = ("dapi",),
+        background_images: Iterable[str] = ("dapi_detailed",),
         background_image_colours: Iterable[str] = ("gray",),
         nbp_basic: Optional[NotebookPage] = None,
         nbp_filter: Optional[NotebookPage] = None,
