@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 
 from ...setup.notebook import NotebookPage
 
@@ -8,6 +9,7 @@ def generate_global_image(
     tiles_given: list[int],
     nbp_basic: NotebookPage,
     nbp_stitch: NotebookPage,
+    output_dtype: npt.DTypeLike = np.float16,
 ) -> np.ndarray[np.float16]:
     """
     Produce a high-resolution, filtered global background image based on stitch results.
@@ -19,9 +21,10 @@ def generate_global_image(
             function.
         nbp_basic (NotebookPage): `basic_info` notebook page.
         nbp_stitch (NotebookPage): `stitch` notebook page.
+        output_dtype (dtype-like): the fused_image datatype. Default: float16.
 
     Returns:
-        (`(big_im_z x big_im_y x big_im_x) ndarray[float16]`): fused_image. The large, global background image. The
+        (`(big_im_z x big_im_y x big_im_x) ndarray[output_dtype]`): fused_image. The large, global background image. The
             image's origin is relative to `nbp_stitch.tile_origin.min(0)`.
     """
     assert type(images) is list
@@ -44,7 +47,7 @@ def generate_global_image(
     expected_overlap = nbp_stitch.associated_configs["stitch"]["expected_overlap"]
 
     output_shape = (max_yxz - min_yxz).tolist()
-    output = np.zeros(output_shape, np.float16)
+    output = np.zeros(output_shape, output_dtype)
     for t_i, t in enumerate(nbp_basic.use_tiles):
         t_index = tiles_given.index(t)
         tiles_given.remove(t)
@@ -86,7 +89,7 @@ def generate_global_image(
                 else:
                     t_image[:, ind_min:ind_max] *= multiplier[np.newaxis, :, np.newaxis]
 
-        t_image = t_image.astype(np.float16)
+        t_image = t_image.astype(output_dtype)
 
         t_origin = tile_origins_yxz[t_i]
         t_ind_start = t_origin - min_yxz
