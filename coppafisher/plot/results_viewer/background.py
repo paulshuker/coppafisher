@@ -1,5 +1,6 @@
 import numpy as np
 import numpy.typing as npt
+import tqdm
 
 from ...setup.notebook import NotebookPage
 
@@ -10,6 +11,7 @@ def generate_global_image(
     nbp_basic: NotebookPage,
     nbp_stitch: NotebookPage,
     output_dtype: npt.DTypeLike = np.float16,
+    silent: bool = True,
 ) -> np.ndarray[np.float16]:
     """
     Produce a high-resolution, filtered global background image based on stitch results.
@@ -21,7 +23,8 @@ def generate_global_image(
             function.
         nbp_basic (NotebookPage): `basic_info` notebook page.
         nbp_stitch (NotebookPage): `stitch` notebook page.
-        output_dtype (dtype-like): the fused_image datatype. Default: float16.
+        output_dtype (dtype-like, optional): the fused_image datatype. Default: float16.
+        silent (bool, optional): do not print a progress bar. Default: true.
 
     Returns:
         (`(big_im_z x big_im_y x big_im_x) ndarray[output_dtype]`): fused_image. The large, global background image. The
@@ -48,7 +51,7 @@ def generate_global_image(
 
     output_shape = (max_yxz - min_yxz).tolist()
     output = np.zeros(output_shape, output_dtype)
-    for t_i, t in enumerate(nbp_basic.use_tiles):
+    for t_i, t in enumerate(tqdm.tqdm(nbp_basic.use_tiles, desc="Fusing images", unit="tile", disable=silent)):
         t_index = tiles_given.index(t)
         tiles_given.remove(t)
         t_centre = tile_centres_yxz[t_i]

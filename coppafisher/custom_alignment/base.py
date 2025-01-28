@@ -11,16 +11,22 @@ import tqdm
 import zarr
 
 from ..extract import raw_nd2
+from ..plot.results_viewer import background
 from ..setup import file_names
 from ..setup.notebook import Notebook
 from . import preprocessing, subvol_registration
+
+CUSTOM_DIR_NAME = "custom"
+DAPI_DIR_NAME = "seq"
+SUFFIX = ".tif"
 
 
 def extract_raw(
     nb: Notebook, config_file_path: str, read_dir: str, save_dir: str, use_tiles: list, use_channels: list
 ) -> None:
     """
-    Extract images from the given ND2 file and save them as .tif files without filtering.
+    Extract images from the given ND2 file and the corresponding DAPI images and save them as .tif files without
+    filtering.
 
     Args:
         nb (Notebook): notebook of the initial experiment.
@@ -37,11 +43,11 @@ def extract_raw(
 
     if type(use_channels) == int:
         use_channels = [use_channels]
-    # Check if directories exist
+    # Check if directories exist.
     assert os.path.isfile(read_dir), f"Raw data file {read_dir} does not exist"
     save_dirs = [save_dir]
-    save_dirs += [os.path.join(save_dir, "if", f"channel_{c}") for c in use_channels]
-    save_dirs += [os.path.join(save_dir, "seq", f"channel_{nb.basic_info.dapi_channel}")]
+    save_dirs += [os.path.join(save_dir, CUSTOM_DIR_NAME, f"channel_{c}") for c in use_channels]
+    save_dirs += [os.path.join(save_dir, DAPI_DIR_NAME, f"channel_{nb.basic_info.dapi_channel}")]
     for d in save_dirs:
         if not os.path.isdir(d):
             os.makedirs(d)
@@ -56,14 +62,10 @@ def extract_raw(
     num_rotations = nb.extract.associated_configs["extract"]["num_rotations"]
     c_dapi = nb.basic_info.dapi_channel
 
-    # Load ND2 file.
-    with nd2.ND2File(read_dir) as f:
-        nd2_file = f.to_dask()
-
     # 1. Collect extracted DAPI from seq images.
     for t in tqdm.tqdm(use_tiles, desc="Extracting DAPI from seq images", total=len(use_tiles)):
         y, x = tilepos_yx[t]
-        save_path = os.path.join(save_dir, "seq", f"channel_{c_dapi}", f"{x}_{y}.tif")
+        save_path = os.path.join(save_dir, DAPI_DIR_NAME, f"channel_{c_dapi}", f"{x}_{y}{SUFFIX}")
         if os.path.isfile(save_path):
             continue
         # Load raw image.
@@ -72,71 +74,127 @@ def extract_raw(
         # Save image in the format `x_y.tif`.
         tifffile.imwrite(save_path, image_raw)
 
-    # 2. extract all relevant channels from the IF images
-    for t in tqdm.tqdm(use_tiles, desc="Extracting IF images", total=len(use_tiles)):
+    # Load ND2 file.
+    with nd2.ND2File(read_dir) as f:
+        nd2_file = f.to_dask()
+
+    # 2. Extract all relevant channels from the custom images.
+    for t in tqdm.tqdm(use_tiles, desc=f"Extracting {read_dir}", total=len(use_tiles)):
+        t_files = nd2_file[nd2_indices[t]].compute()
         for c in use_channels:
             y, x = tilepos_yx[t]
-            save_path = os.path.join(save_dir, "if", f"channel_{c}", f"{x}_{y}.tif")
+            save_path = os.path.join(save_dir, CUSTOM_DIR_NAME, f"channel_{c}", f"{x}_{y}{SUFFIX}")
             if os.path.isfile(save_path):
                 continue
-            # Load image.
-            image = np.array(nd2_file[nd2_indices[t], :, c])
-            image = np.rot90(image, k=num_rotations, axes=(1, 2))[1:]
+            image = np.array(t_files[:, c])
+            image = np.rot90(image, k=num_rotations, axes=(1, 2))
             image = image.astype(np.uint16)
-            # Save image in the format x_y.tif
+            # zyx -> yxz.
+            image = image.swapaxes(0, 2).swapaxes(0, 1)
+            # Save image in the format x_y.tif.
             tifffile.imwrite(save_path, image)
 
 
-def stitch_if_and_dapi(nb: Notebook, extract_dir: str, use_channels: list[int]) -> tuple[np.ndarray, np.ndarray]:
+def stitch_tifs(nb: Notebook, extract_dir: str, channel: int) -> tuple[np.ndarray, np.ndarray]:
     """
-    Stitch the IF images and the DAPI images together using coppafisher's stich results. All relevant files must be
-    inside the given extract_dir. Inside extract_dir must be two directories: "if" and "seq" that are produced by the
-    function extract_raw above.
+    Stitch the custom images and the DAPI images together using coppafisher's stitch results. All relevant files must be
+    inside the given extract_dir. Inside extract_dir must be two directories: "custom" and "seq" that are produced by
+    the function extract_raw above.
 
     Args:
         nb (Notebook): the notebook with at least `stitch` completed.
-        extract_dir (str): the extract directory where the IF and sequence DAPI images are located.
-        use_channels (list of int): the channels to use that are in the extract directory.
+        extract_dir (str): the directory containing the custom and DAPI images.
+        channel (int): the channel to fuse.
 
     Returns:
         Tuple containing:
-            - (`(big_im_z x big_im_y x big_im_x) ndarray`): if_fused_image. The stitched together IF images.
-            - (`(big_im_z x big_im_y x big_im_x) ndarray`): dapi_fused_image. The stitched together DAPI images.
+            - (`(big_im_z x big_im_y x big_im_x) ndarray[float32]`): custom_fused_image. The stitched custom images.
+            - (`(big_im_z x big_im_y x big_im_x) ndarray[float32]`): dapi_fused_image. The stitched DAPI images.
     """
     if type(nb) is not Notebook:
         raise TypeError(f"nb must be a Notebook, got {type(nb)}")
     if type(extract_dir) is not str:
         raise TypeError(f"extract_dir must be a str, got {type(extract_dir)}")
-    if type(use_channels) is not list:
-        raise TypeError(f"use_channels must be a list, got {type(use_channels)}")
+    if type(channel) is not int:
+        raise TypeError(f"channel must be an int, got {type(channel)}")
+
+    expected_dirs = [os.path.join(extract_dir, DAPI_DIR_NAME), os.path.join(extract_dir, CUSTOM_DIR_NAME)]
+    for dir in expected_dirs:
+        if not os.path.isdir(dir):
+            raise SystemError(f"No directory found at {dir}")
+        if len(os.listdir(dir)) == 0:
+            raise FileNotFoundError(f"No files found inside {dir}")
+
+    dapi_dir = os.path.join(expected_dirs[0], f"channel_{nb.basic_info.dapi_channel}")
+    custom_dir = os.path.join(expected_dirs[1], f"channel_{channel}")
+    if not os.path.isdir(dapi_dir):
+        raise SystemError(f"No directory found at {dapi_dir}")
+    if len(os.listdir(dapi_dir)) == 0:
+        raise FileNotFoundError(f"No files found inside {dapi_dir}")
+
+    dapi_images: list[np.ndarray] = []
+    dapi_tile_indices: list[int] = []
+    custom_images: list[np.ndarray] = []
+    custom_tile_indices: list[int] = []
+
+    for dir_entry in os.scandir(custom_dir):
+        if not dir_entry.name.endswith(SUFFIX):
+            raise ValueError(f"All files must end with {SUFFIX}, but found {os.path.abspath(dir_entry.path)}")
+
+        tilepos_x = dir_entry.name.split("_")[0]
+        tilepos_y = dir_entry.name.split("_")[1][: -len(SUFFIX)]
+
+        dapi_image_path = os.path.join(dapi_dir, f"{tilepos_x}_{tilepos_y}{SUFFIX}")
+        if not os.path.isfile(dapi_image_path):
+            raise FileNotFoundError(f"Could not find dapi file {dapi_image_path}")
+
+        tilepos_yx = np.array([tilepos_y, tilepos_x], int)
+        is_tile_match: np.ndarray[bool] = (nb.basic_info.tilepos_yx == tilepos_yx).all(1)
+        if is_tile_match.sum() != 1:
+            raise ValueError(f"Failed to resolve {SUFFIX} file {dir_entry.path}")
+        tile_index = np.flatnonzero(is_tile_match).item(0)
+
+        dapi_images.append(tifffile.imread(dapi_image_path))
+        dapi_tile_indices.append(tile_index)
+        custom_images.append(tifffile.imread(dir_entry.path))
+        custom_tile_indices.append(tile_index)
+
+    fused_custom = background.generate_global_image(
+        custom_images, custom_tile_indices, nb.basic_info, nb.stitch, np.float32, silent=False
+    )
+    fused_dapi = background.generate_global_image(
+        dapi_images, dapi_tile_indices, nb.basic_info, nb.stitch, np.float32, silent=False
+    )
+
+    return fused_custom, fused_dapi
 
 
-def register_if(
+def register_custom_image(
     anchor_dapi: np.ndarray,
     if_dapi: np.ndarray,
     transform_save_dir: str,
-    reg_parameters: dict = None,
-    downsample_factor_yx: int = 4,
+    reg_parameters: dict,
+    downsample_factor_yx: int,
 ) -> np.ndarray:
     """
-    Register IF image to anchor image.
+    Register custom image to the given DAPI anchor image.
 
-    anchor_dapi (`(nz x ny x nx) ndarray`): Stitched large anchor image.
-    if_dapi (`(nz x ny x nx) ndarray`): Stitched large IF image.
-    transform_save_dir (str): directory to save the transform as a .npy file.
-    reg_parameters (dict[str, Any]`): Dictionary of registration parameters. Keys are:
-        * registration_type: str, type of registration to perform (must be 'shift' or 'subvolume')
-        if registration_type is 'shift':
-            No additional parameters are required.
-        if registration_type is 'subvolume':
-            * subvolume_size: np.ndarray, size of subvolumes in each dimension (size_z, size_y, size_x).
-            * overlap: float, fraction of overlap between subvolumes: 0 <= overlap < 1.
-            * r_threshold: float, threshold for correlation coefficient.
-    downsample_factor_yx (int): downsample factor for y and x dimensions.
-
+    Args:
+        anchor_dapi (`(nz x ny x nx) ndarray`): Stitched large anchor image.
+        if_dapi (`(nz x ny x nx) ndarray`): Stitched large custom image.
+        transform_save_dir (str): directory to save the transform as a .npy file.
+        reg_parameters (dict[str, Any]): Dictionary of registration parameters. Keys are:
+            * registration_type: str, type of registration to perform (must be 'shift' or 'subvolume')
+            if registration_type is 'shift':
+                No additional parameters are required.
+            if registration_type is 'subvolume':
+                * subvolume_size: np.ndarray, size of subvolumes in each dimension (size_z, size_y, size_x).
+                * overlap: float, fraction of overlap between subvolumes: 0 <= overlap < 1.
+                * r_threshold: float, threshold for correlation coefficient.
+        downsample_factor_yx (int, optional): downsample factor for y and x dimensions.
 
     Returns:
-        (np.ndarray): transform. Affine transform matrix.
+        (`(3 x 4) ndarray`): transform. Affine transform matrix.
     """
     # Steps are as follows:
     # 1. Manual selection of reference points for shift and rotation correction
@@ -151,15 +209,6 @@ def register_if(
         if_dapi_full[:z_box_if, :y_box_if, :x_box_if] = if_dapi
         anchor_dapi, if_dapi = anchor_dapi_full, if_dapi_full
         del anchor_dapi_full, if_dapi_full
-
-    if reg_parameters is None:
-        z_size, y_size, x_size = 16, 512, 512
-        reg_parameters = {
-            "registration_type": "subvolume",  # 'shift' or 'subvolume'
-            "subvolume_size": [z_size, y_size, x_size],
-            "overlap": 0.1,
-            "r_threshold": 0.8,
-        }
 
     # 1. Global correction for shift and rotation using procrustes analysis
     anchor_dapi_2d = np.max(anchor_dapi, axis=0)
@@ -184,7 +233,7 @@ def register_if(
     target_points = v.layers[3].data
     # Calculate the original orthogonal transform
     transform_initial = subvol_registration.procrustes_regression(base_points, target_points)
-    # Now apply the transform to the IF image
+    # Now apply the transform to the custom image.
     if_dapi_aligned_initial = scipy.ndimage.affine_transform(if_dapi, transform_initial, order=0)
 
     v = napari.Viewer()
@@ -220,7 +269,7 @@ def register_if(
         # Use these shifts to compute a global affine transform
         transform_3d_correction = subvol_registration.huber_regression(shift, position, predict_shift=False)
     else:
-        raise ValueError("Invalid registration type. Must be 'shift' or 'subvolume'")
+        raise ValueError(f"Unknown registration type: {reg_parameters['registration_type']}")
 
     # plot the transformed image
     if_dapi_aligned = scipy.ndimage.affine_transform(if_dapi_aligned_initial, transform_3d_correction, order=0)

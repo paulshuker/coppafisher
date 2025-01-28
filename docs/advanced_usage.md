@@ -62,46 +62,68 @@ intensity_thresh is set to `0.15` in the Viewer by default.
 
 ## Additional Image Registration and Stitching
 
-There is a built-in tool to stitch then register additional images, (typically these are IF images, so it will called as
-such from now on). Registration uses the older method of sub volume registration (see
-[issue](https://github.com/paulshuker/coppafisher/issues/210) for a future optical flow enhancement).
+There is a built-in tool to stitch then register additional images. Registration uses the older method of sub volume
+registration (see [issue](https://github.com/paulshuker/coppafisher/issues/210) for a future optical flow enhancement).
 
 ### Extract the additional image(s)
 
 The additional images must be extracted from the ND2 files. They are saved as tiff files. If you do not have ND2 input
-files, you need to manually convert them to tiff files.
+files, you need to first manually convert them to tiff files.
 
 ```py
-from coppafisher.if_alignment import extract_raw
+from coppafisher.custom_alignment import extract_raw
 from coppafisher import Notebook
 
 config_file = "/path/to/used/config.ini"
-if_nd2_dir = "/path/to/input/file.nd2"
-if_output_dir = "/path/to/output/directory"
+custom_nd2 = "/path/to/input/file.nd2"
+output_dir = "/path/to/output/directory"
 
 nb = Notebook("/path/to/notebook")
-extract_raw(nb, config_file, save_dir=if_output_dir, read_dir=if_nd2_dir, use_tiles=nb.basic_info.use_tiles, use_channels=[0,9,18,23])
+extract_raw(
+    nb,
+    config_file,
+    save_dir=output_dir,
+    read_dir=custom_nd2,
+    use_tiles=nb.basic_info.use_tiles,
+    use_channels=[0,9,18,23],
+)
 ```
 
-where use_channels can be any number of channels.
+where use_channels can be any valid channels.
 
 ### Stitch
 
-Generate a globally-stitched image based on the coppafisher stitching results from the notebook.
+Now generate globally-stitched images from coppafisher's stitching results and keep them in memory. This is done for
+each channel separately.
 
 ```py
-from coppafisher.if_alignment import stitch_if_and_dapi
+from coppafisher.custom_alignment import stitch_tifs
 
-stitch_if_and_dapi(nb, if_output_dir, use_channels=[0,9,18,23])
+fused_custom_image, dapi_fused_image = stitch_tifs(nb, output_dir, channel=0)
 ```
 
 ### Register
 
-```py
-from coppafisher.if_alignment import register_if
+Then, register the two fused images together.
 
-transform = register_if(seq_im, if_im, downsample_factor_yx=4, transform_save_dir=transform_save_dir, reg_parameters = reg_parameters)
+```py
+from coppafisher.custom_alignment import register_custom_image
+
+downsample_factor = 1  # Any natural number, `subvolume_size` is affected.
+reg_parameters = {
+    "registration_type": "subvolume",  # Can be "shift" or "subvolume".
+    "subvolume_size": [8, 1024, 1024],
+    "overlap": 0.1,  # Subvolume overlap.
+    "r_threshold": 0.8,  # How good the subvolume shifts must be.
+}
+
+if_fused_image = if_fused_image[:, ::downsample_factor, ::downsample_factor]
+dapi_fused_image = dapi_fused_image[:, ::downsample_factor, ::downsample_factor]
+
+transform = register_custom_image(seq_im, if_im, transform_save_dir, reg_parameters, downsample_factor)
 ```
+
+`subvolume_size` must be small enough to allow for at least two subvolumes on each axis.
 
 ## Create a background process
 
