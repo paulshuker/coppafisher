@@ -94,14 +94,6 @@ def set_basic_info(config: Config) -> NotebookPage:
             value = np.array(value)
         nbp.__setattr__(key, value)
 
-    # Reverse the tile positions from raw tiles, if true.
-    reversed_tilepos_yx_nd2 = nbp.tilepos_yx_nd2
-    del nbp.tilepos_yx_nd2
-    reversed_tilepos_yx_nd2 = tile_details.reverse_raw_tile_positions(
-        reversed_tilepos_yx_nd2, config_basic["reverse_tile_positions_x"], config_basic["reverse_tile_positions_y"]
-    )
-    nbp.tilepos_yx_nd2 = reversed_tilepos_yx_nd2
-
     # Stage 4: If anything from the first 12 entries has been left blank, deal with that here.
     # Unfortunately, this is just many if statements as all blank entries need to be handled differently.
     # Notebook doesn't allow us to reset a value once it has been set so must delete and reset.
