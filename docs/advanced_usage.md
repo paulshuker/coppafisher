@@ -92,9 +92,10 @@ extract_raw(
 `use_channels` can be any valid channel(s) inside the custom image .nd2 file. This will also extract the anchor round in
 the DAPI channel.
 
-???+ note ""
+??? note "Config File"
 
-    The config file must point to a valid input directory.
+    The config file must be a valid configuration, like the one used during the experiment. Therefore, the `input_dir`
+    must point to a real input directory.
 
 ### Stitch
 
