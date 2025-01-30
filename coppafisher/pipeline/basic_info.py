@@ -4,7 +4,6 @@ import os
 import numpy as np
 
 from ..extract import nd2
-from ..setup import tile_details
 from ..setup.config import Config
 from ..setup.notebook_page import NotebookPage
 from ..utils import base as utils_base
