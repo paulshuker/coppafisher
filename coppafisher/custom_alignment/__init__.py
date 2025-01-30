@@ -1,3 +1,3 @@
-from .base import extract_raw, register_custom_image, stitch_tifs
+from .base import apply_transform, extract_raw, fuse_custom_and_dapi, register_custom_image
 
-__all__ = ["extract_raw", "register_custom_image", "stitch_tifs"]
+__all__ = ["apply_transform", "extract_raw", "fuse_custom_and_dapi", "register_custom_image"]

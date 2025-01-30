@@ -76,7 +76,7 @@ from coppafisher import Notebook
 
 config_file = "/path/to/used/config.ini"
 custom_nd2 = "/path/to/input/file.nd2"
-output_dir = "/path/to/output/directory"
+output_dir = "/path/to/extract/directory/"
 
 nb = Notebook("/path/to/notebook")
 extract_raw(
@@ -85,26 +85,31 @@ extract_raw(
     save_dir=output_dir,
     read_dir=custom_nd2,
     use_tiles=nb.basic_info.use_tiles,
-    use_channels=[0,9,18,23],
+    use_channels=[9, 23],
 )
 ```
 
-where use_channels can be any valid channels.
+`use_channels` can be any valid channel(s) inside the custom image .nd2 file. This will also extract the anchor round in
+the DAPI channel.
+
+???+ note ""
+
+    The config file must point to a valid input directory.
 
 ### Stitch
 
-Now generate globally-stitched images from coppafisher's stitching results and keep them in memory. This is done for
-each channel separately.
+Now stitch the extracted images using coppafisher's [stitch](stitch.md) method and keep them in memory. This is done for
+each custom image channel separately.
 
 ```py
-from coppafisher.custom_alignment import stitch_tifs
+from coppafisher.custom_alignment import fuse_custom_and_dapi
 
-fused_custom_image, dapi_fused_image = stitch_tifs(nb, output_dir, channel=0)
+fused_custom_image, fused_anchor_image = fuse_custom_and_dapi(nb, output_dir, channel=0)
 ```
 
 ### Register
 
-Then, register the two fused images together.
+The custom fused image is registered to the anchor DAPI fused image.
 
 ```py
 from coppafisher.custom_alignment import register_custom_image
@@ -117,13 +122,32 @@ reg_parameters = {
     "r_threshold": 0.8,  # How good the subvolume shifts must be.
 }
 
-if_fused_image = if_fused_image[:, ::downsample_factor, ::downsample_factor]
-dapi_fused_image = dapi_fused_image[:, ::downsample_factor, ::downsample_factor]
+fused_custom_image = fused_custom_image[:, ::downsample_factor, ::downsample_factor]
+fused_anchor_image = fused_anchor_image[:, ::downsample_factor, ::downsample_factor]
 
-transform = register_custom_image(seq_im, if_im, transform_save_dir, reg_parameters, downsample_factor)
+transform = register_custom_image(fused_anchor_image, fused_custom_image, reg_parameters, downsample_factor)
 ```
 
-`subvolume_size` must be small enough to allow for at least two subvolumes on each axis.
+`subvolume_size` must be small enough for at least two subvolumes along every axis.
+
+Then you can apply the transform to any custom image channel you wish and save the result as a .tif file.
+
+```py
+from coppafisher.custom_alignment import apply_transform
+
+save_dir = "/path/to/output/directory"
+apply_transform(fused_custom_image, transform, save_dir, name=f"custom_final_channel_{channel}.tif")
+```
+
+The custom image will be saved as the given name
+
+You can also save the fused_anchor_image
+
+```py
+from coppafisher.custom_alignment import apply_transform
+
+apply_transform(fused_anchor_image, None, save_dir, name="anchor_dapi.tif")
+```
 
 ## Create a background process
 

@@ -39,6 +39,7 @@ def generate_global_image(
     assert type(nbp_basic) is NotebookPage
     assert type(nbp_stitch) is NotebookPage
 
+    tiles_given = tiles_given.copy()
     tile_shape = (nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z))
     tile_origins_yxz: np.ndarray = nbp_stitch.tile_origin[nbp_basic.use_tiles]
     tile_origins_yxz = np.rint(tile_origins_yxz).astype(int)
