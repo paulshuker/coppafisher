@@ -46,11 +46,11 @@ custom images and their colour mappings in python
 from coppafisher import Notebook, Viewer
 
 nb = Notebook("/path/to/notebook")
-Viewer(nb, background_images=["/path/to/custom/background_image.npy", "dapi"], background_image_colours=["Reds", "gray"])
+Viewer(nb, background_images=["/path/to/custom/background_image.npy", "dapi_detailed"], background_image_colours=["Reds", "gray"])
 ```
 
 You can specify the background_images to be `#!python ["dapi_detailed"]` or `#!python ["anchor_detailed"]` for
-higher precision background images.
+16-bit precision background images.
 
 The colourmaps can be any [vispy](https://vispy.org/api/vispy.color.colormap.html#vispy.color.colormap.get_colormaps)
 or [matplotlib](https://matplotlib.org/stable/users/explain/colors/colormaps.html) colourmap.
@@ -86,7 +86,7 @@ Orthogonal Matching Pursuit method (see [OMP](overview.md#orthogonal-matching-pu
     windows, you have full control over the background images by selecting one. You can change their blending mode and
     opacity so you can see all your background images at once.
 
-??? note "Max Intensity Projection Toggle"
+??? bug "Max Intensity Projection Toggle"
 
     It is a [known issue](https://github.com/paulshuker/coppafisher/issues/201) that toggling the Max Intensity
     Projection off displays the wrong z plane in the Viewer since it always shows the first z plane. To fix this, just

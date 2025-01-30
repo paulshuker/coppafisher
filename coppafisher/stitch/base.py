@@ -8,6 +8,77 @@ from tqdm import tqdm
 from ..register import preprocessing
 
 
+def stitch(
+    tile_images: np.ndarray,
+    tilepos_yx: np.ndarray[int],
+    use_tiles: list[int],
+    n_all_tiles: int,
+    expected_overlap: float,
+) -> Tuple[np.ndarray[np.floating], np.ndarray[np.floating], np.ndarray[np.floating]]:
+    """
+    Stitch given tile images together. Tiles are stitched together by translating each image into a global coordinate
+    system. Phase Cross Correlation is used to find the best translations.
+
+    Args:
+        tile_images (`(len(use_tiles) x im_y x im_x x im_z) ndarray[float32]`): tile_images[i] is tile use_tiles[i]'s
+            image.
+        tilepos_yx (`(len(use_tiles) x 2) ndarray[int]`): tilepos_yx[i] is tile use_tiles[i]'s position relative to the
+            other tiles along and y and x axis.
+        use_tiles (list of int): the indices of each tile.
+        n_all_tiles (int): the total number of tiles in the experiment. This is `>= len(use_tiles)`.
+        expected_overlap (float): the approximate overlap between adjacent tiles as a fraction of their pixel count in
+            x/y.
+
+    Returns:
+        Tuple containing:
+            - (`(n_all_tiles x 3) ndarray[float]`): tile_origins_full.
+            - (`(n_all_tiles x n_all_tiles x 3) ndarray[float]`): pairwise_shifts_full.
+            - (`(n_all_tiles x n_all_tiles) ndarray[float]`): pairwise_shift_scores_full.
+    """
+    n_tiles_use = len(use_tiles)
+
+    # Build the arrays that we will use to compute the pairwise shift.
+    pairwise_shifts = np.zeros((n_tiles_use, n_tiles_use, 3))
+    pairwise_shift_scores = np.zeros((n_tiles_use, n_tiles_use))
+
+    # Fill the pairwise shift and pairwise shift score matrices.
+    for i, j in tqdm(np.ndindex(n_tiles_use, n_tiles_use), total=n_tiles_use**2, desc="Computing shifts between tiles"):
+        # If the tiles are not adjacent, skip.
+        if abs(tilepos_yx[i] - tilepos_yx[j]).sum() != 1:
+            continue
+        pairwise_shifts[i, j], pairwise_shift_scores[i, j] = compute_shift(
+            t1=tile_images[i], t2=tile_images[j], t1_pos=tilepos_yx[i], t2_pos=tilepos_yx[j], overlap=expected_overlap
+        )
+
+    # Compute the nominal_origin_deviations using a minimisation of a quadratic loss function.
+    # Instead of recording the shift between adjacent tiles to yield an n_tiles_use x n_tiles_use x 3 array as in
+    # pairwise_shiftss, this is an n_all_tiles x 3 array of every tile's shift from its nominal origin.
+    nominal_origin_deviations = minimise_shift_loss(shift=pairwise_shifts, score=pairwise_shift_scores)
+
+    # Expand the pairwise shifts and pairwise shift scores from n_tiles_use x n_tiles_use x 3 to n_all_tiles x n_all_tiles x 3.
+    pairwise_shifts_full, pairwise_shift_scores_full, tile_origins_full = (
+        np.zeros((n_all_tiles, n_all_tiles, 3)) * np.nan,
+        np.zeros((n_all_tiles, n_all_tiles)) * np.nan,
+        np.zeros((n_all_tiles, 3)) * np.nan,
+    )
+    im_size_y, im_size_x = tile_images[0].shape[:-1]
+    for i, t in enumerate(use_tiles):
+        # Fill the full shift and score matrices.
+        pairwise_shifts_full[t, use_tiles] = pairwise_shifts[i]
+        pairwise_shift_scores_full[t, use_tiles] = pairwise_shift_scores[i]
+        # Fill the tile origins.
+        nominal_origin = np.array(
+            [
+                tilepos_yx[i][0] * im_size_y * (1 - expected_overlap),
+                tilepos_yx[i][1] * im_size_x * (1 - expected_overlap),
+                0,
+            ]
+        )
+        tile_origins_full[t] = nominal_origin + nominal_origin_deviations[i]
+
+    return tile_origins_full, pairwise_shift_scores, pairwise_shift_scores_full
+
+
 def compute_shift(
     t1: np.ndarray, t2: np.ndarray, t1_pos: np.ndarray, t2_pos: np.ndarray, overlap: float
 ) -> Tuple[np.ndarray, float]:

@@ -35,8 +35,16 @@ results to be salvaged from an incomplete tile.
 
 ## Export for pciSeq
 
-For probabilistic cell typing with [pciSeq](https://github.com/acycliq/pciSeq), you can export gene reads into a
-compatible csv file by
+For probabilistic cell typing with [pciSeq](https://github.com/acycliq/pciSeq), a DAPI background image and gene spot
+positions must be exported.
+
+To export the anchor's DAPI image
+
+```py
+--8<-- "export_dapi_to_pciseq.py"
+```
+
+Export gene reads into a compatible csv file by
 
 ```py
 --8<-- "export_to_pciseq_0.py"
@@ -50,6 +58,97 @@ minimum threshold:
 ```
 
 score_thresh and intensity_thresh must be numbers. Use the [Viewer](diagnostics.md#viewer) to help decide on thresholds.
+intensity_thresh is set to `0.15` in the Viewer by default.
+
+## Additional Image Registration and Stitching
+
+There is a built-in tool to stitch then register additional images. Registration uses the older method of sub volume
+registration (see [issue](https://github.com/paulshuker/coppafisher/issues/210) for a future optical flow enhancement).
+
+### Extract the additional image(s)
+
+The additional images must be extracted from the ND2 files. They are saved as tiff files. If you do not have ND2 input
+files, you need to first manually convert them to tiff files.
+
+```py
+from coppafisher.custom_alignment import extract_raw
+from coppafisher import Notebook
+
+config_file = "/path/to/used/config.ini"
+custom_nd2 = "/path/to/input/file.nd2"
+output_dir = "/path/to/extract/directory/"
+
+nb = Notebook("/path/to/notebook")
+extract_raw(
+    nb,
+    config_file,
+    save_dir=output_dir,
+    read_dir=custom_nd2,
+    use_tiles=nb.basic_info.use_tiles,
+    use_channels=[9, 23],
+)
+```
+
+`use_channels` can be any valid channel(s) inside the custom image .nd2 file. This will also extract the anchor round in
+the DAPI channel.
+
+??? note "Config File"
+
+    The config file must be a valid configuration, like the one used during the experiment. Therefore, the `input_dir`
+    must point to a real input directory.
+
+### Stitch
+
+Now stitch the extracted images using coppafisher's [stitch](stitch.md) method and keep them in memory. This is done for
+each custom image channel separately.
+
+```py
+from coppafisher.custom_alignment import fuse_custom_and_dapi
+
+fused_custom_image, fused_anchor_image = fuse_custom_and_dapi(nb, output_dir, channel=0)
+```
+
+### Register
+
+The custom fused image is registered to the anchor DAPI fused image.
+
+```py
+from coppafisher.custom_alignment import register_custom_image
+
+downsample_factor = 1  # Any natural number, `subvolume_size` is affected.
+reg_parameters = {
+    "registration_type": "subvolume",  # Can be "shift" or "subvolume".
+    "subvolume_size": [8, 1024, 1024],
+    "overlap": 0.1,  # Subvolume overlap.
+    "r_threshold": 0.8,  # How good the subvolume shifts must be.
+}
+
+fused_custom_image = fused_custom_image[:, ::downsample_factor, ::downsample_factor]
+fused_anchor_image = fused_anchor_image[:, ::downsample_factor, ::downsample_factor]
+
+transform = register_custom_image(fused_anchor_image, fused_custom_image, reg_parameters, downsample_factor)
+```
+
+`subvolume_size` must be small enough for at least two subvolumes along every axis.
+
+Then you can apply the transform to any custom image channel you wish and save the result as a .tif file.
+
+```py
+from coppafisher.custom_alignment import apply_transform
+
+save_dir = "/path/to/output/directory"
+apply_transform(fused_custom_image, transform, save_dir, name=f"custom_final_channel_{channel}.tif")
+```
+
+The custom image will be saved as the given name
+
+You can also save the fused_anchor_image
+
+```py
+from coppafisher.custom_alignment import apply_transform
+
+apply_transform(fused_anchor_image, None, save_dir, name="anchor_dapi.tif")
+```
 
 ## Create a background process
 

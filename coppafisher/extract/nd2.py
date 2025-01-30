@@ -76,8 +76,8 @@ def get_metadata(file_path: str, config: dict) -> dict:
         xy_pos = np.array(
             [images.experiment[0].parameters.points[i].stagePositionUm[:2] for i in range(images.sizes["P"])]
         )
-        reverse_x = -1 if config['basic_info']['reverse_tile_positions_x'] else 1
-        reverse_y = -1 if config['basic_info']['reverse_tile_positions_y'] else 1
+        reverse_x = -1 if config["basic_info"]["reverse_tile_positions_x"] else 1
+        reverse_y = -1 if config["basic_info"]["reverse_tile_positions_y"] else 1
         xy_pos = xy_pos * [reverse_x, reverse_y]
         xy_pos = (xy_pos - np.min(xy_pos, 0)) / metadata["pixel_size_xy"]
         metadata["xy_pos"] = xy_pos

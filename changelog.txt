@@ -1,8 +1,12 @@
 2025/MM/DD Version 1 Patch (v1.0.3):
  * General: Dropped Python 3.10 support.
+ * General: Pciseq .csv spot coordinates are now given relative to a global (0, 0, 0) origin.
+ * General: New export_pciseq_dapi_image function for the pciseq DAPI image described in Advanced Usage documentation.
+ * General: New custom image extract, register, and stitch pipeline for IF images in Advanced Usage documentation.
  * Viewer: Now supports multiple background images.
  * Viewer: New gene ordering by cell type default option.
  * Viewer: New `dapi_detailed` and `anchor_detailed` background image options.
+ * Viewer: Default background image is now `dapi_detailed`.
  * Viewer: `tailed_arrow` napari symbol now supported in the gene marker files.
  * PDF Diagnostics: Gene heat map colour scale is now logarithmic.
 

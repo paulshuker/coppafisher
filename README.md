@@ -4,6 +4,7 @@
 ![Status Badge](https://img.shields.io/badge/status-mature-blue)
 ![GitHub License](https://img.shields.io/github/license/paulshuker/coppafisher?color=blue)
 ![GitHub Version](https://img.shields.io/github/v/tag/paulshuker/coppafisher?label=version)
+![GitHub repo size](https://img.shields.io/github/repo-size/paulshuker/coppafisher?link=https%3A%2F%2Fgithub.com%2Fpaulshuker%2Fcoppafisher)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ## Documentation
