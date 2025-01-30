@@ -1,4 +1,4 @@
-2025/MM/DD Version 1 Patch (v1.0.3):
+2025/01/31 Version 1 Patch (v1.0.3):
  * General: Dropped Python 3.10 support.
  * General: Pciseq .csv spot coordinates are now given relative to a global (0, 0, 0) origin.
  * General: New export_pciseq_dapi_image function for the pciseq DAPI image described in Advanced Usage documentation.
