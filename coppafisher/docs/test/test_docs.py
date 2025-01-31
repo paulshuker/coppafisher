@@ -13,6 +13,8 @@ TEST_FILE_NAMES: tuple[tuple[str, int, bool]] = (
     ("compatibility_tracker_start_from", 20, False),
     ("docstring_example", 5, False),
     ("estimate_runtime", 7, False),
+    ("export_dapi_to_pciseq", 10, False),
+    ("export_unfiltered_dapi_to_pciseq", 10, False),
     ("export_to_pciseq_0", 20, False),
     ("export_to_pciseq_1", 20, False),
     ("generate_gene_codes", 20, False),
