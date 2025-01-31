@@ -2,6 +2,7 @@
  * General: Dropped Python 3.10 support.
  * General: Pciseq .csv spot coordinates are now given relative to a global (0, 0, 0) origin.
  * General: New export_pciseq_dapi_image function for the pciseq DAPI image described in Advanced Usage documentation.
+ * General: New export_pciseq_unfiltered_dapi_image function in Advanced Usage documentation.
  * General: New custom image extract, register, and stitch pipeline for IF images in Advanced Usage documentation.
  * Viewer: Now supports multiple background images.
  * Viewer: New gene ordering by cell type default option.
