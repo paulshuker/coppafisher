@@ -1,4 +1,6 @@
+import csv
 import os
+import random
 import tempfile
 
 import matplotlib
@@ -34,6 +36,9 @@ def test_Viewer() -> None:
     nbp_basic.use_z = use_z
     nbp_basic.use_rounds = tuple(range(n_rounds_use))
     nbp_basic.use_channels = tuple(range(n_channels_use))
+    nbp_basic.anchor_round = n_rounds_use - 1
+    nbp_basic.dapi_channel = n_channels_use - 1
+    nbp_basic.anchor_channel = n_channels_use - 2
     nbp_filter = NotebookPage("filter")
     nbp_filter.images = zarr.array(
         200 * rng.rand(n_tiles, n_rounds_use, n_channels_use, tile_sz, tile_sz, len(use_z)).astype(np.float16) - 50
@@ -43,13 +48,13 @@ def test_Viewer() -> None:
     affine = np.zeros((n_tiles, n_rounds_use, n_channels_use, 4, 3))
     affine[:, :, :, :3] = np.eye(3)
     nbp_register.icp_correction = affine
-    nbp_stitch = NotebookPage("stitch")
+    nbp_stitch = NotebookPage("stitch", {"stitch": {"expected_overlap": 0.5}})
     tile_origin = np.zeros((n_tiles, 3), np.float32)
     for t in range(n_tiles):
         # All tiles align along the x axis.
-        tile_origin[t, 1] = tile_sz * t
+        tile_origin[t, 1] = tile_sz * t - (0.1 * tile_sz)
         # Random offsets.
-        tile_origin[t] += rng.rand()
+        tile_origin[t] += 2 * rng.rand()
     nbp_stitch.tile_origin = tile_origin
     dapi_image_shape = (
         (tile_origin.max(0)[[2, 0, 1]] + np.array([len(use_z), tile_sz, tile_sz], int)).astype(int).tolist()
@@ -94,14 +99,21 @@ def test_Viewer() -> None:
 
     # Try different background image valid parameters.
     background_images = []
-    background_images.append("dapi")
-    background_images.append(None)
-    background_images.append(npy_filepath)
-    background_images.append(npz_filepath)
-    background_images.append(tiff_filepath)
-    for background_image in background_images:
+    background_image_colours = []
+    background_images.append(list())
+    background_image_colours.append([])
+    background_images.append([npy_filepath])
+    background_image_colours.append(["Greens"])
+    background_images.append([npz_filepath])
+    background_image_colours.append(["Greens"])
+    background_images.append([tiff_filepath])
+    background_image_colours.append(["Greens"])
+    background_images.append([npy_filepath, "dapi_detailed", tiff_filepath])
+    background_image_colours.append(["Greens", "Reds", "Greys"])
+    for background_image, colour_maps in zip(background_images, background_image_colours):
         viewer = Viewer(
-            background_image=background_image,
+            background_images=background_image,
+            background_image_colours=colour_maps,
             gene_legend_order_by="row",
             nbp_basic=nbp_basic,
             nbp_filter=nbp_filter,
@@ -119,8 +131,20 @@ def test_Viewer() -> None:
             viewer.clear_spot_selections()
         viewer.close_all_subplots()
         viewer.close()
+
+    # Use a custom gene marker file without the cell types column.
+    temp_dir = tempfile.TemporaryDirectory("coppafisher")
+    gene_marker_filepath = os.path.join(temp_dir.name, "gene_colours.csv")
+    with open(gene_marker_filepath, "w") as file:
+        writer = csv.writer(file, delimiter=",")
+        writer.writerow(("ID", "GeneNames", "ColorR", "ColorG", "ColorB", "napari_symbol"))
+        for i, gene_name in enumerate(nbp_call_spots.gene_names):
+            writer.writerow((i, gene_name, rng.rand(), rng.rand(), rng.rand(), random.choice(("cross", "disc"))))
     viewer = Viewer(
-        background_image="dapi",
+        background_images=("dapi_detailed", "anchor_detailed"),
+        background_image_colours=("Reds", "Greens"),
+        gene_marker_filepath=gene_marker_filepath,
+        gene_legend_order_by="colour",
         nbp_basic=nbp_basic,
         nbp_filter=nbp_filter,
         nbp_register=nbp_register,
@@ -138,6 +162,7 @@ def test_Viewer() -> None:
         viewer.clear_spot_selections()
         viewer.clear_spot_selections()
     viewer.close()
+    temp_dir.cleanup()
 
     n_omp_spots = 85 // n_tiles
     omp_config = {
@@ -176,7 +201,7 @@ def test_Viewer() -> None:
         subgroup.colours[:] = rng.rand(*subgroup.colours.shape).astype(np.float16)
     nbp_omp.results = group
     viewer = Viewer(
-        background_image="dapi",
+        background_images=("dapi_detailed",),
         nbp_basic=nbp_basic,
         nbp_filter=nbp_filter,
         nbp_register=nbp_register,

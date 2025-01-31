@@ -877,20 +877,18 @@ class BuildPDF:
         scores: np.ndarray[np.float32],
         gene_names: np.ndarray[str],
         score_threshold: float,
-    ) -> Tuple[plt.Figure]:
+    ) -> None:
         """
         Save a spatial heat map of each spot location for each gene along y and x directions for all z positions. This
         is saved to the given PDF file.
 
         Args:
-            - (PdfPages): pdf pages to save every figure to.
-            - (`(n_spots x 3) ndarray[float32]`) global_yxzs: the y, x, and z position for every spot on a global picture.
-            - (`(n_spots) ndarray[int32]`) gene_numbers: gene number for each spot.
-            - (`(n_spots) ndarray[float32]`) scores: every spot score.
-            - (`(n_spots) ndarray[str]`) gene_names: every gene name.
-
-        Returns:
-            (tuple of Figures) figures: each genes' heatmap figure.
+            (PdfPages): pdf pages to save every figure to.
+            (`(n_spots x 3) ndarray[float32]`) global_yxzs: the y, x, and z position for every spot on a global picture.
+            (`(n_spots) ndarray[int32]`) gene_numbers: gene number for each spot.
+            (`(n_spots) ndarray[float32]`) scores: every spot score.
+            (`(n_spots) ndarray[str]`) gene_names: every gene name.
+            (float) score_threshold: gene score threshold.
         """
         assert global_yxzs.shape[0] == gene_numbers.shape[0] == scores.shape[0]
         assert np.logical_and(gene_numbers >= 0, gene_numbers < gene_names.size).all()
@@ -906,7 +904,11 @@ class BuildPDF:
             spot_gene_g = gene_numbers == g
             subset_yxzs = global_yxzs[spot_passes & spot_gene_g]
             image = np.histogram2d(subset_yxzs[:, 0], subset_yxzs[:, 1], bins=bin_counts, range=hist_range)[0]
-            max_count = image.max().clip(min=1).astype(int).item()
+            if (image > 0).sum() == 0:
+                continue
+            image[image <= 0] = np.nan
+            image[image > 0] = np.log10(image[image > 0])
+            max_count = max(np.nanmax(image).astype(int).item(), 1)
             norm = mpl.colors.Normalize(vmin=0, vmax=max_count)
             fig, axes = self.create_empty_page(1, 1)
             im = axes[0, 0].imshow(image, cmap=cmap, norm=norm)
@@ -920,7 +922,7 @@ class BuildPDF:
             axes[0, 0].set_ylim(
                 -0.5 + global_minimums_yxz[0] / self.HEATMAP_BIN_SIZE, global_maximums_yxz[0] / self.HEATMAP_BIN_SIZE
             )
-            fig.colorbar(im, ax=axes[0, 0], label="Spot count", ticks=[n for n in range(max_count + 1)])
+            fig.colorbar(im, ax=axes[0, 0], label=r"$\log_{10}$(Spot count)", ticks=[n for n in range(max_count + 1)])
             fig.suptitle(f"Gene {g}: {gene_name}, score >= {score_threshold}")
             fig.tight_layout()
 

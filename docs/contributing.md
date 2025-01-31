@@ -12,6 +12,11 @@ software.
 While changing code, [install](index.md#installation) coppafisher as usual but keep the downloaded local source code
 directory. Then install dev packages
 
+??? note "Local Code Location"
+
+    Avoid cloning coppafisher inside a subdirectory named `coppafisher` because this could cause strange errors to
+    occur.
+
 ```terminal
 pip install -r requirements-dev.txt
 ```

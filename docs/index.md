@@ -29,7 +29,7 @@ vocabulary might be unfamiliar, please see the [glossary](glossary.md) for refer
 ### Prerequisites
 
 * Windows or Linux. MacOS is not tested.
-* Python 3.10 or 3.11.
+* Python 3.11.
 * [Git](https://git-scm.com/).
 * 64GB of memory for tile sizes `64x2048x2048` pixels (recommended).
 * Nvidia GPU with Cuda 12.4 support (optional).
@@ -50,8 +50,8 @@ coppa can be changed to any name.
 
 ??? note "Environment naming"
 
-    It is highly recommended to not name the environment `coppafisher` because this it is the same name as the Python
-    package, which can cause confusing bugs.
+    Avoid naming the environment `coppafisher` because this it is the same name as the Python package, which can cause
+    confusing bugs.
 
 ### Install
 
@@ -61,11 +61,15 @@ Clone the latest coppafisher version locally
 git clone --depth 1 https://github.com/paulshuker/coppafisher
 ```
 
-or a specific version, like version 1.0.0
+??? info "Install a specific version"
 
-```terminal
-git clone --depth 1 --branch 1.0.0 https://github.com/paulshuker/coppafisher
-```
+    You can instead install specific coppafisher versions, like version 1.0.0
+
+    ```terminal
+    git clone --depth 1 --branch 1.0.0 https://github.com/paulshuker/coppafisher
+    ```
+
+    Check the [tags](https://github.com/paulshuker/coppafisher/tags) for version options.
 
 install package dependencies
 
@@ -97,7 +101,12 @@ Finally, install coppafisher by
 python -m pip install .
 ```
 
-You can now safely delete the locally cloned coppafisher repository.
+You can now safely delete the locally cloned coppafisher repository
+
+```terminal
+cd ..
+rm -rf coppafisher
+```
 
 ## Updating
 
@@ -111,9 +120,6 @@ conda env remove -n coppa
 ```
 
 Then follow all [installation](#installation) instructions again.
-
-You can verify your install by running `#!terminal pip show coppafisher` in the environment to check you have the correct
-version.
 
 Keep all output data (including the notebook) when updating coppafisher versions. If data saved to disk is now
 deprecated, coppafisher will automatically suggest a course of action when it is [run](basic_usage.md#running) again.
