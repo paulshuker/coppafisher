@@ -59,6 +59,15 @@ positions must be exported.
     To export the anchor's unfiltered DAPI stitched image
 
     ```py
+    --8<-- "export_unfiltered_dapi_to_pciseq.py"
+    ```
+
+    The DAPI image can then be loaded into memory by
+
+    ```py
+    import numpy as np
+
+    dapi_image = np.load("/path/to/dapi_image.npz")["arr_0"]
     ```
 
 Export gene reads into a compatible csv file by
