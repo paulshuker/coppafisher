@@ -23,7 +23,8 @@ def generate_global_image(
             function.
         nbp_basic (NotebookPage): `basic_info` notebook page.
         nbp_stitch (NotebookPage): `stitch` notebook page.
-        output_dtype (dtype-like, optional): the fused_image datatype. Default: float16.
+        output_dtype (dtype-like, optional): the fused_image datatype. Default: float16. If this is a integer type, then
+            the final pixels are rounded to integer values.
         silent (bool, optional): do not print a progress bar. Default: true.
 
     Returns:
@@ -93,6 +94,8 @@ def generate_global_image(
                 else:
                     t_image[:, ind_min:ind_max] *= multiplier[np.newaxis, :, np.newaxis]
 
+        if output_dtype in (np.int16, np.int32, np.int64, np.uint16, np.uint32, np.uint64):
+            t_image = np.rint(t_image)
         t_image = t_image.astype(output_dtype)
 
         t_origin = tile_origins_yxz[t_i]

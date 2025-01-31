@@ -904,8 +904,11 @@ class BuildPDF:
             spot_gene_g = gene_numbers == g
             subset_yxzs = global_yxzs[spot_passes & spot_gene_g]
             image = np.histogram2d(subset_yxzs[:, 0], subset_yxzs[:, 1], bins=bin_counts, range=hist_range)[0]
-            image = np.log10(image)
-            max_count = image.max().clip(min=1).astype(int).item()
+            if (image > 0).sum() == 0:
+                continue
+            image[image <= 0] = np.nan
+            image[image > 0] = np.log10(image[image > 0])
+            max_count = max(np.nanmax(image).astype(int).item(), 1)
             norm = mpl.colors.Normalize(vmin=0, vmax=max_count)
             fig, axes = self.create_empty_page(1, 1)
             im = axes[0, 0].imshow(image, cmap=cmap, norm=norm)

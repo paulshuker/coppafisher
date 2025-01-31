@@ -38,23 +38,37 @@ results to be salvaged from an incomplete tile.
 For probabilistic cell typing with [pciSeq](https://github.com/acycliq/pciSeq), a DAPI background image and gene spot
 positions must be exported.
 
-### DAPI image
+??? "Filtered DAPI"
 
-To export the anchor's DAPI image
+    To export the anchor's filtered DAPI stitched image
 
-```py
---8<-- "export_dapi_to_pciseq.py"
-```
+    ```py
+    --8<-- "export_dapi_to_pciseq.py"
+    ```
 
-The DAPI image can then be loaded into memory by
+    The DAPI image can then be loaded into memory by
 
-```py
-import numpy as np
+    ```py
+    import numpy as np
 
-dapi_image = np.load("/path/to/dapi_image.npz")["arr_0"]
-```
+    dapi_image = np.load("/path/to/dapi_image.npz")["arr_0"]
+    ```
 
-### Gene spots
+??? "Unfiltered DAPI"
+
+    To export the anchor's unfiltered DAPI stitched image
+
+    ```py
+    --8<-- "export_unfiltered_dapi_to_pciseq.py"
+    ```
+
+    The DAPI image can then be loaded into memory by
+
+    ```py
+    import numpy as np
+
+    dapi_image = np.load("/path/to/dapi_image.npz")["arr_0"]
+    ```
 
 Export gene reads into a compatible csv file by
 
