@@ -35,7 +35,7 @@ def set_basic_info(config: Config) -> NotebookPage:
     nbp = NotebookPage("basic_info", associated_configs)
 
     # Stage 1: Compute metadata. This is done slightly differently in the 3 cases of different raw extensions
-    raw_extension = nd2.get_raw_extension(config_file["input_dir"])
+    raw_extension = config_file["raw_extension"]
     all_files = []
     for root, _, filenames in os.walk(config_file["input_dir"]):
         for filename in filenames:
@@ -67,8 +67,7 @@ def set_basic_info(config: Config) -> NotebookPage:
         metadata = nd2.get_jobs_metadata(all_files, config_file["input_dir"], config=config)
     else:
         raise ValueError(
-            f"config_file['raw_extension'] should be either '.nd2' or '.npy' but it is "
-            f"{config_file['raw_extension']}."
+            f"config_file['raw_extension'] should be either '.nd2' or '.npy' but it is {config_file['raw_extension']}."
         )
 
     # Stage 2: Read in page contents from config that cannot be computed from metadata.
