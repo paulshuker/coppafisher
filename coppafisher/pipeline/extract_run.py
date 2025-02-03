@@ -90,13 +90,13 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
                     pbar.update()
                     continue
 
-                raw_channel_indices = channels.copy()
+                raw_channel_inds = channels.copy()
                 if r == nbp_basic.anchor_round and nbp_file.raw_anchor_channel_indices is not None:
-                    raw_channel_indices[channels.index(nbp_basic.anchor_round)] = nbp_file.raw_anchor_channel_indices[0]
-                    raw_channel_indices[channels.index(nbp_basic.dapi_channel)] = nbp_file.raw_anchor_channel_indices[1]
+                    raw_channel_inds[channels.index(nbp_basic.anchor_channel)] = nbp_file.raw_anchor_channel_indices[0]
+                    raw_channel_inds[channels.index(nbp_basic.dapi_channel)] = nbp_file.raw_anchor_channel_indices[1]
 
                 # Has shape (n_channels, im_y, im_x, im_z).
-                channel_images = reader.read(nbp_basic, nbp_file, t, r, raw_channel_indices)
+                channel_images = reader.read(nbp_basic, nbp_file, t, r, raw_channel_inds)
                 channel_images = channel_images[:, :, :, nbp_basic.use_z]
 
                 for im, c, file_path, file_exists in zip(channel_images, channels, file_paths, files_exist):
