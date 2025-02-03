@@ -125,8 +125,8 @@ the DAPI channel.
 
 ### Stitch
 
-Now stitch the extracted images using coppafisher's [stitch](stitch.md) method and keep them in memory. This is done for
-each custom image channel separately.
+Now the extracted images are stitched using coppafisher's [stitch](stitch.md) method results. Do this for each custom
+image channel separately.
 
 ```py
 from coppafisher.custom_alignment import fuse_custom_and_dapi
@@ -136,7 +136,7 @@ fused_custom_image, fused_anchor_image = fuse_custom_and_dapi(nb, output_dir, ch
 
 ### Register
 
-The custom fused image is registered to the anchor DAPI fused image.
+The custom fused image can be registered to the anchor DAPI fused image.
 
 ```py
 from coppafisher.custom_alignment import register_custom_image
@@ -166,9 +166,9 @@ save_dir = "/path/to/output/directory"
 apply_transform(fused_custom_image, transform, save_dir, name=f"custom_final_channel_{channel}.tif")
 ```
 
-The custom image will be saved as the given name
+The custom image will be saved as the given name.
 
-You can also save the fused_anchor_image
+You can also save the fused_anchor_image.
 
 ```py
 from coppafisher.custom_alignment import apply_transform

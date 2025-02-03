@@ -15,7 +15,6 @@ from ..plot.results_viewer import background
 from ..setup import file_names
 from ..setup.notebook import Notebook
 from ..setup.notebook_page import NotebookPage
-from ..stitch import base as stitch_base
 from . import preprocessing, subvol_registration
 
 CUSTOM_DIR_NAME = "custom"
@@ -98,12 +97,12 @@ def extract_raw(
             tifffile.imwrite(save_path, image)
 
 
-def fuse_custom_and_dapi(nb: Notebook, extract_dir: str, channel: int) -> np.ndarray[np.float32]:
+def fuse_custom_and_dapi(
+    nb: Notebook, extract_dir: str, channel: int
+) -> tuple[np.ndarray[np.float32], np.ndarray[np.float32]]:
     """
-    Calculate the stitch shifts required to stitch custom and anchor-DAPI images together into one large image.
-
-    The algorithm is the same as the stitching algorithm for the DAPI images during the pipeline. The stitch data is
-    stored in a dictionary outside the extract_dir called stitch_custom_channel_c.pkl where c is the channel index.
+    Stitch the custom and anchor-DAPI images together into one large image based on the stitch results located in the
+    notebook.
 
     Args:
         nb (Notebook): the experiment notebook.
@@ -112,9 +111,9 @@ def fuse_custom_and_dapi(nb: Notebook, extract_dir: str, channel: int) -> np.nda
 
     Returns:
         Tuple containing:
-            - (`(big_im_z x big_im_y x big_im_x) ndarray[output_dtype]`): fused_custom_image. The large, global
-                background custom image. The image's origin is relative to `nbp_stitch.tile_origin.min(0)`.
-            - (`(big_im_z x big_im_y x big_im_x) ndarray[output_dtype]`): fused_dapi_image. The large, global background
+            - (`(big_im_z x big_im_y x big_im_x) ndarray[float32]`): fused_custom_image. The large, global background
+                custom image. The image's origin is relative to `nbp_stitch.tile_origin.min(0)`.
+            - (`(big_im_z x big_im_y x big_im_x) ndarray[float32]`): fused_dapi_image. The large, global background
                 anchor-DAPI image. The image's origin is relative to `nbp_stitch.tile_origin.min(0)`.
     """
     if type(extract_dir) is not str:
@@ -128,7 +127,6 @@ def fuse_custom_and_dapi(nb: Notebook, extract_dir: str, channel: int) -> np.nda
     dapi_dir = os.path.join(extract_dir, DAPI_DIR_NAME, f"channel_{nb.basic_info.dapi_channel}")
 
     tile_indices = []
-    tilepositions_yx = []
     custom_images = []
     dapi_images = []
     for dir_entry in os.scandir(custom_dir):
@@ -139,7 +137,6 @@ def fuse_custom_and_dapi(nb: Notebook, extract_dir: str, channel: int) -> np.nda
         tilepos_y = int(dir_entry.name.split("_")[1][: -len(SUFFIX)])
 
         tilepos_yx = np.array([tilepos_y, tilepos_x], int)
-        tilepositions_yx.append(tilepos_yx)
         is_tile_match: np.ndarray[bool] = (nb.basic_info.tilepos_yx == tilepos_yx).all(1)
         if is_tile_match.sum() != 1:
             raise ValueError(f"Failed to resolve {SUFFIX} file {dir_entry.path}")
@@ -149,39 +146,17 @@ def fuse_custom_and_dapi(nb: Notebook, extract_dir: str, channel: int) -> np.nda
         custom_images.append(tifffile.imread(dir_entry.path))
         dapi_images.append(tifffile.imread(os.path.join(dapi_dir, dir_entry.name)))
 
-    tilepositions_yx = np.array(tilepositions_yx, int)
-    expected_overlap = nb.stitch.associated_configs["stitch"]["expected_overlap"]
-
-    tile_origins_custom, _, _ = stitch_base.stitch(
-        custom_images,
-        tilepositions_yx,
-        tile_indices,
-        nb.basic_info.n_tiles,
-        expected_overlap,
-    )
-    tile_origins_dapi, _, _ = stitch_base.stitch(
-        dapi_images,
-        tilepositions_yx,
-        tile_indices,
-        nb.basic_info.n_tiles,
-        expected_overlap,
-    )
-
     nbp_basic = NotebookPage("basic_info")
     nbp_basic.tile_sz = nb.basic_info.tile_sz
     nbp_basic.use_tiles = tuple(tile_indices)
     nbp_basic.use_z = tuple(nb.basic_info.use_z)
 
-    nbp_stitch = NotebookPage("stitch", {"stitch": {"expected_overlap": expected_overlap}})
-    nbp_stitch.tile_origin = tile_origins_custom
     custom_fused_image = background.generate_global_image(
-        custom_images, tile_indices, nbp_basic, nbp_stitch, np.float32, silent=False
+        custom_images, tile_indices, nbp_basic, nb.stitch, np.float32, silent=False
     )
 
-    nbp_stitch = NotebookPage("stitch", {"stitch": {"expected_overlap": expected_overlap}})
-    nbp_stitch.tile_origin = tile_origins_dapi
     dapi_fused_image = background.generate_global_image(
-        dapi_images, tile_indices, nbp_basic, nbp_stitch, np.float32, silent=False
+        dapi_images, tile_indices, nbp_basic, nb.stitch, np.float32, silent=False
     )
 
     return custom_fused_image, dapi_fused_image
