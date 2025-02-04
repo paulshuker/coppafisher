@@ -48,7 +48,7 @@ sequencing channel (e.g. a DAPI channel and anchor channel). `seq_image_tiles` i
 
 ### Metadata
 
-The metadata can be saved using python:
+The experimental metadata must be saved in the same location as the raw input files. This can be done using Python:
 
 ```python
 import json
@@ -137,11 +137,18 @@ plane is roughly the brightest for best performance; this can be configured by c
 `use_z`. The z direction can be treated differently to the y and x directions because typically a z pixel corresponds to
 a larger, real distance. `tile_dir` is the tile directory, where extract images are saved to. `output_dir` is where the
 notebook and PDF diagnostics are saved. More details about every config variable can be found at
-<a href="https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/settings.default.ini" target="_blank">
-`coppafisher/setup/settings.default.ini`</a> in the source code.
+<a href="https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/default.ini" target="_blank">
+`coppafisher/setup/default.ini`</a> in the source code.
 
 `target_values` and `d_max` must both have `n_seq_channels` numbers, one for each channel. See
 [call spots](call_spots.md#4-round-and-channel-normalisation) for details on how to set the values.
+
+??? info "Unique anchor raw file indices"
+
+    If your anchor raw file has unique channel locations compared to the sequencing raw files, set
+    `raw_anchor_channel_indices` under the `file_names` section in the config. Go to
+    <a href="https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/default.ini" target="_blank">
+    `coppafisher/setup/default.ini`</a> and search for `raw_anchor_channel_indices` for a description and usage.
 
 ## Running
 

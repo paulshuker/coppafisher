@@ -33,6 +33,7 @@ def get_file_names(nbp_basic_info: NotebookPage, config_path: str) -> NotebookPa
     nbp.extract_dir = os.path.join(config["tile_dir"], "extract")
     nbp.fluorescent_bead_path = config["fluorescent_bead_path"]
 
+    # FIXME: This is painful to look at.
     # Remove file extension from round and anchor file names if it is present.
     if config["raw_extension"] == "jobs":
         all_files: list[str] = os.listdir(config["input_dir"])
@@ -61,6 +62,7 @@ def get_file_names(nbp_basic_info: NotebookPage, config_path: str) -> NotebookPa
     nbp.anchor = config["anchor"]
     nbp.raw_extension = config["raw_extension"]
     nbp.raw_metadata = config["raw_metadata"]
+    nbp.raw_anchor_channel_indices = config["raw_anchor_channel_indices"]
     nbp.initial_bleed_matrix = config["initial_bleed_matrix"]
     nbp.omp_mean_spot = config["omp_mean_spot"]
     nbp.code_book = config["code_book"]
