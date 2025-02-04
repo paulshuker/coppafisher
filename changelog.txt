@@ -1,3 +1,9 @@
+2025/02/04 Version 1 Patch (v1.0.4):
+ * General: Support for raw anchor rounds with unique channel indices by setting `raw_anchor_channel_indices` under
+    `file_names` in the config.
+ * General: Exported custom images are now stitched using the notebook's stitching results for improved alignment.
+
+
 2025/01/31 Version 1 Patch (v1.0.3):
  * General: Dropped Python 3.10 support.
  * General: Pciseq .csv spot coordinates are now given relative to a global (0, 0, 0) origin.

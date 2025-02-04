@@ -223,6 +223,12 @@ class NotebookPage:
                 + "required metadata extracted from the initial *nd2* files."
                 + "I.e. it is the output of *coppafisher/utils/nd2/save_metadata*",
             ],
+            "raw_anchor_channel_indices": [
+                "tuple[int] or none",
+                "A tuple containing two integers. The first is the anchor channel's index inside of the raw anchor "
+                + "file. The second is the anchor-DAPI channel index. If set to None, they are the same indices as the "
+                + "sequencing raw files.",
+            ],
             "code_book": [
                 "file",
                 "Text file which contains the codes indicating which dye to expect on each round for each gene",

@@ -115,6 +115,7 @@ class Config:
         ),
         # Tuple checks.
         "tuple-not-empty": (lambda x: len(x) > 0, "a non empty tuple"),
+        "tuple-len-2": (lambda x: len(x) == 2, "a tuple of length 2"),
         "tuple-len-multiple-3": (lambda x: len(x) % 3 == 0, "a tuple of length multiple of 3"),
     }
     # Tuple types in the config are separated by a comma. There must be no bracket encapsulation.
@@ -159,6 +160,7 @@ class Config:
             "anchor": ("maybe_str", "str-not-empty"),
             "raw_extension": ("str", "str-not-empty"),
             "raw_metadata": ("maybe_str", "str-not-empty"),
+            "raw_anchor_channel_indices": ("maybe_tuple_int", "tuple-len-2"),
             "code_book": ("str", "file-exists"),
             "psf": ("maybe_str", "file-exists"),
             "fluorescent_bead_path": ("maybe_str", ""),

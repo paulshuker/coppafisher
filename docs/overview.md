@@ -34,8 +34,8 @@ detecting local maxima in image intensity around the rough spot size (specified 
 `radius_z` in the `find_spots` section). If two local maxima are the same value and in the same spot region, then one
 is chosen at random. Warnings and errors are raised if there are too few spots detected in a round/channel, these can
 be customised, see `find_spots` section in the
-<a href="https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/settings.default.ini" target="_blank">
-config</a> default file for variable names.
+<a href="https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/default.ini" target="_blank">config</a>
+default file for variable names.
 
 ## Register
 

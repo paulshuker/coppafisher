@@ -6,38 +6,6 @@ from tqdm import tqdm
 
 from ..setup import tile_details
 
-# bioformats ssl certificate error solution:
-# https://stackoverflow.com/questions/35569042/ssl-certificate-verify-failed-with-python3
-
-
-def get_raw_extension(input_dir: str) -> str:
-    """
-    Looks at input directory and returns the raw data format
-    Args:
-        input_dir: input_directory from config file containing raw data
-    Returns:
-        raw_extension: str, either 'nd2', 'npy' or 'jobs'
-    """
-    # Want to list all files in input directory and all subdirectories. We'll use os.walk
-    files = []
-    for root, _, filenames in os.walk(input_dir):
-        for filename in filenames:
-            files.append(os.path.join(root, filename))
-    files.sort()
-    # Just need a single npy to confirm this is the format
-    if any([directory.endswith("npy") for directory in files]):
-        raw_extension = ".npy"
-    else:
-        # Get the first nd2 file here
-        index = min([i for i in range(len(files)) if files[i].endswith("nd2")])
-
-        with nd2.ND2File(os.path.join(input_dir, files[index])) as image:
-            if image.sizes["C"] == 28:
-                raw_extension = ".nd2"
-            else:
-                raw_extension = "jobs"
-    return raw_extension
-
 
 def get_metadata(file_path: str, config: dict) -> dict:
     """
