@@ -185,7 +185,7 @@ def fuse_custom_and_dapi(nb: Notebook, extract_dir: str, channel: int) -> np.nda
 
     # The custom image is cropped/padded with zeros to share the same position and shape of the DAPI fused image.
     custom_fused_image = postprocessing.pad_and_crop_image_to_origin(
-        custom_fused_image, tile_origins_custom.min(0), tile_origins_dapi.min(0), dapi_fused_image.shape
+        custom_fused_image, np.nanmin(tile_origins_custom, 0), np.nanmin(tile_origins_dapi, 0), dapi_fused_image.shape
     )
 
     return custom_fused_image, dapi_fused_image

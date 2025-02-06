@@ -44,7 +44,7 @@ def pad_and_crop_image_to_origin(
             new_image = np.pad(new_image, pad_widths, constant_values=pad_value)
         else:
             # Crop the image.
-            crop_amount = origin_difference[dim]
+            crop_amount = -origin_difference[dim]
             if dim == 0:
                 new_image = new_image[crop_amount:]
             elif dim == 1:
