@@ -86,7 +86,7 @@ minimum threshold:
 score_thresh and intensity_thresh must be numbers. Use the [Viewer](diagnostics.md#viewer) to help decide on thresholds.
 intensity_thresh is set to `0.15` in the Viewer by default.
 
-## Additional Image Registration and Stitching
+## Custom Image Registration and Stitching
 
 There is a built-in tool to stitch then register additional images. Registration uses the older method of sub volume
 registration (see [issue](https://github.com/paulshuker/coppafisher/issues/210) for a future optical flow enhancement).
