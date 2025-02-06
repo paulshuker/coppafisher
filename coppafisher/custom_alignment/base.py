@@ -15,7 +15,8 @@ from ..plot.results_viewer import background
 from ..setup import file_names
 from ..setup.notebook import Notebook
 from ..setup.notebook_page import NotebookPage
-from . import preprocessing, subvol_registration
+from ..stitch import base as stitch_base
+from . import postprocessing, preprocessing, subvol_registration
 
 CUSTOM_DIR_NAME = "custom"
 DAPI_DIR_NAME = "seq"
@@ -97,12 +98,11 @@ def extract_raw(
             tifffile.imwrite(save_path, image)
 
 
-def fuse_custom_and_dapi(
-    nb: Notebook, extract_dir: str, channel: int
-) -> tuple[np.ndarray[np.float32], np.ndarray[np.float32]]:
+def fuse_custom_and_dapi(nb: Notebook, extract_dir: str, channel: int) -> np.ndarray[np.float32]:
     """
-    Stitch the custom and anchor-DAPI images together into one large image based on the stitch results located in the
-    notebook.
+    Compute the stitches required to combine the custom and anchor-DAPI images together into large images.
+
+    The algorithm is the same as the stitching algorithm for the DAPI images during the pipeline.
 
     Args:
         nb (Notebook): the experiment notebook.
@@ -127,6 +127,7 @@ def fuse_custom_and_dapi(
     dapi_dir = os.path.join(extract_dir, DAPI_DIR_NAME, f"channel_{nb.basic_info.dapi_channel}")
 
     tile_indices = []
+    tilepositions_yx = []
     custom_images = []
     dapi_images = []
     for dir_entry in os.scandir(custom_dir):
@@ -137,6 +138,7 @@ def fuse_custom_and_dapi(
         tilepos_y = int(dir_entry.name.split("_")[1][: -len(SUFFIX)])
 
         tilepos_yx = np.array([tilepos_y, tilepos_x], int)
+        tilepositions_yx.append(tilepos_yx)
         is_tile_match: np.ndarray[bool] = (nb.basic_info.tilepos_yx == tilepos_yx).all(1)
         if is_tile_match.sum() != 1:
             raise ValueError(f"Failed to resolve {SUFFIX} file {dir_entry.path}")
@@ -146,17 +148,44 @@ def fuse_custom_and_dapi(
         custom_images.append(tifffile.imread(dir_entry.path))
         dapi_images.append(tifffile.imread(os.path.join(dapi_dir, dir_entry.name)))
 
+    tilepositions_yx = np.array(tilepositions_yx, int)
+    expected_overlap = nb.stitch.associated_configs["stitch"]["expected_overlap"]
+
+    tile_origins_custom, _, _ = stitch_base.stitch(
+        custom_images,
+        tilepositions_yx,
+        tile_indices,
+        nb.basic_info.n_tiles,
+        expected_overlap,
+    )
+    tile_origins_dapi, _, _ = stitch_base.stitch(
+        dapi_images,
+        tilepositions_yx,
+        tile_indices,
+        nb.basic_info.n_tiles,
+        expected_overlap,
+    )
+
     nbp_basic = NotebookPage("basic_info")
     nbp_basic.tile_sz = nb.basic_info.tile_sz
     nbp_basic.use_tiles = tuple(tile_indices)
     nbp_basic.use_z = tuple(nb.basic_info.use_z)
 
-    custom_fused_image = background.generate_global_image(
-        custom_images, tile_indices, nbp_basic, nb.stitch, np.float32, silent=False
+    nbp_stitch = NotebookPage("stitch", {"stitch": {"expected_overlap": expected_overlap}})
+    nbp_stitch.tile_origin = tile_origins_dapi
+    dapi_fused_image = background.generate_global_image(
+        dapi_images, tile_indices, nbp_basic, nbp_stitch, np.float32, silent=False
     )
 
-    dapi_fused_image = background.generate_global_image(
-        dapi_images, tile_indices, nbp_basic, nb.stitch, np.float32, silent=False
+    nbp_stitch = NotebookPage("stitch", {"stitch": {"expected_overlap": expected_overlap}})
+    nbp_stitch.tile_origin = tile_origins_custom
+    custom_fused_image = background.generate_global_image(
+        custom_images, tile_indices, nbp_basic, nbp_stitch, np.float32, silent=False
+    )
+
+    # The custom image is cropped/padded with zeros to share the same position and shape of the DAPI fused image.
+    custom_fused_image = postprocessing.pad_and_crop_image_to_origin(
+        custom_fused_image, tile_origins_custom.min(0), tile_origins_dapi.min(0), dapi_fused_image.shape
     )
 
     return custom_fused_image, dapi_fused_image
