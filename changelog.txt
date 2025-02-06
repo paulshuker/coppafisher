@@ -1,3 +1,8 @@
+2025/02/06 Version 1 Patch (v1.0.5):
+ * General: Exported custom image are stitched separately again and now aligned/shaped relative to the anchor-DAPI
+    image.
+
+
 2025/02/04 Version 1 Patch (v1.0.4):
  * General: Support for raw anchor rounds with unique channel indices by setting `raw_anchor_channel_indices` under
     `file_names` in the config.
