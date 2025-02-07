@@ -3,6 +3,7 @@ import torch
 
 from coppafisher.omp.pixel_scores import PixelScoreSolver
 from coppafisher.utils import base
+from coppafisher.utils import intensity as utils_intensity
 
 
 def test_solve() -> None:
@@ -106,9 +107,9 @@ def test_solve() -> None:
     for p, dim in enumerate(dim_gene_assignments):
         if not dim:
             continue
-        intensity = np.abs(pixel_colours[p].copy()).max(1).min(0).item()
+        intensity = utils_intensity.compute_intensity(pixel_colours[[p]]).item()
         pixel_colours[p] *= (0.9 + rng.rand() * 0.1) * minimum_intensity / intensity
-        intensity = np.abs(pixel_colours[p].copy()).max(1).min(0).item()
+        intensity = utils_intensity.compute_intensity(pixel_colours[[p]]).item()
         assert intensity < minimum_intensity
     result = solver.solve(
         pixel_colours, bled_codes, bg_codes, maximum_iterations, dot_product_threshold, minimum_intensity, alpha, beta
