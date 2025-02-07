@@ -43,7 +43,13 @@ def generate_global_image(
     tiles_given = tiles_given.copy()
     tile_shape = (nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z))
     tile_origins_yxz: np.ndarray = nbp_stitch.tile_origin[nbp_basic.use_tiles]
-    tile_origins_yxz = np.floor(tile_origins_yxz).astype(int)
+
+    # The lowest x/y/z tile origin values are floored down for consistency with the spot yxz positions.
+    minimum_tile_origin_indices = np.argmin(tile_origins_yxz, 0)
+    for i in range(3):
+        tile_origins_yxz[minimum_tile_origin_indices[i]] = np.floor(tile_origins_yxz[minimum_tile_origin_indices[i]])
+
+    tile_origins_yxz = np.rint(tile_origins_yxz).astype(int)
     tile_centres_yxz = np.rint(tile_origins_yxz + [s // 2 for s in tile_shape]).astype(int)
     # Inclusive.
     min_yxz = tile_origins_yxz.min(0)
