@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from ..call_spots import dot_product
-from ..utils import system
+from ..utils import intensity, system
 
 
 class PixelScoreSolver:
@@ -310,7 +310,7 @@ class PixelScoreSolver:
         assert dot_product_threshold >= 0
         assert minimum_intensity >= 0
 
-        intensity_is_low = residual_colours.clone().abs().max(2).values.min(1).values < minimum_intensity
+        intensity_is_low = intensity.compute_intensity(residual_colours) < minimum_intensity
 
         all_gene_scores = dot_product.dot_product_score(
             residual_colours[np.newaxis], all_bled_codes[np.newaxis, np.newaxis]
