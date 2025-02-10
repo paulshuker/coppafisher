@@ -1,4 +1,5 @@
 2025/02/DD Version 1 Patch (v1.0.6):
+ * General: Python 3.12 now supported.
  * General: All background images could sometimes be off by +-1 pixel rounding error fix.
 
 
