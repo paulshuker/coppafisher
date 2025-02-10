@@ -4,6 +4,7 @@ import numpy as np
 import zarr
 
 from ...setup.notebook_page import NotebookPage
+from ...utils import intensity
 from .. import base
 
 
@@ -66,8 +67,10 @@ def test_get_all() -> None:
     assert np.allclose(all_scores, scores)
     assert np.allclose(all_tiles, tiles)
 
-    expected_intensities = np.abs(colours.astype(np.float32) * nbp_call_spots.colour_norm_factor[tiles]).max(2).min(1)
-    expected_intensities = expected_intensities.astype(np.float16)
+    expected_intensities = intensity.compute_intensity(
+        colours.astype(np.float32) * nbp_call_spots.colour_norm_factor[tiles]
+    )
+    expected_intensities = expected_intensities.numpy().astype(np.float16)
     all_intensities = base.get_all_intensities(nbp_basic, nbp_call_spots, nbp_omp)
     assert type(all_intensities) is np.ndarray
     assert all_intensities.shape == (tiles.size,)

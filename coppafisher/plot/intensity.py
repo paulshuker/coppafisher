@@ -3,6 +3,7 @@ import numpy as np
 
 from ..setup.notebook import Notebook
 from ..spot_colours import base
+from ..utils import intensity
 
 
 def view_intensity_images(
@@ -49,7 +50,7 @@ def view_intensity_images(
             out_of_bounds_value=0,
         )
         intensities *= factor[[t]]
-        intensities = np.abs(intensities).max(2).min(1)
+        intensities = intensity.compute_intensity(intensities).numpy()
         intensities = intensities.reshape((nb.basic_info.tile_sz, nb.basic_info.tile_sz, z_planes), order="F")
 
         images.append(intensities)

@@ -12,6 +12,7 @@ from ..call_spots.base import bayes_mean, compute_bleed_matrix
 from ..call_spots.dot_product import dot_product_score, gene_prob_score
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
+from ..utils import intensity as utils_intensity
 from ..utils import system
 
 
@@ -193,7 +194,10 @@ def call_reference_spots(
     # Update bleed matrix.
     good = prob_score > prob_threshold
     bleed_matrix = compute_bleed_matrix(spot_colours[good], prob_mode[good], gene_codes, n_dyes)
-    intensity = np.abs(nbp_ref_spots.colours[:].astype(np.float32) * colour_norm_factor[spot_tile]).max(2).min(1)
+    intensity = utils_intensity.compute_intensity(
+        nbp_ref_spots.colours[:].astype(np.float32) * colour_norm_factor[spot_tile]
+    )
+    intensity = intensity.numpy()
 
     # 8. Save the results.
     nbp.intensity = zarr.array(intensity, store=os.path.join(nbp_file.output_dir, "intensity.zarray"), **kwargs)

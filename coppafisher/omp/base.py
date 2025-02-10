@@ -3,6 +3,7 @@ from typing import Tuple
 import numpy as np
 
 from ..setup.notebook_page import NotebookPage
+from ..utils import intensity
 
 
 def get_all_scores(
@@ -49,7 +50,7 @@ def get_all_intensities(
     colours = colours.astype(np.float32)
     # OMP's intensity will be a similar scale to prob and anchor if the spot colours are colour normalised too.
     colours *= nbp_call_spots.colour_norm_factor[tile_numbers].astype(np.float32)
-    intensities = np.abs(colours).max(2).min(1).astype(np.float16)
+    intensities = intensity.compute_intensity(colours).numpy().astype(np.float16)
 
     return intensities
 
