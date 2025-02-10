@@ -158,13 +158,10 @@ def fuse_custom_and_dapi(nb: Notebook, extract_dir: str, channel: int) -> np.nda
         nb.basic_info.n_tiles,
         expected_overlap,
     )
-    tile_origins_dapi, _, _ = stitch_base.stitch(
-        dapi_images,
-        tilepositions_yx,
-        tile_indices,
-        nb.basic_info.n_tiles,
-        expected_overlap,
-    )
+
+    # The DAPI stitch results are taken from the notebook. This is important so that the images are aligned with the
+    # exported spot positions.
+    tile_origins_dapi = nb.stitch.tile_origin
 
     nbp_basic = NotebookPage("basic_info")
     nbp_basic.tile_sz = nb.basic_info.tile_sz
