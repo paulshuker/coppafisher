@@ -170,7 +170,8 @@ def run_omp(
         intensity = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz, **spot_colour_kwargs)
         intensity *= colour_norm_factor[[t]]
         intensity = np.abs(intensity).max(2).min(1)
-        solver_kwargs["minimum_intensity"] = np.median(intensity).item() * config["minimum_intensity_multiplier"]
+        percentile = np.percentile(intensity, config["minimum_intensity_percentile"]).item()
+        solver_kwargs["minimum_intensity"] = percentile * config["minimum_intensity_multiplier"]
         log.debug(f"Intensity threshold is {solver_kwargs['minimum_intensity']} for tile {t}")
         del z_plane_shape, yxz, intensity
 
