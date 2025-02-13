@@ -105,6 +105,7 @@ class Config:
         "not-negative": (lambda x: x >= 0, ">= 0"),
         "lt1": (lambda x: x < 1, "< 1"),
         "lteq1": (lambda x: x <= 1, "<= 1"),
+        "lteq100": (lambda x: x <= 100, "<= 100"),
         # String checks.
         "str-not-empty": (lambda x: bool(x.strip()), "a non empty string"),
         "file-exists": (lambda x: path.isfile(x), "an existing file"),
@@ -224,6 +225,7 @@ class Config:
         },
         "omp": {
             "max_genes": ("int", "positive"),
+            "minimum_intensity_percentile": ("number", "not-negative_lteq100"),
             "minimum_intensity_multiplier": ("number", "not-negative"),
             "alpha": ("number", "not-negative"),
             "beta": ("number", "positive"),

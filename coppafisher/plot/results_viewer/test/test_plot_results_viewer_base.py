@@ -167,6 +167,7 @@ def test_Viewer() -> None:
     n_omp_spots = 85 // n_tiles
     omp_config = {
         "omp": {
+            "minimum_intensity_percentile": 5,
             "minimum_intensity_multiplier": 0.001,
             "max_genes": 2,
             "dot_product_threshold": 0.01,

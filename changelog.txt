@@ -1,4 +1,5 @@
-2025/02/DD Version 1.1 (v1.1.0):
+2025/02/13 Version 1.1 (v1.1.0):
+ * OMP: Intensity threshold sometimes too high fix.
  * General: Napari 0.5.4 -> 0.5.6.
 
 
