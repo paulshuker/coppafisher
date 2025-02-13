@@ -170,7 +170,10 @@ def run_omp(
         mid_z_colours = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz, **spot_colour_kwargs)
         mid_z_colours *= colour_norm_factor[[t]]
         intensities = intensity.compute_intensity(mid_z_colours)
-        solver_kwargs["minimum_intensity"] = torch.median(intensities).item() * config["minimum_intensity_multiplier"]
+        solver_kwargs["minimum_intensity"] = (
+            intensities.quantile(config["minimum_intensity_percentile"] / 100).item()
+            * config["minimum_intensity_multiplier"]
+        )
         log.debug(f"Intensity threshold is {solver_kwargs['minimum_intensity']} for tile {t}")
         del z_plane_shape, yxz, mid_z_colours, intensities
 

@@ -5,8 +5,8 @@ from ..utils import system
 
 
 class CompatibilityTracker:
-    # Every key is a pipeline stage, given in order. Each value are the page names produced during the stage.
-    # The pipeline stages are given in chronological order.
+    # Every key is a pipeline stage, given in order. Each value is the page names produced during the stage. The
+    # pipeline stages are given in chronological order.
     _stages: OrderedDict[str, str] = OrderedDict(
         (
             ("initialisation", "basic_info"),
@@ -36,6 +36,7 @@ class CompatibilityTracker:
             ("1.0.4", "none"),
             ("1.0.5", "none"),
             ("1.0.6", "none"),
+            ("1.1.0", "omp"),
         )
     )
     _stage_instructions: list[tuple[str, ...]]
