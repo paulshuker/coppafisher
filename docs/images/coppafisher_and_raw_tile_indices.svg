@@ -26,9 +26,9 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
-     inkscape:zoom="2.8284271"
-     inkscape:cx="173.24116"
-     inkscape:cy="70.533901"
+     inkscape:zoom="2"
+     inkscape:cx="145.25"
+     inkscape:cy="69.750001"
      inkscape:window-width="1920"
      inkscape:window-height="1009"
      inkscape:window-x="-8"
@@ -41,7 +41,8 @@
   <g
      inkscape:groupmode="layer"
      id="layer2"
-     inkscape:label="Layer 2">
+     inkscape:label="Layer 2"
+     style="display:inline">
     <rect
        style="fill:#000000;fill-opacity:1;stroke-width:0.799999;stroke-linecap:round"
        id="rect3"
@@ -55,7 +56,8 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-6,-10)">
+     transform="translate(-6,-10)"
+     style="display:inline">
     <rect
        style="fill:#ded4d4;fill-opacity:1;stroke:#000000;stroke-width:0.25;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
        id="rect1"
@@ -122,7 +124,7 @@
          id="tspan3-5"
          style="fill:#f100f8;fill-opacity:1;stroke:#000000;stroke-width:0.1;stroke-dasharray:none;stroke-opacity:1"
          x="16.204969"
-         y="17.44256">3</tspan></text>
+         y="17.44256">0</tspan></text>
     <rect
        style="fill:#ded4d4;fill-opacity:1;stroke:#000000;stroke-width:0.25;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
        id="rect1-1"
@@ -152,7 +154,7 @@
          id="tspan3-5-2"
          style="fill:#f100f8;fill-opacity:1;stroke:#000000;stroke-width:0.1;stroke-dasharray:none;stroke-opacity:1"
          x="36.204967"
-         y="17.442562">4</tspan></text>
+         y="17.442562">3</tspan></text>
     <rect
        style="fill:#ded4d4;fill-opacity:1;stroke:#000000;stroke-width:0.25;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
        id="rect1-8"
@@ -175,13 +177,13 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.29167px;font-family:Calibri;-inkscape-font-specification:Calibri;text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#00ecf8;fill-opacity:1;stroke:#000000;stroke-width:0.1;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
-       x="71.204971"
+       x="70.146637"
        y="16.94256"
        id="text3-5-0"><tspan
          sodipodi:role="line"
          id="tspan3-7-0"
          style="fill:#00ecf8;fill-opacity:1;stroke:#000000;stroke-width:0.1;stroke-dasharray:none;stroke-opacity:1"
-         x="71.204971"
+         x="70.146637"
          y="16.94256">0</tspan></text>
     <text
        xml:space="preserve"
@@ -193,7 +195,7 @@
          id="tspan3-5-1"
          style="fill:#f100f8;fill-opacity:1;stroke:#000000;stroke-width:0.1;stroke-dasharray:none;stroke-opacity:1"
          x="56.204971"
-         y="17.44256">5</tspan></text>
+         y="17.44256">4</tspan></text>
     <rect
        style="fill:#ded4d4;fill-opacity:1;stroke:#000000;stroke-width:0.25;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
        id="rect1-7"
@@ -223,7 +225,7 @@
          id="tspan3-5-23"
          style="fill:#f100f8;fill-opacity:1;stroke:#000000;stroke-width:0.1;stroke-dasharray:none;stroke-opacity:1"
          x="16.204971"
-         y="37.442558">0</tspan></text>
+         y="37.442558">1</tspan></text>
     <rect
        style="fill:#ded4d4;fill-opacity:1;stroke:#000000;stroke-width:0.25;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
        id="rect1-13"
@@ -253,17 +255,17 @@
          id="tspan3-5-7"
          style="fill:#f100f8;fill-opacity:1;stroke:#000000;stroke-width:0.1;stroke-dasharray:none;stroke-opacity:1"
          x="36.204967"
-         y="37.442558">1</tspan></text>
+         y="37.442558">2</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.29167px;font-family:Calibri;-inkscape-font-specification:Calibri;text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#f100f8;fill-opacity:1;stroke:#000000;stroke-width:0.1;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
-       x="71.208763"
+       x="70.150429"
        y="22.845461"
        id="text3-1-2-8"><tspan
          sodipodi:role="line"
          id="tspan3-5-7-6"
          style="fill:#f100f8;fill-opacity:1;stroke:#000000;stroke-width:0.1;stroke-dasharray:none;stroke-opacity:1"
-         x="71.208763"
+         x="70.150429"
          y="22.845461">1</tspan></text>
     <rect
        style="fill:#ded4d4;fill-opacity:1;stroke:#000000;stroke-width:0.25;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
@@ -294,28 +296,28 @@
          id="tspan3-5-6"
          style="fill:#f100f8;fill-opacity:1;stroke:#000000;stroke-width:0.1;stroke-dasharray:none;stroke-opacity:1"
          x="56.204971"
-         y="37.442558">2</tspan></text>
+         y="37.442558">5</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52778px;font-family:Calibri;-inkscape-font-specification:Calibri;text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#aaaaaa;fill-opacity:1;stroke:none;stroke-width:0.15;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
-       x="86.023964"
+       x="84.96563"
        y="16.41329"
        id="text4"><tspan
          sodipodi:role="line"
          id="tspan4"
          style="font-size:3.52778px;fill:#aaaaaa;fill-opacity:1;stroke:none;stroke-width:0.15;stroke-dasharray:none;stroke-opacity:1"
-         x="86.023964"
+         x="84.96563"
          y="16.41329">Coppafisher Tile</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:3.52778px;font-family:Calibri;-inkscape-font-specification:Calibri;text-align:center;writing-mode:lr-tb;direction:ltr;text-anchor:middle;fill:#aaaaaa;fill-opacity:1;stroke:none;stroke-width:0.15;stroke-linecap:round;stroke-dasharray:none;stroke-opacity:1"
-       x="84.96563"
+       x="83.907295"
        y="22.299511"
        id="text4-8"><tspan
          sodipodi:role="line"
          id="tspan4-9"
          style="font-size:3.52778px;fill:#aaaaaa;fill-opacity:1;stroke:none;stroke-width:0.15;stroke-dasharray:none;stroke-opacity:1"
-         x="84.96563"
+         x="83.907295"
          y="22.299511">Raw Tile Index</tspan></text>
   </g>
 </svg>
