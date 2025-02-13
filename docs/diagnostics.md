@@ -117,6 +117,16 @@ During a pipeline run, multiple .pdf files are created for different sections. T
 directory. If you want the PDFs to be created again, delete the old ones first, then
 [run coppafisher](basic_usage.md/#running) again.
 
+## View tile indexing
+
+To visualise how coppafisher has labelled your inputted tiles, use the code below
+
+```python
+from coppafisher.plot import view_tile_indexing_grid
+
+view_tile_indexing_grid("/path/to/config.ini")
+```
+
 ## Viewing images
 
 ### Extracted images

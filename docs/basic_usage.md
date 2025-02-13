@@ -8,14 +8,9 @@ There must be an anchor round. There must be an anchor channel (this can be a se
 channel in every sequencing round and the anchor round. The tiles must have at least four z planes. Use a number of z
 planes that is a multiple of two.
 
-### Tile Indexing
+??? info "Tile Indexing Conventions"
 
-Input files index tiles differently to coppafisher. The difference is illustrated below on a 2x3 grid.
-
-<figure markdown="span">
-  ![Image title](images/coppafisher_and_raw_tile_indices.svg){ width="600" }
-  <figcaption>How six tiles are indexed.</figcaption>
-</figure>
+    Input tiles can be indexed differently to coppafisher. You can use [this](diagnostics.md#view-tile-indexing) diagnostic.
 
 ### Numpy
 
