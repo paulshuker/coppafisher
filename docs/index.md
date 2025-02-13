@@ -29,7 +29,7 @@ vocabulary might be unfamiliar, please see the [glossary](glossary.md) for refer
 ### Prerequisites
 
 * Windows or Linux. MacOS is not tested.
-* Python 3.11.
+* Python 3.11 or 3.12.
 * [Git](https://git-scm.com/).
 * 64GB of memory for tile sizes `64x2048x2048` pixels (recommended).
 * Nvidia GPU with Cuda 12.4 support (optional).
@@ -42,7 +42,7 @@ Install coppafisher software from within an environment. We will use a conda env
 First, build an environment
 
 ```terminal
-conda create -n coppa python=3.11
+conda create -n coppa python=3.12
 conda activate coppa
 ```
 

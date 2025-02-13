@@ -21,7 +21,7 @@ setup(
     maintainer="Paul Shuker",
     maintainer_email="paul.shuker@outlook.com",
     license="MIT",
-    python_requires=">=3.11, <3.12",
+    python_requires=">=3.11, <3.13",
     url="https://paulshuker.github.io/coppafisher/",
     packages=packages,
     install_requires=[
@@ -67,6 +67,7 @@ setup(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3 :: only",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Operating System :: Unix",

@@ -1,3 +1,9 @@
+2025/02/10 Version 1 Patch (v1.0.6):
+ * General: Python 3.12 now supported.
+ * General: Custom image alignment now aligned correctly with exported spot positions fix.
+ * General: All background images could sometimes be off by +-1 pixel rounding error fix.
+
+
 2025/02/06 Version 1 Patch (v1.0.5):
  * General: Exported custom image are stitched separately again and now aligned/shaped relative to the anchor-DAPI
     image.

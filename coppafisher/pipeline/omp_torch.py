@@ -17,7 +17,7 @@ from ..omp.pixel_scores import PixelScoreSolver
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
-from ..utils import duplicates, system
+from ..utils import duplicates, intensity, system
 
 
 def run_omp(
@@ -167,13 +167,15 @@ def run_omp(
         yxz = [np.linspace(0, z_plane_shape[i] - 1, z_plane_shape[i]) for i in range(3)]
         yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
         yxz[:, 2] = nbp_basic.use_z[len(nbp_basic.use_z) // 2]
-        intensity = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz, **spot_colour_kwargs)
-        intensity *= colour_norm_factor[[t]]
-        intensity = np.abs(intensity).max(2).min(1)
-        percentile = np.percentile(intensity, config["minimum_intensity_percentile"]).item()
-        solver_kwargs["minimum_intensity"] = percentile * config["minimum_intensity_multiplier"]
+        mid_z_colours = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz, **spot_colour_kwargs)
+        mid_z_colours *= colour_norm_factor[[t]]
+        intensities = intensity.compute_intensity(mid_z_colours)
+        solver_kwargs["minimum_intensity"] = (
+            intensities.quantile(config["minimum_intensity_percentile"] / 100).item()
+            * config["minimum_intensity_multiplier"]
+        )
         log.debug(f"Intensity threshold is {solver_kwargs['minimum_intensity']} for tile {t}")
-        del z_plane_shape, yxz, intensity
+        del z_plane_shape, yxz, mid_z_colours, intensities
 
         # STEP 2: Gather spot colours and compute OMP pixel scores on the entire tile, one subset at a time.
         log.debug(f"Compute pixel scores, tile {t} started")
@@ -198,9 +200,9 @@ def run_omp(
                 yxz_subset = yxz_all[index_min:index_max]
                 colour_subset = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)
                 colour_subset *= colour_norm_factor[[t]]
-                intensity = np.abs(colour_subset.copy()).max(2).min(1)
-                is_intense = intensity >= solver_kwargs["minimum_intensity"]
-                del intensity
+                intensities_subset = intensity.compute_intensity(colour_subset)
+                is_intense = (intensities_subset >= solver_kwargs["minimum_intensity"]).numpy()
+                del intensities_subset
 
                 pixel_scores_subset = np.zeros((index_max - index_min, n_genes), np.float32)
                 if is_intense.sum() > 0:

@@ -27,7 +27,7 @@ def pad_and_crop_image_to_origin(
     assert len(shape) == 3
 
     new_image = image.copy()
-    origin_difference: list[int] = np.rint(current_origin - global_origin).astype(int).tolist()
+    origin_difference: list[int] = (np.floor(current_origin) - np.floor(global_origin)).astype(int).tolist()
     # Ensure the image has the right shape on the starting edges.
     for dim in range(3):
         if origin_difference[dim] == 0:
