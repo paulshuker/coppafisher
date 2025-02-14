@@ -32,6 +32,7 @@ class Legend:
     _unselected_opacity: float = 0.25
     _selected_opacity: float = 1.0
     _selection_radius: float = 0.25
+    _cell_type_selection_radius: tuple[float, float] = (3, 0.3)
     _order_by_options: tuple[str] = ("row", "colour", "cell_type")
     _ordered_by: str
     # The x and y position of each cell type heading. The dictionary is empty if not ordered by cell type.
@@ -184,9 +185,9 @@ class Legend:
             return None
 
         for cell_type, cell_type_position in self._cell_type_positions.items():
-            if abs(x - cell_type_position[0]) >= self._selection_radius:
+            if abs(x - cell_type_position[0]) >= self._cell_type_selection_radius[0]:
                 continue
-            if abs(y - cell_type_position[1]) >= self._selection_radius:
+            if abs(y - cell_type_position[1]) >= self._cell_type_selection_radius[1]:
                 continue
 
             return cell_type
