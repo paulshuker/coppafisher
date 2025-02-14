@@ -1,4 +1,5 @@
 2025/02/DD Version 1.1 Patch (v1.1.1):
+ * Viewer: Can now toggle a class type on/off by clicking on its name in the gene legend.
  * Diagnostics: New `view_tile_indexing_grid` plot for help deciding what tiles to use in the pipeline.
 
 
