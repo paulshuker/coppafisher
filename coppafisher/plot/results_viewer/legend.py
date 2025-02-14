@@ -110,6 +110,8 @@ class Legend:
                 prev_cat = gene.cell_type
                 if col != 0:
                     row += 1
+                # FIXME: For whatever reason the first cell type category cannot be toggled by clicking on it.
+                # The others work fine...
                 self.canvas.axes.text(-0.2, row, prev_cat, fontweight="bold", **text_kwargs)
                 self._cell_type_positions[prev_cat] = (-0.2, float(row))
                 row += 1
