@@ -32,7 +32,7 @@ class Legend:
     _unselected_opacity: float = 0.25
     _selected_opacity: float = 1.0
     _selection_radius: float = 0.25
-    _cell_type_selection_radius: tuple[float, float] = (3, 0.3)
+    _cell_type_selection_size: tuple[float, float] = (3, 0.9)
     _order_by_options: tuple[str] = ("row", "colour", "cell_type")
     _ordered_by: str
     # The x and y position of each cell type heading. The dictionary is empty if not ordered by cell type.
@@ -185,9 +185,9 @@ class Legend:
             return None
 
         for cell_type, cell_type_position in self._cell_type_positions.items():
-            if abs(x - cell_type_position[0]) >= self._cell_type_selection_radius[0]:
+            if abs(x - cell_type_position[0]) >= self._cell_type_selection_size[0]:
                 continue
-            if abs(y - cell_type_position[1]) >= self._cell_type_selection_radius[1]:
+            if abs(y - cell_type_position[1]) >= self._cell_type_selection_size[1]:
                 continue
 
             return cell_type
@@ -205,6 +205,7 @@ class Legend:
             "(Left mouse click gene symbol) toggle the gene on/off",
             "(Right mouse click gene symbol) toggle showing the gene alone",
             "(Middle mouse click gene symbol) toggle the genes with the same colour on/off",
+            "(Left mouse click cell type title) toggle the cell type on/off",
         )
 
     def _hue_sort(self, colours: np.ndarray[float]) -> np.ndarray[float]:
