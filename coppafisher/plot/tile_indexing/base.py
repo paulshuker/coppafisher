@@ -43,7 +43,7 @@ def view_tile_indexing_grid(config_file_path: str, show: bool = True) -> None:
 
             new_tile = mpl.patches.Rectangle(tile_anchor, tile_length, tile_length, color="orange", fc="none", lw=2)
             ax.add_patch(new_tile)
-            ax.annotate(str(tile_index.item()), tuple(tilepos[[1, 0]].astype(float) + 0.5))
+            ax.annotate(str(tile_index.item()), tuple(tilepos[[1, 0]].astype(float) + 0.5), ha="center", va="center")
 
     ax.set_ylim(min(tilepos_min_yx), max(tilepos_max_yx) + 1)
     ax.set_xlim(min(tilepos_min_yx), max(tilepos_max_yx) + 1)
