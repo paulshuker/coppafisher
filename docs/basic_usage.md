@@ -86,8 +86,8 @@ gene_3 3012301
 ```
 
 the names (`gene_0`, `gene_1`, ...) can be changed. Do not assign any genes a constant gene code like `0000000`. To
-learn how the codes can be generated, see [advanced usage](advanced_usage.md). For details on how the codes are best
-generated, see `reed_solomon_codes` in the
+learn how the codes can be generated, see [advanced usage](advanced_usage.md#generate-gene-codes). For details on how
+the codes are best generated, see `reed_solomon_codes` in the
 [source code](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/utils/base.py). See
 [Wikipedia](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction) for algorithmic details on how gene
 codes are best selected.
