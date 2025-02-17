@@ -468,6 +468,7 @@ class Viewer:
             return
         closest_gene_index = self.legend_.get_closest_gene_index_to(event.xdata, event.ydata)
         if closest_gene_index is None:
+            self._consider_cell_type_click(event)
             return
         closest_gene = self.genes[closest_gene_index]
 
@@ -971,6 +972,20 @@ class Viewer:
             self.z = self.viewer.dims.current_step[0]
             # Connect to z slider changing event.
             self.viewer.dims.events.current_step.connect(self.z_slider_changed)
+
+    def _consider_cell_type_click(self, event: mpl.backend_bases.MouseEvent) -> None:
+        closest_cell_type = self.legend_.get_closest_cell_type(event.xdata, event.ydata)
+        if closest_cell_type is None:
+            return
+
+        genes_in_cell_type = [gene for gene in self.genes if gene.cell_type == closest_cell_type]
+        any_gene_is_active = any([gene.active for gene in genes_in_cell_type])
+        for gene in genes_in_cell_type:
+            gene.active = not any_gene_is_active
+
+        self._update_gene_keep()
+        self.update_viewer_data()
+        self._update_gene_legend()
 
     def _add_subplot(self, subplot: Figure | Subplot | None) -> None:
         if subplot is None:

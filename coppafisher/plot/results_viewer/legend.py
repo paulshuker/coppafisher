@@ -32,7 +32,11 @@ class Legend:
     _unselected_opacity: float = 0.25
     _selected_opacity: float = 1.0
     _selection_radius: float = 0.25
+    _cell_type_selection_size: tuple[float, float] = (3, 0.9)
     _order_by_options: tuple[str] = ("row", "colour", "cell_type")
+    _ordered_by: str
+    # The x and y position of each cell type heading. The dictionary is empty if not ordered by cell type.
+    _cell_type_positions: dict[str, tuple[float, float]]
     _plot_index_to_gene_index: np.ndarray[int]
     # A conversion from a napari marker to a matplotlib marker equivalent.
     _napari_to_mpl_marker: dict[str, str] = {
@@ -71,6 +75,7 @@ class Legend:
         else:
             self.canvas = MplCanvas()
         self.scatter_axes = []
+        self._cell_type_positions = {}
         # Gene scatter points are populated within a bounding box of -1 to 1 in both x and y directions.
         X, Y = [], []
         active_genes = [gene for gene in genes if gene.active]
@@ -78,16 +83,14 @@ class Legend:
         self._plot_index_to_gene_index = np.linspace(0, active_count - 1, active_count, dtype=int)
         if order_by in ["colour", "cell_type"]:
             index_min = 0
-            active_categories = np.array(
-                [(gene.colour if order_by == "colour" else gene.cell_type) for gene in genes if gene.active]
-            )
-            sorted_categories = (
-                self._hue_sort(np.unique(active_categories, axis=0))
-                if order_by == "colour"
-                else np.sort(np.unique(active_categories))
-            )
+            if order_by == "colour":
+                active_categories = np.array([gene.colour for gene in genes if gene.active])
+                sorted_categories = self._hue_sort(np.unique(active_categories, axis=0))
+            else:
+                active_categories = np.array([gene.cell_type for gene in genes if gene.active])
+                sorted_categories = np.sort(np.unique(active_categories))
+
             for unique_category in sorted_categories:
-                ####  TODO DEBUG HERE
                 unique_category_indices = np.atleast_2d((active_categories == unique_category).T).T.all(1).nonzero()[0]
                 unique_category_names = [active_genes[i].name.lower() for i in unique_category_indices]
                 names_sorted_indices = np.argsort(unique_category_names)
@@ -107,7 +110,10 @@ class Legend:
                 prev_cat = gene.cell_type
                 if col != 0:
                     row += 1
+                # FIXME: For whatever reason the first cell type category cannot be toggled by clicking on it.
+                # The others work fine...
                 self.canvas.axes.text(-0.2, row, prev_cat, fontweight="bold", **text_kwargs)
+                self._cell_type_positions[prev_cat] = (-0.2, float(row))
                 row += 1
                 col = 0
             x = col * self._x_separation
@@ -133,6 +139,7 @@ class Legend:
         self.canvas.axes.spines.clear()
         self.X = np.array(X, np.float32)
         self.Y = np.array(Y, np.float32)
+        self._ordered_by = order_by
 
     def update_selected_legend_genes(self, active_genes: list[bool]) -> None:
         """
@@ -164,6 +171,31 @@ class Legend:
             return self._plot_index_to_gene_index.tolist()[plot_index]
         return None
 
+    def get_closest_cell_type(self, x: float, y: float) -> str | None:
+        """
+        Find the closest cell type to the given 2d position.
+
+        Args:
+            x (float-like): x position.
+            y (float-like): y position.
+
+        Returns:
+            (str or none): cell_type_index. The closest cell type. None if no cell type is nearby or the genes are not
+                ordered by cell type.
+        """
+        if self._ordered_by != "cell_type":
+            return None
+
+        for cell_type, cell_type_position in self._cell_type_positions.items():
+            if abs(x - cell_type_position[0]) >= self._cell_type_selection_size[0]:
+                continue
+            if abs(y - cell_type_position[1]) >= self._cell_type_selection_size[1]:
+                continue
+
+            return cell_type
+
+        return None
+
     def get_help(self) -> tuple[str, ...]:
         """
         Get lines of help for interacting with the legend.
@@ -175,6 +207,7 @@ class Legend:
             "(Left mouse click gene symbol) toggle the gene on/off",
             "(Right mouse click gene symbol) toggle showing the gene alone",
             "(Middle mouse click gene symbol) toggle the genes with the same colour on/off",
+            "(Left mouse click cell type title) toggle the cell type on/off",
         )
 
     def _hue_sort(self, colours: np.ndarray[float]) -> np.ndarray[float]:
