@@ -549,23 +549,23 @@ class Robominnie:
         output_dir = {self.coppafisher_output}
         tile_dir = {self.coppafisher_tiles}
         initial_bleed_matrix = {self.initial_bleed_matrix_filepath}
-        round = {', '.join([str(i) for i in range(self.n_rounds)])}
-        anchor = {self.anchor_directory_name if self.include_anchor else ''}
+        round = {", ".join([str(i) for i in range(self.n_rounds)])}
+        anchor = {self.anchor_directory_name if self.include_anchor else ""}
         code_book = {self.codebook_filepath}
         raw_extension = .npy
         raw_metadata = {self.metadata_filepath}
 
         [basic_info]
         is_3d = true
-        bad_trc = {', '.join([f'{bad_trc[0]}, {bad_trc[1]}, {bad_trc[2]}' for bad_trc in bad_trcs])}
-        dye_names = {', '.join(self.dye_names)}
-        use_rounds = {', '.join([str(i) for i in range(self.n_rounds)])}
-        use_z = {', '.join([str(i) for i in range(self.n_planes)])}
-        use_tiles = {', '.join(str(i) for i in range(self.n_tiles))}
-        anchor_round = {self.n_rounds if self.include_anchor else ''}
-        use_channels = {', '.join([str(i) for i in np.arange((self.dapi_channel + 1), (self.n_channels + 1))])}
-        anchor_channel = {self.anchor_channel if self.include_anchor else ''}
-        dapi_channel = {self.dapi_channel if self.include_dapi else ''}
+        bad_trc = {", ".join([f"{bad_trc[0]}, {bad_trc[1]}, {bad_trc[2]}" for bad_trc in bad_trcs])}
+        dye_names = {", ".join(self.dye_names)}
+        use_rounds = {", ".join([str(i) for i in range(self.n_rounds)])}
+        use_z = {", ".join([str(i) for i in range(self.n_planes)])}
+        use_tiles = {", ".join(str(i) for i in range(self.n_tiles))}
+        anchor_round = {self.n_rounds if self.include_anchor else ""}
+        use_channels = {", ".join([str(i) for i in np.arange((self.dapi_channel + 1), (self.n_channels + 1))])}
+        anchor_channel = {self.anchor_channel if self.include_anchor else ""}
+        dapi_channel = {self.dapi_channel if self.include_dapi else ""}
 
         [extract]
         num_rotations = 0
@@ -575,6 +575,8 @@ class Robominnie:
 
         [find_spots]
         auto_thresh_multiplier = 4
+        auto_thresh_percentile = 50
+        auto_thresh_clip = true
         n_spots_warn_fraction = 0
         n_spots_error_fraction = 1
 
@@ -666,8 +668,8 @@ class Robominnie:
 
         end_time = time.time()
         print(
-            f"Coppafisher pipeline run: {round((end_time - start_time)/60, 1)}mins\n"
-            + f"{round((end_time - start_time)//(n_planes * n_tiles), 1)}s per z plane per tile."
+            f"Coppafisher pipeline run: {round((end_time - start_time) / 60, 1)}mins\n"
+            + f"{round((end_time - start_time) // (n_planes * n_tiles), 1)}s per z plane per tile."
         )
 
         assert nb.has_page("omp"), f"OMP not found in notebook at {config_filepath}"

@@ -76,6 +76,8 @@ def find_spots(
         mid_z = image_trc.shape[2] // 2
         auto_thresh[t, r, c] = np.percentile(np.abs(image_trc[..., mid_z]), auto_thresh_percentile)
         auto_thresh[t, r, c] *= auto_thresh_multiplier
+        if config["auto_thresh_clip"]:
+            auto_thresh[t, r, c] = np.max([auto_thresh[t, r, c], auto_thresh_multiplier])
 
         if np.isclose(auto_thresh[t, r, c], 0):
             raise ValueError(f"Find spots auto threshold is zero. Percentile {auto_thresh_percentile} might be too low")
