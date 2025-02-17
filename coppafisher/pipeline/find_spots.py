@@ -19,24 +19,27 @@ def find_spots(
     nbp_filter: NotebookPage,
 ) -> NotebookPage:
     """
+    Run find spots section.
+
     Create a point cloud for each filtered image. Results are saved in a new `find_spots` notebook page.
 
     See `'find_spots'` section in coppafisher/setup/notebook_page.py file for description of the variables in the page.
 
     Args:
-        - config (dict): dictionary obtained from `'find_spots'` section of config file.
-        - nbp_basic (NotebookPage): `basic_info` notebook page.
-        - nbp_file (NotebookPage): `file_names` notebook page.
-        - nbp_filter (NotebookPage): `filter` notebook page.
+        config (dict): dictionary obtained from `'find_spots'` section of config file.
+        nbp_basic (NotebookPage): `basic_info` notebook page.
+        nbp_file (NotebookPage): `file_names` notebook page.
+        nbp_filter (NotebookPage): `filter` notebook page.
 
     Returns:
-        (NotebookPage) nbp_find_spots: `find_spots` notebook page.
+        (NotebookPage): nbp_find_spots. `find_spots` notebook page.
     """
     log.info("Find spots started")
 
     # Phase 0: Initialisation
     nbp = NotebookPage("find_spots", {config.name: config.to_dict()})
     auto_thresh_multiplier = config["auto_thresh_multiplier"]
+    auto_thresh_percentile = config["auto_thresh_percentile"]
     if auto_thresh_multiplier <= 0:
         raise ValueError("The auto_thresh_multiplier in 'find_spots' config must be positive")
     n_z = np.max([1, nbp_basic.is_3d * nbp_basic.nz])
@@ -74,10 +77,11 @@ def find_spots(
 
         # Compute the image's auto threshold to detect spots.
         mid_z = image_trc.shape[2] // 2
-        auto_thresh[t, r, c] = auto_thresh_multiplier * np.median(np.abs(image_trc[..., mid_z]))
+        auto_thresh[t, r, c] = np.percentile(np.abs(image_trc[..., mid_z]), auto_thresh_percentile)
+        auto_thresh[t, r, c] *= auto_thresh_multiplier
 
-        if auto_thresh[t, r, c] <= 0:
-            auto_thresh[t, r, c] = auto_thresh_multiplier
+        if np.isclose(auto_thresh[t, r, c], 0):
+            raise ValueError(f"Find spots auto threshold is zero. Percentile {auto_thresh_percentile} might be too low")
 
         local_yxz, spot_intensity = detect.detect_spots(
             image_trc,
