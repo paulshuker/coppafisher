@@ -1,4 +1,5 @@
-2025/02/DD Version 1.1 Patch (v1.1.1):
+2025/02/DD Version 1.2 (v1.2.0):
+ * Extract: No longer a "Using pre-existing results" when there are no extract images fix.
  * Diagnostics: New `view_tile_indexing_grid` plot for help deciding what tiles to use in the pipeline.
 
 
