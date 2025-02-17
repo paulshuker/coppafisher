@@ -41,6 +41,8 @@ nav:
   - Usage:
     - Basic Usage: basic_usage.md
     - Advanced Usage: advanced_usage.md
+  - Diagnostics: diagnostics.md
+  - Export: export.md
   - Method:
     - Overview: overview.md
     - Find Spots: find_spots.md
@@ -48,7 +50,6 @@ nav:
     - Registration: register.md
     - Call Spots: call_spots.md
     - OMP: omp.md
-  - Diagnostics: diagnostics.md
   - Troubleshoot: troubleshoot.md
   - Glossary: glossary.md
   - Contributing: contributing.md
