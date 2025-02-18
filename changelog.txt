@@ -1,6 +1,7 @@
-2025/02/DD Version 1.1 Patch (v1.1.1):
+2025/02/DD Version 1.2 (v1.2.0):
  * Viewer: Can now toggle a class type on/off by clicking on its name in the gene legend.
  * Diagnostics: New `view_tile_indexing_grid` plot for help deciding what tiles to use in the pipeline.
+ * Extract: No longer a "Using pre-existing results" when there are no extract images fix.
 
 
 2025/02/13 Version 1.1 (v1.1.0):
