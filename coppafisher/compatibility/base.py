@@ -37,7 +37,7 @@ class CompatibilityTracker:
             ("1.0.5", "none"),
             ("1.0.6", "none"),
             ("1.1.0", "omp"),
-            ("1.2.0", "none"),
+            ("1.2.0", "find_spots"),
         )
     )
     _stage_instructions: list[tuple[str, ...]]

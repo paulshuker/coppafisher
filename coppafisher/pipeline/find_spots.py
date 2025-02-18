@@ -1,4 +1,3 @@
-import math as maths
 import os
 
 import numpy as np
@@ -6,7 +5,7 @@ import tqdm
 import zarr
 
 from .. import log
-from ..find_spots import base, detect
+from ..find_spots import detect
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..utils import indexing
@@ -19,28 +18,29 @@ def find_spots(
     nbp_filter: NotebookPage,
 ) -> NotebookPage:
     """
+    Run find spots section.
+
     Create a point cloud for each filtered image. Results are saved in a new `find_spots` notebook page.
 
     See `'find_spots'` section in coppafisher/setup/notebook_page.py file for description of the variables in the page.
 
     Args:
-        - config (dict): dictionary obtained from `'find_spots'` section of config file.
-        - nbp_basic (NotebookPage): `basic_info` notebook page.
-        - nbp_file (NotebookPage): `file_names` notebook page.
-        - nbp_filter (NotebookPage): `filter` notebook page.
+        config (dict): dictionary obtained from `'find_spots'` section of config file.
+        nbp_basic (NotebookPage): `basic_info` notebook page.
+        nbp_file (NotebookPage): `file_names` notebook page.
+        nbp_filter (NotebookPage): `filter` notebook page.
 
     Returns:
-        (NotebookPage) nbp_find_spots: `find_spots` notebook page.
+        (NotebookPage): nbp_find_spots. `find_spots` notebook page.
     """
     log.info("Find spots started")
 
-    # Phase 0: Initialisation
+    # Phase 0: Initialisation.
     nbp = NotebookPage("find_spots", {config.name: config.to_dict()})
     auto_thresh_multiplier = config["auto_thresh_multiplier"]
+    auto_thresh_percentile = config["auto_thresh_percentile"]
     if auto_thresh_multiplier <= 0:
         raise ValueError("The auto_thresh_multiplier in 'find_spots' config must be positive")
-    n_z = np.max([1, nbp_basic.is_3d * nbp_basic.nz])
-    max_spots = maths.floor(config["max_spots_percent"] * nbp_basic.tile_sz**2 / 100)
     INVALID_AUTO_THRESH = -1
     auto_thresh = np.full(
         (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.n_extra_rounds, nbp_basic.n_channels),
@@ -66,7 +66,7 @@ def find_spots(
     ):
         use_indices[t, r, c] = True
 
-    # Phase 2: Detect spots on uncompleted tiles, rounds and channels
+    # Phase 1: Detect spots on uncompleted tiles, rounds and channels.
     pbar = tqdm.tqdm(total=use_indices.sum(), desc="Finding spots", unit="image")
     for t, r, c in np.argwhere(use_indices).tolist():
         pbar.set_postfix_str(f"{t=}, {r=}, {c=}")
@@ -74,10 +74,13 @@ def find_spots(
 
         # Compute the image's auto threshold to detect spots.
         mid_z = image_trc.shape[2] // 2
-        auto_thresh[t, r, c] = auto_thresh_multiplier * np.median(np.abs(image_trc[..., mid_z]))
+        auto_thresh[t, r, c] = np.percentile(np.abs(image_trc[..., mid_z]), auto_thresh_percentile)
+        auto_thresh[t, r, c] *= auto_thresh_multiplier
+        if config["auto_thresh_clip"]:
+            auto_thresh[t, r, c] = np.max([auto_thresh[t, r, c], auto_thresh_multiplier])
 
-        if auto_thresh[t, r, c] <= 0:
-            auto_thresh[t, r, c] = auto_thresh_multiplier
+        if np.isclose(auto_thresh[t, r, c], 0):
+            raise ValueError(f"Find spots auto threshold is zero. Percentile {auto_thresh_percentile} might be too low")
 
         local_yxz, spot_intensity = detect.detect_spots(
             image_trc,
@@ -86,9 +89,6 @@ def find_spots(
             radius_xy=config["radius_xy"],
             radius_z=config["radius_z"],
         )
-        if r != nbp_basic.anchor_round:
-            # On imaging rounds, only keep the highest intensity spots on each z plane.
-            local_yxz = base.filter_intense_spots(local_yxz, spot_intensity, n_z, max_spots)
 
         spot_no[t, r, c] = local_yxz.shape[0]
         log.debug(f"Found {spot_no[t, r, c]} spots on {t=}, {r=}, {c=}")
@@ -99,7 +99,7 @@ def find_spots(
         pbar.update()
     pbar.close()
 
-    # Phase 3: Save results to notebook page
+    # Phase 2: Save results to notebook page.
     nbp.auto_thresh = auto_thresh
     nbp.spot_yxz = spot_yxz
     nbp.spot_no = spot_no
