@@ -3,12 +3,11 @@ import os
 from typing import Tuple
 
 import numpy as np
+import skimage
 import zarr
 from tqdm import tqdm
 
 from .. import log
-from ..filter import base as filter_base
-from ..filter import deconvolution
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..utils import indexing, zarray
@@ -75,22 +74,23 @@ def run_filter(
         images[t, r, c] = 0
         images.attrs["completed_indices"] = images.attrs["completed_indices"] + [[t, r, c]]
 
-    wiener_filter = None
     if not os.path.isfile(nbp_file.psf):
         raise FileNotFoundError(f"Could not find the PSF at location {nbp_file.psf}")
 
-    # Put z to last index
-    psf = np.load(nbp_file.psf)["arr_0"].astype(np.float32).swapaxes(0, 2)
+    # ZYX -> YXZ.
+    psf = np.load(nbp_file.psf)["arr_0"].astype(np.float32).swapaxes(0, 2).swapaxes(0, 1)
     if np.max(psf.shape[:2]) < psf.shape[2]:
         log.warn(f"The given PSF has a strange shape of yxz = {psf.shape}")
     # Normalise psf so the min is 0 and the max is 1.
     psf = psf - psf.min()
     psf = psf / psf.max()
-    pad_im_shape = (
-        np.array([nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z)])
-        + np.array(config["wiener_pad_shape"]) * 2
+    # The PSF is tapered at every edge using a Hanning window.
+    psf = (
+        psf
+        * np.hanning(psf.shape[0]).reshape(-1, 1, 1)
+        * np.hanning(psf.shape[1]).reshape(1, -1, 1)
+        * np.hanning(psf.shape[2]).reshape(1, 1, -1)
     )
-    wiener_filter = filter_base.get_wiener_filter(psf, pad_im_shape, config["wiener_constant"])
     nbp_debug.psf = psf
 
     with tqdm(total=len(indices), desc="Filtering extract images") as pbar:
@@ -111,13 +111,11 @@ def run_filter(
             im_filtered = im_filtered.astype(np.float64)
 
             # All images are deconvolved, including the DAPI.
-            im_filtered = deconvolution.wiener_deconvolve(
-                im_filtered, config["wiener_pad_shape"], wiener_filter, config["force_cpu"]
-            )
+            im_filtered = skimage.restoration.wiener(im_filtered, psf, config["wiener_constant"], clip=False)
             im_filtered = im_filtered.astype(FILTER_DTYPE)
             images[t, r, c] = im_filtered
-            del im_filtered
             images.attrs["completed_indices"] = images.attrs["completed_indices"] + [[t, r, c]]
+            del im_filtered
 
             pbar.update()
 
