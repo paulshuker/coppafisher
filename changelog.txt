@@ -1,6 +1,7 @@
 2025/02/DD Version 1.2 (v1.2.0):
  * Viewer: Can now toggle a class type on/off by clicking on its name in the gene legend.
  * Diagnostics: New `view_tile_indexing_grid` plot for help deciding what tiles to use in the pipeline.
+ * Extract: No longer a "Using pre-existing results" when there are no extract images fix.
  * Find spots: Image auto threshold now computed using a 50'th -> 5'th percentile by default.
  * Find spots: Sequencing images no longer have dim spots removed.
 
