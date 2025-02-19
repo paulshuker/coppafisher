@@ -92,6 +92,22 @@ def get_device(force_cpu: bool) -> torch.device:
     return torch.device("cpu")
 
 
+def get_core_count() -> int:
+    """
+    Get the number of CPU cores available for multiprocessing tasks on the system.
+
+    Returns:
+        (int): num_cores. The number of available CPU cores.
+    """
+    n_threads = psutil.cpu_count(logical=True)
+    if n_threads is None:
+        n_threads = 1
+    else:
+        n_threads -= 2
+    n_threads = np.clip(n_threads, 1, 999, dtype=int)
+    return int(n_threads)
+
+
 def get_terminal_size_xy(x_offset: int = 0, y_offset: int = 0) -> Tuple[int, int]:
     """
     Get the current terminal size in x and y direction, clamped at >= 1 in both directions. Falls back to a default of

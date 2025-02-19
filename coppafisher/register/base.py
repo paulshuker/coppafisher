@@ -11,8 +11,9 @@ from joblib.externals import loky
 from scipy.ndimage import gaussian_filter
 from tqdm import tqdm
 
-from .. import log, utils
+from .. import log
 from ..register import preprocessing
+from ..utils import system as utils_system
 
 
 def optical_flow_register(
@@ -175,7 +176,7 @@ def optical_flow_single(
 
     # compute the optical flow (in parallel)
     if n_cores is None:
-        n_cores = utils.system.get_core_count()
+        n_cores = utils_system.get_core_count()
     log.debug(f"Computing optical flow using {n_cores} cores")
     flow_sub = joblib.Parallel(n_jobs=n_cores, timeout=45 * 60)(
         joblib.delayed(skimage.registration.optical_flow_ilk)(
