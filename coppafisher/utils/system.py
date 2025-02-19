@@ -52,26 +52,15 @@ def get_remote_software_version() -> str:
     return version_contents[index_start + 1 : index_end]
 
 
-def get_software_hash() -> str:
-    """
-    Get a checksum hash from the coppafisher directory (i.e. all the source code).
-
-    Returns:
-        str: hash.
-    """
-    # TODO: Re-implement
-    return ""
-
-
 def get_available_memory(device: torch.device = None) -> float:
     """
     Get device's available memory at the time of calling this function.
 
     Args:
-        - device (torch device): the device. Default: the cpu.
+        device (torch device): the device. Default: the cpu.
 
     Returns:
-        float: available memory, in GB.
+        (float): available_memory. Available memory in GB.
     """
     if device is None:
         device = torch.device("cpu")
@@ -101,23 +90,6 @@ def get_device(force_cpu: bool) -> torch.device:
         return torch.device("cuda")
 
     return torch.device("cpu")
-
-
-def get_core_count() -> int:
-    """
-    Get the number of CPU cores available for multiprocessing tasks on the system.
-
-    Returns:
-        int: number of available CPU cores.
-    """
-    n_threads = psutil.cpu_count(logical=True)
-    if n_threads is None:
-        n_threads = 1
-    else:
-        n_threads -= 2
-    n_threads = np.clip(n_threads, 1, 999, dtype=int)
-
-    return int(n_threads)
 
 
 def get_terminal_size_xy(x_offset: int = 0, y_offset: int = 0) -> Tuple[int, int]:

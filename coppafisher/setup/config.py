@@ -183,6 +183,7 @@ class Config:
             "z_plane_mean_warning": ("number", "not-negative"),
         },
         "filter": {
+            "num_cores": ("maybe_int", "positive"),
             "wiener_constant": ("number", "not-negative"),
             "wiener_pad_shape": ("tuple_int", "tuple-not-empty"),
         },

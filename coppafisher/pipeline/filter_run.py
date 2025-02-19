@@ -2,15 +2,17 @@ import math as maths
 import os
 from typing import Tuple
 
+import joblib
 import numpy as np
 import skimage
+import tqdm
 import zarr
-from tqdm import tqdm
+from joblib.externals import loky
 
 from .. import log
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
-from ..utils import indexing, zarray
+from ..utils import indexing, system, zarray
 
 FILTER_DTYPE = np.float16
 
@@ -93,31 +95,52 @@ def run_filter(
     )
     nbp_debug.psf = psf
 
-    with tqdm(total=len(indices), desc="Filtering extract images") as pbar:
-        for t, r, c in indices:
+    batch_size: int | None = config["num_cores"]
+    if batch_size is None:
+        batch_size = max(1, maths.floor(system.get_available_memory() / 27))
+    batch_count: int = maths.ceil(len(indices) / batch_size)
+
+    for batch_i in tqdm.trange(batch_count, desc="Filtering extract images", unit="batch"):
+        index_min, index_max = batch_i * batch_size, min((batch_i + 1) * batch_size, len(indices))
+        batch_images: list[np.np.ndarray] = []
+        batch_trcs: list[tuple[int, int, int]] = []
+
+        for t, r, c in indices[index_min:index_max]:
             if [t, r, c] in images.attrs["completed_indices"]:
                 # Already saved filtered images are not re-filtered.
-                pbar.update()
                 continue
+
             file_path_raw = nbp_file.tile_unfiltered[t][r][c]
             raw_image_exists = zarray.image_exists(file_path_raw)
-            pbar.set_postfix({"round": r, "tile": t, "channel": c})
             if not raw_image_exists:
                 raise FileNotFoundError(f"Raw, extracted file at\n\t{file_path_raw}\nnot found")
 
-            # Get t, r, c image from raw files
-            im_filtered = zarr.open_array(file_path_raw, mode="r")[:]
-            # Move to floating point before filtering.
-            im_filtered = im_filtered.astype(np.float64)
+            image = zarr.open_array(file_path_raw, mode="r")[:]
+            image = image.astype(np.float64)
+            batch_images.append(image)
+            batch_trcs.append((t, r, c))
+            del image
 
+        assert len(batch_images) == len(batch_trcs)
+
+        if len(batch_images) == 0:
+            continue
+
+        filtered_images = joblib.Parallel(n_jobs=len(batch_images), return_as="list")(
+            joblib.delayed(skimage.restoration.wiener)(batch_images.pop(0), psf, config["wiener_constant"], clip=False)
+            for _ in range(len(batch_images))
+        )
+
+        for filtered_image, (t, r, c) in zip(filtered_images, batch_trcs):
             # All images are deconvolved, including the DAPI.
-            im_filtered = skimage.restoration.wiener(im_filtered, psf, config["wiener_constant"], clip=False)
-            im_filtered = im_filtered.astype(FILTER_DTYPE)
-            images[t, r, c] = im_filtered
+            filtered_image = filtered_image.astype(FILTER_DTYPE)
+            images[t, r, c] = filtered_image
             images.attrs["completed_indices"] = images.attrs["completed_indices"] + [[t, r, c]]
-            del im_filtered
+            del filtered_image
 
-            pbar.update()
+    # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, the reusable loky executor is
+    # explicitly killed when done. Re-spawning it in the future only takes ~0.1s.
+    loky.get_reusable_executor().shutdown(wait=True)
 
     nbp.images = images
     log.debug("Filter complete")
