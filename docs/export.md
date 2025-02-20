@@ -113,7 +113,7 @@ The custom fused image can be registered to the anchor DAPI fused image.
 ```py
 from coppafisher.custom_alignment import register_custom_image
 
-downsample_factor = 1  # Any natural number, `subvolume_size` is affected.
+downsample_factor = 1  # Any natural number, `subvolume_size` along y and x is affected.
 reg_parameters = {
     "registration_type": "subvolume",  # Can be "shift" or "subvolume".
     "subvolume_size": [8, 1024, 1024],
@@ -129,7 +129,10 @@ transform = register_custom_image(fused_anchor_image, fused_custom_image, reg_pa
 
 `subvolume_size` must be small enough for at least two subvolumes along every axis.
 
-Then you can apply the transform to any custom image channel you wish and save the result as a .tif file.
+If downsample_factor is greater than 1, get the originally-sized images back by running the [stitch](#stitch) code
+again.
+
+Now apply the transform to the custom image and save the result as a .tif file.
 
 ```py
 from coppafisher.custom_alignment import apply_transform
@@ -140,7 +143,7 @@ apply_transform(fused_custom_image, transform, save_dir, name=f"custom_final_cha
 
 The custom image will be saved as the given name.
 
-You can also save the fused_anchor_image.
+You can also save the fused_anchor_image which should have no transform applied to it.
 
 ```py
 from coppafisher.custom_alignment import apply_transform
