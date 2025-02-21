@@ -1,3 +1,4 @@
+
 # Find Spots
 
 Spots are detected as local intensity maxima on the filtered images to create 3D point clouds. Spot positions are used
@@ -10,13 +11,13 @@ computed. This is done by taking all pixels on a single, central z plane on the 
 `auto_thresh` is
 
 $$
-\text{auto\_thresh}_{trc} = \text{n}^{\text{th}}\text{ percentile}(|I|_{trcxy})_{trc..} \times a
+\text{auto\_thresh}_{trc} = \text{median}(|I|_{trcxy})_{trc..} \times a
 $$
 
 where $|...|$ is the absolute value of each element separately. The median is computed over all x and y values to give a
-scalar that is a good lower bound estimate for the random noise amplitude. $n$ is the `auto_thresh_percentile`
-(typically $5$). $a$ is the `auto_thresh_multiplier` (typically $160$). Higher `auto_thresh_multiplier` makes spot
-detection stricter.
+scalar that is a good lower bound estimate for the random noise amplitude. $a$ is the `auto_thresh_multiplier`
+(typically $20$). The higher `auto_thresh_multiplier` is, the stricter the find spots algorithm is. If the computed
+`auto_thresh` is zero, then it is set to `auto_thresh_multiplier`.
 
 ## 1: Spot Detection
 
@@ -34,6 +35,19 @@ are removed. For each point, an ellipsoid region of x/y radius `radius_xy` (typi
 with the greatest intensity is kept. If a point is isolated, it is kept. The process is repeated for all points.
 
 If too few spots are found for a tile/round/channel image, then a warning and/or error is raised to the user.
+
+## 3: Spot Culling
+
+On sequencing rounds/channels, it is not important to capture every spot detection. But, the spots must be of high
+quality and about evenly distributed along the z planes for [registration](register.md). So, if there are too many spots
+detected, only the most intense spots are kept for each z plane. The maximum number of spots kept for each z plane is
+
+$$
+\frac{\text{max\_spots\_percent} \times L_{xy}^2}{100}
+$$
+
+where $L_{xy}$ is the number of pixels along the x (y) axis for a single tile. `max_spots_percent` (typically $0.0094$)
+is a config parameter.
 
 ## Diagnostics
 
