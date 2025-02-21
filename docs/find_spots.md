@@ -1,4 +1,3 @@
-
 # Find Spots
 
 Spots are detected as local intensity maxima on the filtered images to create 3D point clouds. Spot positions are used
