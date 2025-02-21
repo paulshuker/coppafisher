@@ -3,6 +3,8 @@ import math as maths
 import os
 import pickle
 import platform
+import shutil
+import tempfile
 from typing import Tuple
 
 import numpy as np
@@ -150,8 +152,18 @@ def run_omp(
             log.info(f"OMP is skipping tile {t}, results already found at {nbp_file.output_dir}")
             continue
 
+        temp_dir = tempfile.TemporaryDirectory("coppafisher")
+        filter_images: zarr.Array = nbp_filter.images
+        if system.is_path_on_mounted_server(filter_images.store.path):
+            log.info(f"Filter images detected on mounted server. Caching tile {t}")
+
+            # Copy filter image files locally only relevant to tile t.
+            ignore = shutil.ignore_patterns(f"[{''.join([str(tile) for tile in nbp_basic.use_tiles if tile != t])}].*")
+            shutil.copytree(filter_images.store.path, temp_dir.name, ignore=ignore, dirs_exist_ok=True)
+            filter_images = zarr.open_array(temp_dir.name, "r")
+
         spot_colour_kwargs = dict(
-            image=nbp_filter.images,
+            image=filter_images,
             flow=nbp_register.flow,
             affine=nbp_register.icp_correction,
             tile=t,
@@ -304,8 +316,10 @@ def run_omp(
         t_spots_colours[:] = spot_colours_base.get_spot_colours_new_safe(
             nbp_basic, t_local_yxzs, **spot_colour_kwargs
         ).astype(np.float16)
-        del t_spots_local_yxz, t_spots_tile, t_spots_gene_no, t_spots_score, t_spots_colours, t_local_yxzs, tile_results
         log.debug("Gathering final spot colours complete")
+
+        temp_dir.cleanup()
+        del t_spots_local_yxz, t_spots_tile, t_spots_gene_no, t_spots_score, t_spots_colours, t_local_yxzs, tile_results
 
     os.remove(config_path)
 

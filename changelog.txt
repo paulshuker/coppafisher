@@ -4,6 +4,7 @@
  * Extract: No longer a "Using pre-existing results" when there are no extract images fix.
  * Find spots: Image auto threshold now computed using a 50'th -> 5'th percentile by default.
  * Find spots: Sequencing images no longer have dim spots removed.
+ * OMP: Filter images are locally cached when filter images are on a server optimisation.
 
 
 2025/02/13 Version 1.1 (v1.1.0):
