@@ -82,11 +82,12 @@ extract_raw(
     read_dir=custom_nd2,
     use_tiles=nb.basic_info.use_tiles,
     use_channels=[9, 23],
+    reverse_custom_z=False,
 )
 ```
 
 `use_channels` can be any valid channel(s) inside the custom image .nd2 file. This will also extract the anchor round in
-the DAPI channel.
+the DAPI channel. You can reverse the z planes in the custom image by setting `reverse_custom_z` to `#!python True`.
 
 ??? note "Config File"
 
