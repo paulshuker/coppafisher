@@ -64,7 +64,7 @@ def test_Notebook() -> None:
         assert np.allclose(nb.debug.n, n)
         zarray_path = os.path.abspath(nb.debug.o.store.path)
         assert os.path.isdir(zarray_path)
-        assert len(os.listdir(zarray_path)) > 0
+        assert len(os.listdir(zarray_path)) > 1
         assert PurePath(nb_path) in PurePath(zarray_path).parents
         zgroup_path = os.path.abspath(nb.debug.p.store.path)
         assert os.path.isdir(zgroup_path)
@@ -201,6 +201,15 @@ def test_Notebook() -> None:
     del nb
     nb = Notebook(nb_path, must_exist=True)
     _check_variables(nb)
+
+    nb._prune_locations = {"debug": ("o.zarray",)}
+    _check_variables(nb)
+    nb.prune(prompt=False)
+    try:
+        _check_variables(nb)
+        AssertionError("Excepted prune to cause an error when checking variable o")
+    except AssertionError:
+        pass
 
     # Check that the resave function can safely remove pages.
     del nb.debug
