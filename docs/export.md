@@ -132,6 +132,8 @@ transform = register_custom_image(fused_anchor_image, fused_custom_image, reg_pa
 If downsample_factor is greater than 1, get the originally-sized images back by running the [stitch](#stitch) code
 again.
 
+### Apply transform and save results
+
 Now apply the transform to the custom image and save the result as a .tif file.
 
 ```py
@@ -141,7 +143,7 @@ save_dir = "/path/to/output/directory"
 apply_transform(fused_custom_image, transform, save_dir, name=f"custom_final_channel_{channel}.tif")
 ```
 
-The custom image will be saved as the given name.
+The custom image will be saved as the given name as `uint16`.
 
 You can also save the fused_anchor_image which should have no transform applied to it.
 
