@@ -128,7 +128,7 @@ def run_filter(
         if len(batch_images) == 0:
             continue
 
-        filtered_images = joblib.Parallel(n_jobs=len(batch_images), return_as="list")(
+        filtered_images = joblib.Parallel(n_jobs=len(batch_images), return_as="list", timeout=60 * 20)(
             joblib.delayed(skimage.restoration.wiener)(batch_images.pop(0), psf, config["wiener_constant"], clip=False)
             for _ in range(len(batch_images))
         )
