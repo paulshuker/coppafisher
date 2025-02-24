@@ -82,11 +82,12 @@ extract_raw(
     read_dir=custom_nd2,
     use_tiles=nb.basic_info.use_tiles,
     use_channels=[9, 23],
+    reverse_custom_z=False,
 )
 ```
 
 `use_channels` can be any valid channel(s) inside the custom image .nd2 file. This will also extract the anchor round in
-the DAPI channel.
+the DAPI channel. You can reverse the z planes in the custom image by setting `reverse_custom_z` to `#!python True`.
 
 ??? note "Config File"
 
@@ -131,6 +132,8 @@ transform = register_custom_image(fused_anchor_image, fused_custom_image, reg_pa
 If downsample_factor is greater than 1, get the originally-sized images back by running the [stitch](#stitch) code
 again.
 
+### Apply transform and save results
+
 Now apply the transform to the custom image and save the result as a .tif file.
 
 ```py
@@ -140,7 +143,7 @@ save_dir = "/path/to/output/directory"
 apply_transform(fused_custom_image, transform, save_dir, name=f"custom_final_channel_{channel}.tif")
 ```
 
-The custom image will be saved as the given name.
+The custom image will be saved as the given name as `uint16`.
 
 You can also save the fused_anchor_image which should have no transform applied to it.
 

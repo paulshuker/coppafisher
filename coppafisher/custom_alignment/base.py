@@ -24,7 +24,13 @@ SUFFIX = ".tif"
 
 
 def extract_raw(
-    nb: Notebook, config_file_path: str, read_dir: str, save_dir: str, use_tiles: list, use_channels: list
+    nb: Notebook,
+    config_file_path: str,
+    read_dir: str,
+    save_dir: str,
+    use_tiles: list,
+    use_channels: list,
+    reverse_custom_z: bool = False,
 ) -> None:
     """
     Extract images from the given ND2 file and DAPI images.
@@ -38,6 +44,7 @@ def extract_raw(
         save_dir (str): the directory where the images are saved.
         use_tiles (list): list of tiles to use.
         use_channels (list): list of channels to use.
+        reverse_custom_z (bool, optional): flip the z axis around for the custom image. Default: false.
     """
     if not os.path.isfile(config_file_path):
         raise FileNotFoundError(f"No config file at {config_file_path}")
@@ -94,6 +101,8 @@ def extract_raw(
             image = image.astype(np.uint16)
             # zyx -> yxz.
             image = image.swapaxes(0, 2).swapaxes(0, 1)
+            if reverse_custom_z:
+                image = image[:, :, ::-1]
             # Save image in the format x_y.tif.
             tifffile.imwrite(save_path, image)
 
@@ -167,13 +176,13 @@ def fuse_custom_and_dapi(nb: Notebook, extract_dir: str, channel: int) -> np.nda
     # The DAPI stitch results are taken from the notebook. This is important so that the images are aligned with the
     # exported spot positions.
     dapi_fused_image = background.generate_global_image(
-        dapi_images, tile_indices, nbp_basic, nb.stitch, np.float32, silent=False
+        dapi_images, tile_indices, nbp_basic, nb.stitch, np.uint16, silent=False
     )
 
     nbp_stitch = NotebookPage("stitch", {"stitch": {"expected_overlap": expected_overlap}})
     nbp_stitch.tile_origin = tile_origins_custom
     custom_fused_image = background.generate_global_image(
-        custom_images, tile_indices, nbp_basic, nbp_stitch, np.float32, silent=False
+        custom_images, tile_indices, nbp_basic, nbp_stitch, np.uint16, silent=False
     )
 
     # The custom image is cropped/padded with zeros to share the same position and shape of the DAPI fused image.
