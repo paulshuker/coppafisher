@@ -86,6 +86,7 @@ def run_omp(
     tile_origins = torch.from_numpy(tile_origins)
     n_subset_pixels = config["subset_pixels"]
     n_memory_constant = 7e7 / (n_genes * n_rounds_use * n_channels_use)
+    n_register_chunk_size: int = np.prod(nbp_register.flow.chunks).item() // 3
     yxz_all = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
     yxz_all = np.array(np.meshgrid(*yxz_all, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
     bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
@@ -206,8 +207,10 @@ def run_omp(
                     index_max += maths.floor(utils.system.get_available_memory(device) * n_memory_constant)
                 else:
                     index_max += n_subset_pixels
+                # The batch size is placed to an exact number of register data chunks for fastest read speeds.
+                index_max = index_max - (index_max % n_register_chunk_size)
+                index_max = max(index_max, index_min + n_register_chunk_size)
                 index_max = min(index_max, n_tile_pixels)
-                index_max = max(index_max, index_min + 1)
 
                 yxz_subset = yxz_all[index_min:index_max]
                 colour_subset = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)

@@ -1,5 +1,4 @@
 import itertools
-import math as maths
 import os
 from typing import Tuple
 
@@ -104,12 +103,8 @@ def register(
         len(nbp_basic.use_z),
     )
     # Chunks are made into thin rods along the y direction as this is how flow is gathered in OMP.
-    x_length = max(maths.floor(1e6 / (raw_smooth_shape[2] * raw_smooth_shape[3] * 2)), 1)
-    z_length = 1
-    while x_length > nbp_basic.tile_sz:
-        x_length -= nbp_basic.tile_sz
-        z_length += 1
-    z_length = min(z_length, raw_smooth_shape[5])
+    x_length = nbp_filter.images.chunks[4]
+    z_length = nbp_filter.images.chunks[5]
     raw_smooth_chunks = (1, 1, None, None, x_length, z_length)
     zarr.open_array(
         store=corr_loc,
