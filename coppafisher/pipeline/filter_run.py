@@ -54,9 +54,11 @@ def run_filter(
     # Chunks are made into thin rods along the y direction as this is how the images are later gathered in OMP.
     x_length = max(maths.floor(1e6 / (shape[1] * shape[3] * 2)), 1)
     z_length = 1
-    while x_length > nbp_basic.tile_sz:
-        x_length -= nbp_basic.tile_sz
-        z_length += 1
+    if x_length > nbp_basic.tile_sz:
+        while x_length > nbp_basic.tile_sz:
+            x_length -= nbp_basic.tile_sz
+            z_length += 1
+        x_length = nbp_basic.tile_sz
     z_length = min(z_length, shape[5])
     chunks = (1, None, 1, None, x_length, z_length)
     images = zarr.open_array(

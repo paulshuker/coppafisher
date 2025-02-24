@@ -5,6 +5,7 @@ import subprocess
 import sys
 import time
 import traceback
+import warnings
 from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Union
@@ -92,6 +93,8 @@ def set_log_config(
 
     logging.basicConfig(format="%(message)s", level=logging.ERROR)
     logging.getLogger("coppafisher").setLevel(logging.DEBUG)
+    # Warnings are captured and logged.
+    warnings.showwarning = log_warning_with_traceback
 
 
 def debug(msg: Union[str, Exception], force_email: bool = False) -> None:
@@ -171,7 +174,7 @@ def datetime_string() -> str:
 
 def append_to_log_file(message: str) -> None:
     """
-    Appends `message` to the end of the user's log file, if it exists.
+    Appends `message` to the end of the user's log file, if the file exists.
 
     Args:
         message (str): message to append.
@@ -180,6 +183,12 @@ def append_to_log_file(message: str) -> None:
         return
     with open(_log_file, "a") as log_file:
         log_file.write(message + "\n")
+
+
+def log_warning_with_traceback(message, category, filename, lineno, file=None, line=None):
+    log = file if hasattr(file, "write") else sys.stderr
+    traceback.print_stack(file=log)
+    append_to_log_file(warnings.formatwarning(message, category, filename, lineno, line))
 
 
 def log_package_versions(severity: int = DEBUG) -> None:

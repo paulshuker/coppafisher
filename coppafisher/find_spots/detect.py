@@ -16,19 +16,19 @@ def detect_spots(
     Spots are detected as local maxima on the given image above intensity_thresh.
 
     Args:
-        - image (`(im_y x im_x x im_z) ndarray[int or float] or tensor[int or float]`): image to detect the local
-            maxima.
-        - intensity_thresh (float): local maxima are greater than intensity_thresh.
-        - remove_duplicates (bool, optional): if two or more local maxima are close together, then only the greatest
+        image (`(im_y x im_x x im_z) ndarray[int or float] or tensor[int or float]`): image to detect the local maxima.
+        intensity_thresh (float): local maxima are greater than intensity_thresh.
+        remove_duplicates (bool, optional): if two or more local maxima are close together, then only the greatest
             maxima value is detected. If they have identical intensities, one is chosen over the other. Default: false.
-        - radius_xy (int, optional): two local maxima are considered close together if their distance along x and/or y
-            is less than radius_xy. Default: not given.
-        - radius_z (int, optional): two local maxima are considered close together if their distance along z is less
-            than radius_xy. Default: not given.
+        radius_xy (int, optional): two local maxima are considered close together if their distance along x and/or y is
+            less than radius_xy. Default: not given.
+        radius_z (int, optional): two local maxima are considered close together if their distance along z is less than
+            radius_xy. Default: not given.
 
     Returns:
-        - `(n_spots x 3) ndarray[int16]` maxima_yxz: y, x, and z coordinate positions of local maxima.
-        - `(n_spots) ndarray[image.dtype]` maxima_intensity: maxima_intensity[i] is the image intensity at maxima_yxz[i].
+        Tuple containing:
+            - (`(n_spots x 3) ndarray[int16]`): maxima_yxz. The y, x, and z coordinate positions of local maxima.
+            - (`(n_spots) ndarray[image.dtype]`): maxima_intensity. maxima_intensity[i] is the image intensity at maxima_yxz[i].
     """
     assert type(image) is np.ndarray or type(image) is torch.Tensor
     assert type(intensity_thresh) is float

@@ -1,5 +1,14 @@
-2025/02/DD Version 1.1 Patch (v1.1.2):
+2025/02/DD Version 1.2 (v1.2.0):
+ * Viewer: Can now toggle a class type on/off by clicking on its name in the gene legend.
+ * Diagnostics: New `view_tile_indexing_grid` plot for help deciding what tiles to use in the pipeline.
  * Export: Custom images are now exported as uint16.
+ * Extract: No longer a "Using pre-existing results" when there are no extract images fix.
+ * Filter: Improved saved image chunk shapes optimisation.
+ * Find spots: Image auto threshold now computed using a 50'th -> 5'th percentile by default.
+ * Find spots: Sequencing images no longer have dim spots removed.
+ * Register: Improved saved flow chunk shapes optimisation.
+ * OMP: Compute batch size now matches the chunk sizes optimisation.
+ * OMP: Filter images are locally cached when filter images are on a server optimisation.
 
 
 2025/02/21 Version 1.1 Patch (v1.1.1):
@@ -7,8 +16,8 @@
 
 
 2025/02/13 Version 1.1 (v1.1.0):
- * OMP: Intensity threshold sometimes too high fix.
  * General: Napari 0.5.4 -> 0.5.6.
+ * OMP: Intensity threshold sometimes too high fix.
 
 
 2025/02/10 Version 1 Patch (v1.0.6):

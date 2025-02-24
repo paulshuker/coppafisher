@@ -10,6 +10,7 @@ def view_intensity_images(
     nb: Notebook,
     tiles: list[int] | None = None,
     z_planes: int | None = None,
+    z_plane_start_from: int = 0,
 ) -> None:
     """
     View the computed intensity for the given tile(s) and the anchor image(s). The intensity is defined as
@@ -18,10 +19,13 @@ def view_intensity_images(
     Args:
         nb (Notebook): notebook.
         tiles (list of int, optional): tiles to view. Default: first tile.
-        z_planes (int, optional): the number of z planes to view, starting from 0. Default: 20.
+        z_planes (int, optional): the number of z planes to view, starting from `z_plane_start_from`. Default: 20.
+        z_plane_start_from (int, optional): the lowest z plane to view. Default: 0.
     """
-    assert nb.has_page("register"), "Register must be complete"
-    assert nb.has_page("call_spots"), "Call spots must be complete"
+    if not nb.has_page("register"):
+        raise ValueError("Register must be complete")
+    if not nb.has_page("call_spots"):
+        raise ValueError("Call spots must be complete")
 
     if tiles is None:
         tiles = nb.basic_info.use_tiles[:1]
@@ -30,7 +34,8 @@ def view_intensity_images(
     z_planes = min(z_planes, max(nb.basic_info.use_z))
 
     tile_shape = (nb.basic_info.tile_sz, nb.basic_info.tile_sz, z_planes)
-    yxz = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
+    yxz = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(2)]
+    yxz.append(np.linspace(z_plane_start_from, z_plane_start_from + z_planes - 1, z_planes))
     yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
 
     factor = nb.call_spots.colour_norm_factor.astype(np.float32)
@@ -58,7 +63,14 @@ def view_intensity_images(
 
     # Add the anchor images as well.
     for t in tiles:
-        anchor_image = nb.filter.images[t, nb.basic_info.anchor_round, nb.basic_info.anchor_channel, :, :, :z_planes]
+        anchor_image = nb.filter.images[
+            t,
+            nb.basic_info.anchor_round,
+            nb.basic_info.anchor_channel,
+            :,
+            :,
+            z_plane_start_from : z_plane_start_from + z_planes,
+        ]
         images.append(anchor_image)
         names.append(f"Anchor tile={t}")
 

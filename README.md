@@ -18,8 +18,7 @@
 * [Glossary](https://paulshuker.github.io/coppafisher/glossary/)
 * [Contributing](https://paulshuker.github.io/coppafisher/contributing/)
 
-
-![](https://github.com/jduffield65/coppafish/blob/main/docs/images/readme_viewer.png?raw=true)
+![](https://github.com/paulshuker/coppafisher/blob/main/docs/images/Viewer_example.PNG?raw=true)
 
 The code was originally built in [Matlab](https://github.com/kdharris101/iss). It was then rewritten in
 [Python](https://github.com/jduffield65/coppafish), forked [again](https://github.com/reillytilbury/coppafish). Now
