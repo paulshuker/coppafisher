@@ -4,6 +4,7 @@ from typing import Tuple
 
 import numpy as np
 import zarr
+from joblib.externals import loky
 from tqdm import tqdm
 
 from .. import log
@@ -157,6 +158,10 @@ def register(
             nbp.correlation = zarr.open_array(corr_loc, "r")
             nbp.flow = zarr.open_array(smooth_loc, "r")
     del anchor_image, round_image
+
+    # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, the reusable loky executor is
+    # explicitly killed when done.
+    loky.get_reusable_executor().shutdown(wait=True)
 
     # Part 3: ICP
     log.info("Running Iterative Closest Point (ICP)")

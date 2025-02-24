@@ -7,7 +7,6 @@ import numpy as np
 import scipy
 import skimage
 import zarr
-from joblib.externals import loky
 from scipy.ndimage import gaussian_filter
 from tqdm import tqdm
 
@@ -186,9 +185,6 @@ def optical_flow_single(
     )
     # Convert list to numpy array with shape (n_subvols, 3, n_y, n_x, n_z).
     flow_sub = np.array(flow_sub)
-    # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, the reusable loky executor is
-    # explicitly killed when done. Re-spawning it in the future only takes ~0.1s.
-    loky.get_reusable_executor().shutdown(wait=True)
 
     # Now that we have the optical flow for each subvolume, we need to merge them back together
     flow = np.array(
