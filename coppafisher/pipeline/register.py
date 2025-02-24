@@ -103,10 +103,9 @@ def register(
         nbp_basic.tile_sz,
         len(nbp_basic.use_z),
     )
-    # Chunks are made into thin rods along the y direction as this is how flow is gathered in OMP.
-    x_length = nbp_filter.images.chunks[4]
+    # Chunks are made into single z planes as this is how flow is gathered in OMP.
     z_length = nbp_filter.images.chunks[5]
-    raw_smooth_chunks = (1, 1, None, None, x_length, z_length)
+    raw_smooth_chunks = (1, 1, None, None, None, z_length)
     zarr.open_array(
         store=corr_loc,
         mode="w",
