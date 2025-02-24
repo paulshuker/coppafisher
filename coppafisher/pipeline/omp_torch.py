@@ -3,6 +3,8 @@ import math as maths
 import os
 import pickle
 import platform
+import shutil
+import tempfile
 from typing import Tuple
 
 import numpy as np
@@ -85,6 +87,7 @@ def run_omp(
     tile_origins = torch.from_numpy(tile_origins)
     n_subset_pixels = config["subset_pixels"]
     n_memory_constant = 7e7 / (n_genes * n_rounds_use * n_channels_use)
+    n_register_chunk_size: int = np.prod(nbp_register.flow.chunks).item() // 3
     yxz_all = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
     yxz_all = np.array(np.meshgrid(*yxz_all, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
     bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
@@ -151,8 +154,18 @@ def run_omp(
             log.info(f"OMP is skipping tile {t}, results already found at {nbp_file.output_dir}")
             continue
 
+        temp_dir = tempfile.TemporaryDirectory("coppafisher")
+        filter_images: zarr.Array = nbp_filter.images
+        if system.is_path_on_mounted_server(filter_images.store.path):
+            log.info(f"Filter images detected on mounted server. Caching tile {t}")
+
+            # Copy filter image files locally only relevant to tile t.
+            ignore = shutil.ignore_patterns(f"[{''.join([str(tile) for tile in nbp_basic.use_tiles if tile != t])}].*")
+            shutil.copytree(filter_images.store.path, temp_dir.name, ignore=ignore, dirs_exist_ok=True)
+            filter_images = zarr.open_array(temp_dir.name, "r")
+
         spot_colour_kwargs = dict(
-            image=nbp_filter.images,
+            image=filter_images,
             flow=nbp_register.flow,
             affine=nbp_register.icp_correction,
             tile=t,
@@ -195,8 +208,10 @@ def run_omp(
                     index_max += maths.floor(system.get_available_memory(device) * n_memory_constant)
                 else:
                     index_max += n_subset_pixels
+                # The batch size is placed to an exact number of register data chunks for fastest read speeds.
+                index_max = index_max - (index_max % n_register_chunk_size)
+                index_max = max(index_max, index_min + n_register_chunk_size)
                 index_max = min(index_max, n_tile_pixels)
-                index_max = max(index_max, index_min + 1)
 
                 yxz_subset = yxz_all[index_min:index_max]
                 colour_subset = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)
@@ -305,8 +320,10 @@ def run_omp(
         t_spots_colours[:] = spot_colours_base.get_spot_colours_new_safe(
             nbp_basic, t_local_yxzs, **spot_colour_kwargs
         ).astype(np.float16)
-        del t_spots_local_yxz, t_spots_tile, t_spots_gene_no, t_spots_score, t_spots_colours, t_local_yxzs, tile_results
         log.debug("Gathering final spot colours complete")
+
+        temp_dir.cleanup()
+        del t_spots_local_yxz, t_spots_tile, t_spots_gene_no, t_spots_score, t_spots_colours, t_local_yxzs, tile_results
 
     os.remove(config_path)
 

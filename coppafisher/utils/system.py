@@ -2,6 +2,8 @@ import os
 import shutil
 import socket
 import ssl
+import subprocess
+import sys
 import urllib
 from pathlib import PurePath
 from typing import Tuple
@@ -150,3 +152,42 @@ def internet_is_active() -> bool:
         FileNotFoundError,
     ):
         return False
+
+
+def is_path_on_mounted_server(path):
+    if sys.platform != "win32":
+        # Unix-like systems (Linux, macOS).
+        try:
+            # Use `df` to check the filesystem type
+            result = subprocess.run(["df", "--output=source", path], stdout=subprocess.PIPE, text=True, check=True)
+            output = result.stdout.splitlines()[1].strip()  # Get the device name
+            # Check if it's a network filesystem (e.g., nfs, cifs, smb)
+            if output.startswith(("//", "\\\\")) or any(
+                fs_type in output.lower() for fs_type in ["nfs", "cifs", "smb"]
+            ):
+                return True
+            return False
+        except subprocess.CalledProcessError:
+            return False
+    else:
+        # Windows-specific check.
+        try:
+            # Use `wmic` to check if the path is a network drive
+            result = subprocess.run(
+                ["wmic", "logicaldisk", "where", "drivetype=4", "get", "providername"],
+                stdout=subprocess.PIPE,
+                text=True,
+                check=True,
+            )
+            # Check if the path is a UNC path or matches a network drive
+            if path.startswith(("\\\\", "//")):
+                return True
+            # Check if the path is on a network drive
+            for line in result.stdout.splitlines():
+                if not line:
+                    continue
+                if path.upper().startswith(line.strip().upper()):
+                    return True
+            return False
+        except subprocess.CalledProcessError:
+            return False

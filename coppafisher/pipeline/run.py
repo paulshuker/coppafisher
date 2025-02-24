@@ -1,4 +1,6 @@
+import datetime
 import os
+import time
 from typing import Tuple
 
 from .. import log
@@ -34,6 +36,8 @@ def run_pipeline(config_file: str) -> Notebook:
     Returns:
         Notebook: notebook containing all information gathered during the pipeline.
     """
+    start_time = time.time()
+
     utils_zarray.set_zarr_global_configs()
     nb, nbp_file, config = initialize_notebook(config_file)
 
@@ -97,6 +101,9 @@ def run_pipeline(config_file: str) -> Notebook:
         )
         nb += nbp
     log.error_catch(BuildPDF, nb, nbp_file)
+
+    end_time = time.time()
+    log.info(f"Pipeline took {str(datetime.timedelta(seconds=end_time - start_time))}")
     log.info("Pipeline complete", force_email=True, notify=config["notifications"]["notify_on_completion"])
     return nb
 
