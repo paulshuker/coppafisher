@@ -87,7 +87,7 @@ pressing enter.
 ## Prune the notebook
 
 You can safely remove a significant amount of disk space from the notebook. The only loss is the
-[RegistrationViewer](diagnostics.md#RegistrationViewer) will no longer function. To do this
+[RegistrationViewer](diagnostics.md#registrationviewer) will no longer function. To do this
 
 ```py
 --8<-- "prune_notebook.py"
