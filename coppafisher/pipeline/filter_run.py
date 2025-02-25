@@ -4,10 +4,10 @@ from typing import Tuple
 
 import joblib
 import numpy as np
+import psutil
 import skimage
 import tqdm
 import zarr
-from joblib.externals import loky
 
 from .. import log
 from ..setup.config_section import ConfigSection
@@ -52,8 +52,8 @@ def run_filter(
 
     max_ind = np.array(indices).max(0).tolist()
     shape = (max_ind[0] + 1, max_ind[1] + 1, max_ind[2] + 1, nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z))
-    # Chunks are made into single z planes as this is how the images are later gathered in OMP.
-    chunks = (1, None, 1, None, None, 1)
+    # Chunks are single z planes.
+    chunks = (1, 1, 1, None, None, 1)
     images = zarr.open_array(
         os.path.join(nbp_file.output_dir, "filter_images.zarr"),
         "a",
@@ -94,6 +94,9 @@ def run_filter(
         batch_size = max(1, maths.floor(system.get_available_memory() / 27))
     batch_count: int = maths.ceil(len(indices) / batch_size)
 
+    current_process = psutil.Process()
+    subproc_before = set([p.pid for p in current_process.children(recursive=True)])
+
     for batch_i in tqdm.trange(batch_count, desc="Filtering extract images", unit="batch"):
         index_min, index_max = batch_i * batch_size, min((batch_i + 1) * batch_size, len(indices))
         batch_images: list[np.np.ndarray] = []
@@ -132,9 +135,12 @@ def run_filter(
             images.attrs["completed_indices"] = images.attrs["completed_indices"] + [[t, r, c]]
             del filtered_image
 
-    # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, the reusable loky executor is
-    # explicitly killed when done. Re-spawning it in the future only takes ~0.1s.
-    loky.get_reusable_executor().shutdown(wait=True)
+    # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, any remaining process after the
+    # use of joblib are explicitly killed.
+    subproc_after = set([p.pid for p in current_process.children(recursive=True)])
+    for subproc in subproc_after - subproc_before:
+        log.debug("Killing process with pid {}".format(subproc))
+        psutil.Process(subproc).terminate()
 
     nbp.images = images
     log.debug("Filter complete")

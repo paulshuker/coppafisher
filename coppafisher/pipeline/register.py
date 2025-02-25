@@ -3,8 +3,8 @@ import os
 from typing import Tuple
 
 import numpy as np
+import psutil
 import zarr
-from joblib.externals import loky
 from tqdm import tqdm
 
 from .. import log
@@ -91,6 +91,8 @@ def register(
             registration_data["channel_registration"]["transform"][c] = cam_transform[cam_idx]
 
     # Part 2: Round registration
+    current_process = psutil.Process()
+    subproc_before = set([p.pid for p in current_process.children(recursive=True)])
     use_rounds = list(nbp_basic.use_rounds)
     corr_loc = os.path.join(nbp_file.output_dir, "corr.zarr")
     raw_loc = os.path.join(nbp_file.output_dir, "raw.zarr")
@@ -103,9 +105,8 @@ def register(
         nbp_basic.tile_sz,
         len(nbp_basic.use_z),
     )
-    # Chunks are made into single z planes as this is how flow is gathered in OMP.
-    z_length = nbp_filter.images.chunks[5]
-    raw_smooth_chunks = (1, 1, None, None, None, z_length)
+    # Chunks are made into thin rods along the y axis as this is how flow will be gathered in OMP.
+    raw_smooth_chunks = (1, 1, None, None, min(384, nbp_basic.tile_sz), 1)
     zarr.open_array(
         store=corr_loc,
         mode="w",
@@ -158,9 +159,12 @@ def register(
             nbp.flow = zarr.open_array(smooth_loc, "r")
     del anchor_image, round_image
 
-    # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, the reusable loky executor is
-    # explicitly killed when done.
-    loky.get_reusable_executor().shutdown(wait=True)
+    # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, any remaining process after the
+    # use of joblib are explicitly killed.
+    subproc_after = set([p.pid for p in current_process.children(recursive=True)])
+    for subproc in subproc_after - subproc_before:
+        log.debug("Killing process with pid {}".format(subproc))
+        psutil.Process(subproc).terminate()
 
     # Part 3: ICP
     log.info("Running Iterative Closest Point (ICP)")
