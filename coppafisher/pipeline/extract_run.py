@@ -116,6 +116,8 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
                     new_zarray = zarr.open_array(file_path, **zarray_kwargs)
                     new_zarray[:] = im
                     del im, new_zarray
+                del channel_images
+
                 pbar.update()
     log.debug("Extraction complete")
     return nbp

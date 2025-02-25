@@ -1,4 +1,5 @@
 import csv
+import importlib.resources as importlib_resources
 import json
 import math as maths
 import os
@@ -538,6 +539,20 @@ class Robominnie:
         self.initial_bleed_matrix_filepath = os.path.join(output_dir, "bleed_matrix.npy")
         np.save(self.initial_bleed_matrix_filepath, self.bleed_matrix)
 
+        self.psf_filepath = os.path.join(output_dir, "psf.npz")
+        # Has shape ZYX.
+        self.psf = np.load(importlib_resources.files("coppafisher.setup").joinpath("default_psf.npz"))["arr_0"]
+        mid_z: int = self.psf.shape[0] // 2
+        mid_y: int = self.psf.shape[1] // 2
+        mid_x: int = self.psf.shape[2] // 2
+        if self.psf.shape[0] > self.n_planes:
+            self.psf = self.psf[mid_z - self.n_planes // 2 : mid_z + self.n_planes // 2]
+        if self.psf.shape[1] > self.tile_sz:
+            self.psf = self.psf[:, mid_y - self.tile_sz // 2 : mid_y + self.tile_sz // 2]
+        if self.psf.shape[2] > self.tile_sz:
+            self.psf = self.psf[:, :, mid_x - self.tile_sz // 2 : mid_x + self.tile_sz // 2]
+        np.savez(self.psf_filepath, self.psf)
+
         # Add an extra channel and dye for the DAPI
         self.dye_names = map("".join, zip(["dye_"] * (self.n_channels), list(np.arange(self.n_channels).astype(str))))
         self.dye_names = list(self.dye_names)
@@ -554,6 +569,7 @@ class Robominnie:
         code_book = {self.codebook_filepath}
         raw_extension = .npy
         raw_metadata = {self.metadata_filepath}
+        psf = {self.psf_filepath}
 
         [basic_info]
         is_3d = true
