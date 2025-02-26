@@ -1,14 +1,19 @@
-2025/02/DD Version 1.2 (v1.2.0):
+2025/02/26 Version 1.2 (v1.2.0):
+ * General: Sigificant decrease in file count in the produced notebook.
  * General: Notebook prune function added, explained in advanced usage.
+ * General: Unix leaked subprocesses via joblib fix attempt.
  * Viewer: Can now toggle a class type on/off by clicking on its name in the gene legend.
  * Diagnostics: New `view_tile_indexing_grid` plot for help deciding what tiles to use in the pipeline.
  * Extract: No longer a "Using pre-existing results" when there are no extract images fix.
+ * Extract: Reduced memory usage.
+ * Filter: Improved Wiener filter implementation.
  * Filter: Improved saved image chunk shapes optimisation.
  * Find spots: Image auto threshold now computed using a 50'th -> 5'th percentile by default.
  * Find spots: Sequencing images no longer have dim spots removed.
  * Register: Improved saved flow chunk shapes optimisation.
  * OMP: Compute batch size now matches the chunk sizes optimisation.
  * OMP: Filter images are locally cached when filter images are on a server optimisation.
+ * OMP: Automatically run on the CPU by default.
 
 
 2025/02/13 Version 1.1 (v1.1.0):

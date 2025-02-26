@@ -13,7 +13,8 @@ import torch
 import tqdm
 import zarr
 
-from .. import find_spots, log, utils
+from .. import log
+from ..find_spots import detect as find_spots_detect
 from ..omp import scores
 from ..omp.pixel_scores import PixelScoreSolver
 from ..setup.config_section import ConfigSection
@@ -142,7 +143,7 @@ def run_omp(
     tile_already_exists = [
         f"tile_{t}" in results
         and "colours" in results[f"tile_{t}"]
-        and utils.system.get_software_version() == results[f"tile_{t}"].attrs["software_version"]
+        and system.get_software_version() == results[f"tile_{t}"].attrs["software_version"]
         for t in nbp_basic.use_tiles
     ]
 
@@ -204,7 +205,7 @@ def run_omp(
         with tqdm.tqdm(total=n_tile_pixels, desc="Computing pixel scores", unit="pixel", postfix=postfix) as pbar:
             while index_min < n_tile_pixels:
                 if n_subset_pixels is None:
-                    index_max += maths.floor(utils.system.get_available_memory(device) * n_memory_constant)
+                    index_max += maths.floor(system.get_available_memory(device) * n_memory_constant)
                 else:
                     index_max += n_subset_pixels
                 # The batch size is placed to an exact number of register data chunks for fastest read speeds.
@@ -233,7 +234,7 @@ def run_omp(
         log.debug(f"Compute pixel scores, tile {t} complete")
 
         tile_results = results.create_group(f"tile_{t}", overwrite=True)
-        tile_results.attrs["software_version"] = utils.system.get_software_version()
+        tile_results.attrs["software_version"] = system.get_software_version()
         tile_results.attrs["minimum_intensity"] = solver_kwargs["minimum_intensity"]
         t_spots_local_yxz = tile_results.zeros(
             "local_yxz", overwrite=True, shape=(0, 3), chunks=(n_chunk_max, 3), dtype=np.int16
@@ -242,7 +243,7 @@ def run_omp(
         t_spots_gene_no = tile_results.zeros("gene_no", overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.int16)
         t_spots_score = tile_results.zeros("scores", overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.float16)
 
-        batch_size = int(2e6 * utils.system.get_available_memory(device) // n_tile_pixels)
+        batch_size = int(2e6 * system.get_available_memory(device) // n_tile_pixels)
         batch_size = max(batch_size, 1)
         log.debug(f"Gene batch size: {batch_size}")
         gene_batches = [
@@ -263,7 +264,7 @@ def run_omp(
 
             # STEP 4: Detect genes as score local maxima.
             for g_i, g in enumerate(gene_batch):
-                g_spot_local_positions, g_spot_scores = find_spots.detect.detect_spots(
+                g_spot_local_positions, g_spot_scores = find_spots_detect.detect_spots(
                     g_score_image[g_i],
                     config["score_threshold"],
                     radius_xy=config["radius_xy"],
