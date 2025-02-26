@@ -23,6 +23,7 @@ TEST_FILE_NAMES: tuple[tuple[str, int, bool]] = (
     ("omp_min_intensity", 10, False),
     ("open_viewer_0", 7, False),
     ("open_viewer_1", 7, False),
+    ("prune_notebook", 7, True),
     ("retrieve_notebook_config", 20, False),
     ("run_pipeline_0", 10, False),
 )
@@ -41,6 +42,7 @@ REPLACEMENTS = OrderedDict(
         ("page_name", "omp"),
         ("Viewer(nb)", 'Viewer(nb, gene_marker_filepath="/path/to/custom/gene_marker_file.csv")'),
         ("Viewer(nb, ", "import matplotlib\nmatplotlib.use('Agg')\nViewer(nb, show=False, "),
+        ("prune()", "prune(prompt=False)"),
     ]
 )
 
