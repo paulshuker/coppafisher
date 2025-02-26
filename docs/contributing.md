@@ -5,9 +5,9 @@ only updated when there is evidence that it can perform better and that the curr
 
 ## Installation
 
-We use a protected staging branch, like `v1.0.0`, for a future release. This must be pull requested into and must pass
-continuous integration tests. The `main` branch remains the latest stable release for users to easily install the
-software.
+We use a protected staging branch called `dev`, for a future release. This must be pull requested into and pass
+continuous integration tests. The `main` branch is pushed into from `dev` to publish a new release. `main` is always the
+latest stable release for users to easily install the software.
 
 While changing code, [install](index.md#installation) coppafisher as usual but keep the downloaded local source code
 directory. Then install dev packages

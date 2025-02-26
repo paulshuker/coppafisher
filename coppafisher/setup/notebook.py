@@ -23,7 +23,15 @@ class Notebook:
     directory: str = property(get_directory)
 
     # Attribute names allowed to be set inside the notebook page that are not in _options.
-    _valid_attribute_names = ("config_path", "_config_path", "_init_config", "_directory", "_time_created", "_version")
+    _valid_attribute_names = (
+        "config_path",
+        "_config_path",
+        "_init_config",
+        "_directory",
+        "_time_created",
+        "_version",
+        "_prune_locations",
+    )
     _debug_page = ("debug",)
 
     _config_path: Optional[str]
@@ -82,6 +90,18 @@ class Notebook:
         "debug": [
             "*debug* page for unit testing.",
         ],
+    }
+
+    _prune_locations: dict[str, tuple[str]] = {
+        "call_spots": ("gene_probabilities_initial.zarray",),
+        "register": (
+            "anchor_images.zarray",
+            "channel_images.zarray",
+            "correlation.zarray",
+            "flow_raw.zarray",
+            "round_images.zarray",
+        ),
+        "stitch": ("dapi_image.zarray",),
     }
 
     def __init__(self, notebook_dir: str, config_path: Optional[str] = None, must_exist: bool = True) -> None:
@@ -214,6 +234,37 @@ class Notebook:
             page: NotebookPage = self.__getattribute__(page_name)
             all_versions[page_name] = page.version
         return all_versions
+
+    def prune(self, prompt: bool = True) -> None:
+        """
+        Delete notebook page files from pages that are not used for the pipeline or Viewer. This saves disk space.
+        """
+        for page_name in self._prune_locations:
+            if not self.has_page(page_name):
+                raise ValueError(f"Cannot find page {page_name} to prune")
+
+        disk_space_saved: int = 0
+        if prompt:
+            user_input = input(
+                "Note: The RegistrationViewer will no longer function. "
+                + "Re-running the pipeline, data exporting, and opening the Viewer will still work. Continue? (y/n)"
+            )
+            if user_input != "y":
+                return
+        for page_name in self._prune_locations:
+            for variable_name in self._prune_locations[page_name]:
+                variable_filepath: str = os.path.join(self._directory, page_name, variable_name)
+                if not os.path.isdir(variable_filepath):
+                    raise SystemError(f"Cannot find directory called {variable_filepath} to prune")
+
+                for filename in os.listdir(variable_filepath):
+                    if filename.startswith(".za"):
+                        continue
+                    filepath = os.path.join(variable_filepath, filename)
+                    disk_space_saved += os.path.getsize(filepath)
+                    os.remove(filepath)
+
+        print(f"Saved {disk_space_saved / 1e6} MB of disk space")
 
     def __setattr__(self, name: str, value: Any, /) -> None:
         """
