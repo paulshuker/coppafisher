@@ -105,14 +105,12 @@ def register(
         nbp_basic.tile_sz,
         len(nbp_basic.use_z),
     )
-    # Chunks are made into thin rods along the y axis as this is how flow will be gathered in OMP.
-    raw_smooth_chunks = (1, 1, None, None, min(384, nbp_basic.tile_sz), 1)
     zarr.open_array(
         store=corr_loc,
         mode="w",
         shape=raw_smooth_shape[:2] + raw_smooth_shape[3:],
         dtype=np.float16,
-        chunks=(1, 1, nbp_basic.tile_sz, nbp_basic.tile_sz, 1),
+        chunks=(1, 1, nbp_basic.tile_sz, nbp_basic.tile_sz, 2),
         zarr_version=2,
     )
     zarr.open_array(
@@ -120,15 +118,17 @@ def register(
         mode="w",
         shape=raw_smooth_shape,
         dtype=np.float16,
-        chunks=raw_smooth_chunks,
+        chunks=(1, 1, None, None, None, 2),
         zarr_version=2,
     )
+    # Chunks are made into thin rods along the y axis as this is how flow will be gathered in OMP.
+    smooth_chunks = (1, 1, None, None, min(384, nbp_basic.tile_sz), 1)
     zarr.open_array(
         store=smooth_loc,
         shape=raw_smooth_shape,
         mode="w",
         dtype=np.float16,
-        chunks=raw_smooth_chunks,
+        chunks=smooth_chunks,
         zarr_version=2,
     )
     for t in tqdm(use_tiles, desc="Optical Flow on uncompleted tiles", total=len(use_tiles)):
