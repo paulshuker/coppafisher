@@ -1,4 +1,4 @@
-2025/02/26 Version 1.2 (v1.2.0):
+2025/02/28 Version 1.2 (v1.2.0):
  * General: Sigificant decrease in file count in the produced notebook.
  * General: Notebook prune function added, explained in advanced usage.
  * General: Unix leaked subprocesses via joblib fix attempt.
