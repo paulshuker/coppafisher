@@ -2,6 +2,8 @@ import os
 import shutil
 import socket
 import ssl
+import subprocess
+import sys
 import urllib
 from pathlib import PurePath
 from typing import Tuple
@@ -52,26 +54,15 @@ def get_remote_software_version() -> str:
     return version_contents[index_start + 1 : index_end]
 
 
-def get_software_hash() -> str:
-    """
-    Get a checksum hash from the coppafisher directory (i.e. all the source code).
-
-    Returns:
-        str: hash.
-    """
-    # TODO: Re-implement
-    return ""
-
-
 def get_available_memory(device: torch.device = None) -> float:
     """
     Get device's available memory at the time of calling this function.
 
     Args:
-        - device (torch device): the device. Default: the cpu.
+        device (torch device): the device. Default: the cpu.
 
     Returns:
-        float: available memory, in GB.
+        (float): available_memory. Available memory in GB.
     """
     if device is None:
         device = torch.device("cpu")
@@ -108,7 +99,7 @@ def get_core_count() -> int:
     Get the number of CPU cores available for multiprocessing tasks on the system.
 
     Returns:
-        int: number of available CPU cores.
+        (int): num_cores. The number of available CPU cores.
     """
     n_threads = psutil.cpu_count(logical=True)
     if n_threads is None:
@@ -116,7 +107,6 @@ def get_core_count() -> int:
     else:
         n_threads -= 2
     n_threads = np.clip(n_threads, 1, 999, dtype=int)
-
     return int(n_threads)
 
 
@@ -162,3 +152,42 @@ def internet_is_active() -> bool:
         FileNotFoundError,
     ):
         return False
+
+
+def is_path_on_mounted_server(path):
+    if sys.platform != "win32":
+        # Unix-like systems (Linux, macOS).
+        try:
+            # Use `df` to check the filesystem type
+            result = subprocess.run(["df", "--output=source", path], stdout=subprocess.PIPE, text=True, check=True)
+            output = result.stdout.splitlines()[1].strip()  # Get the device name
+            # Check if it's a network filesystem (e.g., nfs, cifs, smb)
+            if output.startswith(("//", "\\\\")) or any(
+                fs_type in output.lower() for fs_type in ["nfs", "cifs", "smb"]
+            ):
+                return True
+            return False
+        except subprocess.CalledProcessError:
+            return False
+    else:
+        # Windows-specific check.
+        try:
+            # Use `wmic` to check if the path is a network drive
+            result = subprocess.run(
+                ["wmic", "logicaldisk", "where", "drivetype=4", "get", "providername"],
+                stdout=subprocess.PIPE,
+                text=True,
+                check=True,
+            )
+            # Check if the path is a UNC path or matches a network drive
+            if path.startswith(("\\\\", "//")):
+                return True
+            # Check if the path is on a network drive
+            for line in result.stdout.splitlines():
+                if not line:
+                    continue
+                if path.upper().startswith(line.strip().upper()):
+                    return True
+            return False
+        except subprocess.CalledProcessError:
+            return False

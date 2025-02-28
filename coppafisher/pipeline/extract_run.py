@@ -48,7 +48,8 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
         os.mkdir(nbp_file.extract_dir)
     # Save the earliest used coppafisher version to extract inside of the extract directory.
     version_path = os.path.join(nbp_file.extract_dir, ".version")
-    if os.path.isfile(version_path):
+    extract_dir_contains_images: bool = len(os.listdir(nbp_file.extract_dir)) > 1
+    if os.path.isfile(version_path) and extract_dir_contains_images:
         with open(version_path, "r") as file:
             extract_version = file.readline()
         if extract_version != system.get_software_version():
@@ -115,6 +116,8 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
                     new_zarray = zarr.open_array(file_path, **zarray_kwargs)
                     new_zarray[:] = im
                     del im, new_zarray
+                del channel_images
+
                 pbar.update()
     log.debug("Extraction complete")
     return nbp

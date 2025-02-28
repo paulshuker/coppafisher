@@ -1,4 +1,5 @@
 import csv
+import importlib.resources as importlib_resources
 import json
 import math as maths
 import os
@@ -538,6 +539,20 @@ class Robominnie:
         self.initial_bleed_matrix_filepath = os.path.join(output_dir, "bleed_matrix.npy")
         np.save(self.initial_bleed_matrix_filepath, self.bleed_matrix)
 
+        self.psf_filepath = os.path.join(output_dir, "psf.npz")
+        # Has shape ZYX.
+        self.psf = np.load(importlib_resources.files("coppafisher.setup").joinpath("default_psf.npz"))["arr_0"]
+        mid_z: int = self.psf.shape[0] // 2
+        mid_y: int = self.psf.shape[1] // 2
+        mid_x: int = self.psf.shape[2] // 2
+        if self.psf.shape[0] > self.n_planes:
+            self.psf = self.psf[mid_z - self.n_planes // 2 : mid_z + self.n_planes // 2]
+        if self.psf.shape[1] > self.tile_sz:
+            self.psf = self.psf[:, mid_y - self.tile_sz // 2 : mid_y + self.tile_sz // 2]
+        if self.psf.shape[2] > self.tile_sz:
+            self.psf = self.psf[:, :, mid_x - self.tile_sz // 2 : mid_x + self.tile_sz // 2]
+        np.savez(self.psf_filepath, self.psf)
+
         # Add an extra channel and dye for the DAPI
         self.dye_names = map("".join, zip(["dye_"] * (self.n_channels), list(np.arange(self.n_channels).astype(str))))
         self.dye_names = list(self.dye_names)
@@ -549,23 +564,24 @@ class Robominnie:
         output_dir = {self.coppafisher_output}
         tile_dir = {self.coppafisher_tiles}
         initial_bleed_matrix = {self.initial_bleed_matrix_filepath}
-        round = {', '.join([str(i) for i in range(self.n_rounds)])}
-        anchor = {self.anchor_directory_name if self.include_anchor else ''}
+        round = {", ".join([str(i) for i in range(self.n_rounds)])}
+        anchor = {self.anchor_directory_name if self.include_anchor else ""}
         code_book = {self.codebook_filepath}
         raw_extension = .npy
         raw_metadata = {self.metadata_filepath}
+        psf = {self.psf_filepath}
 
         [basic_info]
         is_3d = true
-        bad_trc = {', '.join([f'{bad_trc[0]}, {bad_trc[1]}, {bad_trc[2]}' for bad_trc in bad_trcs])}
-        dye_names = {', '.join(self.dye_names)}
-        use_rounds = {', '.join([str(i) for i in range(self.n_rounds)])}
-        use_z = {', '.join([str(i) for i in range(self.n_planes)])}
-        use_tiles = {', '.join(str(i) for i in range(self.n_tiles))}
-        anchor_round = {self.n_rounds if self.include_anchor else ''}
-        use_channels = {', '.join([str(i) for i in np.arange((self.dapi_channel + 1), (self.n_channels + 1))])}
-        anchor_channel = {self.anchor_channel if self.include_anchor else ''}
-        dapi_channel = {self.dapi_channel if self.include_dapi else ''}
+        bad_trc = {", ".join([f"{bad_trc[0]}, {bad_trc[1]}, {bad_trc[2]}" for bad_trc in bad_trcs])}
+        dye_names = {", ".join(self.dye_names)}
+        use_rounds = {", ".join([str(i) for i in range(self.n_rounds)])}
+        use_z = {", ".join([str(i) for i in range(self.n_planes)])}
+        use_tiles = {", ".join(str(i) for i in range(self.n_tiles))}
+        anchor_round = {self.n_rounds if self.include_anchor else ""}
+        use_channels = {", ".join([str(i) for i in np.arange((self.dapi_channel + 1), (self.n_channels + 1))])}
+        anchor_channel = {self.anchor_channel if self.include_anchor else ""}
+        dapi_channel = {self.dapi_channel if self.include_dapi else ""}
 
         [extract]
         num_rotations = 0
@@ -575,6 +591,8 @@ class Robominnie:
 
         [find_spots]
         auto_thresh_multiplier = 4
+        auto_thresh_percentile = 50
+        auto_thresh_clip = true
         n_spots_warn_fraction = 0
         n_spots_error_fraction = 1
 
@@ -666,8 +684,8 @@ class Robominnie:
 
         end_time = time.time()
         print(
-            f"Coppafisher pipeline run: {round((end_time - start_time)/60, 1)}mins\n"
-            + f"{round((end_time - start_time)//(n_planes * n_tiles), 1)}s per z plane per tile."
+            f"Coppafisher pipeline run: {round((end_time - start_time) / 60, 1)}mins\n"
+            + f"{round((end_time - start_time) // (n_planes * n_tiles), 1)}s per z plane per tile."
         )
 
         assert nb.has_page("omp"), f"OMP not found in notebook at {config_filepath}"

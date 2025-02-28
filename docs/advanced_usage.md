@@ -84,6 +84,15 @@ For example, to remove the stitch page
 Any page's added after stitch are warned about. It is recommended to delete these pages as well by typing `y` then
 pressing enter.
 
+## Prune the notebook
+
+You can safely remove a significant amount of disk space from the notebook. The only loss is the
+[RegistrationViewer](diagnostics.md#registrationviewer) will no longer function. To do this
+
+```py
+--8<-- "prune_notebook.py"
+```
+
 ## Disable GPU
 
 You can force coppafisher to run on the CPU only by adding to the config file

@@ -48,7 +48,7 @@ setup(
         "scipy",
         "torch>=2",
         "tqdm",
-        "zarr",
+        "zarr<3",
     ],
     package_data={
         "coppafisher.setup": [

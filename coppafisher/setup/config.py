@@ -183,12 +183,14 @@ class Config:
             "z_plane_mean_warning": ("number", "not-negative"),
         },
         "filter": {
-            "force_cpu": ("bool", ""),
+            "num_cores": ("maybe_int", "positive"),
             "wiener_constant": ("number", "not-negative"),
             "wiener_pad_shape": ("tuple_int", "tuple-not-empty"),
         },
         "find_spots": {
             "auto_thresh_multiplier": ("number", "not-negative"),
+            "auto_thresh_percentile": ("number", "not-negative_lteq100"),
+            "auto_thresh_clip": ("bool", ""),
             "radius_xy": ("int", "not-negative"),
             "radius_z": ("int", "not-negative"),
             "max_spots_percent": ("number", "not-negative"),
