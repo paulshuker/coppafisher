@@ -5,16 +5,17 @@
  * Viewer: Can now toggle a class type on/off by clicking on its name in the gene legend.
  * Diagnostics: New `view_tile_indexing_grid` plot for help deciding what tiles to use in the pipeline.
  * Export: Custom images are now exported as uint16.
- * Extract: No longer a "Using pre-existing results" when there are no extract images fix.
+ * Extract: No longer a "Using pre-existing results" message when there are no extract images fix.
  * Extract: Reduced memory usage.
  * Filter: Improved Wiener filter implementation.
+ * Filter: Reduced image "smearing" effect on the tile edges.
  * Filter: Improved saved image chunk shapes optimisation.
  * Find spots: Image auto threshold now computed using a 50'th -> 5'th percentile by default.
- * Find spots: Sequencing images no longer have dim spots removed.
+ * Find spots: Sequencing images no longer have dim spots removed, leading to better registration in dim areas.
  * Register: Improved saved flow chunk shapes optimisation.
  * OMP: Compute batch size now matches the chunk sizes optimisation.
- * OMP: Filter images are locally cached when filter images are on a server optimisation.
- * OMP: Automatically run on the CPU by default.
+ * OMP: Filter images are locally cached when they are located remotely optimisation.
+ * OMP: Now computes on the CPU by default.
 
 
 2025/02/21 Version 1.1 Patch (v1.1.1):
