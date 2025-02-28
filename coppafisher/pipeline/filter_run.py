@@ -52,8 +52,7 @@ def run_filter(
 
     max_ind = np.array(indices).max(0).tolist()
     shape = (max_ind[0] + 1, max_ind[1] + 1, max_ind[2] + 1, nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z))
-    # Chunks are single z planes.
-    chunks = (1, 1, 1, None, None, 1)
+    chunks = (1, 1, 1, min(576, nbp_basic.tile_sz), min(576, nbp_basic.tile_sz), 5)
     images = zarr.open_array(
         os.path.join(nbp_file.output_dir, "filter_images.zarr"),
         "a",

@@ -122,7 +122,7 @@ def register(
         zarr_version=2,
     )
     # Chunks are made into thin rods along the y axis as this is how flow will be gathered in OMP.
-    smooth_chunks = (1, 1, None, None, min(384, nbp_basic.tile_sz), 1)
+    smooth_chunks = (1, 1, None, None, min(288, nbp_basic.tile_sz), 1)
     zarr.open_array(
         store=smooth_loc,
         shape=raw_smooth_shape,
