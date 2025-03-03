@@ -88,7 +88,7 @@ def run_omp(
     n_subset_pixels = config["subset_pixels"]
     n_register_chunk_size: int = np.prod(nbp_register.flow.chunks).item() // 3
     # The number of chunks from the register data to use at once when running through computing pixel scores.
-    n_chunk_count: int = max(system.get_available_memory() // 60, 1)
+    n_chunk_count = max(int(system.get_available_memory() // 60), 1)
     yxz_all = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
     yxz_all = np.array(np.meshgrid(*yxz_all, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
     bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
