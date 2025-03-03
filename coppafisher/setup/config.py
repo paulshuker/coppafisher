@@ -184,6 +184,7 @@ class Config:
         },
         "filter": {
             "num_cores": ("maybe_int", "positive"),
+            "max_cores": ("maybe_int", "positive"),
             "wiener_constant": ("number", "not-negative"),
             "wiener_pad_shape": ("tuple_int", "tuple-not-empty"),
         },
