@@ -15,6 +15,8 @@ from ..setup.notebook_page import NotebookPage
 from ..utils import intensity as utils_intensity
 from ..utils import system
 
+MAX_BUFFER_SIZE_BYTES = 2147483647
+
 
 def call_reference_spots(
     config: ConfigSection, nbp_ref_spots: NotebookPage, nbp_file: NotebookPage, nbp_basic: NotebookPage
@@ -99,9 +101,15 @@ def call_reference_spots(
 
     # 3. Use spots with score above threshold to work out global dye codes
     prob_mode_initial, prob_score_initial = np.argmax(gene_prob_initial, axis=1), np.max(gene_prob_initial, axis=1)
-    kwargs = dict(chunks=False, zarr_version=2, overwrite=True)
+    pixel_chunk_size: int = gene_prob_initial.shape[0]
+    while pixel_chunk_size * 4 > MAX_BUFFER_SIZE_BYTES:
+        pixel_chunk_size = maths.ceil(pixel_chunk_size / 2)
+    kwargs = dict(zarr_version=2, overwrite=True)
     gene_prob_initial = zarr.array(
-        gene_prob_initial, store=os.path.join(nbp_file.output_dir, "gene_prob_init.zarray"), **kwargs
+        gene_prob_initial,
+        store=os.path.join(nbp_file.output_dir, "gene_prob_init.zarray"),
+        chunks=(pixel_chunk_size, 1),
+        **kwargs,
     )
     prob_threshold = min(config["gene_prob_threshold"], np.percentile(prob_score_initial, 90))
     good = prob_score_initial > prob_threshold
@@ -173,7 +181,9 @@ def call_reference_spots(
     spot_colours *= tile_scale[spot_tile, :, :]  # update the spot colours
     gene_prob = gene_prob_score(spot_colours=spot_colours, bled_codes=bled_codes, kappa=config["kappa"])  # update probs
     prob_mode, prob_score = np.argmax(gene_prob, axis=1), np.max(gene_prob, axis=1)
-    gene_prob = zarr.array(gene_prob, store=os.path.join(nbp_file.output_dir, "gene_prob.zarray"), **kwargs)
+    gene_prob = zarr.array(
+        gene_prob, store=os.path.join(nbp_file.output_dir, "gene_prob.zarray"), chunks=(pixel_chunk_size, 1), **kwargs
+    )
     # Computing all dot product scores at once can take too much memory.
     gene_dot_products = np.zeros((n_spots, n_genes), np.float16)
     n_max_score_pixels = 8.7e-2 * system.get_available_memory() * 1e9 / (n_genes * n_rounds * n_channels_use)
@@ -189,8 +199,12 @@ def call_reference_spots(
         gene_dot_products[index_min:index_max] = batch_scores
         del batch_scores
     dp_gene, dp_score = np.argmax(gene_dot_products, axis=1).astype(np.int16), np.max(gene_dot_products, axis=1)
-    dp_gene = zarr.array(dp_gene, store=os.path.join(nbp_file.output_dir, "dp_mode.zarray"), **kwargs)
-    dp_score = zarr.array(dp_score, store=os.path.join(nbp_file.output_dir, "dp_score.zarray"), **kwargs)
+    dp_gene = zarr.array(
+        dp_gene, store=os.path.join(nbp_file.output_dir, "dp_mode.zarray"), chunks=pixel_chunk_size, **kwargs
+    )
+    dp_score = zarr.array(
+        dp_score, store=os.path.join(nbp_file.output_dir, "dp_score.zarray"), chunks=pixel_chunk_size, **kwargs
+    )
     # Update bleed matrix.
     good = prob_score > prob_threshold
     bleed_matrix = compute_bleed_matrix(spot_colours[good], prob_mode[good], gene_codes, n_dyes)
@@ -200,7 +214,9 @@ def call_reference_spots(
     intensity = intensity.numpy()
 
     # 8. Save the results.
-    nbp.intensity = zarr.array(intensity, store=os.path.join(nbp_file.output_dir, "intensity.zarray"), **kwargs)
+    nbp.intensity = zarr.array(
+        intensity, store=os.path.join(nbp_file.output_dir, "intensity.zarray"), chunks=pixel_chunk_size, **kwargs
+    )
     nbp.dot_product_gene_no, nbp.dot_product_gene_score = dp_gene, dp_score
     nbp.gene_probabilities_initial = gene_prob_initial
     nbp.gene_probabilities = gene_prob
