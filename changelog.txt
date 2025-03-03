@@ -1,3 +1,9 @@
+2025/03/03 Version 1.2 Patch (v1.2.1):
+ * Filter: New `max_cores = 4` config setting to limit core usage.
+ * Call spots: Zarr chunk size can be too large fix.
+ * OMP: Indexing max sometimes float type, causing a crash fix.
+
+
 2025/02/28 Version 1.2 (v1.2.0):
  * General: Sigificant decrease in file count in the produced notebook.
  * General: Notebook prune function added, explained in advanced usage.
