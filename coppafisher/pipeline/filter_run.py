@@ -91,6 +91,7 @@ def run_filter(
     batch_size: int | None = config["num_cores"]
     if batch_size is None:
         batch_size = max(1, maths.floor(system.get_available_memory() / 27))
+    batch_size = min(batch_size, config["max_cores"])
     batch_count: int = maths.ceil(len(indices) / batch_size)
 
     current_process = psutil.Process()
