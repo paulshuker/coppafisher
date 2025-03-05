@@ -1,4 +1,5 @@
-2025/03/DD Version 1.2 Patch (v1.2.2):
+2025/03/DD Version 1.2 Patch (v1.3.0):
+ * General: Julia optional code support for optimisation in find spots.
 
 
 2025/03/03 Version 1.2 Patch (v1.2.1):
