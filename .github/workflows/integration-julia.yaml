@@ -1,0 +1,33 @@
+name: CI
+
+# Trigger on commits.
+on:
+  push:
+
+jobs:
+  run-tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    name: Julia Tests
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Julia
+        uses: julia-actions/setup-julia@v2
+
+      - name: Install dependencies
+        run: |
+          cd coppafisher
+          julia julia_dependency_install.jl
+          cd ..
+
+      - name: Run unit tests
+        run: |
+          cd coppafisher
+          julia run_tests.jl
+          cd ..

@@ -93,19 +93,17 @@ You can safely remove a significant amount of disk space from the notebook. The 
 --8<-- "prune_notebook.py"
 ```
 
-## Disable GPU
+## Enable GPU
 
-You can force coppafisher to run on the CPU only by adding to the config file
+You can allow coppafisher to run on a detected Nvidia GPU by adding to the config file
 
 ```ini
-[filter]
-force_cpu = true
-
 [omp]
-force_cpu = true
+force_cpu = false
 ```
 
-Filter and OMP are the only stages that leverage the GPU.
+However, OMP is currently slower on the GPU compared to the CPU (see the open
+[issue](https://github.com/paulshuker/coppafisher/issues/255)).
 
 ## Email notification
 

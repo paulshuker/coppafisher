@@ -108,6 +108,25 @@ cd ..
 rm -rf coppafisher
 ```
 
+??? info "Optional: Julia code optimisation"
+
+    You can install Julia version 1 for slightly improved runtimes on large datasets.
+
+    First, [install Julia](https://julialang.org/downloads/#install_julia) then open a new terminal. Now check that
+    julia is installed by running the command
+
+    ```terminal
+    julia --version
+    ```
+
+    Second, install all julia package dependencies
+
+    ```terminal
+    cd coppafisher
+    julia julia_dependency_install.jl
+    cd ..
+    ```
+
 ## Updating
 
 Coppafisher will not automatically install updates. But, you will see a warning at the start of a pipeline if a new

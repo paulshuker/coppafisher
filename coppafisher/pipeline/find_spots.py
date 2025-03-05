@@ -5,10 +5,10 @@ import tqdm
 import zarr
 
 from .. import log
-from ..find_spots import detect
+from ..find_spots import detect, detect_julia
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
-from ..utils import indexing
+from ..utils import indexing, julia
 
 
 def find_spots(
@@ -53,6 +53,11 @@ def find_spots(
         (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.n_extra_rounds, nbp_basic.n_channels), dtype=np.int32
     )
 
+    detect_spots_func = detect.detect_spots
+    if julia.check_julia_is_available() and (nbp_basic.tile_sz**2 * len(nbp_basic.use_z)) > 500_000:
+        log.info("Using Julia code for detecting spots")
+        detect_spots_func = detect_julia.detect_spots
+
     # Define use_indices as a [n_tiles x n_rounds x n_channels] boolean array where use_indices[t, r, c] is True if
     # we want to find spots on said tile `t`, round `r`, channel `c`.
     use_indices = np.zeros(
@@ -82,9 +87,9 @@ def find_spots(
         if np.isclose(auto_thresh[t, r, c], 0):
             raise ValueError(f"Find spots auto threshold is zero. Percentile {auto_thresh_percentile} might be too low")
 
-        local_yxz, spot_intensity = detect.detect_spots(
+        local_yxz, spot_intensity = detect_spots_func(
             image_trc,
-            auto_thresh[t, r, c].item(),
+            intensity_thresh=auto_thresh[t, r, c].item(),
             remove_duplicates=True,
             radius_xy=config["radius_xy"],
             radius_z=config["radius_z"],
