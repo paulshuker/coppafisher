@@ -10,7 +10,7 @@ def check_julia_is_available() -> bool:
         result = subprocess.run(["julia", "--version"], capture_output=True, text=True, check=True)
 
         return "julia version 1" in result.stdout.strip().lower()
-    except subprocess.CalledProcessError:
+    except (FileNotFoundError, subprocess.CalledProcessError):
         return False
 
 
