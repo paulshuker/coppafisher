@@ -123,7 +123,7 @@ rm -rf coppafisher
 
     ```terminal
     cd coppafisher
-    julia julia_dependency_install.jl
+    julia --optimize julia_dependency_install.jl
     cd ..
     ```
 
