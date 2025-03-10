@@ -53,8 +53,8 @@ def detect_spots(
             if completed_indices[i]:
                 continue
             intensity_argsorted = [i_pairs[j] for j in np.argsort(maxima_intensities[i_pairs])]
+            keep_maxima[intensity_argsorted] = False
             keep_maxima[intensity_argsorted[-1]] = True
-            keep_maxima[intensity_argsorted[:-1]] = False
             completed_indices[intensity_argsorted[:-1]] = True
         del completed_indices
 

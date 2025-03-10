@@ -80,3 +80,19 @@ def test_detect_spots() -> None:
     assert (maxima_yxz[1] == [0, 3, 4]).all()
     assert maxima_intensity[0] == 1
     assert maxima_intensity[1] == 5
+
+    image_shape = 11, 12, 13
+    rng = np.random.RandomState(0)
+    image = rng.rand(*image_shape).astype(np.float32)
+    intensity_thresh = 0.6
+    radius_xy = 0.34
+    radius_z = 0.2
+    maxima_yxz, maxima_intensity = detect.detect_spots(image, intensity_thresh, True, radius_xy, radius_z)
+
+    n_spots_expected = (image > intensity_thresh).sum()
+    assert maxima_yxz.shape == (n_spots_expected, 3)
+    assert maxima_intensity.shape == (n_spots_expected,)
+    for yxz in np.array(np.where(image > intensity_thresh)).T:
+        assert (maxima_yxz == yxz).all(1).any(0)
+        index = (maxima_yxz == yxz).all(1).nonzero()[0][0]
+        assert np.isclose(maxima_intensity[index], image[yxz[0], yxz[1], yxz[2]])
