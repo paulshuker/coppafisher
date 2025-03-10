@@ -1,4 +1,5 @@
 2025/03/DD Version 1.2 Patch (v1.2.2):
+ * Find spots: Spot detection is now faster.
 
 
 2025/03/03 Version 1.2 Patch (v1.2.1):
