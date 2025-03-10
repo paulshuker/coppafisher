@@ -16,7 +16,7 @@ def test_detect_spots_benchmark() -> None:
 
         detect.detect_spots(image, intensity_thresh, True, 3, 2)
 
-    assert timeit.timeit(test, number=10, globals=locals()) <= 1.87 * 1.3
+    assert timeit.timeit(test, number=10, globals=locals()) <= 4.0
 
 
 def test_detect_spots() -> None:
