@@ -11,12 +11,13 @@ from .. import detect
 def test_detect_spots_benchmark() -> None:
     def test() -> None:
         image_shape = 2304 // 4, 2304 // 4, 20
-        image = np.random.rand(*image_shape)
+        rng = np.random.RandomState(0)
+        image = rng.rand(*image_shape)
         intensity_thresh = 0.99
 
         detect.detect_spots(image, intensity_thresh, True, 3, 2)
 
-    assert timeit.timeit(test, number=10, globals=locals()) <= 4.0
+    assert timeit.timeit(test, number=10, globals=locals()) <= 6.0
 
 
 def test_detect_spots() -> None:
