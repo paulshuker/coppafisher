@@ -81,6 +81,12 @@ Run unit tests requiring a notebook (~12s)
 pytest -m notebook
 ```
 
+Run benchmarks (~6s)
+
+```terminal
+pytest -m benchmark
+```
+
 View code coverage by appending `--cov=coppafisher --cov-report term` to each command.
 
 ## Run Documentation Locally

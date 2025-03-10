@@ -48,13 +48,16 @@ def detect_spots(
         # Gives a list for each maxima that contains a list of indices that are nearby neighbours, including itself.
         pairs = kdtree.query_ball_tree(kdtree, r=radius_xy)
         keep_maxima = np.array([len(pair) == 1 for pair in pairs], bool)
+        completed_indices = keep_maxima.copy()
         for i, i_pairs in enumerate(pairs):
-            if keep_maxima[i_pairs].any():
-                # A near neighbour has already been kept.
+            if completed_indices[i]:
                 continue
-            if (maxima_intensities[i] >= maxima_intensities[i_pairs]).all():
-                keep_maxima[i_pairs] = False
-                keep_maxima[i] = True
+            intensity_argsorted = [i_pairs[i] for i in np.argsort(maxima_intensities[i_pairs])]
+            keep_maxima[intensity_argsorted[-1]] = True
+            keep_maxima[intensity_argsorted[:-1]] = False
+            completed_indices[intensity_argsorted[:-1]] = True
+        del completed_indices
+
         maxima_locations = maxima_locations[keep_maxima]
         maxima_intensities = maxima_intensities[keep_maxima]
 

@@ -47,3 +47,6 @@ jobs:
 
       - name: Run notebook-dependent tests
         run: pytest -m "notebook" --cov=coppafisher --cov-report term
+
+      - name: Run benchmark tests
+        run: pytest -m "benchmark" --cov=coppafisher --cov-report term
