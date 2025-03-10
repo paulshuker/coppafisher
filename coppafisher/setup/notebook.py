@@ -7,6 +7,7 @@ from typing import Any, Optional, Tuple
 import numpy as np
 
 from .. import log
+from ..compatibility import CompatibilityTracker
 from ..utils import system as utils_system
 from .config import Config
 from .notebook_page import NotebookPage
@@ -186,12 +187,12 @@ class Notebook:
         assert type(page_name) is str
         if not self.has_page(page_name):
             raise ValueError(f"Page name {page_name} not found")
-        earlier_pages = self._get_page_names_after_page(page_name)
-        if prompt and len(earlier_pages) > 0:
-            print(f"The notebook contains pages {', '.join(earlier_pages)} that were added after page {page_name}.")
+        page_names_after = self._get_page_names_after_page(page_name)
+        if prompt and len(page_names_after) > 0:
+            print(f"The notebook contains pages {', '.join(page_names_after)} that were added after page {page_name}.")
             result = input("Do you want to delete these pages too (recommended)? (y/n): ")
             if result == "y":
-                for earlier_page_name in earlier_pages:
+                for earlier_page_name in page_names_after:
                     self.delete_page(earlier_page_name, prompt=False)
         page_name_directory = self._get_page_directory(page_name)
         shutil.rmtree(page_name_directory)
@@ -408,15 +409,26 @@ class Notebook:
 
     def _get_page_names_after_page(self, page_name: str) -> tuple[str, ...]:
         """
-        Get all the pages added to the notebook before the given notebook page.
+        Get all the existing pages that are run on a pipeline stage after the given page name.
+
+        Args:
+            page_name (str): the page name to consider.
+
+        Returns:
+            (tuple of str): page_names_after. A sequence of page names that run after the given page name in the
+                pipeline's chronological order.
         """
         assert self.has_page(page_name)
 
-        result = []
+        tracker = CompatibilityTracker()
+        all_page_names_after = tracker.get_page_names_added_after(page_name)
+        page_names_after = []
+
         page: NotebookPage = self.__getattribute__(page_name)
         for other_page in self._get_added_pages():
             if other_page == page:
                 continue
-            if other_page.time_created > page.time_created:
-                result.append(other_page.name)
-        return tuple(result)
+            if other_page.name not in all_page_names_after:
+                continue
+            page_names_after.append(other_page.name)
+        return tuple(page_names_after)
