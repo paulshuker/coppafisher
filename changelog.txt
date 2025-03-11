@@ -1,4 +1,5 @@
 2025/03/DD Version 1.2 Patch (v1.2.2):
+ * General: Jinja2 secuity update.
  * General: The notebook always warns about chronological page deletion fix.
 
 
