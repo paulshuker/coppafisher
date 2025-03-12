@@ -50,7 +50,11 @@ def convert_coords_to_torch_grid(yxz_coords: torch.Tensor, image_shape: tuple[in
 
 
 def apply_flow_new(
-    yxz: np.ndarray | torch.Tensor, flow: zarr.Array | np.ndarray, tile: int, r: int
+    yxz: np.ndarray | torch.Tensor,
+    flow: zarr.Array | np.ndarray,
+    tile: int,
+    r: int,
+    flow_multiplier: float = 1.0,
 ) -> np.ndarray | torch.Tensor:
     """
     Apply the pixel shifts from flow to each yxz positions given. If the yxz positions are not exact integers within
@@ -64,6 +68,8 @@ def apply_flow_new(
             image. I.e. 0, 0, 0 in yxz must be shifted by the flow at 0, 0, 0.
         tile (int): tile index to gather flow for.
         r (int): round index to gather flow for.
+        flow_multiplier (float, optional): The flow shifts are all multiplied by this factor before applying the shifts.
+            Default: 1.
 
     Returns:
         (`(n_points x 3) ndarray[float32] or tensor[float32]`): yxz_flow. yxz coordinates optical flow shifted. Returns
@@ -73,6 +79,7 @@ def apply_flow_new(
     assert type(flow) is zarr.Array or type(flow) is np.ndarray
     assert type(tile) is int
     assert type(r) is int
+    assert type(flow_multiplier) is float
     assert flow.shape[0] > 0
     assert flow.shape[1] > 0
     assert flow.shape[2] == 3
@@ -106,6 +113,7 @@ def apply_flow_new(
     yxz_grid = yxz_grid[None, None, None].repeat_interleave(3, dim=0)
     flow_shifts = torch.nn.functional.grid_sample(flow_torch, yxz_grid, align_corners=True, padding_mode="border")
     flow_shifts = flow_shifts[:, 0, 0, 0]
+    flow_shifts *= flow_multiplier
     yxz_torch += flow_shifts.T + torch.tensor(yxz_min)[None]
 
     if type(yxz) is np.ndarray:
