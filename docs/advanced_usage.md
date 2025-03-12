@@ -93,20 +93,6 @@ You can safely remove a significant amount of disk space from the notebook. The 
 --8<-- "prune_notebook.py"
 ```
 
-## Disable GPU
-
-You can force coppafisher to run on the CPU only by adding to the config file
-
-```ini
-[filter]
-force_cpu = true
-
-[omp]
-force_cpu = true
-```
-
-Filter and OMP are the only stages that leverage the GPU.
-
 ## Email notification
 
 To be emailed when the pipeline crashes or finishes, under section `[notifications]` in the config, add the variable

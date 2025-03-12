@@ -116,10 +116,10 @@ online version is available.
 To update version, delete the old conda environment by
 
 ```term
-conda env remove -n coppa
+conda env remove -yn coppa
 ```
 
-Then follow all [installation](#installation) instructions again.
+Now follow all [installation](#installation) instructions again.
 
 Keep all output data (including the notebook) when updating coppafisher versions. If data saved to disk is now
 deprecated, coppafisher will automatically suggest a course of action when it is [run](basic_usage.md#running) again.
