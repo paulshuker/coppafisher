@@ -59,6 +59,7 @@ def test_apply_flow_new() -> None:
     assert type(yxz_flow) is torch.Tensor
     assert yxz_flow.shape == (2, 3)
     assert torch.allclose(yxz_flow, yxz_expected)
+    assert torch.allclose(spot_colours_base.apply_flow_new(yxz, -flow, tile, round, flow_multiplier=-1.0), yxz_expected)
 
 
 def test_get_spot_colours_new_safe() -> None:

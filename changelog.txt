@@ -1,6 +1,10 @@
 2025/03/DD Version 1.2 Patch (v1.2.2):
  * General: Jinja2 secuity update.
  * General: The notebook always warns about chronological page deletion fix.
+ * Register: Anchor point cloud wrongly optical flow shifted by the final sequencing round during channel-by-channel ICP
+    corrections fix.
+ * Register: Optical flow is not inverse applied to sequencing point cloud during channel-by-channel ICP corrections
+    fix.
 
 
 2025/03/03 Version 1.2 Patch (v1.2.1):
