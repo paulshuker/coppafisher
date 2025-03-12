@@ -25,6 +25,9 @@ jobs:
           python -m pip install -r requirements.txt
           python -m pip install -r requirements-torch.txt
 
+      - name: Install coppafisher
+        run: python -m pip install .
+
       - name: Assert version bump
         run: |
           python -Ic "from coppafisher.utils import system; online_version = system.get_remote_software_version(); assert online_version is not None; assert online_version != system.get_software_version()"
