@@ -40,6 +40,7 @@ class CompatibilityTracker:
             ("1.1.1", "none"),
             ("1.2.0", "filter"),
             ("1.2.1", "none"),
+            ("1.2.2", "register"),
         )
     )
     _stage_instructions: list[tuple[str, ...]]
@@ -190,6 +191,29 @@ class CompatibilityTracker:
 
         return message
 
+    def get_page_names_added_after(self, page_name: str) -> tuple[str, ...]:
+        """
+        Get every page name added after the given page name during the usual pipeline chronological order.
+
+        If the given page name's stage has two or more page names added during it, these other page names are also
+        returned.
+
+        Args:
+            page_name (str): the page name.
+
+        Returns:
+            (tuple of str): page_names_after.
+        """
+        _, stage_index = self._get_stage_with_page_name(page_name)
+        page_names_after = []
+        for page_names_str in list(self._stages.values())[stage_index:-1]:
+            for page_name_after in self._parse_page_names(page_names_str):
+                if page_name_after == page_name:
+                    continue
+                page_names_after.append(page_name_after)
+
+        return tuple(page_names_after)
+
     def has_version(self, version: str) -> bool:
         """
         Check if a version exists in the tracker's records.
@@ -251,5 +275,8 @@ class CompatibilityTracker:
 
     def _get_stage_with_page_name(self, page_name: str) -> tuple[str, int]:
         for i, (stage_name, page_names) in enumerate(self._stages.items()):
-            if page_name in page_names.split(" and "):
+            if page_name in self._parse_page_names(page_names):
                 return stage_name, i
+
+    def _parse_page_names(self, page_name_str: str) -> list[str]:
+        return page_name_str.split(" and ")

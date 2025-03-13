@@ -32,12 +32,12 @@ def get_software_version() -> str:
     return version_tag
 
 
-def get_remote_software_version() -> str:
+def get_remote_software_version() -> str | None:
     """
     Get coppafisher's latest version in `_version.py` found online at the default branch.
 
     Returns:
-        str: version tag. None if the version could not be retrieved.
+        (str or none): version_tag. None if the version could not be retrieved.
     """
     consts = SystemConstants()
     fallback = None
