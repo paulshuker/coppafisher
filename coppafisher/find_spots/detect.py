@@ -1,7 +1,7 @@
 from typing import Optional, Union
 
 import numpy as np
-import scipy
+import skimage
 import torch
 
 
@@ -35,30 +35,66 @@ def detect_spots(
     assert type(remove_duplicates) is bool
     assert image.ndim == 3
     if remove_duplicates:
+        max_radius = max(radius_xy, radius_z)
         assert radius_xy > 0
         assert radius_z > 0
+        assert (max_radius / radius_xy) % 1 == 0
+        assert (max_radius / radius_z) % 1 == 0
 
-    # (n_spots x 3) coordinate positions of the image local maxima.
-    maxima_locations = np.array(np.array(image > intensity_thresh).nonzero()).T.astype(np.int16)
-    maxima_intensities = np.array(image[tuple(maxima_locations.T)])
+    image_numpy = image
+    if type(image_numpy) is torch.Tensor:
+        image_numpy = image_numpy.numpy()
+
     if remove_duplicates:
-        maxima_locations_norm = maxima_locations.astype(np.float32)
-        maxima_locations_norm[:, 2] *= radius_xy / radius_z
-        kdtree = scipy.spatial.KDTree(maxima_locations_norm)
-        # Gives a list for each maxima that contains a list of indices that are nearby neighbours, including itself.
-        pairs = kdtree.query_ball_tree(kdtree, r=radius_xy)
-        keep_maxima = np.array([len(pair) == 1 for pair in pairs], bool)
-        completed_indices = keep_maxima.copy()
-        for i, i_pairs in enumerate(pairs):
-            if completed_indices[i]:
+        # Create an ellipse shape for maxima finding.
+        circular_footprint = np.zeros((max_radius * 2 + 1, max_radius * 2 + 1, max_radius * 2 + 1), bool)
+        middle_pixel = [max_radius, max_radius, max_radius]
+        pixel_multipliers = np.array([max_radius / radius_xy, max_radius / radius_xy, max_radius / radius_z], int)
+        for yxz in np.array((~circular_footprint).nonzero()).T:
+            distance_from_centre: np.ndarray = yxz - middle_pixel
+            distance_from_centre = np.linalg.norm(distance_from_centre.astype(np.float64))
+            if distance_from_centre > radius_xy:
                 continue
-            intensity_argsorted = [i_pairs[j] for j in np.argsort(maxima_intensities[i_pairs])]
-            keep_maxima[intensity_argsorted] = False
-            keep_maxima[intensity_argsorted[-1]] = True
-            completed_indices[intensity_argsorted[:-1]] = True
-        del completed_indices
+            circular_footprint[tuple(yxz)] = 1
 
-        maxima_locations = maxima_locations[keep_maxima]
-        maxima_intensities = maxima_intensities[keep_maxima]
+        # TODO: Get an elliptical footprint to work so the image does not need to be rescaled which is insanely slow.
+        image_rescaled = skimage.transform.resize(image_numpy, pixel_multipliers * image_numpy.shape, order=1)
+        maxima_locations = skimage.feature.peak_local_max(
+            image_rescaled,
+            min_distance=max_radius + 1,
+            threshold_abs=intensity_thresh,
+            footprint=circular_footprint,
+            exclude_border=False,
+        )
+        del image_rescaled
+
+        maxima_locations = maxima_locations.astype(np.float32)
+        maxima_locations /= pixel_multipliers[np.newaxis]
+        maxima_locations = np.floor(maxima_locations)
+        maxima_locations = maxima_locations.astype(np.int16)
+        maxima_intensities = image_numpy[tuple(maxima_locations.T)]
+
+        # maxima_locations_norm = maxima_locations.astype(np.float32)
+        # maxima_locations_norm[:, 2] *= radius_xy / radius_z
+        # kdtree = scipy.spatial.KDTree(maxima_locations_norm)
+        # # Gives a list for each maxima that contains a list of indices that are nearby neighbours, including itself.
+        # pairs = kdtree.query_ball_tree(kdtree, r=radius_xy)
+        # keep_maxima = np.array([len(pair) == 1 for pair in pairs], bool)
+        # completed_indices = keep_maxima.copy()
+        # for i, i_pairs in enumerate(pairs):
+        #     if completed_indices[i]:
+        #         continue
+        #     intensity_argsorted = [i_pairs[j] for j in np.argsort(maxima_intensities[i_pairs])]
+        #     keep_maxima[intensity_argsorted] = False
+        #     keep_maxima[intensity_argsorted[-1]] = True
+        #     completed_indices[intensity_argsorted[:-1]] = True
+        # del completed_indices
+        #
+        # maxima_locations = maxima_locations[keep_maxima]
+        # maxima_intensities = maxima_intensities[keep_maxima]
+    elif not remove_duplicates:
+        # (n_spots x 3) coordinate positions of the image local maxima.
+        maxima_locations = np.array(np.array(image > intensity_thresh).nonzero()).T.astype(np.int16)
+        maxima_intensities = np.array(image[tuple(maxima_locations.T)])
 
     return maxima_locations, maxima_intensities
