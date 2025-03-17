@@ -20,6 +20,7 @@ import tabulate
 import tifffile
 import torch
 from matplotlib.figure import Figure
+from matplotlib.path import Path
 from napari.layers import Points
 from napari.utils.events import Selection
 from PyQt5.QtCore import QLoggingCategory
@@ -34,7 +35,7 @@ from ..call_spots import bleed_matrix, spot_colours
 from ..omp.colours import ViewOMPColourSum
 from ..omp.pixel_scores import ViewOMPPixelScoreImage
 from ..omp.scores import ViewOMPGeneScores
-from . import background, distribution, legend
+from . import background, distribution, exporter, legend
 from .hotkeys import Hotkey
 from .subplot import Subplot
 
@@ -59,6 +60,7 @@ class Viewer:
     _max_open_subplots: int = 7
 
     # Attributes:
+    nb_directory: str
     nbp_basic: NotebookPage
     nbp_filter: NotebookPage
     nbp_register: NotebookPage
@@ -192,6 +194,7 @@ class Viewer:
         if nb is not None:
             if not all([nb.has_page(name) for name in self._required_page_names]):
                 raise ValueError(f"The notebook requires pages {', '.join(self._required_page_names)}")
+            self.nb_directory = path.dirname(nb.directory)
             self.nbp_basic = nb.basic_info
             self.nbp_filter = nb.filter
             self.nbp_register = nb.register
@@ -202,6 +205,7 @@ class Viewer:
             if nb.has_page("omp"):
                 self.nbp_omp = nb.omp
         else:
+            self.nb_directory = path.expanduser("~")
             self.nbp_basic = nbp_basic
             self.nbp_filter = nbp_filter
             self.nbp_register = nbp_register
@@ -327,7 +331,15 @@ class Viewer:
                 "",
                 lambda _: self._add_subplot(self.view_help()),
                 "Help",
-                False,
+                requires_selection=False,
+            ),
+            Hotkey(
+                "2D Shape Exporter Tool",
+                "m",
+                "Open tool for instructions",
+                lambda _: self._add_subplot(self.view_2d_export_tool()),
+                "Export",
+                requires_selection=False,
             ),
             Hotkey(
                 "Toggle background",
@@ -335,7 +347,7 @@ class Viewer:
                 "Toggle the background image on and off",
                 self.toggle_background,
                 "Visual",
-                False,
+                requires_selection=False,
             ),
             Hotkey(
                 "Toggle max intensity projection (default: off)",
@@ -343,7 +355,7 @@ class Viewer:
                 "Toggle the background image's max intensity projection along z",
                 self.toggle_max_intensity_project,
                 "Visual",
-                False,
+                requires_selection=False,
             ),
             Hotkey(
                 "View Bleed Matrix",
@@ -381,7 +393,7 @@ class Viewer:
                 "Show scores and intensities as a heatmap",
                 lambda _: self._add_subplot(self.view_score_intensity_distributions()),
                 "General Diagnostics",
-                False,
+                requires_selection=False,
             ),
             Hotkey(
                 "View Gene Efficiencies",
@@ -389,7 +401,7 @@ class Viewer:
                 "Show the n_genes by n_rounds gene efficiencies as a heatmap",
                 lambda _: self._add_subplot(self.view_gene_efficiencies()),
                 "Call Spots",
-                False,
+                requires_selection=False,
             ),
             Hotkey(
                 "View OMP Pixel Scores",
@@ -625,7 +637,7 @@ class Viewer:
 
     def view_help(self) -> Subplot:
         self._free_subplot_spaces()
-        fig, ax = plt.subplots(1, 1, figsize=(12, 8))
+        fig, ax = plt.subplots(1, 1, figsize=(12, 9))
         ax.set_title(r"$\mathbf{Hotkeys}$", fontdict={"size": 20, "va": "center"})
         ax.set_axis_off()
         text = r"$\mathbf{Legend}$" + "\n"
@@ -764,6 +776,67 @@ class Viewer:
             spot_data.colours[self.selected_spot],
             show=self.show,
         )
+
+    def view_2d_export_tool(self) -> Subplot | None:
+        if any([type(subplot) is exporter.ExportTool2D for subplot in self.open_subplots]):
+            print("2D export tool already open")
+            return
+        self._free_subplot_spaces()
+
+        new_tool = exporter.ExportTool2D(self.show)
+        new_tool.on_click = self._2d_export_button_clicked
+        new_tool.on_close = self._2d_export_tool_closed
+        if self.viewer is not None:
+            new_tool.shapes_layer = self.viewer.add_shapes()
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", FutureWarning)
+                # Turn on layer controls.
+                self.viewer.window.qt_viewer.dockLayerControls.show()
+
+        return new_tool
+
+    def _2d_export_tool_closed(self, tool: exporter.ExportTool2D) -> None:
+        if tool.shapes_layer in self.viewer.layers:
+            self.viewer.layers.remove(tool.shapes_layer)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            # Turn off layer controls.
+            self.viewer.window.qt_viewer.dockLayerControls.hide()
+        if tool in self.open_subplots:
+            self.open_subplots.pop(self.open_subplots.index(tool))
+
+    def _2d_export_button_clicked(self, tool: exporter.ExportTool2D) -> None:
+        shapes_data = tool.shapes_layer.data
+        self._close_subplot(tool)
+        if len(shapes_data) == 0:
+            return
+
+        visible_spots = self.keep_scores & self.keep_intensities & self.keep_zs & self.keep_genes
+        yx_visible = self.spot_data[self.selected_method].yxz[visible_spots, :2]
+        keep = np.zeros(yx_visible.shape[0], bool)
+        for shape_data, shape_type in zip(shapes_data, tool.shapes_layer.shape_type):
+            if shape_type not in ("rectangle", "polygon"):
+                print(f"{shape_type}s are ignored")
+                continue
+            polygon = Path(shape_data)
+            keep |= polygon.contains_points(yx_visible)
+        file_path = self._get_2d_export_file_path()
+        tool.close()
+
+        visible_spots[visible_spots] = keep
+        if visible_spots.sum() == 0:
+            raise ValueError("No spots within given polygon(s)")
+
+        self.spot_data[self.selected_method].save_csv(file_path, self.nbp_call_spots.gene_names, visible_spots)
+        print(f"{visible_spots.sum().item()} spot(s) exported at {file_path}")
+
+    def _get_2d_export_file_path(self) -> str:
+        dir = self.nb_directory
+        for i in range(1, 1_001):
+            file_path = path.join(dir, f"export_{i}.csv")
+            if not path.isfile(file_path):
+                break
+        return file_path
 
     def toggle_background(self, _=None) -> None:
         if not self.show:
@@ -1119,7 +1192,9 @@ class Viewer:
             self._close_oldest_subplot()
 
     def _close_oldest_subplot(self) -> None:
-        subplot = self.open_subplots.pop(0)
+        self._close_subplot(self.open_subplots.pop(0))
+
+    def _close_subplot(self, subplot: Subplot | Figure) -> None:
         if isinstance(subplot, Subplot):
             subplot.close()
         elif isinstance(subplot, Figure):

@@ -1,4 +1,7 @@
+import os
+
 import numpy as np
+import pandas as pd
 
 from ..omp import base as omp_base
 from ..setup.notebook_page import NotebookPage
@@ -82,22 +85,69 @@ class MethodData:
         self.indices = np.linspace(0, self.score.size - 1, self.score.size, dtype=np.uint32)
 
         # Sanity check spot data.
-        self.check_variables()
+        self._check_variables()
 
     def remove_data_at(self, remove: np.ndarray[bool]) -> None:
         """
-        Delete the i'th spot data if remove[i] == True.
+        Delete a subset of the spot data in self.
+
+        Args:
+            remove (`(n_spots) ndarray[bool]`): removes ith spot if remove[i] is true.
         """
         assert type(remove) is np.ndarray
         assert remove.ndim == 1
         assert remove.size == self.tile.size
+
         keep_sum = (~remove).sum().item()
         for var_name in self._ATTRIBUTE_NAMES:
             self.__setattr__(var_name, self.__getattribute__(var_name)[~remove])
             assert self.__getattribute__(var_name).shape[0] == keep_sum
-        self.check_variables()
+        self._check_variables()
 
-    def check_variables(self) -> None:
+    def save_csv(self, file_path: str, gene_names: np.ndarray[str], keep: np.ndarray[bool] | None = None) -> None:
+        """
+        Save a .csv file containing gene spot information.
+
+        The csv contains:
+
+        - Gene: Name of gene each spot was assigned to.
+        - y: y coordinate of each spot in stitched coordinate system.
+        - x: x coordinate of each spot in stitched coordinate system.
+        - z_stack: z coordinate of each spot in stitched coordinate system (in units of z-pixels).
+        - score: the spot's score.
+
+        Args:
+            file_path (str): the csv file path.
+            gene_names (`(n_genes) ndarray[str]`): gene_names[i] is the gene name for gene i.
+            keep (`(n_spots) ndarray[bool]`, optional): keep[i] is true if i'th spot is kept. Default: keep all spots.
+
+        Raises:
+            (SystemError): if csv file already exists.
+        """
+        if os.path.isfile(file_path):
+            raise SystemError(f"File at {file_path} already exists")
+
+        gene = gene_names[self.gene_no]
+        yxz = self.yxz
+        score = self.score
+
+        if keep is not None:
+            assert type(keep) is np.ndarray
+            assert keep.shape == (self.tile.size,)
+
+            gene = gene[keep]
+            yxz = yxz[keep]
+            score = score[keep]
+
+        df_to_export = pd.DataFrame()
+        df_to_export["Gene"] = gene
+        df_to_export["y"] = yxz[:, 0]
+        df_to_export["x"] = yxz[:, 1]
+        df_to_export["z_stack"] = yxz[:, 2]
+        df_to_export["score"] = score
+        df_to_export.to_csv(file_path, mode="w", index=False)
+
+    def _check_variables(self) -> None:
         assert all([type(self.__getattribute__(var_name)) is np.ndarray] for var_name in self._ATTRIBUTE_NAMES)
         assert self.tile.ndim == 1
         assert self.tile.shape[0] >= 0

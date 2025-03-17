@@ -2,7 +2,6 @@ import os
 from numbers import Number
 
 import numpy as np
-import pandas as pd
 import zarr
 
 from ..plot.results_viewer import background
@@ -121,15 +120,10 @@ def export_to_pciseq(
     file_path = os.path.join(os.path.dirname(nb.directory), f"pciseq_{method}.csv")
     if os.path.isfile(file_path):
         print(f"WARNING: file {file_path} already exists, it will be overwritten")
-    # Save the global yxz positions with their corresponding gene indices.
-    df_to_export = pd.DataFrame()
-    df_to_export["Gene"] = nb.call_spots.gene_names[spot_data.gene_no]
-    df_to_export["y"] = spot_data.yxz[:, 0]
-    df_to_export["x"] = spot_data.yxz[:, 1]
-    df_to_export["z_stack"] = spot_data.yxz[:, 2]
-    df_to_export["score"] = spot_data.score
-    df_to_export.to_csv(file_path, mode="w", index=False)
+        os.remove(file_path)
 
+    # Save the global yxz positions with their corresponding gene indices.
+    spot_data.save_csv(file_path, nb.call_spots.gene_names)
     print(f"pciSeq file saved for method {method} at " + file_path)
 
     return file_path
