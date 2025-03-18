@@ -5,6 +5,7 @@
     corrections fix.
  * Register: Optical flow is not inverse applied to sequencing point cloud during channel-by-channel ICP corrections
     fix.
+ * Viewer: New 2d shape spot exporter tool.
 
 
 2025/03/03 Version 1.2 Patch (v1.2.1):
