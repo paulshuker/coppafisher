@@ -14,7 +14,7 @@ def test_CompatibilityTracker() -> None:
     assert not tracker.has_version("abc")
 
     tracker._stages = OrderedDict(
-        [("stage_0", "page_0 and page_1"), ("stage_1", "page_2"), ("stage_2", "page_3 and page_4")]
+        [("stage_0", "page_0 and page_1"), ("stage_1", "page_2"), ("stage_2", "page_3 and page_4"), ("none", "none")]
     )
     tracker._version_compatibility = OrderedDict(
         [
@@ -34,6 +34,9 @@ def test_CompatibilityTracker() -> None:
     ]
 
     assert "stage_0, stage_1, stage_2" in tracker.print_stage_names()
+
+    assert sorted(list(tracker.get_page_names_added_after("page_0"))) == ["page_1", "page_2", "page_3", "page_4"]
+    assert sorted(list(tracker.get_page_names_added_after("page_1"))) == ["page_0", "page_2", "page_3", "page_4"]
 
     assert tracker.has_version("0.1.0")
     assert tracker.has_version("0.2.0")

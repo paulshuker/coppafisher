@@ -233,13 +233,15 @@ def register(
                 )
                 im_spots_trc = im_spots_trc[~oob]
                 # 2. apply the inverse of the flow to the spots
-                im_spots_trc = spot_colours_base.apply_flow_new(im_spots_trc, nbp.flow, t, r)
+                im_spots_trc = spot_colours_base.apply_flow_new(im_spots_trc, nbp.flow, t, r, flow_multiplier=-1.0)
                 im_spots_tc = np.vstack((im_spots_tc, im_spots_trc))
             # check if there are enough spots to run ICP
             if im_spots_tc.shape[0] < config["icp_min_spots"]:
                 log.warn(f"Tile {t}, channel {c} has too few spots to run ICP.")
                 channel_correction[t, c][:3, :3] = np.eye(3)
                 continue
+            # load in reference spots
+            ref_spots_tr_ref = nbp_find_spots.spot_yxz[f"t{t}r{nbp_basic.anchor_round}c{nbp_basic.anchor_channel}"][:]
             # run ICP
             channel_correction[t, c], n_matches_channel[t, c], mse_channel[t, c], converged_channel[t, c] = (
                 register_base.icp(

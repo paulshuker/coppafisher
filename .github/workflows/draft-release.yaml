@@ -1,0 +1,26 @@
+name: Draft Release
+
+on:
+  push:
+    # Only triggered when the version is bumped.
+    branches:
+      - 'main'
+    paths:
+      - '**/_version.py'
+
+jobs:
+  draft-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: ncipollo/release-action@v1.16.0
+      with:
+        body: "Please see the [📘Changelog](https://github.com/paulshuker/coppafisher/blob/CHANGE-ME/changelog.txt#L1) for details aimed at users."
+        tag: "CHANGE-ME"
+        makeLatest: true
+        draft: true
+        skipIfReleaseExists: true
+        generateReleaseNotes: true
