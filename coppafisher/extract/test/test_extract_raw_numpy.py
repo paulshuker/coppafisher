@@ -4,9 +4,8 @@ from os import path
 import dask.array
 import numpy as np
 
-from ...setup.notebook_page import NotebookPage
-from ..raw_numpy import NumpyReader
-from ..raw_reader import RawReader
+from coppafisher.extract import raw_numpy, raw_reader
+from coppafisher.setup.notebook_page import NotebookPage
 
 
 def test_raw_numpy() -> None:
@@ -46,8 +45,8 @@ def test_raw_numpy() -> None:
     round = 2
     channels = [0, 1]
 
-    reader = NumpyReader()
-    assert isinstance(reader, RawReader)
+    reader = raw_numpy.NumpyReader()
+    assert isinstance(reader, raw_reader.RawReader)
     image = reader.read(nbp_basic, nbp_file, tile, round, channels)
 
     assert type(image) is np.ndarray
@@ -58,7 +57,7 @@ def test_raw_numpy() -> None:
             assert (image[c_i, :, :, z] == all_data[2, round, c, :, :, z]).all()
 
     channels = [1, 0, 4]
-    reader = NumpyReader()
+    reader = raw_numpy.NumpyReader()
     image = reader.read(nbp_basic, nbp_file, tile, round, channels)
 
     assert type(image) is np.ndarray

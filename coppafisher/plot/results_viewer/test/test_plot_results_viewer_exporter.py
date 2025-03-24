@@ -1,6 +1,6 @@
 import matplotlib
 
-from .. import exporter
+from coppafisher.plot.results_viewer import exporter
 
 
 def test_ExportTool2D() -> None:

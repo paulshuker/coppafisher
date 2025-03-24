@@ -3,9 +3,8 @@ from os import path
 import nd2
 import numpy as np
 
-from ...setup.notebook_page import NotebookPage
-from ..raw_nd2 import Nd2Reader
-from ..raw_reader import RawReader
+from coppafisher.extract import raw_nd2, raw_reader
+from coppafisher.setup.notebook_page import NotebookPage
 
 FILE_NAME = "dims_z5t3c2y32x32"
 SUFFIX = ".nd2"
@@ -37,8 +36,8 @@ def test_raw_nd2() -> None:
     round = 2
     channels = [0, 1]
 
-    reader = Nd2Reader()
-    assert isinstance(reader, RawReader)
+    reader = raw_nd2.Nd2Reader()
+    assert isinstance(reader, raw_reader.RawReader)
     image = reader.read(nbp_basic, nbp_file, tile, round, channels)
 
     assert type(image) is np.ndarray
@@ -49,7 +48,7 @@ def test_raw_nd2() -> None:
             assert (image[c_i, :, :, z] == all_data[2, z, c]).all()
 
     channels = [1]
-    reader = Nd2Reader()
+    reader = raw_nd2.Nd2Reader()
     image = reader.read(nbp_basic, nbp_file, tile, round, channels)
 
     assert type(image) is np.ndarray
