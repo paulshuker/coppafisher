@@ -1,4 +1,5 @@
 2025/MM/DD Version 1.2 Patch (v1.2.3):
+ * General: Occassional process termination `psutil.NoSuchProcess: Process no longer exists` error fixed.
  * Call spots: Better (initial) gene probabilities by Von-Mises algorithm.
 
 
