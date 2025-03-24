@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from .. import intensity
+from coppafisher.utils import intensity
 
 
 def test_compute_intensity() -> None:
