@@ -20,6 +20,7 @@ TEST_FILE_NAMES: tuple[tuple[str, int, bool]] = (
     ("generate_gene_codes", 20, False),
     ("nb_delete_page_0", 7, True),
     ("nb_delete_page_1", 7, True),
+    ("omp_intensity_histogram", 5, False),
     ("omp_min_intensity", 10, False),
     ("open_viewer_0", 7, False),
     ("open_viewer_1", 7, False),
@@ -40,8 +41,9 @@ REPLACEMENTS = OrderedDict(
         ("score_thresh", "0.05"),
         ("intensity_thresh", "0.05"),
         ("page_name", "omp"),
+        ("view_intensity_histogram(nb)", "view_intensity_histogram(nb, show=False)"),
         ("Viewer(nb)", 'Viewer(nb, gene_marker_filepath="/path/to/custom/gene_marker_file.csv")'),
-        ("Viewer(nb, ", "import matplotlib\nmatplotlib.use('Agg')\nViewer(nb, show=False, "),
+        ("Viewer(nb, ", "Viewer(nb, show=False, "),
         ("prune()", "prune(prompt=False)"),
     ]
 )
@@ -82,6 +84,9 @@ def test_all_docs() -> None:
 
             with open(script_file_path, "r") as file:
                 code = "\n".join(file.readlines())
+
+            # Ensure headless mode when testing.
+            code = "import matplotlib\nmatplotlib.use('Agg')\n" + code
 
             for replace_content, replace_to in REPLACEMENTS.items():
                 code = code.replace(replace_content, replace_to)

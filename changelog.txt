@@ -1,4 +1,5 @@
 2025/04/DD Version 1.2 Patch (v1.2.3):
+ * Diagnostics: New `view_intensity_histogram` plot explained under Method -> OMP.
 
 
 2025/03/19 Version 1.2 Patch (v1.2.2):
