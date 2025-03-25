@@ -210,6 +210,14 @@ score threshold set by `score_threshold` (typically `0.1`). These are the final 
 
 ### Intensity
 
+It is recommended to view the pixel intensities on a histogram first by typing
+
+```py
+--8<-- "omp_intensity_histogram.py"
+```
+
+On this plot, you can see vertical lines to indicate important intensity values.
+
 Use the [diagnostic](diagnostics.md#intensity-images) to see intensity images. Once OMP is complete, you can view the
 minimum intensity computed for each tile by doing
 
