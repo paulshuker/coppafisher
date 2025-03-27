@@ -26,7 +26,7 @@ def bayes_mean(
         return prior_colours
 
     prior_direction = prior_colours / np.linalg.norm(prior_colours)  # normalized prior direction
-    sum_parallel = (data_sum @ prior_direction) * prior_direction  # projection of data sum along prior direction
+    sum_parallel = np.dot(data_sum, prior_direction) * prior_direction  # projection of data sum along prior direction
     sum_perp = data_sum - sum_parallel  # projection of data sum orthogonal to mean direction
 
     # now compute the weighted sum of the posterior mean for parallel and perpendicular directions
