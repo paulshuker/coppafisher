@@ -2,7 +2,7 @@ from os import path
 
 import pytest
 
-from .. import base
+from coppafisher.plot.tile_indexing import base
 
 
 @pytest.mark.notebook

@@ -16,6 +16,7 @@ from ..setup import file_names
 from ..setup.notebook import Notebook
 from ..setup.notebook_page import NotebookPage
 from ..stitch import base as stitch_base
+from ..utils import affine
 from . import postprocessing, preprocessing, subvol_registration
 
 CUSTOM_DIR_NAME = "custom"
@@ -314,7 +315,45 @@ def register_custom_image(
     return transform
 
 
+def compose_channel_correction(nb: Notebook, transform: np.ndarray, channel: int) -> np.ndarray:
+    """
+    Compose the camera channel correction to the given transform.
+
+    Args:
+        nb (Notebook): the notebook.
+        transform (`(3 x 4) ndarray`): the current affine transform that registers the custom image round to the anchor
+            round.
+        channel (int): the channel index.
+
+    Returns:
+        (`(3 x 4) ndarray`): composed_transform. The combined affine transform.
+    """
+    output = transform.copy()
+
+    if channel == nb.basic_info.dapi_channel:
+        print("Given channel is the DAPI channel. No change made")
+        return output
+    elif channel not in nb.basic_info.use_channels:
+        print(f"Channel {channel} not found in sequencing channels. No change made")
+        return output
+
+    camera_channel_correction = nb.register_debug.channel_transform_initial[channel].T
+    camera_channel_correction = camera_channel_correction.astype(transform.dtype)
+    output = affine.compose_affines(camera_channel_correction, transform)
+
+    return output
+
+
 def apply_transform(image: np.ndarray, transform: np.ndarray | None, save_dir: str, name: str) -> None:
+    """
+    Apply the transform to the given custom image then save the resulting image.
+
+    Args:
+        image (`(im_y x im_x x im_z) ndarray`): the custom image.
+        transform (`(3 x 4) ndarray`): the affine transform.
+        save_dir (str): save directory.
+        name (str): the file name.
+    """
     if transform is not None:
         image = scipy.ndimage.affine_transform(image, transform, order=3)
 

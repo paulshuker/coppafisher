@@ -1,7 +1,7 @@
 import os
 import tempfile
 
-from .. import system
+from coppafisher.utils import system
 
 
 def test_is_path_on_mounted_server() -> None:

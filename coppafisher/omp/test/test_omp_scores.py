@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 
-from .. import scores
+from coppafisher.omp import scores
 
 
 def test_score_pixel_score_image() -> None:

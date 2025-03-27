@@ -1,7 +1,7 @@
 import numpy as np
 
-from ....setup.notebook_page import NotebookPage
-from .. import background
+from coppafisher.plot.results_viewer import background
+from coppafisher.setup.notebook_page import NotebookPage
 
 
 def test_generate_global_image() -> None:
