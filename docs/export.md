@@ -155,7 +155,7 @@ bead path was given during the pipeline run. It is recommended to [save](#option
 transform to disk first.
 
 ```py
-from coppafisher.custom_alignment import apply_channel_correction
+from coppafisher.custom_alignment import compose_channel_correction
 
 transform_channel_corrected = compose_channel_correction(nb, transform, channel=0)
 ```
