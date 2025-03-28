@@ -81,23 +81,19 @@ def gene_prob_score(spot_colours: np.ndarray, bled_codes: np.ndarray, kappa: flo
         (`(n_spots x n_genes) ndarray[float]`): gene probabilities.
     """
     n_genes = bled_codes.shape[0]
-    n_spots, n_rounds, n_channels_use = spot_colours.shape
-    # First, normalise spot_colours so that for each spot s and round r, norm(spot_colours[s, r, :]) = 1
+    n_spots, _, _ = spot_colours.shape
+    # Normalise spot_colours so that norm(spot_colours[s, r, :]) = 1
     spot_colours = spot_colours / np.linalg.norm(spot_colours, axis=2)[:, :, None]
     # Do the same for bled_codes
     bled_codes = bled_codes / np.linalg.norm(bled_codes, axis=2)[:, :, None]
-    # Flip the sign of a single spot and round if spot_colours[s, r, c] < 0 for the greatest magnitude channel.
-    spot_colours_reshaped = spot_colours.copy().reshape((-1, n_channels_use))
-    negatives = np.take_along_axis(spot_colours_reshaped, np.argmax(spot_colours_reshaped, axis=1)[:, None], 1) < 0
-    spot_colours[negatives.reshape((n_spots, n_rounds))] *= -1
-    # At this point, reshape spot_colours to be [n_spots, n_rounds * n_channels_use] and bled_codes to be
+    # Reshape spot_colours to be [n_spots, n_rounds * n_channels_use] and bled_codes to be
     # [n_genes, n_rounds * n_channels_use]
     spot_colours = spot_colours.reshape((n_spots, -1))
     bled_codes = bled_codes.reshape((n_genes, -1))
-    # Now we can compute the dot products of each spot with each gene, producing a matrix of shape [n_spots, n_genes]
+    # Compute the dot products of each spot with each gene, producing a matrix of shape [n_spots, n_genes]
     dot_product = spot_colours @ bled_codes.T
     probability = np.exp(kappa * dot_product)
-    # Now normalise so that each row sums to 1
+    # Normalise so that each row sums to 1
     probability = np.nan_to_num(probability / np.sum(probability, axis=1)[:, None])
 
     return probability

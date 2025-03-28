@@ -4,14 +4,13 @@ from coppafisher.call_spots import base
 
 
 def test_bayes_mean():
-    seed = 0
-    np.random.seed(seed)
-    # get 100 random spots with 5 colours
+    rng = np.random.RandomState(0)
+    # Get 100 random spots with 5 colours.
     n_spots, n_channels = 100, 5
     expected_colour = np.array([1, 0, 0, 0, 0])
     spot_colours = np.tile(expected_colour, (n_spots, 1)).astype(float)
     # add noise to the colours
-    spot_colours += np.random.normal(0, 0.1, spot_colours.shape)
+    spot_colours += rng.normal(0, 0.1, spot_colours.shape)
     # rescale column 0
     spot_colours[:, 0] *= 10
     bayes_mean = base.bayes_mean(spot_colours, expected_colour, 0.1, 50)
@@ -22,21 +21,31 @@ def test_bayes_mean():
     # check that the other entries are approximately 0
     assert np.all(np.isclose(bayes_mean[1:], 0, atol=0.1)), "Expect other columns to have average 0"
 
+    n_spots = 1
+    n_channels = 5
+    spot_colours = rng.rand(n_spots, n_channels).astype(float)
+    prior_colours = rng.rand(n_channels).astype(float)
+    prior_colours /= np.linalg.norm(prior_colours)
+    expected_colour = prior_colours.copy()
+    expected_colour += (spot_colours[0] - np.dot(spot_colours[0], prior_colours) * prior_colours) / (n_spots + 1)
+
+    assert np.allclose(base.bayes_mean(spot_colours, prior_colours, 9e10, 1), expected_colour)
+    assert np.allclose(base.bayes_mean(spot_colours, prior_colours, 9e10, 9e10), prior_colours)
+
 
 def test_compute_bleed_matrix():
-    seed = 0
-    np.random.seed(seed)
+    rng = np.random.RandomState(0)
     # 3 rounds, 4 channels, 2 genes, 3 dyes, 100 spots
     n_rounds, n_channels, n_genes, n_dyes, n_spots = 3, 4, 2, 3, 100
     # gene codes
-    gene_codes = np.random.randint(0, n_dyes, (n_genes, n_rounds))
+    gene_codes = rng.randint(0, n_dyes, (n_genes, n_rounds))
     # expected dye colours
-    expected_bleed = np.eye(n_dyes, n_channels) + np.random.normal(0, 0.1, (n_dyes, n_channels))
+    expected_bleed = np.eye(n_dyes, n_channels) + rng.normal(0, 0.1, (n_dyes, n_channels))
     expected_bled_codes = expected_bleed[gene_codes]
     # gene assignments
-    gene_no = np.random.randint(0, n_genes, n_spots)
+    gene_no = rng.randint(0, n_genes, n_spots)
     # spot colours
-    spot_colours = expected_bled_codes[gene_no] + np.random.normal(0, 0.1, (n_spots, n_rounds, n_channels))
+    spot_colours = expected_bled_codes[gene_no] + rng.normal(0, 0.1, (n_spots, n_rounds, n_channels))
     bleed_matrix = base.compute_bleed_matrix(
         spot_colours=spot_colours, gene_no=gene_no, gene_codes=gene_codes, n_dyes=n_dyes
     )

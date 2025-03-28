@@ -163,8 +163,11 @@ def register(
     # use of joblib are explicitly killed.
     subproc_after = set([p.pid for p in current_process.children(recursive=True)])
     for subproc in subproc_after - subproc_before:
-        log.debug("Killing process with pid {}".format(subproc))
-        psutil.Process(subproc).terminate()
+        try:
+            log.debug("Trying to kill process with pid {}".format(subproc))
+            psutil.Process(subproc).terminate()
+        except psutil.NoSuchProcess:
+            continue
 
     # Part 3: ICP
     log.info("Running Iterative Closest Point (ICP)")
