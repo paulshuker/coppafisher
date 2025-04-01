@@ -339,7 +339,7 @@ def compose_channel_correction(nb: Notebook, transform: np.ndarray, channel: int
 
     camera_channel_correction = nb.register_debug.channel_transform_initial[channel].T
     camera_channel_correction = camera_channel_correction.astype(transform.dtype)
-    output = affine.compose_affines(camera_channel_correction, transform)
+    output = affine.compose_affines(transform, camera_channel_correction)
 
     return output
 
