@@ -1,4 +1,5 @@
 2025/MM/DD Version 1.2 Patch (v1.2.4):
+ * PDF Diagnostics: Mean of empty slice warning fixed.
  * OMP: Minimum intensity threshold now invariant across tiles by computing with all tiles.
 
 
