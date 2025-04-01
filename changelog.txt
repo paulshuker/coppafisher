@@ -1,4 +1,4 @@
-2025/03/27 Version 1.2 Patch (v1.2.3):
+2025/04/01 Version 1.2 Patch (v1.2.3):
  * General: Occassional process termination `psutil.NoSuchProcess: Process no longer exists` error fixed.
  * Diagnostics: New `view_intensity_histogram` plot explained under Method -> OMP.
  * Export: New transform composed with channel correction explained in export docs section.
