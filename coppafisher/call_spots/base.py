@@ -26,7 +26,7 @@ def bayes_mean(
         return prior_colours
 
     prior_direction = prior_colours / np.linalg.norm(prior_colours)  # normalized prior direction
-    sum_parallel = (data_sum @ prior_direction) * prior_direction  # projection of data sum along prior direction
+    sum_parallel = np.dot(data_sum, prior_direction) * prior_direction  # projection of data sum along prior direction
     sum_perp = data_sum - sum_parallel  # projection of data sum orthogonal to mean direction
 
     # now compute the weighted sum of the posterior mean for parallel and perpendicular directions
@@ -40,36 +40,35 @@ def compute_bleed_matrix(
 ) -> np.ndarray:
     """
     Function to compute the bleed matrix from the spot colours and the gene assignments.
+
     Args:
-        spot_colours: np.ndarray [n_spots x n_rounds x n_channels_use]
-            The spot colours for each spot in each round and channel.
-        gene_no: np.ndarray [n_spots]
-            The gene assignment for each spot.
-        gene_codes: np.ndarray [n_genes x n_rounds]
-            The gene codes for each gene in each round.
-        n_dyes: int
-            The number of dyes.
+        spot_colours (`(n_spots x n_rounds x n_channels_use) ndarray`): the spot colours for each spot in each round and
+            channel.
+        gene_no (`(n_spots) ndarray`): the gene assignment for each spot.
+        gene_codes (`(n_genes x n_rounds) ndarray`): the gene codes for each gene in each round.
+        n_dyes (int): the number of dyes.
 
     Returns:
-        bleed_matrix: np.ndarray [n_dyes x n_channels_use]
-            The bleed matrix.
+        (`(n_dyes x n_channels_use) ndarray`): bleed_matrix. The computed bleed matrix.
     """
     assert len(spot_colours) == len(gene_no), "Spot colours and gene_no must have the same length."
-    n_spots, n_rounds, n_channels_use = spot_colours.shape
+
+    _, n_rounds, n_channels_use = spot_colours.shape
     bleed_matrix = np.zeros((n_dyes, n_channels_use), np.float32)
 
-    # loop over all dyes, find the spots which are meant to be dye d in round r, and compute the SVD
+    # Loop over all dyes, find the spots which are meant to be dye d in round r, and compute the SVD.
     for d in range(n_dyes):
         dye_d_colours = []
         for r in range(n_rounds):
             relevant_genes = np.where(gene_codes[:, r] == d)[0]
             relevant_gene_mask = np.isin(gene_no, relevant_genes)
             dye_d_colours.append(spot_colours[relevant_gene_mask, r, :])
-        # now we have all the good colours for dye d, compute the SVD
+        # All the good colours for dye d in shape (n_spots_found x n_channels_use).
         dye_d_colours = np.concatenate(dye_d_colours, axis=0)
-        u, s, v = scipy.sparse.linalg.svds(dye_d_colours, k=1)
+        # Compute the SVD.
+        _, _, v = scipy.sparse.linalg.svds(dye_d_colours, k=1)
         v = v[0]
-        # make sure largest entry in v is positive
+        # Ensure the largest entry in v is positive.
         v *= np.sign(v[np.argmax(np.abs(v))])
         bleed_matrix[d] = v
 
