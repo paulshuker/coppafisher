@@ -132,6 +132,36 @@ transform = register_custom_image(fused_anchor_image, fused_custom_image, reg_pa
 If downsample_factor is greater than 1, get the originally-sized images back by running the [stitch](#stitch) code
 again.
 
+### Optional: Save the transform to disk
+
+You can save the transform to disk by doing
+
+```py
+import numpy as np
+np.save("/path/to/saved/transform.npy", transform)
+```
+
+Then you can load it back in at any time by
+
+```py
+transform = np.load("/path/to/saved/transform.npy")
+```
+
+### Optional: Apply channel corrections
+
+If the custom image channel you are currently fusing is a channel that was used during the notebook run, you can combine
+an additional camera channel correction before applying the transform. This only affects the transform if a fluorescent
+bead path was given during the pipeline run. It is recommended to [save](#optional-save-the-transform-to-disk) the old
+transform to disk first.
+
+```py
+from coppafisher.custom_alignment import compose_channel_correction
+
+transform_channel_corrected = compose_channel_correction(nb, transform, channel=0)
+```
+
+The channel index must match with the channel given in [stitch](#stitch).
+
 ### Apply transform and save results
 
 Now apply the transform to the custom image and save the result as a .tif file.
@@ -140,7 +170,7 @@ Now apply the transform to the custom image and save the result as a .tif file.
 from coppafisher.custom_alignment import apply_transform
 
 save_dir = "/path/to/output/directory"
-apply_transform(fused_custom_image, transform, save_dir, name=f"custom_final_channel_{channel}.tif")
+apply_transform(fused_custom_image, transform_channel_corrected, save_dir, name=f"custom_final_channel_{channel}.tif")
 ```
 
 The custom image will be saved as the given name as `uint16`.

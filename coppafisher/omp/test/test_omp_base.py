@@ -3,9 +3,9 @@ import tempfile
 import numpy as np
 import zarr
 
-from ...setup.notebook_page import NotebookPage
-from ...utils import intensity
-from .. import base
+from coppafisher.omp import base
+from coppafisher.setup.notebook_page import NotebookPage
+from coppafisher.utils import intensity
 
 
 def test_get_all() -> None:
