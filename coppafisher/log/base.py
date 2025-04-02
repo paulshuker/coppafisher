@@ -186,9 +186,14 @@ def append_to_log_file(message: str) -> None:
 
 
 def log_warning_with_traceback(message, category, filename, lineno, file=None, line=None):
+    """
+    Log and print the given warning.
+    """
     log = file if hasattr(file, "write") else sys.stderr
     traceback.print_stack(file=log)
+    print(message)
     append_to_log_file(warnings.formatwarning(message, category, filename, lineno, line))
+    append_to_log_file(str(message))
 
 
 def log_package_versions(severity: int = DEBUG) -> None:
