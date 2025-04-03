@@ -5,7 +5,7 @@ OMP is coppafisher's current best gene assignment algorithm. OMP runs independen
 representation of each gene's unique barcode: its bled code, $\mathbf{B}$.
 
 A pixel score image is produced for every pixel and every gene by iterating through steps 2-4. Then, the final gene
-reads are found in step 5.
+reads are found in [step 5](#5-spot-scoring-and-spot-detection).
 
 ## Definitions
 
@@ -152,19 +152,19 @@ $$
 where
 
 $$
-\tilde{R}_{pgrci} = \epsilon_{prci}^2\Big(S_{prc} - \sum_{g'\text{ assigned except }g}B_{g'rc}w_{pg'i}\Big)
+\tilde{R}_{pgrci} = \epsilon_{prci}^2\Bigg( S_{prc} - \sum_{g'\text{; }g' \neq g}B_{g'rc}w_{pg'i}\Bigg)
 $$
 
 and
 
 $$
 \epsilon_{pgrci}^2 = N_r N_c \frac{\sigma_{pgirc}^{-2}}{\sum_{rc} \sigma_{pgirc}^{-2}} \text{,}\space\space\space
-\sigma_{pgirc}^2 = \beta^2 + \alpha \sum_{g'\text{ assigned except }g}w_{pg'i}^2 B_{g'rc}^2
+\sigma_{pgirc}^2 = \beta^2 + \alpha \sum_{g'\text{; }g' \neq g}w_{pg'i}^2 B_{g'rc}^2
 $$
 
 A pixel score is made negative if the gene's weight is negative.
 
-Step 2 is now repeated on the remaining pixels unless $i$ is $\text{max\_genes}$ (i.e. the last iteration).
+[Step 2](#2-next-gene-assignment) is now repeated on the remaining pixels.
 
 ??? question "Why not use the scores from step 2 as the pixel scores?"
 
