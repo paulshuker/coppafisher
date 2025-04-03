@@ -98,7 +98,6 @@ class CompatibilityTracker:
         Returns:
             (tuple of str): output. Each given line of output.
         """
-
         assert type(from_version) is str
         assert type(to_version) is str
         assert from_version != to_version
