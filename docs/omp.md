@@ -93,29 +93,28 @@ weighted. $\beta$ is given by `beta` (typically 1) and gives every round-channel
       fourth round was almost perfectly subtracted.</figcaption>
     </figure>
 
-A gene is successfully assigned to a pixel when all conditions are met:
+Gene $\tilde{g}$ is successfully assigned to pixel $p$ when all conditions are met:
 
-- The best gene score is above `dot_product_threshold` (typically 0.5).
-- The best gene is not already assigned to the pixel.
-- The best gene is not a background gene.
-- The residual colour's intensity is at least $\text{minimum\_intensity}_t$. The intensity of a pixel is defined as
-$\min_r(\max_c(|\hat{R}_{prci}|))$. See [diagnostic](diagnostics.md#intensity-images).
+- $(\text{gene scores})_{p\tilde{g}i}$ is the largest scoring gene.
+- $(\text{gene scores})_{p\tilde{g}i} >$ `dot_product_threshold` (typically 0.5).
+- $\tilde g$ is not already assigned to the pixel.
+- $\tilde g$ is not a background gene.
+- The residual intensity $\min_r(\max_c(|\hat{R}_{prci}|)) > \text{minimum\_intensity}_t$. See [diagnostic](diagnostics.md#intensity-images).
+- Iteration $i \leq$ `max_genes`.
 
-The reasons for each of these conditions is:
+The reasons for each of these conditions is to:
 
-- to remove unconfident gene reads.
-- to not double assign genes.
-- to avoid over-fitting on high-background pixel colour.
-- to remove dim colours.
+- pick the best gene
+- remove unconfident gene reads
+- not double assign genes
+- avoid over-fitting on high-background pixel colour
+- remove dim colours (background noise)
+- avoid assigning too many genes
 
 respectively. If a pixel fails to meet one or more of these conditions, then no more genes are assigned to it and the
 pixel scores will be final.
 
-If the pixel $p$ meets all conditions, then the assigned gene is taken as
-
-$$
-g_{\text{new}} = \text{argmax}_g(\text{(gene\_scores)}_{pgi})\text{,}\space\space\space
-$$
+If pixel $p$ meets all conditions, then gene $\tilde g$ is taken as the next gene assigned.
 
 If all remaining pixels fail the conditions, then the iterations stop and the current pixel scores $\mathbf{c}$ are kept
 as final for [step 5](#5-spot-scoring-and-spot-detection).
