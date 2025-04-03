@@ -108,6 +108,7 @@ def run_omp(
         force_cpu=config["force_cpu"],
     )
     colour_norm_factor = nbp_call_spots.colour_norm_factor.astype(np.float32)
+
     n_chunk_max = 600_000
 
     # Remember the latest OMP config values during a run.
@@ -137,6 +138,23 @@ def run_omp(
     nbp.mean_spot = np.array(mean_spot, np.float32)
     mean_spot = torch.from_numpy(nbp.mean_spot)
 
+    temp_dir = tempfile.TemporaryDirectory("coppafisher")
+    filter_images: zarr.Array = nbp_filter.images
+    if system.is_path_on_mounted_server(filter_images.store.path):
+        log.info("Filter images detected on mounted server. Caching tiles...")
+        shutil.copytree(filter_images.store.path, temp_dir.name, dirs_exist_ok=True)
+        filter_images = zarr.open_array(temp_dir.name, "r")
+
+    spot_colour_kwargs = dict(
+        image=filter_images,
+        flow=nbp_register.flow,
+        affine=nbp_register.icp_correction,
+        use_rounds=nbp_basic.use_rounds,
+        use_channels=nbp_basic.use_channels,
+        output_dtype=np.float32,
+        out_of_bounds_value=0,
+    )
+
     # Every tile's results are appended to a zarr.Group. The zarr group is kept in the output directory until OMP is
     # complete, then it is moved into the 'omp' notebook page.
     group_path = os.path.join(nbp_file.output_dir, "results.zgroup")
@@ -148,49 +166,33 @@ def run_omp(
         for t in nbp_basic.use_tiles
     ]
 
+    # STEP 1: Compute an intensity threshold based on the percentile intensity of the middle z planes.
+    z_plane_shape = (nbp_basic.tile_sz, nbp_basic.tile_sz, 1)
+    yxz = [np.linspace(0, z_plane_shape[i] - 1, z_plane_shape[i]) for i in range(3)]
+    yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
+    yxz[:, 2] = nbp_basic.use_z[len(nbp_basic.use_z) // 2]
+    all_mid_z_intensities: list[np.ndarray] = []
+    for t in nbp_basic.use_tiles:
+        spot_colour_kwargs["tile"] = t
+        mid_z_colours = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz, **spot_colour_kwargs)
+        spot_colour_kwargs.pop("tile")
+        mid_z_colours *= colour_norm_factor[[t]]
+        mid_z_intensities = intensity.compute_intensity(mid_z_colours)
+        all_mid_z_intensities.append(mid_z_intensities)
+    all_mid_z_intensities: np.ndarray = np.concat(all_mid_z_intensities, 0)
+    all_mid_z_intensities = all_mid_z_intensities.ravel()
+    minimum_intensity = np.percentile(all_mid_z_intensities, config["minimum_intensity_percentile"]).item()
+    minimum_intensity *= config["minimum_intensity_multiplier"]
+    solver_kwargs["minimum_intensity"] = minimum_intensity
+    log.debug(f"Intensity threshold is {solver_kwargs['minimum_intensity']} for all tiles")
+    del z_plane_shape, yxz, all_mid_z_intensities, filter_images, mid_z_colours, mid_z_intensities, minimum_intensity
+
     for t_index, t in enumerate(nbp_basic.use_tiles):
         postfix = {"tile": t, "device": str(device).upper()}
 
         if tile_already_exists[t_index] and config_unchanged:
             log.info(f"OMP is skipping tile {t}, results already found at {nbp_file.output_dir}")
             continue
-
-        temp_dir = tempfile.TemporaryDirectory("coppafisher")
-        filter_images: zarr.Array = nbp_filter.images
-        if system.is_path_on_mounted_server(filter_images.store.path):
-            log.info(f"Filter images detected on mounted server. Caching tile {t}")
-
-            # Copy filter image files locally only relevant to tile t.
-            ignore = shutil.ignore_patterns(f"[{''.join([str(tile) for tile in nbp_basic.use_tiles if tile != t])}].*")
-            shutil.copytree(filter_images.store.path, temp_dir.name, ignore=ignore, dirs_exist_ok=True)
-            filter_images = zarr.open_array(temp_dir.name, "r")
-
-        spot_colour_kwargs = dict(
-            image=filter_images,
-            flow=nbp_register.flow,
-            affine=nbp_register.icp_correction,
-            tile=t,
-            use_rounds=nbp_basic.use_rounds,
-            use_channels=nbp_basic.use_channels,
-            output_dtype=np.float32,
-            out_of_bounds_value=0,
-        )
-
-        # STEP 1: Compute an intensity threshold for the tile based on the median intensity of the middle z plane.
-        log.debug(f"Computing intensity threshold for tile {t}")
-        z_plane_shape = (nbp_basic.tile_sz, nbp_basic.tile_sz, 1)
-        yxz = [np.linspace(0, z_plane_shape[i] - 1, z_plane_shape[i]) for i in range(3)]
-        yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
-        yxz[:, 2] = nbp_basic.use_z[len(nbp_basic.use_z) // 2]
-        mid_z_colours = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz, **spot_colour_kwargs)
-        mid_z_colours *= colour_norm_factor[[t]]
-        intensities = intensity.compute_intensity(mid_z_colours)
-        solver_kwargs["minimum_intensity"] = (
-            intensities.quantile(config["minimum_intensity_percentile"] / 100).item()
-            * config["minimum_intensity_multiplier"]
-        )
-        log.debug(f"Intensity threshold is {solver_kwargs['minimum_intensity']} for tile {t}")
-        del z_plane_shape, yxz, mid_z_colours, intensities
 
         # STEP 2: Gather spot colours and compute OMP pixel scores on the entire tile, one subset at a time.
         log.debug(f"Compute pixel scores, tile {t} started")
@@ -217,7 +219,9 @@ def run_omp(
                 index_max = min(index_max, n_tile_pixels)
 
                 yxz_subset = yxz_all[index_min:index_max]
+                spot_colour_kwargs["tile"] = t
                 colour_subset = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)
+                spot_colour_kwargs.pop("tile")
                 colour_subset *= colour_norm_factor[[t]]
                 intensities_subset = intensity.compute_intensity(colour_subset)
                 is_intense = (intensities_subset >= solver_kwargs["minimum_intensity"]).numpy()
@@ -320,14 +324,16 @@ def run_omp(
             chunks=(n_chunk_max, 1, 1),
             dtype=np.float16,
         )
+        spot_colour_kwargs["tile"] = t
         t_spots_colours[:] = spot_colours_base.get_spot_colours_new_safe(
             nbp_basic, t_local_yxzs, **spot_colour_kwargs
         ).astype(np.float16)
+        spot_colour_kwargs.pop("tile")
         log.debug("Gathering final spot colours complete")
 
-        temp_dir.cleanup()
         del t_spots_local_yxz, t_spots_tile, t_spots_gene_no, t_spots_score, t_spots_colours, t_local_yxzs, tile_results
 
+    temp_dir.cleanup()
     os.remove(config_path)
 
     nbp.results = results
