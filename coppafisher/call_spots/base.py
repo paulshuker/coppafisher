@@ -2,7 +2,9 @@ import numpy as np
 import scipy
 
 
-def compute_spot_count_significance(n_spots: int, spot_count_insignificance: float) -> float:
+def compute_spot_count_significance(
+    spot_counts: np.ndarray[np.integer], spot_count_insignificance: float
+) -> np.ndarray[np.float32]:
     """
     Compute the impact for a number of spots between 0 and 1.
 
@@ -11,12 +13,21 @@ def compute_spot_count_significance(n_spots: int, spot_count_insignificance: flo
 
     This is used when computing the normalisation factors in the loss functions. See the call spots documentation for
     details.
-    """
-    assert type(n_spots) is int
-    assert type(spot_count_insignificance) is float
-    assert n_spots >= 0
 
-    return -np.expm1(-spot_count_insignificance * n_spots).item()
+    Args:
+        spot_counts (`(n_batches) ndarray[int]`): the number of spots to compute on.
+        spot_count_insignificance (float): the spot count insignificance parameter.
+
+    Returns:
+        (`(n_batches) ndarray[float32]`): spot_count_significances. spot_count_significances[i] is the spot count
+            significance for spot_counts[i].
+    """
+    assert type(spot_counts) is np.ndarray
+    assert type(spot_count_insignificance) is float
+    assert (spot_counts >= 0).all()
+    assert spot_count_insignificance >= 0
+
+    return -np.expm1(-spot_count_insignificance * spot_counts, dtype=np.float32)
 
 
 def bayes_mean(

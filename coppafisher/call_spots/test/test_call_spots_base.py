@@ -4,10 +4,21 @@ from coppafisher.call_spots import base
 
 
 def test_compute_spot_count_significance() -> None:
-    assert type(base.compute_spot_count_significance(1, 0.5)) is float
-    assert np.isclose(base.compute_spot_count_significance(10, 0.15), 0.77687)
-    assert np.isclose(base.compute_spot_count_significance(10_000, 0.15), 1)
-    assert np.isclose(base.compute_spot_count_significance(0, 0.15), 0)
+    expected_results = np.array([0.77687, 1, 0], np.float32)
+
+    # Output type check.
+    spot_counts = np.array([1], int)
+    assert type(base.compute_spot_count_significance(spot_counts, 0.5)) is np.ndarray
+
+    spot_counts[:] = 10
+    assert np.isclose(base.compute_spot_count_significance(spot_counts, 0.15), expected_results[0])
+    spot_counts[:] = 10_000
+    assert np.isclose(base.compute_spot_count_significance(spot_counts, 0.15), expected_results[1])
+    spot_counts[:] = 0
+    assert np.isclose(base.compute_spot_count_significance(spot_counts, 0.15), expected_results[2])
+
+    spot_counts = np.array([10, 10_000, 0], int)
+    assert np.allclose(base.compute_spot_count_significance(spot_counts, 0.15), expected_results)
 
 
 def test_bayes_mean() -> None:

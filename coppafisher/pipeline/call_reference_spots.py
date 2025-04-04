@@ -147,7 +147,7 @@ def call_reference_spots(
         n_spots_per_gene = np.array(
             [np.sum((prob_mode_initial == g) & (prob_score_initial > prob_threshold)) for g in rc_genes]
         )
-        if np.sum(n_spots_per_gene) == 0:
+        if n_spots_per_gene.sum() == 0:
             continue
         rc_scale[r, c] = np.sum(
             base.compute_spot_count_significance(n_spots_per_gene, config["spot_count_insignificance"])
