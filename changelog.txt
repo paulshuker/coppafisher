@@ -1,4 +1,4 @@
-2025/MM/DD Version 1.2 Patch (v1.2.4):
+2025/MM/DD Version 1.3 (v1.3.0):
  * General: Warning message printed and logged with traceback fix.
  * General: Commit hash now appended to software version for improved debugging.
  * PDF Diagnostics: Mean of empty slice warning fixed.
