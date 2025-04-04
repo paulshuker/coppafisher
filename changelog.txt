@@ -1,7 +1,15 @@
-2025/04/DD Version 1.2 Patch (v1.2.3):
+2025/MM/DD Version 1.2 Patch (v1.2.4):
+ * General: Warning message printed and logged with traceback fix.
+ * General: Commit hash now appended to software version for improved debugging.
+ * PDF Diagnostics: Mean of empty slice warning fixed.
+
+
+2025/04/01 Version 1.2 Patch (v1.2.3):
+ * General: Occassional process termination `psutil.NoSuchProcess: Process no longer exists` error fixed.
  * Diagnostics: New `view_intensity_histogram` plot explained under Method -> OMP.
  * Export: New transform composed with channel correction explained in export docs section.
  * Export: New transform saving to disk explained in export docs section.
+ * Call spots: Better (initial) gene probabilities by Von-Mises algorithm.
 
 
 2025/03/19 Version 1.2 Patch (v1.2.2):

@@ -448,12 +448,11 @@ $$
 where
 
 $$
-\hat{F}_{src} = \frac{F_{src}}{\max_c(|F_{src}|)}\text{,}\space\space\space
+\hat{F}_{src} = \frac{F_{src}}{\sqrt{\sum_c|F_{src}|^2}}\text{,}\space\space\space
 \hat{K}_{grc} = \frac{K_{grc}}{\sqrt{\sum_c|K_{grc}|^2}}\text{,}\space\space\space N_r=\sum_r1
 $$
 
-The score rewards spots matching to the bled code in many rounds. If a spot's colour is missing $x$ rounds, then the
-score can be no larger than $(N_r - x) / N_r$.
+The score rewards spots matching to the bled code in multiple rounds.
 
 An intensity for each spot is saved to the notebook and used in the [Viewer](diagnostics.md#viewer). It is computed
 from the final, scaled colours.

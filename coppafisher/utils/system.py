@@ -21,7 +21,10 @@ class SystemConstants:
 
 def get_software_version() -> str:
     """
-    Get coppafisher's version tag written in _version.py
+    Get coppafisher's version tag as written in _version.py.
+
+    If git CLI is installed, the short form commit hash is appended. This is found by the command `git describe
+    --always`. If this fails, then nothing is appended.
 
     Returns:
         str: software version.
@@ -29,6 +32,16 @@ def get_software_version() -> str:
     consts = SystemConstants()
     with open(PurePath(os.path.dirname(os.path.realpath(__file__))).parent.joinpath("_version.py"), "r") as f:
         version_tag = f.read().split(consts.VERSION_ENCAPSULATE)[1]
+
+    try:
+        short_form_commit_hash = subprocess.check_output(["git", "describe", "--always"]).strip().decode()
+    except subprocess.CalledProcessError:
+        short_form_commit_hash = ""
+
+    if short_form_commit_hash:
+        version_tag += "-"
+        version_tag += short_form_commit_hash
+
     return version_tag
 
 

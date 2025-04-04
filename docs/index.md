@@ -58,7 +58,7 @@ coppa can be changed to any name.
 Clone the latest coppafisher version locally
 
 ```terminal
-git clone --depth 1 https://github.com/paulshuker/coppafisher
+git clone --depth 1 https://github.com/paulshuker/coppafisher.git
 ```
 
 ??? info "Install a specific version"
@@ -66,7 +66,7 @@ git clone --depth 1 https://github.com/paulshuker/coppafisher
     You can instead install specific coppafisher versions, like version 1.0.0
 
     ```terminal
-    git clone --depth 1 --branch 1.0.0 https://github.com/paulshuker/coppafisher
+    git clone --depth 1 --branch 1.0.0 https://github.com/paulshuker/coppafisher.git
     ```
 
     Check the [tags](https://github.com/paulshuker/coppafisher/tags) for version options.
