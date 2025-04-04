@@ -394,13 +394,13 @@ Any gene that has dye $d_{\textrm{max}}(c)$ in round $r$ will have its free bled
 As in section 2 above, let $G_{rd}$ be the set of genes with dye $d$ in round $r$ and define the loss function
 
 $$
-L(V_{rc}) = \sum_{g \in G_{r, \ d_{max}(c)}} \sqrt{N_{g}} \  \bigg( V_{rc} \ E_{grc} - T_{c} \bigg)^2,
+L(V_{rc}) = \sum_{g \in G_{r, \ d_{max}(c)}} (1-e^{-a N_g}) \  \bigg( V_{rc} \ E_{grc} - T_{c} \bigg)^2,
 $$
 
-where $N_g$ is the number of high probability spots assigned to gene $g$. There is no reason this has to be a square root, though if it is not, too much influence is given to the most frequent genes. We minimise this loss to obtain the optimal value
+where $N_g$ is the number of high probability spots assigned to gene $g$ and $a$ is the `spot_count_insignificance` (typically $0.15$). We minimise this loss to obtain the optimal value
 
 $$
-V_{rc} = \dfrac{ \sum_{g \in G_{r, \ d_{max}(c) }} \sqrt{N_g} E_{grc} T_{c} } { \sum_{g \in G_{r, \ d_{max}(c) }} \sqrt{N_g} E_{grc}^2 },
+V_{rc} = \dfrac{ \sum_{g \in G_{r, \ d_{max}(c) }} (1-e^{-a N_g}) E_{grc} T_{c} } { \sum_{g \in G_{r, \ d_{max}(c) }} (1-e^{-a N_g}) E_{grc}^2 },
 $$
 
 Now define the _constrained bled codes_, which we will just call _bled codes_
@@ -417,10 +417,10 @@ The purpose of this step is to remove brightness differences between images from
 Our method works almost identically to step 4. Let $G_{rd}$ be the genes with dye $d$ in round $r$. Define the loss
 
 $$
-L(Q_{trc}) = \sum_{g \in G_{r, \ d_{max}(c)}} \sqrt{N_{g,t}} \  \bigg( Q_{trc} \ D_{gtrc} - K_{grc} \bigg)^2,
+L(Q_{trc}) = \sum_{g \in G_{r, \ d_{max}(c)}} (1-e^{-a N_{gt}}) \  \bigg( Q_{trc} \ D_{gtrc} - K_{grc} \bigg)^2,
 $$
 
-where $N_{g, t}$ is the number of high probability spots of gene $g$ in tile $t$.
+where $N_{gt}$ is the number of high probability spots of gene $g$ in tile $t$.
 
 ??? note "If Q is correcting for tile differences, why does it have indices for $r$ and $c$?"
 
@@ -431,7 +431,7 @@ where $N_{g, t}$ is the number of high probability spots of gene $g$ in tile $t$
 We minimise this loss to obtain the optimal value
 
 $$
-Q_{trc} = \dfrac{ \sum_{g \in G_{r, \ d_{max}(c) }} \sqrt{N_{gt}} \ K_{grc}  D_{gtrc}} { \sum_{g \in G_{r,\ d_{max}(c) }} \sqrt{N_{gt}}  D_{gtrc}^2 }.
+Q_{trc} = \dfrac{ \sum_{g \in G_{r, \ d_{max}(c) }} (1-e^{-a N_{gt}}) \ K_{grc}  D_{gtrc}} { \sum_{g \in G_{r,\ d_{max}(c) }} (1-e^{-a N_{gt}})  D_{gtrc}^2 }.
 $$
 
 ### 6 and 7: Application of Scales, Computation of Final Scores and Bleed Matrix

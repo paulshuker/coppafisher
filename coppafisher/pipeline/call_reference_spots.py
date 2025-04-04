@@ -8,8 +8,7 @@ import numpy as np
 import zarr
 
 from .. import log
-from ..call_spots.base import bayes_mean, compute_bleed_matrix
-from ..call_spots.dot_product import dot_product_score, gene_prob_score
+from ..call_spots import base, dot_product
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..utils import intensity as utils_intensity
@@ -97,7 +96,7 @@ def call_reference_spots(
 
     # 2. Compute gene probabilities for each spot
     bled_codes = raw_bleed_matrix[gene_codes]
-    gene_prob_initial = gene_prob_score(spot_colours, bled_codes, kappa=config["kappa"])
+    gene_prob_initial = dot_product.gene_prob_score(spot_colours, bled_codes, kappa=config["kappa"])
 
     # 3. Use spots with score above threshold to work out global dye codes
     prob_mode_initial, prob_score_initial = np.argmax(gene_prob_initial, axis=1), np.max(gene_prob_initial, axis=1)
@@ -113,7 +112,7 @@ def call_reference_spots(
     )
     prob_threshold = min(config["gene_prob_threshold"], np.percentile(prob_score_initial, 90))
     good = prob_score_initial > prob_threshold
-    bleed_matrix_initial = compute_bleed_matrix(spot_colours[good], prob_mode_initial[good], gene_codes, n_dyes)
+    bleed_matrix_initial = base.compute_bleed_matrix(spot_colours[good], prob_mode_initial[good], gene_codes, n_dyes)
 
     # 4. Compute the free_bled_codes
     free_bled_codes_tile_indep = np.zeros((n_genes, n_rounds, n_channels_use), np.float32)
@@ -122,7 +121,7 @@ def call_reference_spots(
     for g in range(n_genes):
         good_g = (prob_mode_initial == g) & good
         for r in range(n_rounds):
-            free_bled_codes_tile_indep[g, r] = bayes_mean(
+            free_bled_codes_tile_indep[g, r] = base.bayes_mean(
                 spot_colours=spot_colours[good_g, r],
                 prior_colours=bleed_matrix_initial[gene_codes[g, r]],
                 conc_param_parallel=config["concentration_parameter_parallel"],
@@ -130,7 +129,7 @@ def call_reference_spots(
             )
             for t in use_tiles:
                 good_gt = (prob_mode_initial == g) & (spot_tile == t) & good
-                free_bled_codes[g, t, r] = bayes_mean(
+                free_bled_codes[g, t, r] = base.bayes_mean(
                     spot_colours=spot_colours[good_gt, r],
                     prior_colours=bleed_matrix_initial[gene_codes[g, r]],
                     conc_param_parallel=config["concentration_parameter_parallel"],
@@ -151,8 +150,13 @@ def call_reference_spots(
         if np.sum(n_spots_per_gene) == 0:
             continue
         rc_scale[r, c] = np.sum(
-            np.sqrt(n_spots_per_gene) * free_bled_codes_tile_indep[rc_genes, r, c] * config["target_values"][c]
-        ) / np.sum(np.sqrt(n_spots_per_gene) * free_bled_codes_tile_indep[rc_genes, r, c] ** 2)
+            base.compute_spot_count_significance(n_spots_per_gene, config["spot_count_insignificance"])
+            * free_bled_codes_tile_indep[rc_genes, r, c]
+            * config["target_values"][c]
+        ) / np.sum(
+            base.compute_spot_count_significance(n_spots_per_gene, config["spot_count_insignificance"])
+            * free_bled_codes_tile_indep[rc_genes, r, c] ** 2
+        )
     bled_codes = free_bled_codes_tile_indep * rc_scale[None, :, :]
     # normalise the constrained bled codes
     bled_codes /= np.linalg.norm(bled_codes, axis=(1, 2), keepdims=True)
@@ -172,14 +176,21 @@ def call_reference_spots(
             log.warn(f"No relevant spots found to calculate tile scale factor Q for {t=}, {r=}, {c=}")
             continue
         tile_scale[t, r, c] = np.sum(
-            np.sqrt(n_spots_per_gene) * bled_codes[relevant_genes, r, c] * free_bled_codes[relevant_genes, t, r, c]
-        ) / np.sum(np.sqrt(n_spots_per_gene) * free_bled_codes[relevant_genes, t, r, c] ** 2)
+            base.compute_spot_count_significance(n_spots_per_gene, config["spot_count_insignificance"])
+            * bled_codes[relevant_genes, r, c]
+            * free_bled_codes[relevant_genes, t, r, c]
+        ) / np.sum(
+            base.compute_spot_count_significance(n_spots_per_gene, config["spot_count_insignificance"])
+            * free_bled_codes[relevant_genes, t, r, c] ** 2
+        )
 
     # 7. Update the normalised spots and the bleed matrix, then do a second round of gene assignments with the new bled
     # codes.
     colour_norm_factor = colour_norm_factor_initial * tile_scale
     spot_colours *= tile_scale[spot_tile, :, :]  # update the spot colours
-    gene_prob = gene_prob_score(spot_colours=spot_colours, bled_codes=bled_codes, kappa=config["kappa"])  # update probs
+    gene_prob = dot_product.gene_prob_score(
+        spot_colours=spot_colours, bled_codes=bled_codes, kappa=config["kappa"]
+    )  # update probs
     prob_mode, prob_score = np.argmax(gene_prob, axis=1), np.max(gene_prob, axis=1)
     gene_prob = zarr.array(
         gene_prob, store=os.path.join(nbp_file.output_dir, "gene_prob.zarray"), chunks=(pixel_chunk_size, 1), **kwargs
@@ -193,7 +204,7 @@ def call_reference_spots(
     for batch_i in range(n_batches):
         index_min = batch_i * n_max_score_pixels
         index_max = min(spot_colours.shape[0], (batch_i + 1) * n_max_score_pixels)
-        batch_scores = dot_product_score(
+        batch_scores = dot_product.dot_product_score(
             spot_colours=spot_colours[np.newaxis, index_min:index_max], bled_codes=bled_codes[np.newaxis, np.newaxis]
         )[0]
         gene_dot_products[index_min:index_max] = batch_scores
@@ -207,7 +218,7 @@ def call_reference_spots(
     )
     # Update bleed matrix.
     good = prob_score > prob_threshold
-    bleed_matrix = compute_bleed_matrix(spot_colours[good], prob_mode[good], gene_codes, n_dyes)
+    bleed_matrix = base.compute_bleed_matrix(spot_colours[good], prob_mode[good], gene_codes, n_dyes)
     intensity = utils_intensity.compute_intensity(
         nbp_ref_spots.colours[:].astype(np.float32) * colour_norm_factor[spot_tile]
     )

@@ -3,7 +3,14 @@ import numpy as np
 from coppafisher.call_spots import base
 
 
-def test_bayes_mean():
+def test_compute_spot_count_significance() -> None:
+    assert type(base.compute_spot_count_significance(1, 0.5)) is float
+    assert np.isclose(base.compute_spot_count_significance(10, 0.15), 0.77687)
+    assert np.isclose(base.compute_spot_count_significance(10_000, 0.15), 1)
+    assert np.isclose(base.compute_spot_count_significance(0, 0.15), 0)
+
+
+def test_bayes_mean() -> None:
     rng = np.random.RandomState(0)
     # Get 100 random spots with 5 colours.
     n_spots, n_channels = 100, 5
@@ -33,7 +40,7 @@ def test_bayes_mean():
     assert np.allclose(base.bayes_mean(spot_colours, prior_colours, 9e10, 9e10), prior_colours)
 
 
-def test_compute_bleed_matrix():
+def test_compute_bleed_matrix() -> None:
     rng = np.random.RandomState(0)
     # 3 rounds, 4 channels, 2 genes, 3 dyes, 100 spots
     n_rounds, n_channels, n_genes, n_dyes, n_spots = 3, 4, 2, 3, 100
