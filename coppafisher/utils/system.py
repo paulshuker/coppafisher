@@ -47,6 +47,19 @@ def get_software_version() -> str:
     return version_tag
 
 
+def remove_version_hash(version: str) -> str:
+    """
+    Remove the commit hash code appended to the end of software versions given from the function `get_software_version`.
+
+    Args:
+        version (str): the version string.
+
+    Returns
+        (str): version_without_hash. The version string without commit hash if there is one.
+    """
+    return version.split("-")[0]
+
+
 def get_remote_software_version() -> str | None:
     """
     Get coppafisher's latest version in `_version.py` found online at the default branch.
