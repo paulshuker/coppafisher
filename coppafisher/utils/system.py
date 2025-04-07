@@ -34,7 +34,9 @@ def get_software_version() -> str:
         version_tag = f.read().split(consts.VERSION_ENCAPSULATE)[1]
 
     try:
-        short_form_commit_hash = subprocess.check_output(["git", "describe", "--always"]).strip().decode()
+        short_form_commit_hash = (
+            subprocess.check_output(["git", "describe", "--always"], cwd=os.path.dirname(__file__)).strip().decode()
+        )
     except subprocess.CalledProcessError:
         short_form_commit_hash = ""
 
