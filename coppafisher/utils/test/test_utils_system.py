@@ -6,7 +6,8 @@ from coppafisher.utils import system
 
 def test_get_software_version() -> None:
     assert system.get_software_version()
-    assert system.get_software_version()[0] == "v"
+    assert system.get_software_version()[0].isnumeric()
+    assert all([num.isnumeric() for num in system.remove_version_hash(system.get_software_version()).split(".")])
     if "-" in system.get_software_version():
         assert len(system.get_software_version().split("-")) == 2
 
