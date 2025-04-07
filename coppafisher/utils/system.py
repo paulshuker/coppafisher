@@ -27,16 +27,15 @@ def get_software_version() -> str:
     --always`. If this fails, then nothing is appended.
 
     Returns:
-        str: software version.
+        (str): version. The local software version.
     """
     consts = SystemConstants()
     with open(PurePath(os.path.dirname(os.path.realpath(__file__))).parent.joinpath("_version.py"), "r") as f:
         version_tag = f.read().split(consts.VERSION_ENCAPSULATE)[1]
 
     try:
-        short_form_commit_hash = (
-            subprocess.check_output(["git", "describe", "--always"], cwd=os.path.dirname(__file__)).strip().decode()
-        )
+        cwd = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        short_form_commit_hash = subprocess.check_output(["git", "describe", "--always"], cwd=cwd).strip().decode()
     except subprocess.CalledProcessError:
         short_form_commit_hash = ""
 
