@@ -171,7 +171,7 @@ def run_omp(
     yxz = [np.linspace(0, z_plane_shape[i] - 1, z_plane_shape[i]) for i in range(3)]
     yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
     yxz[:, 2] = nbp_basic.use_z[len(nbp_basic.use_z) // 2]
-    all_mid_z_intensities: list[np.ndarray] = []
+    all_mid_z_intensities = []
     for t in nbp_basic.use_tiles:
         spot_colour_kwargs["tile"] = t
         mid_z_colours = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz, **spot_colour_kwargs)
@@ -179,10 +179,12 @@ def run_omp(
         mid_z_colours *= colour_norm_factor[[t]]
         mid_z_intensities = intensity.compute_intensity(mid_z_colours)
         all_mid_z_intensities.append(mid_z_intensities)
-    all_mid_z_intensities: np.ndarray = np.concat(all_mid_z_intensities, 0)
+    all_mid_z_intensities = torch.cat(all_mid_z_intensities).float()
     all_mid_z_intensities = all_mid_z_intensities.ravel()
-    minimum_intensity = np.percentile(all_mid_z_intensities, config["minimum_intensity_percentile"]).item()
+    all_mid_z_intensities = all_mid_z_intensities.numpy()
+    minimum_intensity = np.percentile(all_mid_z_intensities, config["minimum_intensity_percentile"])
     minimum_intensity *= config["minimum_intensity_multiplier"]
+    minimum_intensity = float(minimum_intensity)
     solver_kwargs["minimum_intensity"] = minimum_intensity
     log.debug(f"Intensity threshold is {solver_kwargs['minimum_intensity']} for all tiles")
     del z_plane_shape, yxz, all_mid_z_intensities, filter_images, mid_z_colours, mid_z_intensities, minimum_intensity
