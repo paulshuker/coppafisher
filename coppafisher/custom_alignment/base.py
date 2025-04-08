@@ -160,14 +160,6 @@ def fuse_custom_and_dapi(nb: Notebook, extract_dir: str, channel: int) -> np.nda
     tilepositions_yx = np.array(tilepositions_yx, int)
     expected_overlap = nb.stitch.associated_configs["stitch"]["expected_overlap"]
 
-    tile_origins_custom, _, _ = stitch_base.stitch(
-        custom_images,
-        tilepositions_yx,
-        tile_indices,
-        nb.basic_info.n_tiles,
-        expected_overlap,
-    )
-
     nbp_basic = NotebookPage("basic_info")
     nbp_basic.tile_sz = nb.basic_info.tile_sz
     nbp_basic.use_tiles = tuple(tile_indices)
@@ -178,12 +170,21 @@ def fuse_custom_and_dapi(nb: Notebook, extract_dir: str, channel: int) -> np.nda
     dapi_fused_image = background.generate_global_image(
         dapi_images, tile_indices, nbp_basic, nb.stitch, np.uint16, silent=False
     )
+    del dapi_images
 
+    tile_origins_custom, _, _ = stitch_base.stitch(
+        custom_images,
+        tilepositions_yx,
+        tile_indices,
+        nb.basic_info.n_tiles,
+        expected_overlap,
+    )
     nbp_stitch = NotebookPage("stitch", {"stitch": {"expected_overlap": expected_overlap}})
     nbp_stitch.tile_origin = tile_origins_custom
     custom_fused_image = background.generate_global_image(
         custom_images, tile_indices, nbp_basic, nbp_stitch, np.uint16, silent=False
     )
+    del custom_images
 
     # The custom image is cropped/padded with zeros to share the same position and shape of the DAPI fused image.
     custom_fused_image = postprocessing.pad_and_crop_image_to_origin(
