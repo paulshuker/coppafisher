@@ -97,14 +97,15 @@ the DAPI channel. You can reverse the z planes in the custom image by setting `r
 ### Stitch
 
 The extracted raw anchor-DAPI images are stitched using coppafisher's [stitch](stitch.md) method. The custom image is
-stitched by the same method separately. This then needs to be registered with the anchor-DAPI in the next step. Do this
-for each custom image channel separately.
+stitched by the same method separately.
 
 ```py
 from coppafisher.custom_alignment import fuse_custom_and_dapi
 
-fused_custom_image, fused_anchor_image = fuse_custom_and_dapi(nb, output_dir, channel=0)
+fused_custom_image, fused_anchor_image = fuse_custom_and_dapi(nb, output_dir, channel=nb.basic_info.dapi_channel)
 ```
+
+where `fused_anchor_image` is always the anchor round DAPI image from the pipeline (it does not vary with `channel`).
 
 ### Register
 
@@ -138,6 +139,7 @@ You can save the transform to disk by doing
 
 ```py
 import numpy as np
+
 np.save("/path/to/saved/transform.npy", transform)
 ```
 
@@ -147,20 +149,22 @@ Then you can load it back in at any time by
 transform = np.load("/path/to/saved/transform.npy")
 ```
 
-### Optional: Apply channel corrections
+### Optional: Phase cross correlate
 
-If the custom image channel you are currently fusing is a channel that was used during the notebook run, you can combine
-an additional camera channel correction before applying the transform. This only affects the transform if a fluorescent
-bead path was given during the pipeline run. It is recommended to [save](#optional-save-the-transform-to-disk) the old
-transform to disk first.
+For custom image channels not equal to the DAPI channel, Phase Cross Correlation (PCC) can be used to correct for a
+simple offset between channel images before registering. To do this, you need the DAPI channel custom image in memory
 
 ```py
-from coppafisher.custom_alignment import compose_channel_correction
-
-transform_channel_corrected = compose_channel_correction(nb, transform, channel=0)
+fused_dapi_custom_image, _ = fuse_custom_and_dapi(nb, output_dir, channel=nb.basic_info.dapi_channel)
 ```
 
-The channel index must match with the channel given in [stitch](#stitch).
+Then compute the offset
+
+```py
+import skimage
+
+pixel_offset = skimage.registration.phase_cross_correlation(fused_dapi_custom_image, fused_custom_image)[0]
+```
 
 ### Apply transform and save results
 
@@ -170,10 +174,14 @@ Now apply the transform to the custom image and save the result as a .tif file.
 from coppafisher.custom_alignment import apply_transform
 
 save_dir = "/path/to/output/directory"
-apply_transform(fused_custom_image, transform_channel_corrected, save_dir, name=f"custom_final_channel_{channel}.tif")
+apply_transform(
+    fused_custom_image, transform, save_dir, name=f"custom_final_channel_{channel}.tif", pixel_offset=pixel_offset
+)
 ```
 
-The custom image will be saved as the given name as `uint16`.
+If you did not compute a pixel offset, set `#!python pixel_offset=None`.
+
+The custom image will be saved as the given name as `#!python np.uint16`.
 
 You can also save the fused_anchor_image which should have no transform applied to it.
 
