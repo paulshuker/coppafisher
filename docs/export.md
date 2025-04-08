@@ -81,7 +81,7 @@ extract_raw(
     save_dir=output_dir,
     read_dir=custom_nd2,
     use_tiles=nb.basic_info.use_tiles,
-    use_channels=[9, 23],
+    use_channels=[nb.basic_info.dapi_channel, 9, 23], # Ensure that the DAPI is extracted for registering.
     reverse_custom_z=False,
 )
 ```
