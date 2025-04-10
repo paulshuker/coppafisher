@@ -152,7 +152,7 @@ def initialize_notebook(config_path: str) -> Tuple[Notebook, NotebookPage, Confi
         raise ValueError("The notebook contains incompatible data. Please see the log above for advice")
 
     online_version = utils_system.get_remote_software_version()
-    if online_version != utils_system.get_software_version():
+    if online_version != utils_system.remove_version_hash(utils_system.get_software_version()):
         log.warn(
             f"You are running v{utils_system.get_software_version()}. The latest online version is v{online_version}"
         )
