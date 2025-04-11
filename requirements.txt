@@ -122,7 +122,7 @@ rpds-py==0.20.0
 scikit-image==0.24.0
 scikit-learn==1.5.2
 scipy==1.14.1
-setuptools==75.3.0
+setuptools==78.1.0
 shellingham==1.5.4
 six==1.16.0
 snowballstemmer==2.2.0
@@ -153,7 +153,6 @@ urllib3==2.2.3
 vispy==0.14.3
 wcwidth==0.2.13
 Werkzeug==3.0.6
-wheel==0.44.0
 wrapt==1.16.0
 xsdata==24.3.1
 zarr==2.18.3
