@@ -1,8 +1,10 @@
-2025/MM/DD Version 1.2 Patch (v1.2.4):
+2025/MM/DD Version 1.3 (v1.3.0):
  * General: Warning message printed and logged with traceback fix.
  * General: Commit hash now appended to software version for improved debugging.
  * General: Removed some redundant/unused dependencies.
  * PDF Diagnostics: Mean of empty slice warning fixed.
+ * Call spots: Improved loss function minimisation for normalisation factors with new config parameter
+    `spot_count_insignificance` (default 0.15).
 
 
 2025/04/01 Version 1.2 Patch (v1.2.3):

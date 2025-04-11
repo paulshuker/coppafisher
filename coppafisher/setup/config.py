@@ -225,6 +225,7 @@ class Config:
             "kappa": ("maybe_number", "not-negative"),
             "concentration_parameter_parallel": ("number", ""),
             "concentration_parameter_perpendicular": ("number", ""),
+            "spot_count_insignificance": ("number", "not-negative"),
         },
         "omp": {
             "max_genes": ("int", "positive"),
