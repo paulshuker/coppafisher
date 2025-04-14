@@ -1,3 +1,5 @@
+from numbers import Number
+
 import numpy as np
 
 
@@ -6,7 +8,7 @@ def pad_and_crop_image_to_origin(
     current_origin: np.ndarray[np.floating],
     global_origin: np.ndarray[np.floating],
     shape: tuple[int, int, int],
-    pad_value: float = 0,
+    pad_value: Number = 0,
 ) -> np.ndarray[np.floating]:
     """
     The image is cropped to be the given shape and start at the given global origin at the first value.
@@ -16,7 +18,7 @@ def pad_and_crop_image_to_origin(
         current_origin (`(3) ndarray`): the current origin position for the first value of the image.
         global_origin (`(3) ndarray`): the wanted global origin position for the first value of the image.
         shape (tuple of three ints): the required shape to put the image into.
-        pad_value (float, optional): the value to pad the image with. Default: 0.
+        pad_value (number, optional): the value to pad the image with. Default: 0.
 
     Returns:
         (`shape ndarray`): padded_cropped_image. The final padded and/or cropped image.

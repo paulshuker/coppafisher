@@ -275,7 +275,10 @@ class BuildPDF:
                     g_r_dot_products = np.abs(np.sum(spot_colours_rnorm * g_bled_code[None, :, :], axis=2))
                     thresh_spots = np.argmax(gene_probabilities, axis=1) == g
                     thresh_spots = thresh_spots * (np.max(gene_probabilities) > self.GENE_PROB_THRESHOLD)
-                    colours_mean = np.mean(scores[thresh_spots], axis=0)
+                    if thresh_spots.sum() > 0:
+                        colours_mean = np.mean(scores[thresh_spots], axis=0)
+                    else:
+                        colours_mean = np.zeros(scores.shape[1:])
                     fig, axes = self.create_empty_page(2, 2, gridspec_kw={"width_ratios": [2, 1]})
                     self.empty_plot_ticks(axes[1, 1])
                     fig.suptitle(f"{gene_names[g]}", size=self.NORMAL_FONTSIZE)

@@ -42,6 +42,7 @@ class CompatibilityTracker:
             ("1.2.1", "none"),
             ("1.2.2", "register"),
             ("1.2.3", "call_spots"),
+            ("1.2.4", "none"),
         )
     )
     _stage_instructions: list[tuple[str, ...]]
@@ -100,6 +101,9 @@ class CompatibilityTracker:
         assert type(from_version) is str
         assert type(to_version) is str
         assert from_version != to_version
+
+        from_version = system.remove_version_hash(from_version)
+        to_version = system.remove_version_hash(to_version)
         saved_versions_msg = f"valid versions are {', '.join(self._version_compatibility.keys())}"
         if not self.has_version(from_version):
             raise ValueError(f"Could not find version {from_version}, {saved_versions_msg}")
@@ -139,9 +143,11 @@ class CompatibilityTracker:
         if current_version is None:
             current_version = system.get_software_version()
         assert type(current_version) is str
+        current_version = system.remove_version_hash(current_version)
         assert current_version in self._version_compatibility, f"Unknown version {current_version} given"
 
         for page_name, page_version in nb_page_versions.items():
+            page_version = system.remove_version_hash(page_version)
             _, page_stage_index = self._get_stage_with_page_name(page_name)
             if page_version not in self._version_compatibility:
                 raise ValueError(f"Notebook page {page_name} has unknown software version: {page_version}")
@@ -225,7 +231,7 @@ class CompatibilityTracker:
         Returns:
             (bool): version_exists. Whether the version exists.
         """
-        return version in self._version_compatibility
+        return system.remove_version_hash(version) in self._version_compatibility
 
     def _notebook_has_downgrade(self, nb_page_versions: dict[str, str], current_version: str) -> bool:
         """
@@ -241,9 +247,11 @@ class CompatibilityTracker:
         Returns:
             (bool) has_downgrade: true if the software version did downgrade.
         """
+        current_version = system.remove_version_hash(current_version)
         ordered_version_list = list(self._version_compatibility)
         current_version_index = ordered_version_list.index(current_version)
         for page_name, page_version in nb_page_versions.items():
+            page_version = system.remove_version_hash(page_version)
             page_version_index = ordered_version_list.index(page_version)
             if page_version_index > current_version_index:
                 log.warn(

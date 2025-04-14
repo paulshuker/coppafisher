@@ -1,3 +1,11 @@
+2025/04/14 Version 1.2 Patch (v1.2.4):
+ * General: Warning message printed and logged with traceback fix.
+ * General: Commit hash now appended to software version for improved debugging.
+ * General: Removed some redundant/unused dependencies.
+ * PDF Diagnostics: Mean of empty slice warning fixed.
+ * Export: Better custom image alignment.
+
+
 2025/04/01 Version 1.2 Patch (v1.2.3):
  * General: Occassional process termination `psutil.NoSuchProcess: Process no longer exists` error fixed.
  * Diagnostics: New `view_intensity_histogram` plot explained under Method -> OMP.
