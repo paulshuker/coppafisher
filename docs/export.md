@@ -53,18 +53,13 @@ intensity_thresh is set to `0.15` in the Viewer by default.
 
 ## Custom Images
 
-There is a built-in tool to stitch then register additional images. When registered, the images are aligned with the
-spot positions that are shown in the Viewer and exported for [pciSeq](#pciseq).
-
-??? info "Registration Method"
-
-    The registration uses the older method of sub volume registration (see
-    [issue](https://github.com/paulshuker/coppafisher/issues/210) for a future optical flow enhancement).
+Additional custom images can be aligned with coppafisher images and gene spots provided that you have a dapi channel (or
+something similar to align with the anchor-DAPI image).
 
 ### Extract the additional image(s)
 
-The additional images must be extracted from the ND2 files. You will likely require the DAPI channel for best results.
-They are saved as tiff files. If you do not have ND2 input files, you need to first manually convert them to tiff files.
+The additional images must be extracted from ND2 files. You will likely require the DAPI channel for best results. They
+are saved as tiff files. If you do not have ND2 input files, you need to first manually convert them to tiff files.
 
 ```py
 from coppafisher.custom_alignment import extract_raw
@@ -141,9 +136,8 @@ napari window.
 ??? info "Type of Transform"
 
     You can change the type of transform you wish to find, please see the transfrom
-    [readme](https://github.com/mwshinn/transform/blob/master/README.md). With a `TranslateRotate`, use a good number of
-    points in multiple z planes for best results. For `TranslateRotateRescale`, better results can be achieved but
-    points placed at the edge of the z stack in all four corners are required.
+    [readme](https://github.com/mwshinn/transform/blob/master/README.md). For `TranslateRotateRescale`, better results
+    can be achieved but points placed at the edge of the z stack in all four corners are required.
 
 ??? tip "Save and Load Transforms"
 
