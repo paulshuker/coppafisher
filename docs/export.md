@@ -136,8 +136,8 @@ napari window.
 ??? info "Type of Transform"
 
     You can change the type of transform you wish to find, please see the transfrom
-    [readme](https://github.com/mwshinn/transform/blob/master/README.md). For `TranslateRotateRescale`, better results
-    can be achieved but points placed at the edge of the z stack in all four corners are required.
+    [readme](https://github.com/mwshinn/transform/blob/master/README.md). Currently, rescaling transforms are NOT
+    supported!
 
 ??? tip "Save and Load Transforms"
 
@@ -169,9 +169,15 @@ napari window.
 You can now apply the resulting transform to the custom dapi image and save the result as a `.tif` file
 
 ```py
+import numpy as np
 import tifffile
 
-fused_custom_dapi_image_transformed = round_transform.transform_image(fused_custom_dapi_image, force_size=True)
+from coppafisher.custom_alignment import postprocessing
+
+fused_custom_dapi_image_transformed = round_transform.transform_image(fused_custom_dapi_image, labels=True)
+fused_custom_dapi_image_transformed = postprocessing.pad_and_crop_image_to_origin(
+    fused_custom_dapi_image_transformed, fused_custom_dapi_image_transformed.origin, np.zeros(3), fused_anchor_dapi_image.shape
+)
 tifffile.imwrite("/path/to/saved/custom_dapi_image_transformed.tif", fused_custom_dapi_image_transformed)
 del fused_custom_dapi_image_transformed
 del fused_anchor_dapi_image
@@ -199,7 +205,10 @@ Now save the fully registered channel image
 ```py
 import tifffile
 
-fused_custom_channel_image_transformed = (channel_transform + round_transform).transform_image(fused_custom_channel_image, force_size=True)
+fused_custom_channel_image_transformed = (channel_transform + round_transform).transform_image(fused_custom_channel_image, labels=True)
+fused_custom_channel_image_transformed = postprocessing.pad_and_crop_image_to_origin(
+    fused_custom_channel_image_transformed, fused_custom_channel_image_transformed.origin, np.zeros(3), fused_custom_channel_image.shape
+)
 tifffile.imwrite(f"/path/to/saved/custom_channel_{c}_image_transformed.tif", fused_custom_channel_image_transformed)
 del fused_custom_channel_image_transformed
 del fused_custom_channel_image
