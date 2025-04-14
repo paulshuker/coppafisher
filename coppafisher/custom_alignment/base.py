@@ -1,11 +1,8 @@
 import os
 
-import napari
 import nd2
 import numpy as np
 import numpy.typing as npt
-import scipy
-import skimage
 import tifffile
 import tqdm
 import zarr
@@ -16,8 +13,7 @@ from ..setup import file_names
 from ..setup.notebook import Notebook
 from ..setup.notebook_page import NotebookPage
 from ..stitch import base as stitch_base
-from ..utils import affine
-from . import postprocessing, preprocessing, subvol_registration
+from . import postprocessing
 
 CUSTOM_DIR_NAME = "custom"
 DAPI_DIR_NAME = "seq"
@@ -195,168 +191,3 @@ def fuse_custom_and_dapi(nb: Notebook, extract_dir: str, channel: int) -> np.nda
     )
 
     return custom_fused_image, dapi_fused_image
-
-
-def register_custom_image(
-    anchor_dapi: np.ndarray,
-    custom_image: np.ndarray,
-    reg_parameters: dict,
-    downsample_factor_yx: int,
-) -> np.ndarray[np.float32]:
-    """
-    Register custom image to the given DAPI anchor image.
-
-    The new registered and fused custom is saved as "custom_image.tif" to disk. This can then be opened in the Viewer.
-
-    Args:
-        anchor_dapi (`(nz x ny x nx) ndarray`): stitched large anchor image.
-        custom_image (`(nz x ny x nx) ndarray`): stitched large custom image.
-        reg_parameters (dict[str, Any]): dictionary of registration parameters. Keys are:
-            * registration_type: str, type of registration to perform (must be 'shift' or 'subvolume')
-            if registration_type is 'shift':
-                No additional parameters are required.
-            if registration_type is 'subvolume':
-                * subvolume_size: np.ndarray, size of subvolumes in each dimension (size_z, size_y, size_x).
-                * overlap: float, fraction of overlap between subvolumes: 0 <= overlap < 1.
-                * r_threshold: float, threshold for correlation coefficient.
-        downsample_factor_yx (int, optional): downsample factor for y and x dimensions.
-
-    Returns:
-        (`(3 x 4) ndarray[float]`): affine_tranform. The final calculated affine transform for the custom image.
-    """
-    # Steps are as follows:
-    # 1. Manual selection of reference points for shift and rotation correction
-    # 2. Local correction for z shifts (done as a global shift correction or by subvolume registration)
-
-    if anchor_dapi.shape != custom_image.shape:
-        z_box_anchor, y_box_anchor, x_box_anchor = np.array(anchor_dapi.shape)
-        z_box_if, y_box_if, x_box_if = np.array(custom_image.shape)
-        z_box, y_box, x_box = max(z_box_anchor, z_box_if), max(y_box_anchor, y_box_if), max(x_box_anchor, x_box_if)
-        anchor_dapi_full, custom_full = np.zeros((z_box, y_box, x_box)), np.zeros((z_box, y_box, x_box))
-        anchor_dapi_full[:z_box_anchor, :y_box_anchor, :x_box_anchor] = anchor_dapi
-        custom_full[:z_box_if, :y_box_if, :x_box_if] = custom_image
-        anchor_dapi, custom_image = anchor_dapi_full, custom_full
-        del anchor_dapi_full, custom_full
-
-    # 1. Global correction for shift and rotation using procrustes analysis.
-    anchor_dapi_2d = np.max(anchor_dapi, axis=0)
-    custom_2d = np.max(custom_image, axis=0)
-    v = napari.Viewer()
-    v.add_image(anchor_dapi_2d, name="anchor_dapi", colormap="red", blending="additive")
-    v.add_image(custom_2d, name="custom_image", colormap="green", blending="additive")
-    v.add_layer(
-        napari.layers.Points(
-            data=np.array([]), name="anchor_dapi_points", size=1, border_color=np.zeros((3, 4)), face_color="white"
-        )
-    )
-    v.add_layer(
-        napari.layers.Points(
-            data=np.array([]), name="custom_image_points", size=1, border_color=np.zeros((3, 4)), face_color="white"
-        )
-    )
-    v.show(block=True)
-
-    # Get user input for shift and rotation.
-    base_points = v.layers[2].data
-    target_points = v.layers[3].data
-    # Calculate the original orthogonal transform.
-    transform_initial = subvol_registration.procrustes_regression(base_points, target_points)
-    # Now apply the transform to the custom image.
-    custom_aligned_initial = scipy.ndimage.affine_transform(custom_image, transform_initial, order=0)
-
-    v = napari.Viewer()
-    v.add_image(anchor_dapi, name="anchor_dapi", colormap="red", blending="additive")
-    v.add_image(custom_aligned_initial, name="custom_image", colormap="green", blending="additive")
-    v.show(block=True)
-
-    # 2. Local correction for shifts
-    if reg_parameters["registration_type"] == "shift":
-        # shift needs to be shift taking anchor to if, as the first transform was obtained this way
-        shift = skimage.registration.phase_cross_correlation(
-            reference_image=custom_aligned_initial, moving_image=anchor_dapi
-        )[0]
-        transform_3d_correction = np.eye(3, 4)
-        transform_3d_correction[:, 3] = shift
-    elif reg_parameters["registration_type"] == "subvolume":
-        # First, split the images into subvolumes.
-        z_size, y_size, x_size = reg_parameters["subvolume_size"]
-        anchor_subvolumes, position = preprocessing.split_image(
-            image=anchor_dapi, subvolume_size=[z_size, y_size, x_size], overlap=reg_parameters["overlap"]
-        )
-        custom_subvolumes, _ = preprocessing.split_image(
-            image=custom_aligned_initial, subvolume_size=[z_size, y_size, x_size], overlap=reg_parameters["overlap"]
-        )
-        # Now loop through subvolumes and calculate the shifts.
-        shift, _ = subvol_registration.find_shift_array(
-            anchor_subvolumes, custom_subvolumes, position, r_threshold=reg_parameters["r_threshold"]
-        )
-        # flatten the position array.
-        position = position.reshape(-1, 3)
-
-        # Use these shifts to compute a global affine transform.
-        transform_3d_correction = subvol_registration.huber_regression(shift, position, predict_shift=False)
-    else:
-        raise ValueError(f"Unknown registration type: {reg_parameters['registration_type']}")
-
-    # Plot the transformed image.
-    custom_aligned = scipy.ndimage.affine_transform(custom_aligned_initial, transform_3d_correction, order=0)
-    v = napari.Viewer()
-    v.add_image(anchor_dapi, name="anchor_dapi", colormap="red", blending="additive")
-    v.add_image(custom_aligned, name="custom_image", colormap="green", blending="additive")
-    v.show(block=True)
-
-    # Now compose the initial and 3d correction transforms.
-    transform = (np.vstack((transform_initial, [0, 0, 0, 1])) @ np.vstack((transform_3d_correction, [0, 0, 0, 1])))[
-        :3, :
-    ]
-    # Upsample shift in yx.
-    transform[1:, -1] *= downsample_factor_yx
-
-    return transform
-
-
-def compose_channel_correction(nb: Notebook, transform: np.ndarray, channel: int) -> np.ndarray:
-    """
-    Compose the camera channel correction to the given transform.
-
-    Args:
-        nb (Notebook): the notebook.
-        transform (`(3 x 4) ndarray`): the current affine transform that registers the custom image round to the anchor
-            round.
-        channel (int): the channel index.
-
-    Returns:
-        (`(3 x 4) ndarray`): composed_transform. The combined affine transform.
-    """
-    output = transform.copy()
-
-    if channel == nb.basic_info.dapi_channel:
-        print("Given channel is the DAPI channel. No change made")
-        return output
-    elif channel not in nb.basic_info.use_channels:
-        print(f"Channel {channel} not found in sequencing channels. No change made")
-        return output
-
-    camera_channel_correction = nb.register_debug.channel_transform_initial[channel].T
-    camera_channel_correction = camera_channel_correction.astype(transform.dtype)
-    output = affine.compose_affines(transform, camera_channel_correction)
-
-    return output
-
-
-def apply_transform(image: np.ndarray, transform: np.ndarray | None, save_dir: str, name: str) -> None:
-    """
-    Apply the transform to the given custom image then save the resulting image.
-
-    Args:
-        image (`(im_y x im_x x im_z) ndarray`): the custom image.
-        transform (`(3 x 4) ndarray`): the affine transform.
-        save_dir (str): save directory.
-        name (str): the file name.
-    """
-    if transform is not None:
-        image = scipy.ndimage.affine_transform(image, transform, order=3)
-
-    tifffile.imwrite(os.path.join(save_dir, name), image)
-
-    print(f"File saved at {os.path.join(save_dir, name)}")

@@ -3,6 +3,7 @@
  * General: Commit hash now appended to software version for improved debugging.
  * General: Removed some redundant/unused dependencies.
  * PDF Diagnostics: Mean of empty slice warning fixed.
+ * Export: Better custom image alignment.
 
 
 2025/04/01 Version 1.2 Patch (v1.2.3):
