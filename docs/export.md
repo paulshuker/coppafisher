@@ -136,8 +136,10 @@ napari window.
 ??? info "Type of Transform"
 
     You can change the type of transform you wish to find, please see the transfrom
-    [readme](https://github.com/mwshinn/transform/blob/master/README.md). Currently, rescaling transforms are NOT
-    supported!
+    [readme](https://github.com/mwshinn/transform/blob/master/README.md) for details.
+
+    For example, you could use the more robust transform type of `#!python TranslateRotateRescale`. It requires four
+    points in every corner of the image on both edges of the z stack for best results.
 
 ??? tip "Save and Load Transforms"
 
@@ -172,11 +174,8 @@ You can now apply the resulting transform to the custom dapi image and save the 
 import numpy as np
 import tifffile
 
-from coppafisher.custom_alignment import postprocessing
-
-fused_custom_dapi_image_transformed = round_transform.transform_image(fused_custom_dapi_image, labels=True)
-fused_custom_dapi_image_transformed = postprocessing.pad_and_crop_image_to_origin(
-    fused_custom_dapi_image_transformed, fused_custom_dapi_image_transformed.origin, np.zeros(3), fused_anchor_dapi_image.shape
+fused_custom_dapi_image_transformed = round_transform.transform_image(
+    fused_custom_dapi_image, relative=fused_anchor_dapi_image.shape, force_size=True, labels=True
 )
 tifffile.imwrite("/path/to/saved/custom_dapi_image_transformed.tif", fused_custom_dapi_image_transformed)
 del fused_custom_dapi_image_transformed
@@ -205,9 +204,8 @@ Now save the fully registered channel image
 ```py
 import tifffile
 
-fused_custom_channel_image_transformed = (channel_transform + round_transform).transform_image(fused_custom_channel_image, labels=True)
-fused_custom_channel_image_transformed = postprocessing.pad_and_crop_image_to_origin(
-    fused_custom_channel_image_transformed, fused_custom_channel_image_transformed.origin, np.zeros(3), fused_custom_channel_image.shape
+fused_custom_channel_image_transformed = (channel_transform + round_transform).transform_image(
+    fused_custom_channel_image, relative=fused_custom_channel_image.shape, force_size=True, labels=True
 )
 tifffile.imwrite(f"/path/to/saved/custom_channel_{c}_image_transformed.tif", fused_custom_channel_image_transformed)
 del fused_custom_channel_image_transformed
