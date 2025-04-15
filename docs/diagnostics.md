@@ -60,6 +60,13 @@ be a .npy file, a compressed .npz file with image at key `"arr_0"`, or a .tif fi
 [tifffile](https://github.com/cgohlke/tifffile) package). For further customisation, see the Viewer
 [docstring](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/plot/results_viewer/base.py).
 
+??? info "Multiple Background Images"
+
+    With multiple background images, you will not see a background contrast slider anymore. This is intentional. To
+    change the settings of each background image, click on Window -> Layer List and Window -> Layer Controls. From these
+    windows, you have full control over the background images by selecting one. You can change their blending mode and
+    opacity so you can see all your background images at once.
+
 Specify no background images by setting `#!python background_images=[]`
 
 Close the Viewer and all subplots by pressing Ctrl + C in the terminal.
@@ -78,13 +85,6 @@ the user to change the minimum and maximum spot scores to display. The "Intensit
 maximum allowed spot intensity to display The "Method" is the chosen method of gene calling. "Probability" is the Von-
 Mises probability method, "Anchor" is the anchor method (see [call spots](overview.md#call-spots)), and "OMP" is the
 Orthogonal Matching Pursuit method (see [OMP](overview.md#orthogonal-matching-pursuit)).
-
-??? note "Multiple Background Images"
-
-    With multiple background images, you will not see a background contrast slider anymore. This is intentional. to
-    change the settings of each background image, click on Window -> Layer List and Window -> Layer Controls. From these
-    windows, you have full control over the background images by selecting one. You can change their blending mode and
-    opacity so you can see all your background images at once.
 
 ??? bug "Max Intensity Projection Toggle"
 

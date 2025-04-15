@@ -31,7 +31,7 @@ vocabulary might be unfamiliar, please see the [glossary](glossary.md) for refer
 * Windows or Linux. MacOS is not tested.
 * Python 3.11 or 3.12.
 * [Git](https://git-scm.com/).
-* 64GB of memory for tile sizes `64x2048x2048` pixels (recommended).
+* 64GB of memory for tile sizes ~`64x2048x2048` pixels (recommended).
 * Nvidia GPU with Cuda 12.4 support (optional).
 
 ### Environment
@@ -50,8 +50,8 @@ coppa can be changed to any name.
 
 ??? note "Environment naming"
 
-    Avoid naming the environment `coppafisher` because this it is the same name as the Python package, which can cause
-    confusing bugs.
+    Avoid putting the word `coppafisher` into the environment name because this is the same name as the Python package,
+    which could cause bugs.
 
 ### Install
 
