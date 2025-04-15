@@ -35,7 +35,9 @@ def get_software_version() -> str:
 
     try:
         cwd = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        short_form_commit_hash = subprocess.check_output(["git", "describe", "--always"], cwd=cwd).strip().decode()
+        short_form_commit_hash = (
+            subprocess.check_output(["git", "describe", "--always"], cwd=cwd, stderr=subprocess.PIPE).strip().decode()
+        )
     except subprocess.CalledProcessError:
         short_form_commit_hash = ""
 
