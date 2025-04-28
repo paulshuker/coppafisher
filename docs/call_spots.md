@@ -490,6 +490,7 @@ Diagnosing the quality of the gene assignments is a crucial part of the pipeline
 
 ```py
 from coppafisher.plot.call_spots import ViewScalingAndBGRemoval
+
 ViewScalingAndBGRemoval(nb)
 ```
 (or simply press 'N' in the main results' viewer)
@@ -514,7 +515,8 @@ This plot shows us a few things:
 
 ```py
 from coppafisher.plot.call_spots import ViewBleedMatrix
-ViewBleedMatrix(nb)
+
+ViewBleedMatrix(nb.basic_info, nb.call_spots)
 ```
 
 (or simply press 'B' in the main results' viewer)
@@ -537,6 +539,7 @@ This viewer shows 3 bleed matrices, each with columns (dyes) normalised.
 
 ```py
 from coppafisher.plot.call_spots import ViewFreeAndConstrainedBledCodes
+
 ViewFreeAndConstrainedBledCodes(nb)
 ```
 
@@ -562,6 +565,7 @@ If this works as expected, the constrained bled codes should have values close t
 
 ```py
 from coppafisher.plot.call_spots import ViewTargetRegression
+
 ViewTargetRegression(nb)
 ```
 
@@ -595,6 +599,7 @@ It is important to check how well each round and channel is being scaled to its 
 
 ```py
 from coppafisher.plot.call_spots import ViewTileScaleRegression
+
 ViewTileScaleRegression(nb, t)
 ```
 This function looks at a fixed tile and then shows the regression for the tile scale factor $Q_{trc}$ for each round and channel. Recall that this is the scale factor that multiplies the tile-dependent free bled codes $D_{gtrc}$ to get the constrained bled codes $K_{grc}$.
@@ -617,6 +622,7 @@ A couple of things to note:
 
 ```py
 from coppafisher.plot.call_spots import ViewScaleFactors
+
 ViewScaleFactors(nb)
 ```
 
@@ -637,6 +643,7 @@ What to expect:
 
 ```py
 from coppafisher.plot.call_spots import ViewGeneEfficiencies
+
 ViewGeneEfficiencies(nb, score_threshold=gamma, mode=gene_assignment_mode)
 ```
 
@@ -658,6 +665,7 @@ Look out for:
 ### Gene Spots Viewer
 ```py
 from coppafisher.plot.call_spots import GeneSpotsViewer
+
 GeneSpotsViewer(nb, score_threshold=gamma, gene_index=g, mode=gene_assignment_mode)
 ```
 
