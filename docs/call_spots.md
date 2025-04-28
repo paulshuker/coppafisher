@@ -514,9 +514,11 @@ This plot shows us a few things:
 ### View Bleed Matrix
 
 ```py
+import matplotlib.pyplot as plt
 from coppafisher.plot.call_spots import ViewBleedMatrix
 
 ViewBleedMatrix(nb.basic_info, nb.call_spots)
+plt.show()
 ```
 
 (or simply press 'B' in the main results' viewer)
