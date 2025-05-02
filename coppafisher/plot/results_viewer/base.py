@@ -10,10 +10,7 @@ from typing import Optional
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import napari
-import napari.components
-import napari.components.viewer_model
 import napari.layers
-import napari.settings
 import numpy as np
 import pandas as pd
 import tabulate
@@ -30,6 +27,7 @@ from superqt import QDoubleRangeSlider, QDoubleSlider
 
 from ...results.base import MethodData
 from ...setup.notebook import Notebook, NotebookPage
+from ...utils import polygon2d
 from ...utils import system as utils_system
 from ..call_spots import bleed_matrix, spot_colours
 from ..omp.colours import ViewOMPColourSum
@@ -784,8 +782,9 @@ class Viewer:
         self._free_subplot_spaces()
 
         new_tool = exporter.ExportTool2D(self.show)
-        new_tool.on_click = self._2d_export_button_clicked
-        new_tool.on_close = self._2d_export_tool_closed
+        new_tool.on_export_clicked = self._2d_export_button_clicked
+        new_tool.on_dilate_clicked = self._2d_export_dilate_button_clicked
+        new_tool.on_closed = self._2d_export_tool_closed
         if self.viewer is not None:
             new_tool.shapes_layer = self.viewer.add_shapes()
             with warnings.catch_warnings():
@@ -829,6 +828,23 @@ class Viewer:
 
         self.spot_data[self.selected_method].save_csv(file_path, self.nbp_call_spots.gene_names, visible_spots)
         print(f"{visible_spots.sum().item()} spot(s) exported at {file_path}")
+
+    def _2d_export_dilate_button_clicked(self, tool: exporter.ExportTool2D) -> None:
+        shapes_data = tool.shapes_layer.data
+        shape_types = tool.shapes_layer.shape_type
+        dilated_shapes_data = []
+        if len(shapes_data) == 0:
+            return
+
+        for shape_data in shapes_data:
+            shape_centroid = polygon2d.compute_centroid(shape_data)
+            dilated_shapes_data.append(polygon2d.dilate(shape_data, tool.get_current_scale_factor(), shape_centroid))
+
+        tool.shapes_layer.selected_data = set([i for i in range(len(shapes_data))])
+        tool.shapes_layer.remove_selected()
+
+        for dilated_shape_data, shape_type in zip(dilated_shapes_data, shape_types):
+            tool.shapes_layer.add(dilated_shape_data, shape_type=shape_type)
 
     def _get_2d_export_file_path(self) -> str:
         dir = self.nb_directory
