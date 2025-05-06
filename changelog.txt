@@ -1,9 +1,18 @@
 2025/MM/DD Version 1.2 Patch (v1.2.6):
+ * Viewer: New 2D polygon shape `dilate` option added to shape spot exporter tool.
+
+
+2025/04/15 Version 1.2 Patch (v1.2.5):
+ * General: "Not a git repository" spammed message fix.
+ * Export: Rescale transform support for custom image registration added.
+
+
+2025/04/14 Version 1.2 Patch (v1.2.4):
  * General: Warning message printed and logged with traceback fix.
  * General: Commit hash now appended to software version for improved debugging.
  * General: Removed some redundant/unused dependencies.
  * PDF Diagnostics: Mean of empty slice warning fixed.
- * Viewer: New 2D polygon shape `dilate` option added to shape spot exporter tool.
+ * Export: Better custom image alignment.
 
 
 2025/04/01 Version 1.2 Patch (v1.2.3):

@@ -1,11 +1,13 @@
+import os
+
 from setuptools import find_packages, setup
 
 __version__ = ""
 
-with open("coppafisher/_version.py", "r") as f:
+with open(os.path.join(os.path.dirname(__file__), "coppafisher", "_version.py"), "r") as f:
     exec(f.read())
 
-with open("README.md", "r") as f:
+with open(os.path.join(os.path.dirname(__file__), "README.md"), "r") as f:
     long_desc = f.read()
 
 packages = [folder for folder in find_packages() if folder[-5:] != ".test"]  # Get rid of test packages
@@ -52,12 +54,11 @@ setup(
     include_package_data=True,
     classifiers=[
         "Development Status :: 5 - Production/Stable",
-        "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3 :: only",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
+        "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
         "Operating System :: Unix",

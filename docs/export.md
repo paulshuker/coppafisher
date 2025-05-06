@@ -53,18 +53,13 @@ intensity_thresh is set to `0.15` in the Viewer by default.
 
 ## Custom Images
 
-There is a built-in tool to stitch then register additional images. When registered, the images are aligned with the
-spot positions that are shown in the Viewer and exported for [pciSeq](#pciseq).
-
-??? info "Registration Method"
-
-    The registration uses the older method of sub volume registration (see
-    [issue](https://github.com/paulshuker/coppafisher/issues/210) for a future optical flow enhancement).
+Additional custom images can be aligned with coppafisher images and gene spots provided that you have a dapi channel (or
+something similar to align with the anchor-DAPI image).
 
 ### Extract the additional image(s)
 
-The additional images must be extracted from the ND2 files. They are saved as tiff files. If you do not have ND2 input
-files, you need to first manually convert them to tiff files.
+The additional images must be extracted from ND2 files. You will likely require the DAPI channel for best results. They
+are saved as tiff files. If you do not have ND2 input files, you need to first manually convert them to tiff files.
 
 ```py
 from coppafisher.custom_alignment import extract_raw
@@ -81,7 +76,7 @@ extract_raw(
     save_dir=output_dir,
     read_dir=custom_nd2,
     use_tiles=nb.basic_info.use_tiles,
-    use_channels=[9, 23],
+    use_channels=[nb.basic_info.dapi_channel, 9, 23],
     reverse_custom_z=False,
 )
 ```
@@ -98,87 +93,121 @@ the DAPI channel. You can reverse the z planes in the custom image by setting `r
 
 The extracted raw anchor-DAPI images are stitched using coppafisher's [stitch](stitch.md) method. The custom image is
 stitched by the same method separately. This then needs to be registered with the anchor-DAPI in the next step. Do this
-for each custom image channel separately.
+for each custom image channel separately. I suggest starting with the dapi channels first
 
 ```py
 from coppafisher.custom_alignment import fuse_custom_and_dapi
 
-fused_custom_image, fused_anchor_image = fuse_custom_and_dapi(nb, output_dir, channel=0)
+fused_custom_dapi_image, fused_anchor_dapi_image = fuse_custom_and_dapi(nb, output_dir, channel=nb.basic_info.dapi_channel)
 ```
 
-### Register
+### Dapi Register
 
-The custom fused image can be registered to the anchor DAPI fused image.
+Alignment is done using a private package called `transform` maintained by Max Shinn (m.shinn@ucl.ac.uk). This allows
+control over the type of transformation to apply based on their custom images. Install required dependencies
+
+```terminal
+python -m pip install --upgrade imageio-ffmpeg
+```
+
+Then in an empty directory, clone the package
+
+```terminal
+git clone --depth 1 https://github.com/mwshinn/transform.git
+cd transform
+ipython
+```
+
+Then start the interactive alignment process
 
 ```py
-from coppafisher.custom_alignment import register_custom_image
+import transform.gui
+from transform.base import TranslateRotate
 
-downsample_factor = 1  # Any natural number, `subvolume_size` along y and x is affected.
-reg_parameters = {
-    "registration_type": "subvolume",  # Can be "shift" or "subvolume".
-    "subvolume_size": [8, 1024, 1024],
-    "overlap": 0.1,  # Subvolume overlap.
-    "r_threshold": 0.8,  # How good the subvolume shifts must be.
-}
-
-fused_custom_image = fused_custom_image[:, ::downsample_factor, ::downsample_factor]
-fused_anchor_image = fused_anchor_image[:, ::downsample_factor, ::downsample_factor]
-
-transform = register_custom_image(fused_anchor_image, fused_custom_image, reg_parameters, downsample_factor)
+round_transform = transform.gui.alignment_gui(
+    fused_custom_dapi_image, fused_anchor_dapi_image, transform_type=TranslateRotate
+)
 ```
 
-`subvolume_size` must be small enough for at least two subvolumes along every axis.
+Press `Add new point` and click twice to place two corresponding points. Do this a few times, preferably in various z
+planes too. Press `Perform transform` to see the resulting transform. Once you are happy with the result, close the
+napari window.
 
-If downsample_factor is greater than 1, get the originally-sized images back by running the [stitch](#stitch) code
-again.
+??? info "Type of Transform"
 
-### Optional: Save the transform to disk
+    You can change the type of transform you wish to find, please see the transfrom
+    [readme](https://github.com/mwshinn/transform/blob/master/README.md) for details.
 
-You can save the transform to disk by doing
+    For example, you could use the more robust transform type of `#!python TranslateRotateRescale`. It requires four
+    points in every corner of the image on both edges of the z stack for best results.
+
+??? tip "Save and Load Transforms"
+
+    Every transform can be saved and reloaded at a later point. You just need to save the text representation of the
+    transform which can be found by
+
+    ```py
+    str(round_transform)
+    ```
+
+    You can save it using Python
+
+    ```py
+    with open("/path/to/saved/transform.txt", "w") as file:
+        file.write(str(round_transform))
+    ```
+
+    It can be reloaded by
+
+    ```py
+    from transform.base import *
+
+    with open("/path/to/saved/transform.txt", "r") as file:
+        round_transform = eval("\n".join(file.readlines()))
+    ```
+
+    Do not run `#!python eval` on stranger's code (it could be malicious)!
+
+You can now apply the resulting transform to the custom dapi image and save the result as a `.tif` file
 
 ```py
 import numpy as np
-np.save("/path/to/saved/transform.npy", transform)
+import tifffile
+
+fused_custom_dapi_image_transformed = round_transform.transform_image(
+    fused_custom_dapi_image, relative=fused_anchor_dapi_image.shape, force_size=True, labels=True
+)
+tifffile.imwrite("/path/to/saved/custom_dapi_image_transformed.tif", fused_custom_dapi_image_transformed)
+del fused_custom_dapi_image_transformed
+del fused_anchor_dapi_image
 ```
 
-Then you can load it back in at any time by
+### Non-Dapi Register
+
+For a non-dapi custom image channel `c`, it is recommended to find a specific transform to move to the dapi channel for
+best registration. To do this, first find a transform to move into the dapi custom image's frame
 
 ```py
-transform = np.load("/path/to/saved/transform.npy")
+from coppafisher.custom_alignment import fuse_custom_and_dapi
+import transform.gui
+from transform.base import TranslateRotate
+
+fused_custom_channel_image, _ = fuse_custom_and_dapi(nb, output_dir, channel=c)
+
+channel_transform = transform.gui.alignment_gui(
+    fused_custom_channel_image, fused_custom_dapi_image, transform_type=TranslateRotate
+)
 ```
 
-### Optional: Apply channel corrections
-
-If the custom image channel you are currently fusing is a channel that was used during the notebook run, you can combine
-an additional camera channel correction before applying the transform. This only affects the transform if a fluorescent
-bead path was given during the pipeline run. It is recommended to [save](#optional-save-the-transform-to-disk) the old
-transform to disk first.
+Now save the fully registered channel image
 
 ```py
-from coppafisher.custom_alignment import compose_channel_correction
+import tifffile
 
-transform_channel_corrected = compose_channel_correction(nb, transform, channel=0)
-```
-
-The channel index must match with the channel given in [stitch](#stitch).
-
-### Apply transform and save results
-
-Now apply the transform to the custom image and save the result as a .tif file.
-
-```py
-from coppafisher.custom_alignment import apply_transform
-
-save_dir = "/path/to/output/directory"
-apply_transform(fused_custom_image, transform_channel_corrected, save_dir, name=f"custom_final_channel_{channel}.tif")
-```
-
-The custom image will be saved as the given name as `uint16`.
-
-You can also save the fused_anchor_image which should have no transform applied to it.
-
-```py
-from coppafisher.custom_alignment import apply_transform
-
-apply_transform(fused_anchor_image, None, save_dir, name="anchor_dapi.tif")
+fused_custom_channel_image_transformed = (channel_transform + round_transform).transform_image(
+    fused_custom_channel_image, relative=fused_custom_channel_image.shape, force_size=True, labels=True
+)
+tifffile.imwrite(f"/path/to/saved/custom_channel_{c}_image_transformed.tif", fused_custom_channel_image_transformed)
+del fused_custom_channel_image_transformed
+del fused_custom_channel_image
 ```
