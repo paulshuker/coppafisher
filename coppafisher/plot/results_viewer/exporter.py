@@ -10,7 +10,7 @@ from .subplot import Subplot
 class ExportTool2D(Subplot):
     DESCRIPTION: str = """Go back to the Viewer window, press P (or R or Shift + P) to start
  building a polygon shape, press Enter when finished. Build other shapes if needed. Press the
- Export button below to export the spots once done."""
+ Export button below to export the spots. Close this window when done."""
 
     shapes_layer: Shapes
     on_export_clicked: Callable[["ExportTool2D"], None] | None = None
@@ -29,19 +29,21 @@ class ExportTool2D(Subplot):
         self.fig.clear()
         self.fig.set_size_inches(6.5, 2.5)
 
-        self.fig.suptitle("2D Export Tool", fontsize=14, fontweight="bold")
+        self.fig.suptitle("2D Export Tool", fontsize=14, fontweight="bold", x=0.5, ha="center")
         self.fig.text(0.5, 0.8, self.DESCRIPTION, fontsize=9, ha="center", va="top")
 
         self.button_ax = self.fig.add_axes([0.2, 0.1, 0.2, 0.2])  # [left, bottom, width, height]
         self.export_button = Button(self.button_ax, "Export", color="#89291e", hovercolor="#db3725")
         self.export_button.label.fontsize = 100
 
-        self.dilate_button_ax = self.fig.add_axes([0.5, 0.1, 0.2, 0.2])  # [left, bottom, width, height]
+        self.dilate_button_ax = self.fig.add_axes([0.6, 0.1, 0.2, 0.2])  # [left, bottom, width, height]
         self.dilate_button = Button(self.dilate_button_ax, "Dilate", color="#89291e", hovercolor="#db3725")
         self.dilate_button.label.fontsize = 100
 
-        self.scale_factor_ax = self.fig.add_axes([0.5, 0.3, 0.4, 0.2])
-        self.scale_factor_box = TextBox(self.scale_factor_ax, "Scale Factor", "1")
+        self.scale_factor_ax = self.fig.add_axes([0.3, 0.35, 0.4, 0.2])
+        self.scale_factor_box = TextBox(
+            self.scale_factor_ax, "Scale Factor", "1", color="#89291e", hovercolor="#db3725"
+        )
         self.scale_factor_box.label.fontsize = 70
         self.scale_factor_box.on_submit(self.on_scale_factor_submitted)
 

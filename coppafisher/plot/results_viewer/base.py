@@ -806,7 +806,6 @@ class Viewer:
 
     def _2d_export_button_clicked(self, tool: exporter.ExportTool2D) -> None:
         shapes_data = tool.shapes_layer.data
-        self._close_subplot(tool)
         if len(shapes_data) == 0:
             return
 
@@ -820,7 +819,6 @@ class Viewer:
             polygon = Path(shape_data)
             keep |= polygon.contains_points(yx_visible)
         file_path = self._get_2d_export_file_path()
-        tool.close()
 
         visible_spots[visible_spots] = keep
         if visible_spots.sum() == 0:
