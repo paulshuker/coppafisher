@@ -18,7 +18,18 @@ def test_ExportTool2D() -> None:
         global click_count
         click_count += 1
 
-    tool.on_click = assert_click
+    tool.on_export_button_clicked()
+    assert click_count == 0
+
+    tool.on_export_clicked = assert_click
     tool.on_export_button_clicked()
     assert click_count == 1
+
+    tool.on_dilate_button_clicked()
+    assert click_count == 1
+
+    tool.on_dilate_clicked = assert_click
+    tool.on_dilate_button_clicked()
+    assert click_count == 2
+
     tool.close()
