@@ -1,4 +1,4 @@
-2025/MM/DD Version 1.2 Patch (v1.2.6):
+2025/05/12 Version 1.2 Patch (v1.2.6):
  * General: Improved automatic documentation testing.
  * Viewer: New 2D polygon shape `dilate` option added to shape spot exporter tool.
 
