@@ -103,3 +103,60 @@ def test_all_docs() -> None:
                 pass
 
             last_test_modified_nb = modifies_nb
+
+
+@pytest.mark.integration
+def test_doc_imports() -> None:
+    """All documentation `import` code snippets are evaluated to check they work okay."""
+
+    # Code snippets are in the form of
+    # ```py (or python)
+    # code here
+    # ```
+    #
+    # or
+    #
+    # `#!python code here`
+
+    docs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "docs")
+
+    assert os.path.isdir(docs_dir)
+
+    for entry in os.scandir(docs_dir):
+        file_path = os.path.join(docs_dir, entry.name)
+        if os.path.isdir(file_path):
+            continue
+
+        with open(file_path, "r") as file:
+            docs_lines = file.readlines()
+            within_code_snippet = False
+
+        SINGLE_LINE_SNIPPET_START = "`#!python "
+        MULTILINE_SNIPPET_START = "```py"
+
+        for doc_line in docs_lines:
+            if SINGLE_LINE_SNIPPET_START in doc_line:
+                code_start_index = doc_line.index(SINGLE_LINE_SNIPPET_START) + len(SINGLE_LINE_SNIPPET_START)
+                code_end_index = doc_line.index("`", code_start_index)
+                if ";" in doc_line[code_start_index:]:
+                    code_end_index = doc_line.index(";")
+
+                code_str = doc_line[code_start_index:code_end_index]
+                if " import " not in code_str:
+                    continue
+
+                exec(code_str)
+
+        for doc_line in docs_lines:
+            if not within_code_snippet and doc_line.strip().startswith(MULTILINE_SNIPPET_START):
+                within_code_snippet = True
+                continue
+
+            if within_code_snippet and " import " in doc_line:
+                if doc_line.split()[1].startswith("transform"):
+                    continue
+                exec(doc_line.strip())
+
+            if within_code_snippet and "```" in doc_line:
+                within_code_snippet = False
+                continue

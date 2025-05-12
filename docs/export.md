@@ -163,10 +163,10 @@ napari window.
     from transform.base import *
 
     with open("/path/to/saved/transform.txt", "r") as file:
-        round_transform = eval("\n".join(file.readlines()))
+        round_transform = exec("\n".join(file.readlines()))
     ```
 
-    Do not run `#!python eval` on stranger's code (it could be malicious)!
+    Do not run `#!python exec` on stranger's code (it could be malicious)!
 
 You can now apply the resulting transform to the custom dapi image and save the result as a `.tif` file
 

@@ -63,13 +63,13 @@ examples.
 
 ## Run Tests
 
-Run unit tests (~7s)
+Run unit tests (~10s)
 
 ```terminal
 pytest
 ```
 
-Run integration tests (~80s)
+Run integration tests (~90s)
 
 ```terminal
 pytest -m integration
