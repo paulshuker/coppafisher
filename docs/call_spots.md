@@ -33,7 +33,7 @@ The purpose of this step is to approximately equalise the brightness of differen
 
 We transform the raw spot colours $F_{src}$ as follows:
 
-$$F_{src} \mapsto \tilde{A}_{t(s)rc}F_{src} - G_{sc}.$$
+$$F_{src} \mapsto \tilde{A}_{t(s)rc}F_{src}$$
 
 In the formula above:
 
@@ -45,16 +45,7 @@ $$
 
 for all spots $s$ in tile $t$. This is a good estimate of the scaling factor needed to make the brightest spots in each tile, round and channel have the same intensity.
 
-- The _ground level_ $G_{sc}$ is defined as
-
-$$
-G_{sc} = \text{Percentile}_r(\tilde{A}_{t(s)rc}F_{src}, 25).
-$$
-
-For 7 rounds, this is the brightness of the second dimmest round of the scaled spot colours in channel $c$. This is a good estimate of the constant signal in channel $c$ across all rounds, which we want to remove.
-
-
-<!-- TODO: Add an image of a spot before anything, after scaling, then after removing background -->
+<!-- TODO: Add an image of a spot before anything, after scaling -->
 
 ### 1: Initial Gene Assignment
 The purpose of this step is to provide some preliminary gene assignments that will allow us to estimate the bleed matrix and the bled codes. We will work extensively with the bleed matrix in these calculations, but bear in mind that this is the raw bleed matrix $\mathbf{B_{\textrm{raw}}}$.

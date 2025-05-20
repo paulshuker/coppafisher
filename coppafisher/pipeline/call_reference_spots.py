@@ -92,8 +92,6 @@ def call_reference_spots(
             colour_norm_factor_initial[t] = 1 / (np.percentile(spot_colours[spot_tile == t], 95, axis=0))
         colour_norm_factor_initial[colour_norm_factor_initial == np.inf] = 1
         spot_colours[spot_tile == t] *= colour_norm_factor_initial[t]
-    # remove background as constant offset across different rounds of the same channel
-    spot_colours -= np.percentile(spot_colours, 25, axis=1, keepdims=True)
 
     # 2. Compute gene probabilities for each spot
     bled_codes = raw_bleed_matrix[gene_codes]
