@@ -127,6 +127,16 @@ from coppafisher.plot import view_tile_indexing_grid
 view_tile_indexing_grid("/path/to/config.ini")
 ```
 
+If you use ND2 files, visualise the tile indices using
+
+```python
+from coppafisher.plot import plot_coords_nd2_coppafish
+
+plot_coords_nd2_coppafish("/path/to/nd2_file.nd2", channel=27, reverse=False)
+```
+
+where you can choose the channel index and reverse tile positions if required.
+
 ## Viewing images
 
 ### Extracted images
