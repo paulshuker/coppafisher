@@ -1,4 +1,5 @@
 2025/MM/DD Version 1.3 (v1.3.0):
+ * General: New ND2 file tile indexing plot added.
  * Call spots: 25th percentile "background subtraction" colour pre-processing step is now optional and is off by
     default.
 
