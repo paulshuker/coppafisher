@@ -93,6 +93,10 @@ def call_reference_spots(
         colour_norm_factor_initial[colour_norm_factor_initial == np.inf] = 1
         spot_colours[spot_tile == t] *= colour_norm_factor_initial[t]
 
+    if config["background_subtract"]:
+        # Remove background as constant offset across different rounds of the same channel
+        spot_colours -= np.percentile(spot_colours, 25, axis=1, keepdims=True)
+
     # 2. Compute gene probabilities for each spot
     bled_codes = raw_bleed_matrix[gene_codes]
     gene_prob_initial = gene_prob_score(spot_colours, bled_codes, kappa=config["kappa"])

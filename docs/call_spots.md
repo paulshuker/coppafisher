@@ -45,6 +45,14 @@ $$
 
 for all spots $s$ in tile $t$. This is a good estimate of the scaling factor needed to make the brightest spots in each tile, round and channel have the same intensity.
 
+??? info "If `background_subtract` in the config is set to true (typically false)"
+
+    $$
+    F_{src} \mapsto F_{src} - \text{Percentile}_r(F_{src}, 25)
+    $$
+
+    For 7 rounds, this is the brightness of the second dimmest round of the scaled spot colours in channel cc. This is a good estimate of the constant signal in channel cc across all rounds, which we want to remove.
+
 <!-- TODO: Add an image of a spot before anything, after scaling -->
 
 ### 1: Initial Gene Assignment
