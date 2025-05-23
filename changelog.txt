@@ -1,5 +1,6 @@
 2025/MM/DD Version 1.3 (v1.3.0):
- * Call spots: Removed 25th percentile "background subtraction" colour pre-processing step.
+ * Call spots: 25th percentile "background subtraction" colour pre-processing step is now optional and if off by
+    default.
 
 
 2025/05/12 Version 1.2 Patch (v1.2.6):
