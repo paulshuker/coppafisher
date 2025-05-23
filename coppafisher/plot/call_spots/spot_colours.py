@@ -529,7 +529,7 @@ class GeneSpotsViewer:
             a.set_yticks([])
 
         # We would like to add red vertical lines to show the start of each round.
-        for j, a in enumerate(self.ax):
+        for _, a in enumerate(self.ax):
             for i in range(self.nbp_basic.n_rounds):
                 a.axvline(i * len(self.nbp_basic.use_channels) - 0.5, color="r")
 
@@ -608,7 +608,7 @@ class GeneSpotsViewer:
             )
         )
 
-    def view_scatter_codes(self, gene_probs: np.ndarray, event=None):
+    def view_scatter_codes(self, gene_probs: np.ndarray, _=None):
         # this function will grab all visible spots and plot them in a new figure
         # get visible spots by the visible bounding box of ax_scatter
         bottom, top = self.ax_scatter.get_ylim()
@@ -628,7 +628,7 @@ class GeneSpotsViewer:
 
 class ViewScalingAndBGRemoval:
     """
-    This function will plot isolated spots raw, scaled and bg removed to show the effect of the bg removal and scaling.
+    This class plots isolated spots raw and scaled to show the effect of the initial scaling.
     """
 
     def __init__(self, nb):
@@ -643,14 +643,13 @@ class ViewScalingAndBGRemoval:
         spot_colour_raw = nb.ref_spots.colours[:].copy()
         spot_colour_normed = spot_colour_raw * norm_factor[spot_tile]
         bg = np.repeat(np.percentile(spot_colour_normed, 25, axis=1)[:, None, :], n_rounds, axis=1)
-        spot_colour_normed_no_bg = spot_colour_normed - bg
 
         # Finally, we need to reshape the spots to be n_spots x n_rounds * n_channels. Since we want the channels to be
         # in consecutive blocks of size n_rounds, we can reshape by first switching the round and channel axes.
         # also order the spots by background noise in descending order
         max_spots = 10_000
         background_noise = np.sum(abs(bg), axis=(1, 2))
-        colours = [spot_colour_raw, spot_colour_normed, spot_colour_normed_no_bg]
+        colours = [spot_colour_raw, spot_colour_normed]
         for i, c in enumerate(colours):
             c = c[np.argsort(background_noise)[::-1]]
             c = c.transpose(0, 2, 1)
@@ -658,7 +657,7 @@ class ViewScalingAndBGRemoval:
             colours[i] = c
 
         # We're going to make a little viewer to show spots before and after background subtraction and normalisation
-        fig, ax = plt.subplots(2, 3, figsize=(10, 5))
+        fig, ax = plt.subplots(2, len(colours), figsize=(10, 5))
         for i, c in enumerate(colours):
             min_intensity, max_intensity = np.percentile(c, [1, 99])
             ax[0, i].imshow(
@@ -668,7 +667,7 @@ class ViewScalingAndBGRemoval:
                 vmax=max_intensity,
                 interpolation="none",
             )
-            ax[0, i].set_title(["Raw", "Scaled", "Scaled + BG Removed"][i])
+            ax[0, i].set_title(["Raw", "Initially Scaled"][i])
 
         for i, c in enumerate(colours):
             bright_colours = np.percentile(c, 95, axis=0)
@@ -677,7 +676,7 @@ class ViewScalingAndBGRemoval:
             ax[1, i].set_ylim(0, np.max(bright_colours) * 1.1)
             ax[1, i].set_title("95th Percentile Brightness")
 
-        for i, j in np.ndindex(2, 3):
+        for i, j in np.ndindex(2, len(colours)):
             ax[i, j].set_xticks(
                 [k * n_rounds + n_rounds // 2 for k in range(n_channels_use)], nb.basic_info.use_channels
             )
@@ -688,7 +687,7 @@ class ViewScalingAndBGRemoval:
                 ax[i, j].axvline(k * n_rounds - 0.5, color="Red", linestyle="--")
 
         # Add a title
-        fig.suptitle("BG Removal + Scaling")
+        fig.suptitle("BG Removal + Initial Scaling")
 
         plt.show()
 
