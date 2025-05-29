@@ -161,13 +161,12 @@ Images after the [filter](overview.md#filter) stage are viewed by
 from coppafisher import Notebook, plot
 
 nb = Notebook("/path/to/notebook")
-plot.view_filtered_images(nb, tiles, rounds, channels, apply_colour_norm_factor=True, share_contrast_limits=True)
+plot.view_filtered_images(nb, tiles, rounds, channels, apply_colour_norm_factor=False, share_contrast_limits=True)
 ```
 
 where `tiles`, `rounds`, and `channels` are lists of integers specifying which images to view. Set these to `None` if
-you wish to view all of the them from the sequencing images. The boolean parameters can be set to `False` if needed. You
-can also view the anchor round/channel. See `nb.basic_info.anchor_round` and `nb.basic_info.anchor_channel` for the
-indices.
+you wish to view all of the them from the sequencing images. The boolean parameters can be changed if needed. You can
+also view the anchor round/channel. See `nb.basic_info.anchor_round` and `nb.basic_info.anchor_channel` for the indices.
 
 ### Intensity images
 
