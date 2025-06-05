@@ -214,7 +214,7 @@ def log_package_versions(severity: int = DEBUG) -> None:
         separation_index = package.index(" ")
         names.append(package[:separation_index])
         versions.append(package[separation_index:].strip())
-    for name, version in zip(names, versions):
+    for name, version in zip(names, versions, strict=True):
         log(f"{name}=={version}", severity=severity)
 
 
