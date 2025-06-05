@@ -91,7 +91,7 @@ def build_histograms(
 
     fig, axes = plt.subplots(y_subplot_count, x_subplot_count, squeeze=False)
     axes: list[plt.Axes] = axes.ravel().tolist()
-    for i, (values, subtitle) in enumerate(zip(plot_values, plot_subtitles)):
+    for i, (values, subtitle) in enumerate(zip(plot_values, plot_subtitles, strict=True)):
         ax = axes[i]
         ax.set_title(subtitle, fontdict={"fontsize": "x-small"})
         ax_counts, _, _ = ax.hist(values, bins=bin_counts, range=bin_range, log=log, color="red")
@@ -105,7 +105,7 @@ def build_histograms(
         line_labels = [vertical_line_labels[i][j] for j in range(len(vertical_lines[i]))]
         line_colours = [LINE_COLOURS[j % len(LINE_COLOURS)] for j in range(len(vertical_lines[i]))]
         for line_position, line_colour, line_style, line_label in zip(
-            vertical_lines[i], line_colours, line_styles, line_labels
+            vertical_lines[i], line_colours, line_styles, line_labels, strict=True
         ):
             # ax.vlines(line_position, colors=line_colours, linestyles=line_style, label=line_label)
             ax.axvline(line_position, color=line_colour, linestyle=line_style, label=line_label)

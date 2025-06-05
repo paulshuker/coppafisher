@@ -812,7 +812,7 @@ class Viewer:
         visible_spots = self.keep_scores & self.keep_intensities & self.keep_zs & self.keep_genes
         yx_visible = self.spot_data[self.selected_method].yxz[visible_spots, :2]
         keep = np.zeros(yx_visible.shape[0], bool)
-        for shape_data, shape_type in zip(shapes_data, tool.shapes_layer.shape_type):
+        for shape_data, shape_type in zip(shapes_data, tool.shapes_layer.shape_type, strict=True):
             if shape_type not in ("rectangle", "polygon"):
                 print(f"{shape_type}s are ignored")
                 continue
@@ -841,7 +841,7 @@ class Viewer:
         tool.shapes_layer.selected_data = set([i for i in range(len(shapes_data))])
         tool.shapes_layer.remove_selected()
 
-        for dilated_shape_data, shape_type in zip(dilated_shapes_data, shape_types):
+        for dilated_shape_data, shape_type in zip(dilated_shapes_data, shape_types, strict=True):
             tool.shapes_layer.add(dilated_shape_data, shape_type=shape_type)
 
     def _get_2d_export_file_path(self) -> str:
@@ -863,7 +863,7 @@ class Viewer:
             return
         self.max_intensity_project = not self.max_intensity_project
         images = self.mip_background_images if self.max_intensity_project else self.background_images
-        for image, layer in zip(images, self.background_image_layers):
+        for image, layer in zip(images, self.background_image_layers, strict=True):
             # TODO: Does this ruin layer's translation that was set at the Viewer's start up or not? Needs checking.
             layer.data = image
         if len(images) == 1:
@@ -936,7 +936,9 @@ class Viewer:
         if not self.show:
             return
         image_count: int = len(self.background_images)
-        for background_image, name, colour_map in zip(self.background_images, self.background_image_names, colour_maps):
+        for background_image, name, colour_map in zip(
+            self.background_images, self.background_image_names, colour_maps, strict=True
+        ):
             # Keep the max intensity projected background image in self.
             if background_image.ndim == 3:
                 self.mip_background_images.append(background_image.copy().max(0))

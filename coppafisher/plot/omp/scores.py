@@ -139,7 +139,7 @@ class ViewOMPGeneScores(Subplot):
 
     def draw_data(self) -> None:
         dp_scores = self.dp_scores[self.iteration - 1, 0]
-        for bar, score in zip(self.bars, dp_scores):
+        for bar, score in zip(self.bars, dp_scores, strict=True):
             bar.set_height(score)
             bar.set_color(self.bar_colour)
             if score >= dp_scores.max() and score > self.dp_thresh and self.iteration != self.dp_scores.shape[0]:

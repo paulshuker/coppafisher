@@ -128,7 +128,7 @@ def run_filter(
             for _ in range(len(batch_images))
         )
 
-        for filtered_image, (t, r, c) in zip(filtered_images, batch_trcs):
+        for filtered_image, (t, r, c) in zip(filtered_images, batch_trcs, strict=True):
             # All images are deconvolved, including the DAPI.
             filtered_image = filtered_image.astype(FILTER_DTYPE)
             images[t, r, c] = filtered_image

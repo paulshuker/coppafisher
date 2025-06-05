@@ -110,7 +110,7 @@ def test_Viewer() -> None:
     background_image_colours.append(["Greens"])
     background_images.append([npy_filepath, "dapi_detailed", tiff_filepath])
     background_image_colours.append(["Greens", "Reds", "Greys"])
-    for background_image, colour_maps in zip(background_images, background_image_colours):
+    for background_image, colour_maps in zip(background_images, background_image_colours, strict=True):
         viewer = Viewer(
             background_images=background_image,
             background_image_colours=colour_maps,

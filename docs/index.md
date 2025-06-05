@@ -39,11 +39,12 @@ vocabulary might be unfamiliar, please see the [glossary](glossary.md) for refer
 Install coppafisher software from within an environment. We will use a conda environment, so
 [miniconda](https://docs.anaconda.com/miniconda/) or [anaconda](https://anaconda.org/anaconda/conda) is required.
 
-First, build an environment
+First, build an environment and update pip (recommended)
 
 ```terminal
 conda create -n coppa python=3.12
 conda activate coppa
+python -m pip install --upgrade pip
 ```
 
 coppa can be changed to any name.

@@ -146,7 +146,7 @@ class Legend:
         Update which genes are currently selected in the viewer. A selected gene is given a high opacity.
         """
         active_genes_sorted = [active_genes[i] for i in self._plot_index_to_gene_index]
-        for scatter_ax, active in zip(self.scatter_axes, active_genes_sorted):
+        for scatter_ax, active in zip(self.scatter_axes, active_genes_sorted, strict=True):
             if active:
                 scatter_ax.set_alpha(self._selected_opacity)
             else:
