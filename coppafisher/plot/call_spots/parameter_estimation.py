@@ -93,6 +93,9 @@ class ViewFreeAndConstrainedBledCodes:
         # update the plot
         self.update_plot()
 
+        if show:
+            plt.show()
+
     def update_plot(self):
         """
         Function to plot the free and constrained bled codes for each spot for a given round and channel.
