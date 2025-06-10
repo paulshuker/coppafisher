@@ -45,6 +45,7 @@ class CompatibilityTracker:
             ("1.2.4", "none"),
             ("1.2.5", "none"),
             ("1.2.6", "none"),
+            ("1.2.7", "none"),
         )
     )
     _stage_instructions: list[tuple[str, ...]]
