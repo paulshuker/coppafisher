@@ -79,6 +79,7 @@ def export_to_pciseq(
     - x: x coordinate of each spot in stitched coordinate system.
     - z_stack: z coordinate of each spot in stitched coordinate system (in units of z-pixels).
     - score: the spot's score.
+    - intensity: the spot's intensity.
 
     Only spots which pass the thresholds are saved. The spot positions are positioned relative to
     `nb.stitch.tile_origin.min(0).floor()` so the spots align with the exported dapi image.
