@@ -8,8 +8,8 @@ import numpy as np
 import zarr
 
 from .. import log
+from ..call_spots import dot_product
 from ..call_spots.base import bayes_mean, compute_bleed_matrix
-from ..call_spots.dot_product import dot_product_score, gene_prob_score
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..utils import intensity as utils_intensity
@@ -99,7 +99,7 @@ def call_reference_spots(
 
     # 2. Compute gene probabilities for each spot
     bled_codes = raw_bleed_matrix[gene_codes]
-    gene_prob_initial = gene_prob_score(spot_colours, bled_codes, kappa=config["kappa"])
+    gene_prob_initial = dot_product.dot_product_score(spot_colours[np.newaxis], bled_codes[np.newaxis, np.newaxis])[0]
 
     # 3. Use spots with score above threshold to work out global dye codes
     prob_mode_initial, prob_score_initial = np.argmax(gene_prob_initial, axis=1), np.max(gene_prob_initial, axis=1)
@@ -113,9 +113,13 @@ def call_reference_spots(
         chunks=(pixel_chunk_size, 1),
         **kwargs,
     )
-    prob_threshold = min(config["gene_prob_threshold"], np.percentile(prob_score_initial, 90))
+    prob_threshold = float(config["gene_prob_threshold"])
     good = prob_score_initial > prob_threshold
     bleed_matrix_initial = compute_bleed_matrix(spot_colours[good], prob_mode_initial[good], gene_codes, n_dyes)
+
+    log.debug(
+        f"Good spots counts for each gene: {', '.join(np.unique(prob_mode_initial, return_counts=True)[1].astype(str))}"
+    )
 
     # 4. Compute the free_bled_codes
     free_bled_codes_tile_indep = np.zeros((n_genes, n_rounds, n_channels_use), np.float32)
@@ -181,11 +185,6 @@ def call_reference_spots(
     # codes.
     colour_norm_factor = colour_norm_factor_initial * tile_scale
     spot_colours *= tile_scale[spot_tile, :, :]  # update the spot colours
-    gene_prob = gene_prob_score(spot_colours=spot_colours, bled_codes=bled_codes, kappa=config["kappa"])  # update probs
-    prob_mode, prob_score = np.argmax(gene_prob, axis=1), np.max(gene_prob, axis=1)
-    gene_prob = zarr.array(
-        gene_prob, store=os.path.join(nbp_file.output_dir, "gene_prob.zarray"), chunks=(pixel_chunk_size, 1), **kwargs
-    )
     # Computing all dot product scores at once can take too much memory.
     gene_dot_products = np.zeros((n_spots, n_genes), np.float16)
     n_max_score_pixels = 8.7e-2 * system.get_available_memory() * 1e9 / (n_genes * n_rounds * n_channels_use)
@@ -195,11 +194,16 @@ def call_reference_spots(
     for batch_i in range(n_batches):
         index_min = batch_i * n_max_score_pixels
         index_max = min(spot_colours.shape[0], (batch_i + 1) * n_max_score_pixels)
-        batch_scores = dot_product_score(
+        batch_scores = dot_product.dot_product_score(
             spot_colours=spot_colours[np.newaxis, index_min:index_max], bled_codes=bled_codes[np.newaxis, np.newaxis]
         )[0]
         gene_dot_products[index_min:index_max] = batch_scores
         del batch_scores
+    gene_prob = gene_dot_products.astype(np.float32, copy=True)
+    prob_mode, prob_score = np.argmax(gene_prob, axis=1), np.max(gene_prob, axis=1)
+    gene_prob = zarr.array(
+        gene_prob, store=os.path.join(nbp_file.output_dir, "gene_prob.zarray"), chunks=(pixel_chunk_size, 1), **kwargs
+    )
     dp_gene, dp_score = np.argmax(gene_dot_products, axis=1).astype(np.int16), np.max(gene_dot_products, axis=1)
     dp_gene = zarr.array(
         dp_gene, store=os.path.join(nbp_file.output_dir, "dp_mode.zarray"), chunks=pixel_chunk_size, **kwargs

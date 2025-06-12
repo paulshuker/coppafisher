@@ -63,37 +63,3 @@ def dot_product_score(
         scores = scores.numpy()
 
     return scores
-
-
-def gene_prob_score(spot_colours: np.ndarray, bled_codes: np.ndarray, kappa: float = 2) -> np.ndarray:
-    """
-    Probability model says that for each spot in a particular round, the normalised fluorescence vector follows a
-    Von-Mises Fisher distribution with mean equal to the normalised fluorescence for each dye and concentration
-    parameter kappa. Then invert this to get prob(dye | fluorescence) and multiply across rounds to get
-    prob(gene | spot_colours).
-
-    Args:
-        spot_colours (`(n_spots x n_rounds x n_channels_use) ndarray`): spot colours.
-        bled_codes (`(n_genes x n_rounds x n_channels_use) ndarray`): normalised bled codes.
-        kappa (float, optional), scaling factor for dot product score. Default: 2.
-
-    Returns:
-        (`(n_spots x n_genes) ndarray[float]`): gene probabilities.
-    """
-    n_genes = bled_codes.shape[0]
-    n_spots, _, _ = spot_colours.shape
-    # Normalise spot_colours so that norm(spot_colours[s, r, :]) = 1
-    spot_colours = spot_colours / np.linalg.norm(spot_colours, axis=2)[:, :, None]
-    # Do the same for bled_codes
-    bled_codes = bled_codes / np.linalg.norm(bled_codes, axis=2)[:, :, None]
-    # Reshape spot_colours to be [n_spots, n_rounds * n_channels_use] and bled_codes to be
-    # [n_genes, n_rounds * n_channels_use]
-    spot_colours = spot_colours.reshape((n_spots, -1))
-    bled_codes = bled_codes.reshape((n_genes, -1))
-    # Compute the dot products of each spot with each gene, producing a matrix of shape [n_spots, n_genes]
-    dot_product = spot_colours @ bled_codes.T
-    probability = np.exp(kappa * dot_product)
-    # Normalise so that each row sums to 1
-    probability = np.nan_to_num(probability / np.sum(probability, axis=1)[:, None])
-
-    return probability

@@ -7,7 +7,7 @@ from matplotlib import cm
 from matplotlib.patches import Rectangle
 from matplotlib.widgets import Button
 
-from ...call_spots.dot_product import gene_prob_score
+from ...call_spots import dot_product
 from ...omp import base as omp_base
 from ...setup.notebook import NotebookPage
 from ...spot_colours import base as spot_colours_base
@@ -321,8 +321,8 @@ class ViewGeneEfficiencies(Subplot):
             gene_no = nbp_call_spots.dot_product_gene_no
             score = nbp_call_spots.dot_product_gene_score
         else:
-            gene_no = np.argmax(nbp_call_spots.gene_probabilities[:], axis=1)
-            score = np.max(nbp_call_spots.gene_probabilities[:], axis=1)
+            gene_no = np.argmax(nbp_call_spots.gene_probabilities_initial[:], axis=1)
+            score = np.max(nbp_call_spots.gene_probabilities_initial[:], axis=1)
 
         # Count the number of spots for each gene
         n_spots = np.zeros(nbp_call_spots.gene_names.shape[0], dtype=int)
@@ -466,8 +466,8 @@ class GeneSpotsViewer:
             spot_index = np.arange(nbp_ref_spots.colours.shape[0])
         else:
             spots = nbp_ref_spots.colours[:]
-            gene_no = np.argmax(nbp_call_spots.gene_probabilities[:], axis=1)
-            score = np.max(nbp_call_spots.gene_probabilities[:], axis=1)
+            gene_no = np.argmax(nbp_call_spots.gene_probabilities_initial[:], axis=1)
+            score = np.max(nbp_call_spots.gene_probabilities_initial[:], axis=1)
             tile = nbp_ref_spots.tile[:]
             spot_index = np.arange(nbp_ref_spots.colours.shape[0])
 
@@ -547,11 +547,10 @@ class GeneSpotsViewer:
     def secondary_plot(self, _=None):
         # calculate probability of gene assignment and plot this against the score
         bled_codes = self.nbp_call_spots.bled_codes
-        n_genes, n_rounds, n_channels = bled_codes.shape
-        kappa = np.log(1 + n_genes // 75) + 2
-        gene_probs = gene_prob_score(
-            spot_colours=self.spots.reshape(-1, n_rounds, n_channels), bled_codes=bled_codes, kappa=kappa
-        )[:, self.gene_index]
+        _, n_rounds, n_channels = bled_codes.shape
+        gene_probs = dot_product.dot_product_score(
+            self.spots.reshape(1, -1, n_rounds, n_channels), bled_codes[np.newaxis, np.newaxis]
+        )[0, :, self.gene_index]
         self.fig_scatter, self.ax_scatter = plt.subplots()
         spot_brightness = np.linalg.norm(self.spots, axis=1)
         self.ax_scatter.scatter(x=gene_probs, y=self.score, alpha=0.5, c=spot_brightness, cmap="viridis")

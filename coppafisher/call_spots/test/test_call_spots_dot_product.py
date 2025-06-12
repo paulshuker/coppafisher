@@ -53,28 +53,3 @@ def test_dot_product():
     assert np.allclose(scores_2[0], scores_2[1])
     assert np.allclose(scores_2[0], scores_2[2])
     assert np.allclose(scores, scores_2[0, 0])
-
-
-def test_gene_prob_score():
-    # Test that the gene probabilities are different when kappa is varied
-    rng = np.random.RandomState(0)
-    n_spots = 11
-    n_rounds = 3
-    n_channels_use = 4
-    n_genes = 5
-    # Colours range from -1 to 1
-    spot_colours = (rng.rand(n_spots, n_rounds, n_channels_use) - 0.5) * 2
-    bled_codes = rng.rand(n_genes, n_rounds, n_channels_use)
-    kappa_option = 1
-    spot_colours_clone = spot_colours.copy()
-    bled_codes_clone = bled_codes.copy()
-    probabilities_1 = dot_product.gene_prob_score(spot_colours, bled_codes)
-    assert np.allclose(spot_colours, spot_colours_clone), "Function changed spot_colours input"
-    assert np.allclose(bled_codes, bled_codes_clone), "Function changed bled_codes input"
-    probabilities_2 = dot_product.gene_prob_score(spot_colours, bled_codes, kappa_option)
-    assert np.allclose(spot_colours, spot_colours_clone), "Function changed spot_colours input"
-    assert np.allclose(bled_codes, bled_codes_clone), "Function changed bled_codes input"
-    assert isinstance(probabilities_1, np.ndarray), "Expected ndarray as output"
-    assert isinstance(probabilities_2, np.ndarray), "Expected ndarray as output"
-    assert probabilities_1.shape == probabilities_2.shape == (n_spots, n_genes), "Expected shape (n_spots, n_genes)"
-    assert not np.allclose(probabilities_1, probabilities_2), "Gene probabilities should change as kappa varies"

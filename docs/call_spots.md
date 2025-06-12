@@ -97,76 +97,17 @@ Let:
 
 We define the probability of spot $s$ being assigned to gene $g$ as
 
-$$ \mathbb{P}[G = g \mid \mathbf{F} = \mathbf{f}] = \frac{\exp(\kappa \mathbf{b}_g \cdot \mathbf{f})}{\sum_{g'} \exp(\kappa\mathbf{b}_{g'} \cdot \mathbf{f})},$$
+$$
+\mathbb{P}[G = g \mid \mathbf{F} = \mathbf{f}] = \frac{1}{n_r} \big( \mathbf{b}_g \cdot \mathbf{f} \big)
+$$
 
-where $\kappa$ is a concentration parameter which controls how much the probabilities are spread out among the genes.
+??? note "Why is the score called a 'probability'?"
 
-??? tip "How to choose $\kappa$?"
+    For < 1.3.0 versions of coppafisher, this was a Von-Mises round-normalised probability. So it is still called a
+    "probability" for historical (compatibility) reasons.
 
-    The parameter $\kappa$ is set by adjusting the config parameter `kappa` and has default value 2. The value of $\kappa$ controls how much the probabilities are spread out among the genes, but does not influence the gene ordering.
-
-    - $\kappa = 0$ yields a uniform distribution of probabilities between all genes,
-
-    - $\kappa \rightarrow \infty$ yields a distribution that tends to 1 for the gene with the maximum dot product and 0 for all others.
-
-    <p align="center">
-      <img src="https://github.com/user-attachments/assets/1171503d-f64d-4a82-b675-9ef8bb432cf4" width="600" />
-      <br />
-      <span> Effects of varying $\kappa$ on the probabilities of a single spot.</span>
-    </p>
-
-    When working with larger gene panels, all probabilities are spread out more naturally, so it helps to increase $\kappa$ so that probabilities have a consistent interpretation. Out current implementation sets $\kappa = 2$ if $n_g < 200$ and 3 otherwise.
-
-
-??? info "Gene Probability Derivation"
-
-    #### Dye Probabilities
-
-    We'll model the normalised round fluorescence vectors $\mathbf{F_r}$ arising from dye $d$ as being random and distributed according to a von Mises-Fisher distribution with mean $\mathbf{B_d}$ and concentration parameter $\kappa$.
-
-    This model has probability density function
-
-    $$\mathbb{P}[\mathbf{F_{r}} = \mathbf{f_r} \mid D = d] =  M_{\kappa} \exp(\kappa\mathbf{f_r} \cdot \mathbf{B_d}),$$
-
-    where $\mathbf{f_r}$ is a unit vector and $M_{\kappa}$ is a normalization constant we don’t need to worry about.
-
-    #### Gene Probabilities
-
-    Now let $\mathbf{F} = (\mathbf{F_1}, \ldots, \mathbf{F_{n_r}}) ^ T$ be the $(n_r \times n_c)$ matrix of normalised fluorescence vectors of each round $r$ of a spot $s$. By independence between rounds, the probability of observing the fluorescence $\mathbf{f}$ from a spot of gene $g$ is just the product of the probabilities that each round $r$ is assigned to dye $d(g, r)$. In equations, this simplifies nicely to:
-
-    $$
-    \begin{aligned}
-    \mathbb{P}[\mathbf{F} = \mathbf{f} \mid G = g] &= \prod_r \mathbb{P}[\mathbf{F_{r}} = \mathbf{f_r} \mid D = d(g, r)] \\
-    &= \prod_r M_{\kappa} \exp \left( \kappa\mathbf{f_r} \cdot \mathbf{B_{d(g, r)}} \right) \\
-    &= M_{\kappa}^{n_r} \exp \left( \kappa \sum_r \mathbf{f_r} \cdot \mathbf{B_{d(g, r)}} \right) \\
-    &=  M_{\kappa}^{n_r} \exp(\kappa \mathbf{f \cdot b_g}), \end{aligned}
-    $$
-
-    where
-
-    - $\mathbf{f} = (\mathbf{f_1}, \ldots, \mathbf{f_{n_r}}) ^ T$ is the observed round-normalised $(n_r \times n_c)$ fluorescence matrix of the spot,
-
-      - $\mathbf{b_g} = (\mathbf{B_{d(g, 1)}}, \ldots, \mathbf{B_{d(g, n_r)}}) ^ T$ is the $(n_r \times n_c)$ matrix of the bled code for gene $g$,
-
-      - the dot product $\mathbf{f \cdot b_g}$ is the [Frobenius Inner Product for Matrices](https://en.wikipedia.org/wiki/Frobenius_inner_product), ie: the sum of the elementwise product of the two matrices.
-
-    We have so far only defined the probability of $\mathbf{F} = \mathbf{f}$ given $G = g$. We can find the probability of $G = g$ given $\mathbf{F} = \mathbf{f}$ using Bayes' Rule:
-
-    $$
-    \mathbb{P}[G = g \mid \mathbf{F} = \mathbf{f}]
-    = \dfrac{\mathbb{P}[\mathbf{F} = \mathbf{f} \mid G = g] \mathbb{P}[G = g]}{ \mathbb{P}[\mathbf{F} = \mathbf{f}]}.
-    $$
-
-    For the priors, we will assume that:
-
-    - $\mathbb{P}[G = g] = \frac{1}{n_g}$ (ie: all genes are equally likely),
-
-      - $\mathbb{P}[\mathbf{F} = \mathbf{f}] = \sum_g \mathbb{P}[\mathbf{F} = \mathbf{f} \mid G = g] \mathbb{P}[G = g] = \frac{1}{n_g} \sum_g M_{\kappa}^{n_r} \exp(\kappa \mathbf{b}_g \cdot \mathbf{f})$, (ie: $\mathbf{f}$ comes from one of the genes)
-
-    This gives us the final probability:
-
-    $$ \mathbb{P}[G = g \mid \mathbf{F} = \mathbf{f}] = \frac{\exp(\kappa \mathbf{b}_g \cdot \mathbf{f})}{\sum_g \exp(\kappa\mathbf{b}_g \cdot \mathbf{f} )}$$
-
+    Now it is a score in an attempt to improve the call spots spot selection, with the same algorithm as the anchor
+    score used later on.
 
 ### 2: Bleed Matrix Calculation
 The purpose of this step is to compute an updated estimate of the bleed matrix.
@@ -475,11 +416,7 @@ Then use the best gene score for each spot's assigned gene:
 - `dot_product_gene_no[s]` = $\textrm{argmax}_g (\textrm{scores}(g))$
 - `dot_product_gene_score[s]` = $\textrm{max}_g (\textrm{scores}(g))$
 
-We also compute probabilities for each spot $s$ being assigned to gene $g$ as
-
-- `gene_prob[s, g]` = $\dfrac{\exp(\kappa \mathbf{K_{g} \cdot F_s})}{\sum_{g'} \exp(\kappa \mathbf{K_{g'} \cdot F_s})}$,
-
-where $\mathbf{F_s}$ and $\mathbf{K_{g}}$ have both been round-normalised. Finally, with these updated gene assignments, we can compute the final bleed matrix $\mathbf{B}$ in the same way as in step 2.
+Finally, with the updated gene assignments, we compute the final bleed matrix $\mathbf{B}$ in the same way as step 2.
 
 ## Diagnostics
 
