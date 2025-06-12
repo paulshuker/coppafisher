@@ -163,8 +163,10 @@ napari window.
     from transform.base import *
 
     with open("/path/to/saved/transform.txt", "r") as file:
-        round_transform = exec("\n".join(file.readlines()))
+        exec("round_transform = " + "\n".join(file.readlines()))
     ```
+
+    You can rename the variable from `round_transform` to anything.
 
     Do not run `#!python exec` on stranger's code (it could be malicious)!
 
