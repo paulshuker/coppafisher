@@ -64,10 +64,10 @@ be a .npy file, a compressed .npz file with image at key `"arr_0"`, or a .tif fi
 
     With multiple background images, you will not see a background contrast slider anymore. This is intentional. To
     change the settings of each background image, click on Window -> Layer List and Window -> Layer Controls. From these
-    windows, you have full control over the background images by selecting one. You can change their blending mode and
-    opacity so you can see all your background images at once.
+    windows, you have full control over the background images by selecting one. You can change their blending modes and
+    opacities individually.
 
-Specify no background images by setting `#!python background_images=[]`
+Specify no background images by setting `#!python background_images=[]` and `#!python background_image_colours=[]`.
 
 Close the Viewer and all subplots by pressing Ctrl + C in the terminal.
 
@@ -82,9 +82,10 @@ require a selected spot. Select a spot by pressing 3 and clicking on a spot. The
 The "Background Contrast" slider will affect the colour scale of the background image. "Marker Size" will change the
 size of gene spots. "Z Thickness" allows for multiple z planes to be displayed at once. The "Score Thresholds" allows
 the user to change the minimum and maximum spot scores to display. The "Intensity Thresholds" affects the minimum and
-maximum allowed spot intensity to display The "Method" is the chosen method of gene calling. "Probability" is the Von-
-Mises probability method, "Anchor" is the anchor method (see [call spots](overview.md#call-spots)), and "OMP" is the
-Orthogonal Matching Pursuit method (see [OMP](overview.md#orthogonal-matching-pursuit)).
+maximum allowed spot intensity to display. By default, the intensity threshold is set to 0.15. The "Method" is the
+chosen method of gene calling. "Probability" is the Von-Mises probability method and "Anchor" is the anchor method (see
+[call spots](overview.md#call-spots)), and "OMP" is the Orthogonal Matching Pursuit method (see
+[OMP](overview.md#orthogonal-matching-pursuit)).
 
 ??? bug "Max Intensity Projection Toggle"
 
@@ -94,7 +95,6 @@ Orthogonal Matching Pursuit method (see [OMP](overview.md#orthogonal-matching-pu
 
 <figure markdown="span">
   ![Image title](images/Viewer_example.PNG){ width="1100" }
-  <figcaption>The Viewer</figcaption>
 </figure>
 
 ## RegistrationViewer

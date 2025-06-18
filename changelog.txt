@@ -5,6 +5,7 @@
  * Find spots: Improved error message.
  * Call spots: 25th percentile "background subtraction" colour pre-processing step is now optional and is off by
     default.
+ * Call spots: Intensity threshold on good spot selection added.
 
 
 2025/05/12 Version 1.2 Patch (v1.2.6):

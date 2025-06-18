@@ -97,6 +97,10 @@ def call_reference_spots(
         # Remove background as constant offset across different rounds of the same channel
         spot_colours -= np.percentile(spot_colours, 25, axis=1, keepdims=True)
 
+    # Compute the spot intensities
+    spot_intensities = utils_intensity.compute_intensity(spot_colours).numpy().astype(np.float16)
+    intensity_threshold = config["gene_intensity_threshold"]
+
     # 2. Compute gene probabilities for each spot
     bled_codes = raw_bleed_matrix[gene_codes]
     gene_prob_initial = gene_prob_score(spot_colours, bled_codes, kappa=config["kappa"])
@@ -114,7 +118,7 @@ def call_reference_spots(
         **kwargs,
     )
     prob_threshold = min(config["gene_prob_threshold"], np.percentile(prob_score_initial, 90))
-    good = prob_score_initial > prob_threshold
+    good = (prob_score_initial > prob_threshold) & (spot_intensities > intensity_threshold)
     bleed_matrix_initial = compute_bleed_matrix(spot_colours[good], prob_mode_initial[good], gene_codes, n_dyes)
 
     # 4. Compute the free_bled_codes
@@ -208,7 +212,7 @@ def call_reference_spots(
         dp_score, store=os.path.join(nbp_file.output_dir, "dp_score.zarray"), chunks=pixel_chunk_size, **kwargs
     )
     # Update bleed matrix.
-    good = prob_score > prob_threshold
+    good = (prob_score > prob_threshold) & (spot_intensities > intensity_threshold)
     bleed_matrix = compute_bleed_matrix(spot_colours[good], prob_mode[good], gene_codes, n_dyes)
     intensity = utils_intensity.compute_intensity(
         nbp_ref_spots.colours[:].astype(np.float32) * colour_norm_factor[spot_tile]
