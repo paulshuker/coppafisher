@@ -284,8 +284,8 @@ class ViewAllGeneHistograms:
                 gene_values = self.nb.call_spots.dot_product_gene_score
                 gene_no = self.nb.call_spots.dot_product_gene_no
             else:
-                gene_values = np.max(self.nb.call_spots.gene_probabilities, axis=1)
-                gene_no = np.argmax(self.nb.call_spots.gene_probabilities, axis=1)
+                gene_values = np.max(self.nb.call_spots.gene_probabilities_initial, axis=1)
+                gene_no = np.argmax(self.nb.call_spots.gene_probabilities_initial, axis=1)
             gene_hists[m] = [
                 np.histogram(gene_values[gene_no == g], bins=np.linspace(0, 1, 10))[0]
                 for g in range(len(self.nb.call_spots.gene_names))
