@@ -45,18 +45,19 @@ class ViewSpotColourAndCode(Subplot):
             colour_norm_factor (`(n_tiles x n_rounds x n_channels_use) ndarray[float32]`): normalisation factor for
                 each tile, round, and channel that is applied to colours.
             use_channels (list of int): sequencing channels used.
-            method (str): spot's method. Can be 'anchor', 'omp' or 'prob'.
+            method (str): the spot's gene calling method. Can be 'anchor', 'omp' or 'prob'.
             show (bool, optional): show the plot after creating. Turn off for unit testing. Default: true.
 
         Notes:
             - Keep the class instance in a named variable when running this subplot. This ensures that the UI buttons
                 continue to allow interaction.
         """
-        assert method.lower() in ["anchor", "omp", "prob"], "method must be 'anchor', 'omp' or 'prob'"
+        method = method.lower()
+        assert method in ["anchor", "omp", "prob"], "method must be 'anchor', 'omp' or 'prob'"
 
-        self.use_colour_norm_factor = True
-        self.remove_background = method != "omp"
-        self.l2_normalise = True
+        self.use_colour_norm_factor = method != "prob"
+        self.remove_background = False
+        self.l2_round_normalise = True
 
         self.spot_tile = spot_tile
         self.gene_bled_code = gene_bled_code.astype(np.float32).copy()
@@ -88,7 +89,7 @@ class ViewSpotColourAndCode(Subplot):
 
         # Predicted gene bled code image.
         ax: plt.Axes = self.axes[1, 0]
-        im = ax.imshow(gene_bled_code.T, cmap=self.cmap, norm=self.norm)
+        self.bled_code_im = ax.imshow(gene_bled_code.T, cmap=self.cmap, norm=self.norm)
         ax.set_title(f"Gene {gene_index}: {gene_name} predicted bled code")
         ax.set_xticks(range(spot_colour.shape[0]), range(spot_colour.shape[0]))
         ax.set_ylabel("Channel")
@@ -97,7 +98,7 @@ class ViewSpotColourAndCode(Subplot):
         # Colour bar on right.
         cbar_pos = [0.85, 0.4, 0.09, 0.5]  # left, bottom, width, height
         self.cbar_ax = self.fig.add_axes(cbar_pos)
-        self.cbar = plt.colorbar(im, cax=self.cbar_ax, orientation="vertical", label="Intensity")
+        self.cbar = plt.colorbar(self.bled_code_im, cax=self.cbar_ax, orientation="vertical", label="Intensity")
 
         self.button_colour_not_pressed = "red"
         self.button_colour_pressed = "green"
@@ -110,8 +111,8 @@ class ViewSpotColourAndCode(Subplot):
         self.background_button.label.set_color(self.get_colour_of_button(self.remove_background))
         self.background_button.on_clicked(self.change_background)
         self.norm_button_ax = self.fig.add_axes([0.85, 0.15, 0.1, 0.05])
-        self.norm_button = Button(self.norm_button_ax, "L2 Normalise", hovercolor="0.275")
-        self.norm_button.label.set_color(self.get_colour_of_button(self.l2_normalise))
+        self.norm_button = Button(self.norm_button_ax, "Round normalise", hovercolor="0.275")
+        self.norm_button.label.set_color(self.get_colour_of_button(self.l2_round_normalise))
         self.norm_button.on_clicked(self.change_norm)
 
         self.plot_colour()
@@ -121,16 +122,21 @@ class ViewSpotColourAndCode(Subplot):
 
     def plot_colour(self) -> None:
         plot_spot_colour = self.spot_colour.copy()
+        plot_gene_bled_code = self.gene_bled_code.copy()
         if self.use_colour_norm_factor:
             plot_spot_colour *= self.colour_norm_factor[self.spot_tile]
         if self.remove_background:
             plot_spot_colour -= np.percentile(plot_spot_colour, 25, axis=0, keepdims=True)
-        if self.l2_normalise:
-            plot_spot_colour /= np.linalg.norm(plot_spot_colour, axis=(0, 1), keepdims=True)
+        if self.l2_round_normalise:
+            plot_spot_colour /= np.linalg.norm(plot_spot_colour, axis=1, keepdims=True)
+            plot_gene_bled_code /= np.linalg.norm(plot_gene_bled_code, axis=1, keepdims=True)
 
+        abs_max = np.max([1, np.abs(plot_spot_colour).max(), np.abs(plot_gene_bled_code).max()])
         self.colour_im.set_data(plot_spot_colour.T)
-        abs_max = np.max([np.abs(plot_spot_colour).max(), np.abs(self.gene_bled_code).max()])
+        self.bled_code_im.set_data(plot_gene_bled_code.T)
         self.colour_im.set_clim(-abs_max, abs_max)
+        self.bled_code_im.set_clim(-abs_max, abs_max)
+
         self.fig.canvas.draw()
 
     def change_use_colour_norm(self, _=None) -> None:
@@ -154,8 +160,8 @@ class ViewSpotColourAndCode(Subplot):
         """
         Function triggered on press of l2 normalise button. Will either remove/add l2 normalisation of spot_colour.
         """
-        self.l2_normalise = not self.l2_normalise
-        self.norm_button.label.set_color(self.get_colour_of_button(self.l2_normalise))
+        self.l2_round_normalise = not self.l2_round_normalise
+        self.norm_button.label.set_color(self.get_colour_of_button(self.l2_round_normalise))
         self.plot_colour()
 
     def get_colour_of_button(self, enabled: bool) -> str:
