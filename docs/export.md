@@ -49,7 +49,7 @@ minimum threshold:
 ```
 
 score_thresh and intensity_thresh must be numbers. Use the [Viewer](diagnostics.md#viewer) to help decide on thresholds.
-intensity_thresh is set to `0.15` in the Viewer by default.
+intensity_thresh is set to `0.15` for OMP in the Viewer by default.
 
 ## Custom Images
 

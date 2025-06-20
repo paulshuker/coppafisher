@@ -262,7 +262,7 @@ def get_spot_colours_new(
 
     # TODO: Vectorise applying flow and affine transforms.
     yxz_t = torch.full((len(use_rounds), len(use_channels), yxz.shape[0], 3), torch.nan, dtype=torch.float32)
-    for r in use_rounds:
+    for r_index, r in enumerate(use_rounds):
         # image_tr = np.zeros((len(use_channels), 1) + tile_shape, np.float32)
         yxz_tr = torch.zeros((len(use_channels), yxz.shape[0], 3), dtype=torch.float32)
         # First, apply round r optical flow to the given coordinates.
@@ -274,7 +274,7 @@ def get_spot_colours_new(
             del yxz_trc
         del yxz_r
 
-        yxz_t[r] = yxz_tr
+        yxz_t[r_index] = yxz_tr
         del yxz_tr
 
     # Gather the smallest sized cuboid of filter image data to bilinear-interpolate all yxz_t coordinates.
@@ -286,13 +286,13 @@ def get_spot_colours_new(
     subset_tile_shape: tuple[int, int, int] = tuple([yxz_t_max[i] - yxz_t_min[i] for i in range(3)])
 
     image_t = torch.zeros((len(use_rounds), len(use_channels), 1) + subset_tile_shape, dtype=torch.float32)
-    for r in use_rounds:
+    for r_index, r in enumerate(use_rounds):
         for c_index, c in enumerate(use_channels):
             image_trc = image[
                 tile, r, c, yxz_t_min[0] : yxz_t_max[0], yxz_t_min[1] : yxz_t_max[1], yxz_t_min[2] : yxz_t_max[2]
             ]
             image_trc = torch.from_numpy(image_trc).float()
-            image_t[r, c_index, 0] = image_trc
+            image_t[r_index, c_index, 0] = image_trc
 
     image_t = image_t.reshape((len(use_rounds) * len(use_channels), 1) + subset_tile_shape)
     yxz_t = yxz_t.reshape((len(use_rounds) * len(use_channels), 1, 1, yxz.shape[0], 3))

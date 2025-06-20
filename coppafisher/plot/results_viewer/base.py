@@ -44,12 +44,12 @@ class Viewer:
     _method_to_string: dict[str, str] = {"prob": "Probability", "anchor": "Anchor", "omp": "OMP"}
     _gene_legend_order_by_options: tuple[str, ...] = ("row", "colour", "cell_type")
     _starting_score_thresholds: dict[str, tuple[float, float | None]] = {
-        "prob": (0.5, None),
+        "prob": (0.9, None),
         "anchor": (0.5, None),
         "omp": (0.4, None),
     }
     _starting_intensity_thresholds: dict[str, tuple[float, float | None]] = {
-        "prob": (0.15, None),
+        "prob": (0.20, None),
         "anchor": (0.15, None),
         "omp": (0.15, None),
     }

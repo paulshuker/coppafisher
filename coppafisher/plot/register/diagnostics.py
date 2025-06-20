@@ -17,6 +17,7 @@ from tqdm import tqdm
 
 from coppafisher.setup import file_names
 from coppafisher.setup.notebook import Notebook
+from coppafisher.spot_colours import base as spot_colours_base
 from coppafisher.spot_colours.base import apply_affine, apply_flow_new
 
 
@@ -928,10 +929,6 @@ def view_overlay(nb: Notebook, t: int = None, rc: list = None):
     """
     assert len(rc) > 0, "At least one round and channel should be provided."
     n_im = len(rc)
-    coords = np.array(
-        np.meshgrid(range(nb.basic_info.tile_sz), range(nb.basic_info.tile_sz), range(nb.basic_info.nz), indexing="ij"),
-        dtype=np.float32,
-    )
     im = np.zeros((n_im, nb.basic_info.tile_sz, nb.basic_info.tile_sz, nb.basic_info.nz), dtype=np.float32)
 
     icp_correction = nb.register.icp_correction
@@ -944,13 +941,23 @@ def view_overlay(nb: Notebook, t: int = None, rc: list = None):
         if r == nb.basic_info.anchor_round:
             im[i] = nb.filter.images[t, r, c].astype(np.float32)
         else:
-            # don't use get spot colours as that loads all rounds
-            im[i] = nb.filter.images[t, r, c].astype(np.float32)
-            # apply the affine to the image (first have to adjust the shift for the new origin)
-            im[i] = affine_transform(im[i], icp_correction[t, r, c].T, order=0)
-            # apply the flow to the image
-            flow = nb.register.flow[t, r]
-            im[i] = skimage.transform.warp(im[i], coords + flow, order=0, preserve_range=True, cval=0, mode="constant")
+            tile_shape = (nb.basic_info.tile_sz, nb.basic_info.tile_sz, len(nb.basic_info.use_z))
+            yxz_all = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(3)]
+            yxz_all = np.array(np.meshgrid(*yxz_all, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
+
+            spot_colour_kwargs = dict(
+                image=nb.filter.images,
+                flow=nb.register.flow,
+                affine=nb.register.icp_correction,
+                tile=t,
+                use_rounds=[r],
+                use_channels=[c],
+                output_dtype=np.float32,
+                out_of_bounds_value=0,
+            )
+            im[i] = spot_colours_base.get_spot_colours_new_safe(nb.basic_info, yxz_all, **spot_colour_kwargs)[
+                :, 0, 0
+            ].reshape(tile_shape, order="F")
     # create viewer
     viewer = napari.Viewer()
     colours = ["red", "green"]

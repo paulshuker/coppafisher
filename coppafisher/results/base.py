@@ -61,14 +61,14 @@ class MethodData:
         self.method = method
 
         if method == "prob":
-            self.score = nbp_call_spots.gene_probabilities[:].max(1)
+            self.score = nbp_call_spots.gene_probabilities_initial[:].max(1)
         if method == "anchor":
             self.score = nbp_call_spots.dot_product_gene_score[:]
         if method in ("prob", "anchor"):
             self.tile = nbp_ref_spots.tile[:]
             self.local_yxz = nbp_ref_spots.local_yxz[:].astype(np.int16)
             self.yxz = self.local_yxz.astype(np.float32) + nbp_stitch.tile_origin[self.tile]
-            self.gene_no = np.argmax(nbp_call_spots.gene_probabilities[:], 1).astype(np.int16)
+            self.gene_no = np.argmax(nbp_call_spots.gene_probabilities_initial[:], 1).astype(np.int16)
             self.colours = nbp_ref_spots.colours[:].astype(np.float32)
             self.intensity = nbp_call_spots.intensity[:]
         if method == "omp":

@@ -327,8 +327,8 @@ class ViewGeneEfficiencies(Subplot):
             gene_no = nbp_call_spots.dot_product_gene_no
             score = nbp_call_spots.dot_product_gene_score
         else:
-            gene_no = np.argmax(nbp_call_spots.gene_probabilities[:], axis=1)
-            score = np.max(nbp_call_spots.gene_probabilities[:], axis=1)
+            gene_no = np.argmax(nbp_call_spots.gene_probabilities_initial[:], axis=1)
+            score = np.max(nbp_call_spots.gene_probabilities_initial[:], axis=1)
 
         # Count the number of spots for each gene
         n_spots = np.zeros(nbp_call_spots.gene_names.shape[0], dtype=int)
@@ -472,8 +472,8 @@ class GeneSpotsViewer:
             spot_index = np.arange(nbp_ref_spots.colours.shape[0])
         else:
             spots = nbp_ref_spots.colours[:]
-            gene_no = np.argmax(nbp_call_spots.gene_probabilities[:], axis=1)
-            score = np.max(nbp_call_spots.gene_probabilities[:], axis=1)
+            gene_no = np.argmax(nbp_call_spots.gene_probabilities_initial[:], axis=1)
+            score = np.max(nbp_call_spots.gene_probabilities_initial[:], axis=1)
             tile = nbp_ref_spots.tile[:]
             spot_index = np.arange(nbp_ref_spots.colours.shape[0])
 
