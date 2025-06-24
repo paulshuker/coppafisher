@@ -2,6 +2,7 @@
  * General: New ND2 file tile indexing plot added.
  * General: pyproject.toml file added to replace setup.py.
  * Viewer: Improved spot colour and bled code subplot.
+ * Export: Transform custom images through new pip package `LineStuffUp`.
  * Export: Load transform from text file instructions fixed.
  * Find spots: Improved error message.
  * Call spots: 25th percentile "background subtraction" colour pre-processing step is now optional and is off by
