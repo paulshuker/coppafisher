@@ -103,28 +103,21 @@ fused_custom_dapi_image, fused_anchor_dapi_image = fuse_custom_and_dapi(nb, outp
 
 ### Dapi Register
 
-Alignment is done using a private package called `transform` maintained by Max Shinn (m.shinn@ucl.ac.uk). This allows
-control over the type of transformation to apply based on their custom images. Install required dependencies
+Alignment is done using the package [`LineStuffUp`](https://pypi.org/project/LineStuffUp/) maintained by Max Shinn
+(m.shinn@ucl.ac.uk). This allows control over the type of transformation to apply based on their custom images. Install
+via pip
 
 ```terminal
-python -m pip install --upgrade imageio-ffmpeg
-```
-
-Then in an empty directory, clone the package
-
-```terminal
-git clone --depth 1 https://github.com/mwshinn/transform.git
-cd transform
-ipython
+python -m pip install LineStuffUp
 ```
 
 Then start the interactive alignment process
 
 ```py
-import transform.gui
-from transform.base import TranslateRotate
+import linestuffup.gui
+from linestuffup.base import TranslateRotate
 
-round_transform = transform.gui.alignment_gui(
+round_transform = linestuffup.gui.alignment_gui(
     fused_custom_dapi_image, fused_anchor_dapi_image, transform_type=TranslateRotate
 )
 ```
@@ -136,7 +129,7 @@ napari window.
 ??? info "Type of Transform"
 
     You can change the type of transform you wish to find, please see the transfrom
-    [readme](https://github.com/mwshinn/transform/blob/master/README.md) for details.
+    [readme](https://github.com/mwshinn/LineStuffUp/blob/master/README.md) for details.
 
     For example, you could use the more robust transform type of `#!python TranslateRotateRescale`. It requires four
     points in every corner of the image on both edges of the z stack for best results.
@@ -160,7 +153,7 @@ napari window.
     It can be reloaded by
 
     ```py
-    from transform.base import *
+    from linestuffup.base import *
 
     with open("/path/to/saved/transform.txt", "r") as file:
         exec("round_transform = " + "\n".join(file.readlines()))
@@ -191,12 +184,12 @@ best registration. To do this, first find a transform to move into the dapi cust
 
 ```py
 from coppafisher.custom_alignment import fuse_custom_and_dapi
-import transform.gui
-from transform.base import TranslateRotate
+import linestuffup.gui
+from linestuffup.base import TranslateRotate
 
 fused_custom_channel_image, _ = fuse_custom_and_dapi(nb, output_dir, channel=c)
 
-channel_transform = transform.gui.alignment_gui(
+channel_transform = linestuffup.gui.alignment_gui(
     fused_custom_channel_image, fused_custom_dapi_image, transform_type=TranslateRotate
 )
 ```

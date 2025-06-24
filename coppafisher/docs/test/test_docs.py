@@ -153,7 +153,7 @@ def test_doc_imports() -> None:
                 continue
 
             if within_code_snippet and " import " in doc_line:
-                if doc_line.split()[1].startswith("transform"):
+                if doc_line.split()[1].startswith("linestuffup"):
                     continue
                 exec(doc_line.strip())
 
