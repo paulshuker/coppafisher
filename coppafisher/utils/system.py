@@ -1,10 +1,7 @@
 import os
 import shutil
-import socket
-import ssl
 import subprocess
 import sys
-import urllib
 from pathlib import PurePath
 from typing import Tuple
 
@@ -12,11 +9,38 @@ import numpy as np
 import psutil
 import torch
 
+from . import web
+
 
 class SystemConstants:
-    VERSION_URL = "https://github.com/paulshuker/coppafisher/raw/HEAD/coppafisher/_version.py"
+    VERSION_CONTAINS = "version"
     # The character(s) that encapsulate the software version tag in _version.py, in this case it is quotation marks.
     VERSION_ENCAPSULATE = '"'
+
+
+def get_version_url() -> str:
+    # This is temporary until 1.3.0 is pushed to main; then the version URL will then be a constant.
+    version = get_software_version().split(".")
+    if (
+        version[0] == "1"
+        and version[1] == "3"
+        and version[2].startswith("0")
+        and web.try_read_url_at("https://github.com/paulshuker/coppafisher/raw/HEAD/coppafisher/_version.py")
+        is not None
+    ):
+        return "https://github.com/paulshuker/coppafisher/raw/HEAD/coppafisher/_version.py"
+
+    return "https://github.com/paulshuker/coppafisher/raw/HEAD/pyproject.toml"
+
+
+def get_version_from_file(file_lines: list[str]) -> str:
+    for file_line in file_lines:
+        if not SystemConstants.VERSION_CONTAINS in file_line:
+            continue
+
+        return file_line.split(SystemConstants.VERSION_ENCAPSULATE)[1]
+
+    raise ValueError(f"No version found inside file:\n{file_lines}")
 
 
 def get_software_version() -> str:
@@ -29,9 +53,8 @@ def get_software_version() -> str:
     Returns:
         (str): version. The local software version.
     """
-    consts = SystemConstants()
     with open(PurePath(os.path.dirname(os.path.realpath(__file__))).parent.joinpath("_version.py"), "r") as f:
-        version_tag = f.read().split(consts.VERSION_ENCAPSULATE)[1]
+        version_tag = get_version_from_file(f.readlines())
 
     try:
         cwd = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -68,19 +91,15 @@ def get_remote_software_version() -> str | None:
     Returns:
         (str or none): version_tag. None if the version could not be retrieved.
     """
-    consts = SystemConstants()
     fallback = None
-    if not internet_is_active():
+    if not web.internet_is_active():
         return fallback
-    try:
-        f = urllib.request.urlopen(consts.VERSION_URL)
-        version_contents = str(f.read())
-        index_start = version_contents.index(consts.VERSION_ENCAPSULATE)
-        index_end = version_contents.index(consts.VERSION_ENCAPSULATE, index_start + 1)
-    except (urllib.error.HTTPError, urllib.error.URLError):
-        # This can be reached if GitHub refuses the request due to too many recent requests.
+
+    result = web.try_read_url_at(get_version_url())
+    if result is None:
         return fallback
-    return version_contents[index_start + 1 : index_end]
+    else:
+        return get_version_from_file(result.decode().split("\n"))
 
 
 def get_available_memory(device: torch.device = None) -> float:
@@ -157,30 +176,6 @@ def get_terminal_size_xy(x_offset: int = 0, y_offset: int = 0) -> Tuple[int, int
         int(np.clip(terminal_size[0] + x_offset, a_min=1, a_max=None)),
         int(np.clip(terminal_size[1] + y_offset, a_min=1, a_max=None)),
     )
-
-
-def internet_is_active() -> bool:
-    """
-    Check for an internet connection.
-
-    Returns:
-        bool: whether the system is connected to the internet.
-    """
-    try:
-        urllib.request.urlopen("http://www.google.com")
-        return True
-    except (
-        urllib.error.URLError,
-        urllib.error.HTTPError,
-        ValueError,
-        socket.gaierror,
-        TimeoutError,
-        OSError,
-        ssl.SSLError,
-        ConnectionResetError,
-        FileNotFoundError,
-    ):
-        return False
 
 
 def is_path_on_mounted_server(path):

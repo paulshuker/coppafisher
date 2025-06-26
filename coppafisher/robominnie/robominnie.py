@@ -261,8 +261,8 @@ class Robominnie:
             target_loc_br = np.minimum(target_size, target_loc_tl + source_size)
             target_loc_tl = np.maximum(0, target_loc_tl)
             # Compute slices from positions
-            target_slices = [slice(s1, s2) for s1, s2 in zip(target_loc_tl, target_loc_br)]
-            source_slices = [slice(s1, s2) for s1, s2 in zip(source_loc_tl, source_loc_br)]
+            target_slices = [slice(s1, s2) for s1, s2 in zip(target_loc_tl, target_loc_br, strict=True)]
+            source_slices = [slice(s1, s2) for s1, s2 in zip(source_loc_tl, source_loc_br, strict=True)]
             # Perform the blit
             target[tuple(target_slices)] += source[tuple(source_slices)]
 
@@ -317,7 +317,7 @@ class Robominnie:
         np.multiply(spot_img_dapi, spot_amplitude_dapi * np.prod(spot_size_pixels_dapi) / 3.375, out=spot_img_dapi)
         s = 0
         for p, ident in tqdm.tqdm(
-            zip(true_spot_positions, true_spot_identities),
+            zip(true_spot_positions, true_spot_identities, strict=True),
             desc="Superimposing spots",
             ascii=True,
             unit="spots",
@@ -554,7 +554,9 @@ class Robominnie:
         np.savez(self.psf_filepath, self.psf)
 
         # Add an extra channel and dye for the DAPI
-        self.dye_names = map("".join, zip(["dye_"] * (self.n_channels), list(np.arange(self.n_channels).astype(str))))
+        self.dye_names = map(
+            "".join, zip(["dye_"] * (self.n_channels), list(np.arange(self.n_channels).astype(str)), strict=True)
+        )
         self.dye_names = list(self.dye_names)
 
         # Save the config file. z_subvols is moved from the default of 5 based on n_planes.

@@ -82,7 +82,6 @@ parso==0.8.4
 partd==1.4.2
 pillow==10.4.0
 Pint==0.24.3
-pip==24.2
 platformdirs==4.3.6
 plotly==5.24.1
 plyer==2.1.0
@@ -118,7 +117,6 @@ rpds-py==0.20.0
 scikit-image==0.24.0
 scikit-learn==1.5.2
 scipy==1.14.1
-setuptools==78.1.0
 shellingham==1.5.4
 six==1.16.0
 snowballstemmer==2.2.0

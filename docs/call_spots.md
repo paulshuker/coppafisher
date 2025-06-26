@@ -33,7 +33,7 @@ The purpose of this step is to approximately equalise the brightness of differen
 
 We transform the raw spot colours $F_{src}$ as follows:
 
-$$F_{src} \mapsto \tilde{A}_{t(s)rc}F_{src} - G_{sc}.$$
+$$F_{src} \mapsto \tilde{A}_{t(s)rc}F_{src}$$
 
 In the formula above:
 
@@ -45,16 +45,23 @@ $$
 
 for all spots $s$ in tile $t$. This is a good estimate of the scaling factor needed to make the brightest spots in each tile, round and channel have the same intensity.
 
-- The _ground level_ $G_{sc}$ is defined as
+??? info "If `background_subtract` in the config is set to true (typically false)"
+
+    $$
+    F_{src} \mapsto F_{src} - \text{Percentile}_r(F_{src}, 25)
+    $$
+
+    For 7 rounds, this is the brightness of the second dimmest round of the scaled spot colours in channel c. This is a good estimate of the constant signal in channel c across all rounds, which we want to remove.
+
+<!-- TODO: Add an image of a spot before anything, after scaling -->
+
+We define the intensity of spot $s$ as
 
 $$
-G_{sc} = \text{Percentile}_r(\tilde{A}_{t(s)rc}F_{src}, 25).
+I(s) = \min_r\Big(\max_c(|F_{src}|)\Big)
 $$
 
-For 7 rounds, this is the brightness of the second dimmest round of the scaled spot colours in channel $c$. This is a good estimate of the constant signal in channel $c$ across all rounds, which we want to remove.
-
-
-<!-- TODO: Add an image of a spot before anything, after scaling, then after removing background -->
+which will be useful later for refined spot selection by ensuring there is brightness in every sequencing round.
 
 ### 1: Initial Gene Assignment
 The purpose of this step is to provide some preliminary gene assignments that will allow us to estimate the bleed matrix and the bled codes. We will work extensively with the bleed matrix in these calculations, but bear in mind that this is the raw bleed matrix $\mathbf{B_{\textrm{raw}}}$.
@@ -172,10 +179,12 @@ where $\kappa$ is a concentration parameter which controls how much the probabil
 ### 2: Bleed Matrix Calculation
 The purpose of this step is to compute an updated estimate of the bleed matrix.
 
-Set some probability threshold $\gamma$ (in the config file $\gamma$ is called `gene_prob_thresold` and has default value 0.9). We define the following sets:
+Set some probability threshold $\gamma$ (in the config file $\gamma$ is called `gene_prob_thresold` and has default value 0.9).
+Set an intensity threshold $\delta$ (in the config file $\delta$ is called `gene_intensity_threshold` and has default value 0.2).
+We define the following sets:
 
 $$
-\mathcal{S} = \{ s : p(s) \geq \gamma \},
+\mathcal{S} = \{ s : p(s) > \gamma \space \cap \space I(s) > \delta \},
 $$
 
 $$
@@ -188,11 +197,11 @@ $$
 
 In words, these can be described as follows:
 
-- $\mathcal{S}$ is the set of spots with $s$ with probability $p(s) > \gamma$, ie: the high probability spots,
+- $\mathcal{S}$ is the set of spots with $s$ with high probability/intense spots,
 
 - $G_{rd}$ is the set of genes with dye $d$ in round $r$,
 
-- $J_{rd}$ is the set of colours of high probability spots assigned to genes with dye $d$ in round $r$.
+- $J_{rd}$ is the set of colours of high probability/intense spots assigned to genes with dye $d$ in round $r$.
 
 By taking the union of $J_{rd}$ across rounds, we end up with a set of reliable colour vector estimates for dye $d$:
 
@@ -458,11 +467,11 @@ An intensity for each spot is saved to the notebook and used in the [Viewer](dia
 from the final, scaled colours.
 
 $$
-\text{intensity}_s = \min_r(\max_c(\mathbf{F}_{src}))
+\text{intensity}_s = \min_r(\max_c(|\mathbf{F}_{src}|))
 $$
 
 This intensity should have a threshold when looking at gene results as it removes poor gene reads caused by colour that
-is bright in only some of the rounds. From data, a value of 0.1 is reasonable. This is the default threshold for the
+is bright in only some of the rounds. From data, a value of 0.15 is reasonable. This is the default threshold for the
 Viewer.
 
 ??? note "What could cause brightness in some rounds but not others?"

@@ -6,7 +6,7 @@ from .. import log
 from ..setup.notebook import Notebook
 
 
-def check_n_spots(nb: Notebook):
+def check_n_spots(nb: Notebook) -> None:
     """
     This checks that a decent number of spots are detected on:
 
@@ -126,9 +126,13 @@ def check_n_spots(nb: Notebook):
                 f"Consider removing these tiles from use_tiles."
             )
 
-    if len(error_message) > 0:
-        error_message = (
-            error_message + "\nThe command `python -m coppafisher -fs /path/to/notebook` may be useful for "
-            "investigating why the above tiles/rounds/channels had so few spots detected."
-        )
-        raise ValueError(error_message)
+    if len(error_message) == 0:
+        return
+
+    error_message = (
+        error_message + "\nThe command `python -m coppafisher -fs /path/to/notebook` may be useful for "
+        "investigating why the above tiles/rounds/channels had so few spots detected.\n"
+        + "If you wish to continue the pipeline anyway, put:\n[find_spots]\nn_spots_error_fraction = 2.0\ninside "
+        + "the config file and run the python command `nb.delete_page('find_spots')`."
+    )
+    raise ValueError(error_message)

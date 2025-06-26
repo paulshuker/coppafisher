@@ -100,7 +100,9 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
                 channel_images = reader.read(nbp_basic, nbp_file, t, r, raw_channel_inds)
                 channel_images = channel_images[:, :, :, nbp_basic.use_z]
 
-                for im, c, file_path, file_exists in zip(channel_images, channels, file_paths, files_exist):
+                for im, c, file_path, file_exists in zip(
+                    channel_images, channels, file_paths, files_exist, strict=True
+                ):
                     if file_exists:
                         continue
                     im = im.astype(EXTRACT_DTYPE, casting="safe")

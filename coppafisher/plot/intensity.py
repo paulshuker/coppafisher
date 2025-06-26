@@ -178,7 +178,7 @@ def view_intensity_images(
         images[i] = image.swapaxes(1, 2).swapaxes(0, 1)
 
     viewer = napari.Viewer(title="Coppafisher intensities")
-    for image, name in zip(images, names):
+    for image, name in zip(images, names, strict=True):
         viewer.add_image(image, name=name, rgb=False)
 
     napari.run()

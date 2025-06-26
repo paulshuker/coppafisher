@@ -60,7 +60,7 @@ def view_filtered_images(
 
     viewer = napari.Viewer(title="Coppafisher filtered images")
     limits = None
-    for image, name in zip(images, names):
+    for image, name in zip(images, names, strict=True):
         if share_contrast_limits:
             limits = [im_min, im_max]
         viewer.add_image(image, name=name, rgb=False, contrast_limits=limits)

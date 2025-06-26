@@ -36,7 +36,7 @@ def test_export_to_pciseq() -> None:
         assert csv_file_path.endswith(f"pciseq_{method}.csv")
 
         if method == "prob":
-            n_expected_genes = (nb.call_spots.gene_probabilities[:].max(1) >= 0.5).sum()
+            n_expected_genes = (nb.call_spots.gene_probabilities_initial[:].max(1) >= 0.5).sum()
         elif method == "anchor":
             n_expected_genes = (nb.call_spots.dot_product_gene_score[:] >= 0.5).sum()
         elif method == "omp":

@@ -219,7 +219,9 @@ class Config:
             "icp_max_iter": ("int", "not-negative"),
         },
         "call_spots": {
+            "background_subtract": ("bool", ""),
             "gene_prob_threshold": ("number", "not-negative"),
+            "gene_intensity_threshold": ("number", "not-negative"),
             "target_values": ("maybe_tuple_number", "tuple-not-empty"),
             "d_max": ("maybe_tuple_int", "tuple-not-empty"),
             "kappa": ("maybe_number", "not-negative"),

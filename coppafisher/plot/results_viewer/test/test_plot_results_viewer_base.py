@@ -77,7 +77,7 @@ def test_Viewer() -> None:
     # Normalise bled codes as this is checked by other functions.
     bled_codes /= np.linalg.norm(bled_codes, axis=(1, 2), keepdims=True)
     nbp_call_spots.bled_codes = bled_codes
-    nbp_call_spots.gene_probabilities = zarr.array(rng.rand(n_ref_spots, n_genes).astype(np.float32))
+    nbp_call_spots.gene_probabilities_initial = zarr.array(rng.rand(n_ref_spots, n_genes).astype(np.float32))
     nbp_call_spots.intensity = zarr.array(rng.rand(n_ref_spots) + 0.5).astype(np.float32)
     nbp_call_spots.dot_product_gene_no = zarr.array(rng.randint(n_genes, size=n_ref_spots, dtype=np.int16))
     nbp_call_spots.dot_product_gene_score = zarr.array(rng.rand(n_ref_spots)).astype(np.float16)
@@ -110,7 +110,7 @@ def test_Viewer() -> None:
     background_image_colours.append(["Greens"])
     background_images.append([npy_filepath, "dapi_detailed", tiff_filepath])
     background_image_colours.append(["Greens", "Reds", "Greys"])
-    for background_image, colour_maps in zip(background_images, background_image_colours):
+    for background_image, colour_maps in zip(background_images, background_image_colours, strict=True):
         viewer = Viewer(
             background_images=background_image,
             background_image_colours=colour_maps,

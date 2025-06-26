@@ -64,7 +64,7 @@ class ViewFreeAndConstrainedBledCodes:
         for g in range(n_genes):
             code_image[g, :, :n_rounds] = free_bled_codes[g]
             code_image[g, :, -n_rounds:] = constrained_bled_codes[g]
-            n_spots[g] = np.sum(np.argmax(nb.call_spots.gene_probabilities, axis=1) == g)
+            n_spots[g] = np.sum(np.argmax(nb.call_spots.gene_probabilities_initial, axis=1) == g)
 
         # add the attributes
         self.code_image = code_image
@@ -92,6 +92,9 @@ class ViewFreeAndConstrainedBledCodes:
 
         # update the plot
         self.update_plot()
+
+        if show:
+            plt.show()
 
     def update_plot(self):
         """
@@ -199,7 +202,7 @@ class ViewTargetRegression:
         # get the number of spots per gene
         n_spots = np.zeros(n_genes, dtype=int)
         for g in range(n_genes):
-            n_spots[g] = np.sum(np.argmax(nb.call_spots.gene_probabilities, axis=1) == g)
+            n_spots[g] = np.sum(np.argmax(nb.call_spots.gene_probabilities_initial, axis=1) == g)
 
         # add the attributes
         self.r, self.c = r, c
@@ -369,7 +372,7 @@ def ViewTileScaleRegression(
     d_max = config["d_max"]
     target_bled_codes = nb.call_spots.bled_codes
     free_bled_codes = nb.call_spots.free_bled_codes
-    gene_no = np.argmax(nb.call_spots.gene_probabilities[:], axis=1)
+    gene_no = np.argmax(nb.call_spots.gene_probabilities_initial[:], axis=1)
     n_spots = np.array([np.sum(gene_no == i) for i in range(nb.call_spots.gene_names.size)])
     use_channels = nb.basic_info.use_channels
     n_tiles, n_rounds, n_channels_use = tile_scale.shape
