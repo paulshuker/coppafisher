@@ -185,6 +185,7 @@ class Config:
         "filter": {
             "num_cores": ("maybe_int", "positive"),
             "max_cores": ("maybe_int", "positive"),
+            "channel_radius_normalisation_filepath": ("maybe_file", "str-not-empty"),
             "wiener_constant": ("number", "not-negative"),
             "wiener_pad_shape": ("tuple_int", "tuple-not-empty"),
         },
