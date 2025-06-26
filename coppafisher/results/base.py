@@ -115,6 +115,7 @@ class MethodData:
         - x: x coordinate of each spot in stitched coordinate system.
         - z_stack: z coordinate of each spot in stitched coordinate system (in units of z-pixels).
         - score: the spot's score.
+        - intensity: the spot's intensity.
 
         Args:
             file_path (str): the csv file path.
@@ -130,6 +131,7 @@ class MethodData:
         gene = gene_names[self.gene_no]
         yxz = self.yxz
         score = self.score
+        intensity = self.intensity
 
         if keep is not None:
             assert type(keep) is np.ndarray
@@ -138,6 +140,7 @@ class MethodData:
             gene = gene[keep]
             yxz = yxz[keep]
             score = score[keep]
+            intensity = intensity[keep]
 
         df_to_export = pd.DataFrame()
         df_to_export["Gene"] = gene
@@ -145,6 +148,7 @@ class MethodData:
         df_to_export["x"] = yxz[:, 1]
         df_to_export["z_stack"] = yxz[:, 2]
         df_to_export["score"] = score
+        df_to_export["intensity"] = intensity
         df_to_export.to_csv(file_path, mode="w", index=False)
 
     def _check_variables(self) -> None:

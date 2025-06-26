@@ -43,6 +43,12 @@ def test_export_to_pciseq() -> None:
             n_expected_genes = (base.get_all_scores(nb.basic_info, nb.omp)[0] >= 0.5).sum()
         results = pd.read_csv(csv_file_path)
         assert len(results) == n_expected_genes
+        assert "Gene" in results.columns
+        assert "y" in results.columns
+        assert "x" in results.columns
+        assert "z_stack" in results.columns
+        assert "score" in results.columns
+        assert "intensity" in results.columns
         assert csv_file_path.endswith(f"pciseq_{method}.csv")
 
         csv_file_path = pciseq.export_to_pciseq(nb, method, 0.5, 0.7)
