@@ -96,7 +96,7 @@ weighted. $\beta$ is given by `beta` (typically 1) and gives every round-channel
 Gene $\tilde{g}$ is successfully assigned to pixel $p$ when all conditions are met:
 
 - $(\text{gene scores})_{p\tilde{g}i}$ is the largest scoring gene.
-- $(\text{gene scores})_{p\tilde{g}i} >$ `dot_product_threshold` (typically 0.5).
+- $(\text{gene scores})_{p\tilde{g}i} >$ `dot_product_threshold` (typically 0.72).
 - $\tilde g$ is not already assigned to the pixel.
 - $\tilde g$ is not a background gene.
 - The residual intensity $\min_r(\max_c(|\hat{R}_{prci}|)) > \text{minimum\_intensity}_t$. See [diagnostic](diagnostics.md#intensity-images).
