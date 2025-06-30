@@ -96,9 +96,11 @@ def export_to_pciseq(
     Returns:
         (str): csv_file_path. The file path to the saved csv file.
     """
-    assert type(nb) is Notebook
-    assert type(method) is str
-    if method not in ("prob", "anchor", "omp"):
+    if type(nb) is not Notebook:
+        raise TypeError(f"nb must be type Notebook, got {type(nb)}")
+    if type(method) is not str:
+        raise TypeError(f"method must be type str, got {type(method)}")
+    if method not in ("prob_init", "prob", "anchor", "omp"):
         raise ValueError(f"Unknown method: {method}")
     if score_thresh is None:
         score_thresh = 0
@@ -106,8 +108,8 @@ def export_to_pciseq(
     if intensity_thresh is None:
         intensity_thresh = 0
         print("Using no intensity threshold")
-    assert isinstance(intensity_thresh, Number), "Thresholds must be numbers"
-    assert isinstance(score_thresh, Number), "Thresholds must be numbers"
+    if not isinstance(intensity_thresh, Number) or not isinstance(score_thresh, Number):
+        raise TypeError("Thresholds must be numbers")
     intensity_thresh = float(intensity_thresh)
     score_thresh = float(score_thresh)
 
