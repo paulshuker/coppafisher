@@ -41,14 +41,21 @@ from .subplot import Subplot
 class Viewer:
     # Constants:
     _required_page_names: tuple[str, ...] = ("basic_info", "filter", "register", "stitch", "ref_spots", "call_spots")
-    _method_to_string: dict[str, str] = {"prob": "Probability", "anchor": "Anchor", "omp": "OMP"}
+    _method_to_string: dict[str, str] = {
+        "prob_init": "Initial Probability",
+        "prob": "Probability",
+        "anchor": "Anchor",
+        "omp": "OMP",
+    }
     _gene_legend_order_by_options: tuple[str, ...] = ("row", "colour", "cell_type")
     _starting_score_thresholds: dict[str, tuple[float, float | None]] = {
+        "prob_init": (0.9, None),
         "prob": (0.9, None),
         "anchor": (0.5, None),
         "omp": (0.4, None),
     }
     _starting_intensity_thresholds: dict[str, tuple[float, float | None]] = {
+        "prob_init": (0.20, None),
         "prob": (0.20, None),
         "anchor": (0.15, None),
         "omp": (0.15, None),
@@ -231,6 +238,9 @@ class Viewer:
         # Gather all spot data and keep in self.
         print("Gathering spot data")
         self.spot_data: dict[str, Viewer.MethodData] = {}
+        self.spot_data["prob_init"] = MethodData(
+            "prob_init", self.nbp_basic, self.nbp_stitch, self.nbp_ref_spots, self.nbp_call_spots, self.nbp_omp
+        )
         self.spot_data["prob"] = MethodData(
             "prob", self.nbp_basic, self.nbp_stitch, self.nbp_ref_spots, self.nbp_call_spots, self.nbp_omp
         )
@@ -531,7 +541,7 @@ class Viewer:
         self.clear_spot_selections()
         # Put the user back to pan/zoom mode.
         self.viewer.camera.interactive = True
-        print(f"Method: {self.selected_method}")
+        print(f"Method: {self._method_to_string[self.selected_method]}")
 
     def z_thick_changed(self) -> None:
         if self.ignore_events:

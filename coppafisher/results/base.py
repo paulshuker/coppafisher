@@ -45,7 +45,7 @@ class MethodData:
         Gather all spot data for a particular gene calling method that is stored in self.
 
         Args:
-            method (str): gene calling method to gather. Can be 'prob', 'anchor', or 'omp'.
+            method (str): gene calling method to gather. Can be 'prob_init', 'prob', 'anchor', or 'omp'.
             nbp_basic (NotebookPage): `basic_info` notebook page.
             nbp_stitch (NotebookPage): `stitch` notebook page.
             nbp_ref_spots (NotebookPage): `ref_spots` notebook page.
@@ -53,25 +53,31 @@ class MethodData:
             nbp_omp (NotebookPage or none): `omp` notebook page.
         """
         assert type(method) is str
-        assert method in ("prob", "anchor", "omp"), f"Unknown method {method}"
+        assert method in ("prob_init", "prob", "anchor", "omp"), f"Unknown method {method}"
         assert type(nbp_ref_spots) is NotebookPage
         assert type(nbp_call_spots) is NotebookPage
         assert type(nbp_omp) is NotebookPage or nbp_omp is None
 
         self.method = method
 
-        if method == "prob":
+        if method == "prob_init":
             self.score = nbp_call_spots.gene_probabilities_initial[:].max(1)
-        if method == "anchor":
+            self.gene_no = np.argmax(nbp_call_spots.gene_probabilities_initial[:], 1).astype(np.int16)
+        elif method == "prob":
+            self.score = nbp_call_spots.gene_probabilities[:].max(1)
+        elif method == "anchor":
             self.score = nbp_call_spots.dot_product_gene_score[:]
+
         if method in ("prob", "anchor"):
+            self.gene_no = np.argmax(nbp_call_spots.gene_probabilities[:], 1).astype(np.int16)
+
+        if method in ("prob_init", "prob", "anchor"):
             self.tile = nbp_ref_spots.tile[:]
             self.local_yxz = nbp_ref_spots.local_yxz[:].astype(np.int16)
             self.yxz = self.local_yxz.astype(np.float32) + nbp_stitch.tile_origin[self.tile]
-            self.gene_no = np.argmax(nbp_call_spots.gene_probabilities_initial[:], 1).astype(np.int16)
             self.colours = nbp_ref_spots.colours[:].astype(np.float32)
             self.intensity = nbp_call_spots.intensity[:]
-        if method == "omp":
+        elif method == "omp":
             if nbp_omp is None:
                 raise ValueError(f"{method} requires the omp notebook page")
             self.local_yxz, self.tile = omp_base.get_all_local_yxz(nbp_basic, nbp_omp)
