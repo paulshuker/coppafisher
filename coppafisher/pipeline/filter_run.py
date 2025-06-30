@@ -12,7 +12,7 @@ import zarr
 from .. import log
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
-from ..utils import indexing, system, zarray
+from ..utils import dict_io, indexing, system, zarray
 
 FILTER_DTYPE = np.float16
 
@@ -39,6 +39,13 @@ def run_filter(
     nbp = NotebookPage("filter", filter_config)
     nbp_debug = NotebookPage("filter_debug", filter_config)
 
+    config_path = os.path.join(nbp_file.output_dir, "filter_last_config.pkl")
+    last_filter_config = dict_io.try_load_dict(config_path, filter_config.copy())
+    assert type(last_filter_config) is dict
+    config_unchanged = filter_config == last_filter_config
+    dict_io.save_dict(filter_config, config_path)
+    del filter_config, last_filter_config
+
     log.debug("Filter started")
 
     indices = indexing.create(
@@ -64,6 +71,11 @@ def run_filter(
     )
     if "completed_indices" not in images.attrs:
         images.attrs["completed_indices"] = []
+
+    if not config_unchanged:
+        # Overwriting any existing data.
+        images.attrs["completed_indices"] = []
+
     # Bad trc images are filled with zeros.
     for t, r, c in nbp_basic.bad_trc:
         images[t, r, c] = 0

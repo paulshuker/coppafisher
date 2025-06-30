@@ -1,6 +1,7 @@
 2025/MM/DD Version 1.4 (v1.4.0):
  * General: Security updates.
  * Viewer: Initial Von-Mises probability ("initial prob") is now a gene call view option.
+ * Filter: Existing images not used if config changes fix.
  * Find spots: Checkpointing after every image added.
 
 
