@@ -21,7 +21,7 @@ dependencies = [
     "joblib",
     "matplotlib",
     "mplcursors",
-    "napari[pyqt5]",
+    "napari[pyqt5]>=0.6.0",
     "nd2",
     "numpy<2.1",
     "pandas",

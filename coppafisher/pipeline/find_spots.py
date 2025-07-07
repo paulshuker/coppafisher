@@ -8,7 +8,7 @@ from .. import log
 from ..find_spots import detect
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
-from ..utils import indexing
+from ..utils import dict_io, indexing
 
 
 def find_spots(
@@ -34,9 +34,18 @@ def find_spots(
         (NotebookPage): nbp_find_spots. `find_spots` notebook page.
     """
     log.info("Find spots started")
+    find_spots_config = {config.name: config.to_dict()}
+    nbp = NotebookPage("find_spots", find_spots_config)
+
+    # Remember the latest find spots config values.
+    config_path = os.path.join(nbp_file.output_dir, "find_spots_last_config.pkl")
+    last_find_spots_config = dict_io.try_load_dict(config_path, find_spots_config.copy())
+    assert type(last_find_spots_config) is dict
+    config_unchanged = find_spots_config == last_find_spots_config
+    dict_io.save_dict(find_spots_config, config_path)
+    del find_spots_config, last_find_spots_config
 
     # Phase 0: Initialisation.
-    nbp = NotebookPage("find_spots", {config.name: config.to_dict()})
     auto_thresh_multiplier = config["auto_thresh_multiplier"]
     auto_thresh_percentile = config["auto_thresh_percentile"]
     if auto_thresh_multiplier <= 0:
@@ -49,22 +58,29 @@ def find_spots(
     )
     group_path = os.path.join(nbp_file.output_dir, "spot_yxz.zgroup")
     spot_yxz = zarr.group(store=group_path, overwrite=True, zarr_version=2)
+    if "completed_indices" not in spot_yxz.attrs:
+        spot_yxz.attrs["completed_indices"] = []
     spot_no = np.zeros(
         (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.n_extra_rounds, nbp_basic.n_channels), dtype=np.int32
     )
 
     # Define use_indices as a [n_tiles x n_rounds x n_channels] boolean array where use_indices[t, r, c] is True if
     # we want to find spots on said tile `t`, round `r`, channel `c`.
-    use_indices = np.zeros(
-        (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.use_anchor, nbp_basic.n_channels), dtype=bool
-    )
+    use_indices = np.zeros((nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.use_anchor, nbp_basic.n_channels), bool)
+    n_skipped_images = 0
     for t, r, c in indexing.create(
         nbp_basic,
         include_anchor_round=True,
         include_anchor_channel=True,
         include_bad_trc=True,
     ):
+        if config_unchanged and [t, r, c] in spot_yxz.attrs["completed_indices"]:
+            n_skipped_images += 1
+            continue
         use_indices[t, r, c] = True
+
+    if n_skipped_images:
+        log.info(f"Using existing find spots results for {n_skipped_images} image(s)")
 
     # Phase 1: Detect spots on uncompleted tiles, rounds and channels.
     pbar = tqdm.tqdm(total=use_indices.sum(), desc="Finding spots", unit="image")
@@ -96,6 +112,7 @@ def find_spots(
         trc_yxz = spot_yxz.zeros(f"t{t}r{r}c{c}", chunks=local_yxz.size == 0, shape=local_yxz.shape, dtype=np.int16)
         trc_yxz[:] = local_yxz
         del local_yxz, spot_intensity, trc_yxz
+        spot_yxz.attrs["completed_indices"] = spot_yxz.attrs["completed_indices"] + [[t, r, c]]
         pbar.update()
     pbar.close()
 
