@@ -469,8 +469,6 @@ class Robominnie:
             "tilepos_yx_nd2": list(reversed(self.tile_origins_yx)),
             "channel_camera": [1] * (self.n_channels + 1),
             "channel_laser": [1] * (self.n_channels + 1),
-            "xy_pos": self.tile_xy_pos,
-            "nz": self.n_planes,
         }
         self.metadata_filepath = os.path.join(output_dir, "metadata.json")
         with open(self.metadata_filepath, "w") as f:

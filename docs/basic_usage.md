@@ -53,20 +53,24 @@ metadata = {
     "n_rounds": n_rounds,
     "n_channels": n_total_channels,
     "tile_sz": n_y, # or n_x
-    "pixel_size_xy": 0.26,
-    "pixel_size_z": 0.9,
-    "tile_centre": [n_y / 2, n_x / 2, n_z / 2],
+    "pixel_size_xy": pixel_size_xy,
+    "pixel_size_z": pixel_size_z,
+    "tile_centre": [n_y / 2, n_y / 2, n_z / 2],
     "tilepos_yx": tile_origins_yx,
     "tilepos_yx_nd2": list(reversed(tile_origins_yx)),
     "channel_camera": [1] * n_total_channels,
     "channel_laser": [1] * n_total_channels,
-    "xy_pos": tile_xy_pos,
-    "nz": n_z,
 }
 file_path = os.path.join(raw_path, "metadata.json")
 with open(file_path, "w") as f:
     json.dump(metadata, f, indent=4)
 ```
+
+`pixel_size_xy` is the size of a pixel along the y/x axes in microns. `pixel_size_z` is the size of a pixel along the z
+axis in microns. `n_y` is the number of pixels along y/x for a single tile. `n_z` is the number of pixels along z for a
+single tile. `tile_origins_yx` is a list of lists which tells coppafisher where each tile is relative to one another.
+For example, a 2x2 of tiles going around clockwise starting from the top-left would be
+`#!python tile_origins_yx = [[0, 0], [0, 1], [1, 1], [1, 0]]`.
 
 ### Code book
 
