@@ -4,6 +4,7 @@
  * Viewer: Initial Von-Mises probability ("initial prob") is now a gene call view option.
  * Filter: Existing images not used if config changes fix.
  * Find spots: Checkpointing after every image added.
+ * Call spots: First gene name could contain erroneous unicode Byte Order Mark (BOM) character fix.
 
 
 2025/06/26 Version 1.3 (v1.3.0):
