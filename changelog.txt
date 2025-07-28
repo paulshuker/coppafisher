@@ -2,6 +2,7 @@
  * General: Security updates.
  * Viewer: napari update.
  * Viewer: Initial Von-Mises probability ("initial prob") is now a gene call view option.
+ * Extract: Tif raw input file support added.
  * Filter: Existing images not used if config changes fix.
  * Find spots: Checkpointing after every image added.
  * Call spots: First gene name could contain erroneous unicode Byte Order Mark (BOM) character fix.

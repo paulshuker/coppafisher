@@ -20,9 +20,6 @@ class Nd2Reader(RawReader):
 
         We expect every ND2 file to have the shape (n_tiles, n_z_planes, n_channels, n_y_pixels, n_x_pixels). There
         should be one ND2 file for each round.
-
-        Returns:
-            (`(len(channels) x im_y x im_x x im_z) ndarray`): image. The channel image(s).
         """
         super().read(nbp_basic, nbp_file, tile, round, channels)
 
