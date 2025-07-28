@@ -8,6 +8,8 @@ from ..setup.config import Config
 from ..setup.notebook_page import NotebookPage
 from ..utils import base as utils_base
 
+RAW_EXTENSIONS: tuple[str] = (".nd2", "jobs", ".npy", ".tif")
+
 
 def set_basic_info(config: Config) -> NotebookPage:
     """
@@ -41,6 +43,7 @@ def set_basic_info(config: Config) -> NotebookPage:
         for filename in filenames:
             all_files.append(os.path.join(root, filename))
     all_files.sort()
+
     if raw_extension == ".nd2":
         if config_file["round"] is None and config_file["anchor"] is None:
             raise ValueError("config_file['round'] or config_file['anchor'] should not both be left blank")
@@ -51,23 +54,17 @@ def set_basic_info(config: Config) -> NotebookPage:
         else:
             first_round_raw = os.path.join(config_file["input_dir"], config_file["anchor"])
         metadata = nd2.get_metadata(first_round_raw + raw_extension, config=config)
-
-    elif raw_extension == ".npy":
-        # Load in metadata as dictionary from a json file
+    elif raw_extension in (".npy", ".tif"):
         metadata_file = [file for file in all_files if file.endswith(".json")][0]
         if metadata_file is None:
-            raise ValueError(
-                "There is no json metadata file in input_dir. This should have been set at the point of "
-                "ND2 extraction to npy."
-            )
+            raise ValueError(f"No metadata.json file found in the given input_dir {config_file['input_dir']}")
 
         metadata = json.load(open(metadata_file))
-
     elif raw_extension == "jobs":
         metadata = nd2.get_jobs_metadata(all_files, config_file["input_dir"], config=config)
     else:
         raise ValueError(
-            f"config_file['raw_extension'] should be either '.nd2' or '.npy' but it is {config_file['raw_extension']}."
+            f"config_file['raw_extension'] should be either {','.join(RAW_EXTENSIONS)}, but it is {config_file['raw_extension']}."
         )
 
     # Stage 2: Read in page contents from config that cannot be computed from metadata.
