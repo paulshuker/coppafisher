@@ -1,4 +1,4 @@
-2025/MM/DD Version 1.4 (v1.4.0):
+2025/07/29 Version 1.4 (v1.4.0):
  * General: Security updates.
  * Viewer: napari update.
  * Viewer: Initial Von-Mises probability ("initial prob") is now a gene call view option.
