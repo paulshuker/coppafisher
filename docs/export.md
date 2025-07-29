@@ -78,16 +78,26 @@ extract_raw(
     use_tiles=nb.basic_info.use_tiles,
     use_channels=[nb.basic_info.dapi_channel, 9, 23],
     reverse_custom_z=False,
+    radius_norm_file=None,
+    radius_norm_channels=None,
 )
 ```
 
 `use_channels` can be any valid channel(s) inside the custom image .nd2 file. This will also extract the anchor round in
 the DAPI channel. You can reverse the z planes in the custom image by setting `reverse_custom_z` to `#!python True`.
 
+Set `#!python radius_norm_file="default_nine"` to use the default nine channel tile radius/channel normalisation file
+at
+[`coppafisher/setup/nine_channel_normalisations.npz`](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/nine_channel_normalisations.npz).
+
+Set `#!python radius_norm_file="default_seven"` to use the default seven channel tile radius/channel normalisation file
+at
+[`coppafisher/setup/seven_channel_normalisations.npz`](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/seven_channel_normalisations.npz).
+
 ??? note "Config File"
 
-    The config file must be a valid configuration, like the one used during the experiment. Therefore, the `input_dir`
-    must point to a real input directory.
+    The config file must be a valid configuration, like the one used during the experiment. `input_dir` must be a real
+    input directory.
 
 ### Stitch
 
