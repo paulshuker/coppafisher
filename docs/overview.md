@@ -17,13 +17,16 @@ Extract also saves metadata inside of the `tile_dir` directory if the raw files 
 
 ## Filter
 
+First, each tile is optionally divided by a radius/channel-dependent normalisation. The normalisation is given by
+`channel_radius_normalisation_filepath` file path to a .npz file inside the `filter` config section.
+
 Extract images are then filtered to minimise scattering of light/de-blur (bright points will appear as cones initially,
 hence the name "Point Spread Function") and emphasise spots. A given point spread function is used to Wiener deconvolve
 the images.
 
-The point spread function is given as a .npz file under the `file_names` config section. The default is at
-`coppafisher/setup/default_psf.npz`. Filtering is also affected by config parameters `wiener_constant` and
-`wiener_pad_shape` inside the `filter` config section.
+The point spread function is given as a .npz file called `psf` under the `file_names` config section. The default is at
+[`coppafisher/setup/default_psf.npz`](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/default_psf.npz)
+. Filtering is also affected by `wiener_constant` inside the `filter` config section.
 
 After filtering is applied, the images are saved to the notebook as `float16` compressed zarr arrays.
 

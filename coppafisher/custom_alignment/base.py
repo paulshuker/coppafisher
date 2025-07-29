@@ -1,4 +1,6 @@
+import importlib.resources as importlib_resources
 import os
+from typing import Optional
 
 import nd2
 import numpy as np
@@ -8,6 +10,8 @@ import tqdm
 import zarr
 
 from ..extract import raw_nd2
+from ..filter import radius_normalisation
+from ..pipeline import filter_run
 from ..plot.results_viewer import background
 from ..setup import file_names
 from ..setup.notebook import Notebook
@@ -28,11 +32,13 @@ def extract_raw(
     use_tiles: list,
     use_channels: list,
     reverse_custom_z: bool = False,
+    radius_norm_file: Optional[str] = None,
+    radius_norm_channels: Optional[list] = None,
 ) -> None:
     """
     Extract images from the given ND2 file and DAPI images.
 
-    They are saved as .tif files without filtering.
+    They are saved as .tif files. The files are raw, except for tile radius normalisation if radius_norm_file is set.
 
     Args:
         nb (Notebook): notebook of the initial experiment.
@@ -41,15 +47,47 @@ def extract_raw(
         save_dir (str): the directory where the images are saved.
         use_tiles (list): list of tiles to use.
         use_channels (list): list of channels to use.
-        reverse_custom_z (bool, optional): flip the z axis around for the custom image. Default: false.
+        reverse_custom_z (bool, optional): flip the z axis around for the custom image(s). Default: false.
+        radius_norm_file (str, optional): path to radius normalisation .npz file applied to every tile. Set to
+            "default_nine" for the default at coppafisher/setup/nine_channel_normalisations.npz. Set to "default_seven"
+            for the default at coppafisher/setup/seven_channel_normalisations.npz. Default: not given.
+        radius_norm_channels (list, optional): the channels included inside of the radius_norm_file. Default:
+            [5, 9, 10, 14, 15, 18, 19, 23, 27] if radius_norm_file is "default_nine", [5, 9, 14, 15, 18, 23, 27] if
+            radius_norm_file is "default_seven", use_channels otherwise.
+
+    Notes:
+        - For details about the tile radius normalisation file, please see channel_radius_normalisation_filepath under
+          the filter section in the file coppafisher/setup/default.ini.
     """
     if not os.path.isfile(config_file_path):
         raise FileNotFoundError(f"No config file at {config_file_path}")
+
+    if radius_norm_channels is None:
+        radius_norm_channels = use_channels.copy()
+
+    if radius_norm_file == "default_seven":
+        radius_norm_file = importlib_resources.files(filter_run.SEVEN_CHANNEL_DIR).joinpath(
+            filter_run.SEVEN_CHANNEL_NAME
+        )
+        radius_norm_channels = [5, 9, 14, 15, 18, 23, 27]
+    elif radius_norm_file == "default_nine":
+        radius_norm_file = importlib_resources.files(filter_run.NINE_CHANNEL_DIR).joinpath(filter_run.NINE_CHANNEL_NAME)
+        radius_norm_channels = [5, 9, 10, 14, 15, 18, 19, 23, 27]
+
+    radius_norm = None
+    if radius_norm_file is not None:
+        radius_norm = np.load(str(radius_norm_file))["arr_0"]
+        if radius_norm.shape[0] != len(radius_norm_channels):
+            raise ValueError(
+                f"Expected channel radius normalisation to have shape[0] == {len(radius_norm_channels)}"
+                + f", instead got {radius_norm.shape[0]}"
+            )
 
     nbp_file_names = file_names.get_file_names(nb.basic_info, config_file_path)
 
     if type(use_channels) == int:
         use_channels = [use_channels]
+
     # Check if directories exist.
     assert os.path.isfile(read_dir), f"Raw data file {read_dir} does not exist"
     save_dirs = [save_dir]
@@ -78,6 +116,14 @@ def extract_raw(
         # Load raw image.
         raw_path = nbp_file_names.tile_unfiltered[t][nb.basic_info.anchor_round][c_dapi]
         image_raw: npt.NDArray[np.uint16] = zarr.open_array(raw_path, "r")[:]
+        if radius_norm is not None and c_dapi in radius_norm_channels:
+            print("Tile radius normalising DAPI image")
+            image_raw = image_raw.astype(np.float32)
+            image_raw = radius_normalisation.radius_normalise_image(
+                image_raw, radius_norm[radius_norm_channels.index(c_dapi)]
+            )
+            image_raw = np.round(image_raw)
+            image_raw = image_raw.astype(np.uint16)
         # Save image in the format `x_y.tif`.
         tifffile.imwrite(save_path, image_raw)
 
@@ -93,11 +139,15 @@ def extract_raw(
             save_path = os.path.join(save_dir, CUSTOM_DIR_NAME, f"channel_{c}", f"{x}_{y}{SUFFIX}")
             if os.path.isfile(save_path):
                 continue
-            image = np.array(t_files[:, c])
+            image = np.array(t_files[:, c], np.float32)
             image = np.rot90(image, k=num_rotations, axes=(1, 2))
-            image = image.astype(np.uint16)
             # zyx -> yxz.
             image = image.swapaxes(0, 2).swapaxes(0, 1)
+            if radius_norm is not None and c in radius_norm_channels:
+                print(f"Tile radius normalising custom image channel {c}")
+                image = radius_normalisation.radius_normalise_image(image, radius_norm[radius_norm_channels.index(c)])
+                image = np.round(image)
+            image = image.astype(np.uint16)
             if reverse_custom_z:
                 image = image[:, :, ::-1]
             # Save image in the format x_y.tif.
