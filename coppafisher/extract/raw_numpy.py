@@ -11,18 +11,15 @@ class NumpyReader(RawReader):
 
     For example, Robominnie (the pipeline integration tester) uses raw numpy files as input.
     Read ND2 files for the given channels.
-
     """
 
     def read(
         self, nbp_basic: NotebookPage, nbp_file: NotebookPage, tile: int, round: int, channels: list[int]
     ) -> np.ndarray:
         """
-        Similar to ND2, expect a separate directory for each round. Every directory has one numpy array for each tile
-        with shape (1, n_z_planes, n_channels, n_y_pixels, n_x_pixels).
+        Similar to ND2, expect a separate directory for each round.
 
-        Returns:
-            (`(len(channels) x im_y x im_x x im_z) ndarray`): image. The channel image(s).
+        Each directory has one ndarray for each tile with shape (1, n_z_planes, n_channels, n_y_pixels, n_x_pixels).
         """
         super().read(nbp_basic, nbp_file, tile, round, channels)
 

@@ -1,8 +1,8 @@
 ## Input data
 
 Coppafisher requires raw, `uint16` microscope images, metadata, and a configuration file. We currently only support raw
-data in ND2, JOBs, or numpy format. If your data is not already in one of these formats, we recommend configuring your
-data into [numpy](#numpy) format.
+data in ND2, JOBs, numpy, or tif format. If your data is not already in one of these formats, we recommend configuring
+your data into [numpy](#numpy) format. The [tif](#tif) file format is also explained below.
 
 There must be an anchor round. There must be an anchor channel (this can be a sequencing channel). There must be a dapi
 channel in every sequencing round and the anchor round. The tiles must have at least four z planes. Use a number of z
@@ -15,8 +15,8 @@ planes that is a multiple of two.
 ### Numpy
 
 Each round is separated between directories. Label sequencing round directories `0`, `1`, etc. We recommend using
-[dask](https://docs.dask.org), this is installed in your coppafisher environment by default. The code to save data in
-the right format would look something like
+[dask](https://docs.dask.org), this is installed in your coppafisher environment by default. The code to save input
+data:
 
 ```python
 import os
@@ -35,15 +35,22 @@ image_dask = dask.array.from_array(anchor_image, chunks=dask_chunks)
 dask.array.to_npy_stack(save_path, image_dask)
 ```
 
-where `n_...` variables represent counts (integers), `n_total_channels` can include other channels other than the
-sequencing channel (e.g. a DAPI channel and anchor channel). `seq_image_tiles` is a numpy array of shape
+where `n_...` variables represent counts (integers), `seq_image_tiles` is a numpy array of shape
 `(n_seq_rounds, n_tiles, n_total_channels, n_y, n_x, n_z)`, while `anchor_image` is a numpy array of shape
 `(n_tiles, n_total_channels, n_y, n_x, n_z)`. Note that `n_y` must equal `n_x`.
 
 
+### Tif
+
+Every round (anchor included) must be a .tif file located inside of the `input_dir`. They must have the shape
+`(n_tiles * n_total_channels * n_z, n_y, n_x)`. The first axis is flattened such that the first n_total_channels are
+tile 0 and z plane 0 on each channel, then the next n_total_channels are tile 0 and z plane 1 on each channel. Then
+after n_z z planes the next n_total_channels are tile 1 and z plane 0 on each channel etc...
+
 ### Metadata
 
-The experimental metadata must be saved in the same location as the raw input files. This can be done using Python:
+The metadata file required for [numpy](#numpy) and [tif](#tif) input formats. It must be saved in the same location as
+the raw input files. This can be done using Python:
 
 ```python
 import json
@@ -53,20 +60,27 @@ metadata = {
     "n_rounds": n_rounds,
     "n_channels": n_total_channels,
     "tile_sz": n_y, # or n_x
-    "pixel_size_xy": 0.26,
-    "pixel_size_z": 0.9,
-    "tile_centre": [n_y / 2, n_x / 2, n_z / 2],
+    "pixel_size_xy": pixel_size_xy,
+    "pixel_size_z": pixel_size_z,
+    "tile_centre": [n_y / 2, n_y / 2, n_z / 2],
     "tilepos_yx": tile_origins_yx,
     "tilepos_yx_nd2": list(reversed(tile_origins_yx)),
     "channel_camera": [1] * n_total_channels,
     "channel_laser": [1] * n_total_channels,
-    "xy_pos": tile_xy_pos,
-    "nz": n_z,
 }
 file_path = os.path.join(raw_path, "metadata.json")
 with open(file_path, "w") as f:
     json.dump(metadata, f, indent=4)
 ```
+
+`n_tiles` must be the total number of tiles inside of the raw inputted files (even if you only plan on selecting a
+subset of them). Similarly, `n_total_channels` must be the total number of channels in the inputted raw files.
+
+`pixel_size_xy` is the size of a pixel along the y/x axes in microns. `pixel_size_z` is the size of a pixel along the z
+axis in microns. `n_y` is the number of pixels along y/x for a single tile. `n_z` is the number of pixels along z for a
+single tile. `tile_origins_yx` is a list of lists which tells coppafisher where each tile is relative to one another.
+For example, a 2x2 of tiles going around clockwise starting from the top-left would be
+`#!python tile_origins_yx = [[0, 0], [0, 1], [1, 1], [1, 0]]`.
 
 ### Code book
 
@@ -95,48 +109,58 @@ text file, like `dataset_name.ini`. The config file should contain, at the minim
 
 ```ini
 [file_names]
-input_dir = /path/to/input/data
-output_dir = /path/to/output/directory
-tile_dir = /path/to/tile/directory
-; Go up to the number of sequencing rounds used.
-round = round0, round1, round2, round3, round4, round5, round6
-; 'anchor' given here since the anchor file is called anchor.npy.
-anchor = anchor
+; MUST SPECIFY input_dir, output_dir, tile_dir, code_book.
+input_dir =
+output_dir =
+tile_dir =
+code_book =
+; This can be .npy, .tif, .nd2 or jobs.
 raw_extension = .npy
-raw_metadata = /path/to/metadata.json
+; The names of the ND2 files (excluding the file extension above).
+round = round0, round1, round2, round3, round4, round5, round6
+anchor = anchor
+; Optional, leave blank if you do not have a fluorescent bead file.
+fluorescent_bead_path =
 
 [basic_info]
+; The names of the dyes given, must match the number of dyes used in the gene codebook.
 dye_names = dye_0, dye_1, dye_2, dye_3
+; Optional, leave blank to run on all tiles.
+use_tiles =
+; Round indices (starting from 0) located in the input files.
 use_rounds = 0, 1, 2, 3, 4, 5, 6
-use_z = 0, 1, 2, 3, 4
-use_tiles = 0, 1
+; Channel indices (starting from 0) located in the input files.
+use_channels = 5, 9, 10, 14, 15, 18, 19, 23, 27
+; Optional, leave blank to run on all z planes.
+use_z =
+; The index of the anchor round.
 anchor_round = 7
-use_channels = 1, 2, 3, 4
+; The index of the anchor channel.
 anchor_channel = 1
+; The index of the dapi channel.
 dapi_channel = 0
 
 [stitch]
-expected_overlap = 0.15
+; The percentage overlap between adjacent tiles.
+expected_overlap = 0.1
 
 [call_spots]
 target_values = 1, 1, 1, 1
 d_max = 0, 1, 2, 3
 ```
 
-where the `dapi_channel` is the index in the numpy arrays that the dapi channel is stored at. `use_channels` includes
-the `anchor_channel` in this case because the anchor channel can also be used as a sequencing channel in the sequencing
-rounds. `dye_names` does not have to be set explicitly if `n_seq_channels == n_dyes`. `expected_overlap` is the fraction
-of the tile in x (y) dimension that is overlapping between adjacent tiles, typically `0.1-0.15`. `use_z` contains all
-selected z planes, they should all be adjacent planes. It is recommended to use microscopic images where the middle z
-plane is roughly the brightest for best performance; this can be configured by changing the selected z planes in
-`use_z`. The z direction can be treated differently to the y and x directions because typically a z pixel corresponds to
-a larger, real distance. `tile_dir` is the tile directory, where extract images are saved to. `output_dir` is where the
-notebook and PDF diagnostics are saved. More details about every config variable can be found at
+`raw_extension` is `.npy` for [numpy](#numpy) input, `.tif` for [tif](#tif) input, `.nd2` for nd2 input, and `jobs` for
+JOBs input.
+
+`tile_dir` is the tile directory, where extract images are saved to, it should be empty before running coppafisher.
+`output_dir` is where the notebook and PDF diagnostics are saved, it should also be blank before running. More details
+about every config variable can be found at
 <a href="https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/default.ini" target="_blank">
 `coppafisher/setup/default.ini`</a> in the source code.
 
 `target_values` and `d_max` must both have `n_seq_channels` numbers, one for each channel. See
-[call spots](call_spots.md#4-round-and-channel-normalisation) for details on how to set the values.
+[call spots](call_spots.md#4-round-and-channel-normalisation) for details on how to set the values. If you are unsure,
+set target_values to all ones and d_max to the brightest channel in each dye.
 
 ??? info "Unique anchor raw file indices"
 

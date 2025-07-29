@@ -58,7 +58,7 @@ def call_reference_spots(
         else:
             raise ValueError("The d_max values should be provided in the config.")
 
-    gene_names, gene_codes = np.genfromtxt(nbp_file.code_book, dtype=(str, str)).transpose()
+    gene_names, gene_codes = np.genfromtxt(nbp_file.code_book, dtype=(str, str), encoding="utf-8-sig").transpose()
     gene_codes = np.array([[int(i) for i in gene_codes[j]] for j in range(len(gene_codes))], np.int32)
     if config["kappa"] is None:
         n_genes = len(gene_names)

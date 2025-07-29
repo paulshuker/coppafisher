@@ -436,6 +436,10 @@ class Robominnie:
         if not os.path.isdir(self.coppafisher_output):
             os.mkdir(self.coppafisher_output)
 
+        self.radius_normalisations = self._tile_radius_normalise_images()
+        self.radius_normalisations_path = os.path.join(self.output, "radius_normalisations.npz")
+        np.savez_compressed(self.radius_normalisations_path, self.radius_normalisations)
+
         # Create an output_dir/output_coppafisher/tiles directory for coppafisher extract output
         self.coppafisher_tiles = os.path.join(self.coppafisher_output, "tiles")
         if not os.path.isdir(self.coppafisher_tiles):
@@ -469,8 +473,6 @@ class Robominnie:
             "tilepos_yx_nd2": list(reversed(self.tile_origins_yx)),
             "channel_camera": [1] * (self.n_channels + 1),
             "channel_laser": [1] * (self.n_channels + 1),
-            "xy_pos": self.tile_xy_pos,
-            "nz": self.n_planes,
         }
         self.metadata_filepath = os.path.join(output_dir, "metadata.json")
         with open(self.metadata_filepath, "w") as f:
@@ -589,7 +591,7 @@ class Robominnie:
         num_rotations = 0
 
         [filter]
-        wiener_pad_shape = 40, 40, 9
+        channel_radius_normalisation_filepath = {self.radius_normalisations_path}
 
         [find_spots]
         auto_thresh_multiplier = 4
@@ -837,6 +839,21 @@ class Robominnie:
             t += 1
 
         return tile_images
+
+    def _tile_radius_normalise_images(self) -> np.ndarray[np.float32]:
+        """
+        Apply a random radius/channel-dependent normalisation to tile images.
+
+        The tile images must be located at `self.tile_images`.
+
+        Returns:
+            (`(n_channels x max_tile_radius) ndarray[float32]`): the radius/channel normalisations required to normalise
+                the tile images back.
+        """
+        max_tile_radius = np.ceil(np.sqrt(2 * (0.5 * (self.tile_sz - 1)) ** 2)).astype(int) + 1
+        self.radius_normalisations = np.ones((len(self.use_channels), max_tile_radius), np.float32)
+
+        return self.radius_normalisations
 
     def _get_tile_bounds(self) -> Tuple[np.ndarray[int], List[List[int]], List[List[float]]]:
         """

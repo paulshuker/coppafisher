@@ -1,7 +1,6 @@
 import importlib.resources as importlib_resources
 import math as maths
 import os
-import pickle
 import platform
 import shutil
 import tempfile
@@ -20,7 +19,7 @@ from ..omp.pixel_scores import PixelScoreSolver
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
-from ..utils import duplicates, intensity, system
+from ..utils import dict_io, duplicates, intensity, system
 
 
 def run_omp(
@@ -111,15 +110,11 @@ def run_omp(
     n_chunk_max = 600_000
 
     # Remember the latest OMP config values during a run.
-    last_omp_config = omp_config.copy()
     config_path = os.path.join(nbp_file.output_dir, "omp_last_config.pkl")
-    if os.path.isfile(config_path):
-        with open(config_path, "rb") as config_file:
-            last_omp_config = pickle.load(config_file)
+    last_omp_config = dict_io.try_load_dict(config_path, omp_config.copy())
     assert type(last_omp_config) is dict
     config_unchanged = omp_config == last_omp_config
-    with open(config_path, "wb") as config_file:
-        pickle.dump(omp_config, config_file)
+    dict_io.save_dict(omp_config, config_path)
     del omp_config, last_omp_config
 
     mean_spot_filepath = nbp_file.omp_mean_spot

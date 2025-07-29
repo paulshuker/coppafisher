@@ -1,3 +1,4 @@
+import importlib.resources as importlib_resources
 import math as maths
 import os
 from typing import Tuple
@@ -10,11 +11,16 @@ import tqdm
 import zarr
 
 from .. import log
+from ..filter import radius_normalisation
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
-from ..utils import indexing, system, zarray
+from ..utils import dict_io, indexing, system, zarray
 
 FILTER_DTYPE = np.float16
+NINE_CHANNEL_DIR = "coppafisher.setup"
+SEVEN_CHANNEL_DIR = "coppafisher.setup"
+SEVEN_CHANNEL_NAME = "seven_channel_normalisations.npz"
+NINE_CHANNEL_NAME = "nine_channel_normalisations.npz"
 
 
 def run_filter(
@@ -38,6 +44,13 @@ def run_filter(
     filter_config = {config.name: config.to_dict()}
     nbp = NotebookPage("filter", filter_config)
     nbp_debug = NotebookPage("filter_debug", filter_config)
+
+    config_path = os.path.join(nbp_file.output_dir, "filter_last_config.pkl")
+    last_filter_config = dict_io.try_load_dict(config_path, filter_config.copy())
+    assert type(last_filter_config) is dict
+    config_unchanged = filter_config == last_filter_config
+    dict_io.save_dict(filter_config, config_path)
+    del filter_config, last_filter_config
 
     log.debug("Filter started")
 
@@ -64,6 +77,11 @@ def run_filter(
     )
     if "completed_indices" not in images.attrs:
         images.attrs["completed_indices"] = []
+
+    if not config_unchanged:
+        # Overwriting any existing data.
+        images.attrs["completed_indices"] = []
+
     # Bad trc images are filled with zeros.
     for t, r, c in nbp_basic.bad_trc:
         images[t, r, c] = 0
@@ -71,6 +89,25 @@ def run_filter(
 
     if not os.path.isfile(nbp_file.psf):
         raise FileNotFoundError(f"Could not find the PSF at location {nbp_file.psf}")
+
+    channel_radius_norm_filepath = config["channel_radius_normalisation_filepath"]
+    channel_radius_norm = None
+
+    if channel_radius_norm_filepath is None and nbp_basic.use_channels == [5, 9, 14, 15, 18, 23, 27]:
+        channel_radius_norm_filepath = importlib_resources.files(SEVEN_CHANNEL_DIR).joinpath(SEVEN_CHANNEL_NAME)
+    elif channel_radius_norm_filepath is None and nbp_basic.use_channels == [5, 9, 10, 14, 15, 18, 19, 23, 27]:
+        channel_radius_norm_filepath = importlib_resources.files(NINE_CHANNEL_DIR).joinpath(NINE_CHANNEL_NAME)
+
+    if channel_radius_norm_filepath is not None:
+        channel_radius_norm = np.load(str(channel_radius_norm_filepath))["arr_0"]
+        if channel_radius_norm.shape[0] != len(nbp_basic.use_channels):
+            raise ValueError(
+                f"Expected channel radius normalisation to have shape[0] == {len(nbp_basic.use_channels)}"
+                + f", instead got {channel_radius_norm.shape[0]}"
+            )
+        radius_normalisation.validate_radius_normalisation(channel_radius_norm[0], nbp_basic.tile_sz)
+
+    log.debug(f"Using channel radius normalisation: {channel_radius_norm is not None}")
 
     # ZYX -> YXZ.
     psf = np.load(nbp_file.psf)["arr_0"].astype(np.float32).swapaxes(0, 2).swapaxes(0, 1)
@@ -114,6 +151,12 @@ def run_filter(
 
             image = zarr.open_array(file_path_raw, mode="r")[:]
             image = image.astype(np.float64)
+
+            if channel_radius_norm is not None and c in nbp_basic.use_channels:
+                image = radius_normalisation.radius_normalise_image(
+                    image, channel_radius_norm[nbp_basic.use_channels.index(c)]
+                )
+
             batch_images.append(image)
             batch_trcs.append((t, r, c))
             del image

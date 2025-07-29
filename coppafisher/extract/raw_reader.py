@@ -27,9 +27,7 @@ class RawReader:
             channels (list of int): the channels to gather.
 
         Returns:
-            ((tuple of length `len(channels)`) containing `(im_y x im_x x im_z) ndarrays`): images. The tile/round
-                images. Can be any datatype, but we work with uint16 raw files. They are later converted to floating
-                point numbers when filtering the images.
+            (`(len(channels) x im_y x im_x x im_z) ndarray[uint16]`): images. The tile/round images.
         """
         assert type(nbp_basic) is NotebookPage
         assert type(nbp_file) is NotebookPage

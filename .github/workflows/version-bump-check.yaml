@@ -30,4 +30,4 @@ jobs:
 
       - name: Assert version bump
         run: |
-          python -Ic "from coppafisher.utils import system; online_version = system.get_remote_software_version(); assert online_version is not None; assert online_version != system.get_software_version()"
+          python -Ic "from coppafisher.utils import system; online_version = system.get_remote_software_version(); assert online_version is not None; assert online_version != system.remove_version_hash(system.get_software_version())"

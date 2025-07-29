@@ -47,6 +47,7 @@ class CompatibilityTracker:
             ("1.2.6", "none"),
             ("1.2.7", "none"),
             ("1.3.0", "call_spots"),
+            ("1.4.0", "none"),
         )
     )
     _stage_instructions: list[tuple[str, ...]]

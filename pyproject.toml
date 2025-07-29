@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "coppafisher"
-version = "1.3.0"  # Replace with your __version__
+version = "1.4.0"  # Replace with your __version__
 description = "coppaFISH software for Python"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
@@ -21,7 +21,7 @@ dependencies = [
     "joblib",
     "matplotlib",
     "mplcursors",
-    "napari[pyqt5]",
+    "napari[pyqt5]>=0.6.0",
     "nd2",
     "numpy<2.1",
     "pandas",
@@ -58,7 +58,13 @@ include-package-data = true
 # Empty for default package discovery
 
 [tool.setuptools.package-data]
-"coppafisher.setup" = ["default.ini", "default_psf.npz", "dye_info_raw.npy"]
+"coppafisher.setup" = [
+    "default.ini",
+    "default_psf.npz",
+    "dye_info_raw.npy",
+    "seven_channel_normalisations.npz",
+    "nine_channel_normalisations.npz",
+]
 "coppafisher.omp" = ["mean_spot.npy"]
 "coppafisher.plot.results_viewer" = ["cell_colour.csv", "cellClassColours.json", "gene_colour.csv"]
 
