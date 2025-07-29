@@ -8,6 +8,7 @@ def test_radius_normalise_image() -> None:
     image = rng.rand(3, 3, 10).astype(np.float32)
     radius_norm = np.ones(3, np.float32)
 
+    radius_normalisation.validate_radius_normalisation(radius_norm, image.shape[0])
     output = radius_normalisation.radius_normalise_image(image, radius_norm)
 
     assert type(output) is np.ndarray
@@ -22,6 +23,7 @@ def test_radius_normalise_image() -> None:
     expected_edge_boost = 0.5 * expected_edge_boost + 1 * (1 - expected_edge_boost)
     expected_edge_boost = 1 / expected_edge_boost
 
+    radius_normalisation.validate_radius_normalisation(radius_norm, image.shape[0])
     output = radius_normalisation.radius_normalise_image(image, radius_norm)
 
     assert type(output) is np.ndarray
@@ -34,6 +36,7 @@ def test_radius_normalise_image() -> None:
     image = rng.rand(4, 4, 7)
     radius_norm = np.ones(4, np.float64)
 
+    radius_normalisation.validate_radius_normalisation(radius_norm, image.shape[0])
     output = radius_normalisation.radius_normalise_image(image, radius_norm)
 
     assert type(output) is np.ndarray
@@ -43,6 +46,7 @@ def test_radius_normalise_image() -> None:
 
     radius_norm[0] = 0
 
+    radius_normalisation.validate_radius_normalisation(radius_norm, image.shape[0])
     output = radius_normalisation.radius_normalise_image(image, radius_norm)
 
     assert type(output) is np.ndarray
