@@ -24,10 +24,9 @@ Extract images are then filtered to minimise scattering of light/de-blur (bright
 hence the name "Point Spread Function") and emphasise spots. A given point spread function is used to Wiener deconvolve
 the images.
 
-The point spread function is given as a .npz file under the `file_names` config section. The default is at
+The point spread function is given as a .npz file called `psf` under the `file_names` config section. The default is at
 [`coppafisher/setup/default_psf.npz`](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/default_psf.npz)
-. Filtering is also affected by config parameters `wiener_constant` and `wiener_pad_shape` inside the `filter` config
-section.
+. Filtering is also affected by `wiener_constant` inside the `filter` config section.
 
 After filtering is applied, the images are saved to the notebook as `float16` compressed zarr arrays.
 

@@ -591,7 +591,6 @@ class Robominnie:
         num_rotations = 0
 
         [filter]
-        wiener_pad_shape = 40, 40, 9
         channel_radius_normalisation_filepath = {self.radius_normalisations_path}
 
         [find_spots]

@@ -4,6 +4,7 @@
  * Viewer: Initial Von-Mises probability ("initial prob") is now a gene call view option.
  * Export: Custom image tile radius/channel normalisation option added.
  * Extract: Tif raw input file support added.
+ * Filter: Removed unused `wiener_pad_shape` config variable.
  * Filter: Tile radius/channel normalisation option added.
  * Filter: Existing images not used if config changes fix.
  * Find spots: Checkpointing after every image added.
