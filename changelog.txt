@@ -1,3 +1,7 @@
+2025/08/05 Version 1.4 Patch (v1.4.2):
+ * OMP: subprocess has no attribute crash on Windows fix.
+
+
 2025/08/05 Version 1.4 Patch (v1.4.1):
  * Viewer: Camera object has no interactive attribute fix.
  * OMP: Windows crash when checking if file is server-mounted fix.
