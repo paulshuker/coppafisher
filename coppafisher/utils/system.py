@@ -213,5 +213,5 @@ def is_path_on_mounted_server(path):
                 if path.upper().startswith(line.strip().upper()):
                     return True
             return False
-        except subprocess.CalledProcessError:
+        except (subprocess.CalledProcessError, subprocess.FileNotFoundError, FileNotFoundError):
             return False
