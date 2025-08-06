@@ -50,7 +50,7 @@ class CompatibilityTracker:
             ("1.4.0", "none"),
             ("1.4.1", "none"),
             ("1.4.2", "none"),
-            ("1.5.0", "omp"),
+            ("1.5.0", "none"),
         )
     )
     _stage_instructions: list[tuple[str, ...]]
