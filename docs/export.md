@@ -80,6 +80,7 @@ extract_raw(
     reverse_custom_z=False,
     radius_norm_file=None,
     radius_norm_channels=None,
+    dapi_radius_norm_file=None,
 )
 ```
 
@@ -93,6 +94,9 @@ at
 Set `#!python radius_norm_file="default_seven"` to use the default seven channel tile radius/channel normalisation file
 at
 [`coppafisher/setup/seven_channel_normalisations.npz`](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/seven_channel_normalisations.npz).
+
+Set `#!python dapi_radius_norm_file="default"` to use the default dapi channel tile radius/channel normalisation file at
+[`coppafisher/setup/dapi_channel_normalisations.npz`](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/setup/dapi_channel_normalisations.npz).
 
 ??? note "Config File"
 

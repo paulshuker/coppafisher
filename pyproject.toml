@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "coppafisher"
-version = "1.4.2"  # Replace with your __version__
+version = "1.5.0"
 description = "coppaFISH software for Python"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
@@ -64,6 +64,7 @@ include-package-data = true
     "dye_info_raw.npy",
     "seven_channel_normalisations.npz",
     "nine_channel_normalisations.npz",
+    "dapi_channel_normalisations.npz",
 ]
 "coppafisher.omp" = ["mean_spot.npy"]
 "coppafisher.plot.results_viewer" = ["cell_colour.csv", "cellClassColours.json", "gene_colour.csv"]
