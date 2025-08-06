@@ -34,6 +34,7 @@ def extract_raw(
     reverse_custom_z: bool = False,
     radius_norm_file: Optional[str] = None,
     radius_norm_channels: Optional[list] = None,
+    dapi_radius_norm_file: Optional[str] = None,
 ) -> None:
     """
     Extract images from the given ND2 file and DAPI images.
@@ -54,6 +55,8 @@ def extract_raw(
         radius_norm_channels (list, optional): the channels included inside of the radius_norm_file. Default:
             [5, 9, 10, 14, 15, 18, 19, 23, 27] if radius_norm_file is "default_nine", [5, 9, 14, 15, 18, 23, 27] if
             radius_norm_file is "default_seven", use_channels otherwise.
+        dapi_radius_norm_file (str, optional):path to radius normalisation .npz file applied to every dapi tile. Set to
+            "default" for the default at coppafisher/setup/dapi_channel_normalisations.npz. Default: not given.
 
     Notes:
         - For details about the tile radius normalisation file, please see channel_radius_normalisation_filepath under
@@ -77,11 +80,22 @@ def extract_raw(
     radius_norm = None
     if radius_norm_file is not None:
         radius_norm = np.load(str(radius_norm_file))["arr_0"]
+        radius_normalisation.validate_radius_normalisation(radius_norm[0], nb.basic_info.tile_sz)
         if radius_norm.shape[0] != len(radius_norm_channels):
             raise ValueError(
                 f"Expected channel radius normalisation to have shape[0] == {len(radius_norm_channels)}"
                 + f", instead got {radius_norm.shape[0]}"
             )
+
+    if dapi_radius_norm_file == "default":
+        dapi_radius_norm_file = importlib_resources.files(filter_run.DAPI_CHANNEL_DIR).joinpath(
+            filter_run.DAPI_CHANNEL_NAME
+        )
+
+    dapi_radius_norm = None
+    if dapi_radius_norm_file is not None:
+        dapi_radius_norm = np.load(str(dapi_radius_norm_file))["arr_0"]
+        radius_normalisation.validate_radius_normalisation(dapi_radius_norm, nb.basic_info.tile_sz)
 
     nbp_file_names = file_names.get_file_names(nb.basic_info, config_file_path)
 
@@ -116,14 +130,13 @@ def extract_raw(
         # Load raw image.
         raw_path = nbp_file_names.tile_unfiltered[t][nb.basic_info.anchor_round][c_dapi]
         image_raw: npt.NDArray[np.uint16] = zarr.open_array(raw_path, "r")[:]
-        if radius_norm is not None and c_dapi in radius_norm_channels:
+        if dapi_radius_norm is not None:
             print("Tile radius normalising DAPI image")
             image_raw = image_raw.astype(np.float32)
-            image_raw = radius_normalisation.radius_normalise_image(
-                image_raw, radius_norm[radius_norm_channels.index(c_dapi)]
-            )
+            image_raw = radius_normalisation.radius_normalise_image(image_raw, dapi_radius_norm)
             image_raw = np.round(image_raw)
             image_raw = image_raw.astype(np.uint16)
+
         # Save image in the format `x_y.tif`.
         tifffile.imwrite(save_path, image_raw)
 

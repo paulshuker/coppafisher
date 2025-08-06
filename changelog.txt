@@ -1,5 +1,16 @@
 2025/MM/DD Version 1.5 (v1.5.0):
+ * Export: Custom image tile radius/channel normalisation for dapi option added.
+ * Filter: Tile radius/channel normalisation on dapi channel option added.
  * OMP: Negative signals are now discarded when computing gene expression.
+
+
+2025/08/05 Version 1.4 Patch (v1.4.2):
+ * OMP: subprocess has no attribute crash on Windows fix.
+
+
+2025/08/05 Version 1.4 Patch (v1.4.1):
+ * Viewer: Camera object has no interactive attribute fix.
+ * OMP: Windows crash when checking if file is server-mounted fix.
 
 
 2025/07/29 Version 1.4 (v1.4.0):

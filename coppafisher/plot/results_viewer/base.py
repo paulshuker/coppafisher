@@ -540,7 +540,7 @@ class Viewer:
         self.update_viewer_data()
         self.clear_spot_selections()
         # Put the user back to pan/zoom mode.
-        self.viewer.camera.interactive = True
+        self.viewer.camera.mouse_pan = True
         print(f"Method: {self._method_to_string[self.selected_method]}")
 
     def z_thick_changed(self) -> None:
