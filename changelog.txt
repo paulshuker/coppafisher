@@ -1,5 +1,6 @@
 2025/MM/DD Version 1.5 (v1.5.0):
  * Viewer: Camera object has no interactive attribute fix.
+ * Export: Custom image tile radius/channel normalisation for dapi option added.
  * Filter: Tile radius/channel normalisation on dapi channel option added.
 
 
