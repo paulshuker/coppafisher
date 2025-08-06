@@ -48,6 +48,8 @@ class CompatibilityTracker:
             ("1.2.7", "none"),
             ("1.3.0", "call_spots"),
             ("1.4.0", "none"),
+            ("1.4.1", "none"),
+            ("1.4.2", "none"),
             ("1.5.0", "none"),
         )
     )
