@@ -214,7 +214,7 @@ def run_omp(
                 yxz_subset = yxz_all[index_min:index_max]
                 colour_subset = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)
                 colour_subset *= colour_norm_factor[[t]]
-                intensities_subset = intensity.compute_intensity(colour_subset)
+                intensities_subset = intensity.compute_intensity(np.clip(colour_subset, 0, None))
                 is_intense = (intensities_subset >= solver_kwargs["minimum_intensity"]).numpy()
                 del intensities_subset
 
