@@ -4,13 +4,16 @@ import os
 import shutil
 import tempfile
 import time
+import warnings
 from typing import Any, Dict, List, Tuple, Union
 
 import numpy as np
+import tqdm
 import zarr
 
 from ..utils import base as utils_base
 from ..utils import system as utils_system
+from ..utils import zarray
 
 
 # NOTE: Every method and variable with an underscore at the start should not be accessed externally.
@@ -18,20 +21,20 @@ class NotebookPage:
     """
     Every notebook page contains variable names and their associated values.
 
-    A notebook page never communicates with a notebook. But, the notebook communicates with notebook pages. There are
-    only a handful of valid page names. Each page can only contain specific variable names, these are stored in the
-    attribute _options. Each variable can only hold specific datatypes given in _options. If a variable is set to a
-    wrong type, PageTypeError is raised.
+    A notebook page never communicates with a notebook. Only the notebook communicates with pages. There are only a
+    handful of valid page names. Each page can only contain specific variable names, these are stored in the attribute
+    _options. Each variable can only hold specific datatypes given in _options. If a variable is set to a wrong type,
+    PageTypeError is raised.
     """
 
-    def get_page_name(self) -> str:
+    def get_name(self) -> str:
         return self._name
 
     _name: str
-    name: str = property(get_page_name)
+    name: str = property(get_name)
 
     # Attribute names allowed to be set inside the notebook page that are not in _options.
-    _valid_attribute_names = ("_name", "_time_created", "_version", "_associated_configs")
+    _valid_attribute_names = ("_name", "_time_created", "_version", "_associated_configs", "_zip_stores")
 
     _associated_configs: Dict[str, Dict[str, Any]]
 
@@ -56,6 +59,10 @@ class NotebookPage:
     _version_key: str = "version"
     _associated_config_key: str = "associated_configs"
 
+    # The ZipStores for some of the zarr Groups/Arrays must be manually closed before things like deleting the zip file.
+    # Therefore, the stores are kept in a list here while the notebook page is loaded.
+    _zip_stores: list[zarr.ZipStore]
+
     def get_version(self) -> str:
         return self._version
 
@@ -66,7 +73,12 @@ class NotebookPage:
     # types by looking at the function _is_types at the end of this file. The 'tuple' is a special datatype that can be
     # nested. For example, tuple[tuple[int]] is a valid datatype. Also, when a `tuple` type variable is returned by a
     # page, it actually gives a nested `list` instead. This is for backwards compatibility reasons. Modifying the list
-    # (like using the `.append` method) will not change the variable saved to disk.
+    # (like the `.append` method) will not change the page's variable that is already saved to disk.
+    #
+    # The zarray (zgroup) type is decrecated in favour of the ziparray (zipgroup), which enforces that only ZipStores
+    # can be set for the variable types. However, any existing non-ZipStores will not be automatically changed to
+    # ZipStores for backwards compatibility. There will be a manual function to run to convert them if the user wishes
+    # to do so.
     _datatype_separator: str = " or "
     _datatype_nest_start: str = "["
     _datatype_nest_end: str = "]"
@@ -264,8 +276,8 @@ class NotebookPage:
         },
         "filter": {
             "images": [
-                "zarray[float16]",
-                "`(n_tiles x (n_rounds + n_extra_rounds) x n_channels x tile_sz x tile_sz x len(use_z))` zarray float16. "
+                "ziparray[float16]",
+                "`(n_tiles x (n_rounds + n_extra_rounds) x n_channels x tile_sz x tile_sz x len(use_z))` ziparray float16. "
                 + "All microscope images after filtering (deblurring) is applied.",
             ],
         },
@@ -290,9 +302,9 @@ class NotebookPage:
                 + "`spot_no[t, r, c]` is the number of spots found on tile $t$, round $r$, channel $c$",
             ],
             "spot_yxz": [
-                "zgroup",
+                "zipgroup",
                 "A zarr group containing all spot detection positions relative to their tile's bottom left corner. For "
-                + "each tile/round/channel combination, a `(n_trc_spots x 3) zarray[int16]` is stored. Each "
+                + "each tile/round/channel combination, a `(n_trc_spots x 3) ziparray[int16]` is stored. Each "
                 + "tile/round/channel index is uniquely saved. For example, tile 0, round 1, channel 2 is labelled "
                 + "t0r1c2 so it can be gathered as ndarray[int1e] by nb.find_spots.spot_yxz['t0r1c2'][:]",
             ],
@@ -320,26 +332,26 @@ class NotebookPage:
                 + "or if one of the tiles is not used in the pipeline.",
             ],
             "dapi_image": [
-                "zarray[float16]",
+                "ziparray[float16]",
                 "float16 array (im_z x im_y x im_x). "
                 + "Fused large dapi image created by merging all tiles together after stitch shifting is applied.",
             ],
         },
         "register": {
             "flow": [
-                "zarray[float16]",
+                "ziparray[float16]",
                 "n_tiles x n_rounds x 3 x tile_sz x tile_sz x len(use_z)",
                 "The optical flow shifts for each image pixel after smoothing. The third axis is for the different "
                 + "image directions. 0 is the y shifts, 1 is the x shifts, 2 is the z shifts. "
                 + "flow[t, r] takes the anchor image to t/r image.",
             ],
             "correlation": [
-                "zarray[float16]",
+                "ziparray[float16]",
                 "n_tiles x n_rounds x tile_sz x tile_sz x len(use_z)",
                 "The optical flow correlations.",
             ],
             "flow_raw": [
-                "zarray[float16]",
+                "ziparray[float16]",
                 "n_tiles x n_rounds x 3 x tile_sz x tile_sz x len(use_z)",
                 "The optical flow shifts for each image pixel before smoothing. The third axis is for the different "
                 + "image directions. 0 is the y shifts, 1 is the x shifts, 2 is the z shifts.",
@@ -350,20 +362,20 @@ class NotebookPage:
                 + "yxz affine corrections to be applied after the warp.",
             ],
             "anchor_images": [
-                "zarray[uint8]",
+                "ziparray[uint8]",
                 "Numpy uint8 array `(n_tiles x 2 x im_y x im_x x im_z)`"
                 + "A subset of the anchor image after all image registration is applied. "
                 + "The second axis is for the channels. 0 is the dapi channel, 1 is the anchor reference channel.",
             ],
             "round_images": [
-                "zarray[uint8]",
+                "ziparray[uint8]",
                 "Numpy uint8 array `(n_tiles x n_rounds x 3 x im_y x im_x x im_z)`"
                 + "A subset of the anchor image after all image registration is applied. "
                 + "The third axis is for the registration step. 0 is before register, 1 is after optical flow, 2 is "
                 + "after optical flow and ICP",
             ],
             "channel_images": [
-                "zarray[uint8]",
+                "ziparray[uint8]",
                 "Numpy uint8 array `(n_tiles x n_channels x 3 x im_y x im_x x im_z)`"
                 + "The third axis is for the registration step. 0 is before register, 1 is after optical flow, 2 is "
                 + "after optical flow and ICP",
@@ -418,17 +430,17 @@ class NotebookPage:
         },
         "ref_spots": {
             "local_yxz": [
-                "zarray[int16]",
+                "ziparray[int16]",
                 "Numpy array [n_spots x 3]. "
                 + "`local_yxz[s]` are the $yxz$ coordinates of spot $s$ found on `tile[s]`, `ref_round`, `ref_channel`."
                 + "To get `global_yxz`, add `nb.stitch.tile_origin[tile[s]]`.",
             ],
             "tile": [
-                "zarray[int16]",
+                "ziparray[int16]",
                 "Numpy array [n_spots]. Tile each spot was found on.",
             ],
             "colours": [
-                "zarray[float32]",
+                "ziparray[float32]",
                 "Numpy array [n_spots x n_rounds x n_channels]. "
                 + "`[s, r, c]` is the intensity of spot $s$ in round $r$, channel $c$.",
             ],
@@ -514,25 +526,25 @@ class NotebookPage:
                 " scaled spots against the target bled codes.",
             ],
             "dot_product_gene_no": [
-                "zarray[int16]",
+                "ziparray[int16]",
                 "Numpy array [n_spots]. Gene number assigned to each spot. `None` if not assigned.",
             ],
             "dot_product_gene_score": [
-                "zarray[float16]",
+                "ziparray[float16]",
                 "Numpy float array [n_spots]. `score[s]' is the highest gene coef of spot s.",
             ],
             "gene_probabilities": [
-                "zarray[float32]",
+                "ziparray[float32]",
                 "Numpy float array [n_spots x n_genes]. `gene_probabilities[s, g]` is the probability that spot $s$ "
                 + "belongs to gene $g$.",
             ],
             "gene_probabilities_initial": [
-                "zarray[float32]",
+                "ziparray[float32]",
                 "Numpy float array [n_spots x n_genes]. `gene_probabilities_initial[s, g]` is the probability that spot"
                 + " $s$ belongs to gene $g$ after only initial scaling compared against the raw bleed matrix.",
             ],
             "intensity": [
-                "zarray[float32]",
+                "ziparray[float32]",
                 "Numpy float32 array [n_spots]. "
                 + "$\\chi_s = \\underset{r}{\\mathrm{median}}(\\max_c\\zeta_{s_{rc}})$"
                 + "where $\\pmb{\\zeta}_s=$ `colors[s, r]*colour_norm_factor[r]`.",
@@ -545,7 +557,7 @@ class NotebookPage:
                 + "The mean spot used to compute the final OMP spot scores",
             ],
             "results": [
-                "zgroup",
+                "zipgroup",
                 "A zarr group containing all OMP spots. Each tile's results are separated into subgroups. "
                 + "For example, you can access tile 0's subgroup by doing `nb.omp.results['tile_0']`. Each tile "
                 + "subgroup contains 4 zarr arrays: local_yxz, scores, gene_no, and colours. Each has dtype int16, "
@@ -601,25 +613,9 @@ class NotebookPage:
                 + "This is copied from `config[thresholds]`.",
             ],
         },
-        # For unit testing only.
-        "debug": {
-            "a": ["int"],
-            "b": ["float"],
-            "c": ["bool"],
-            "d": ["tuple[int]"],
-            "e": ["tuple[tuple[float]]"],
-            "f": ["int or float"],
-            "g": ["none"],
-            "h": ["float or none"],
-            "i": ["str"],
-            "j": ["ndarray[float]"],
-            "k": ["ndarray[int]"],
-            "l": ["ndarray[bool]"],
-            "m": ["ndarray[str]"],
-            "n": ["ndarray[uint]"],
-            "o": ["zarray[float]"],
-            "p": ["zgroup"],
-        },
+        # For unit tests only.
+        "debug": {},
+        "debug_2": {},
     }
     _type_suffixes: Dict[str, str] = {
         "int": ".json",
@@ -633,6 +629,13 @@ class NotebookPage:
         "ndarray": ".npz",
         "zarray": ".zarray",
         "zgroup": ".zgroup",
+        "zipgroup": ".zip",
+        "ziparray": ".ziparray",
+    }
+    # The key is the replacement suffix, the value is the deprecated suffix.
+    _replacement_suffixes: Dict[str, str] = {
+        ".ziparray": ".zarray",
+        ".zip": ".zgroup",
     }
 
     def __init__(self, page_name: str, associated_config: Dict[str, Dict[str, Any]] = None) -> None:
@@ -645,9 +648,9 @@ class NotebookPage:
                 the config's dictionary. Default: empty dictionary.
 
         Notes:
-            - The way that the notebook handles zarr arrays is special since they must not be kept in memory. To give
-                the notebook page a zarr variable, you must give a zarr.Array class for the array. The array must be
-                kept on disk, so you can save the array anywhere to disk initially that is outside of the
+            - The way that the notebook handles zarr arrays/groups is special since they must not be kept in memory. To
+                give the notebook page a zarr variable, you must give a zarr.Array class for the array. The array must
+                be kept on disk, so you can save the array anywhere to disk initially that is outside of the
                 notebook/notebook page. Then, when the notebook page is complete and saved, the zarr array is moved by
                 the page into the page's directory. Therefore, a zarr array is never put into memory. When an existing
                 zarr array is accessed in a page, it gives you the zarr.Array class, which can then be put into memory
@@ -668,11 +671,14 @@ class NotebookPage:
         self._time_created = time.time()
         self._version = utils_system.get_software_version()
         self._associated_configs = copy.deepcopy(associated_config)
+        self._zip_stores = []
         self._sanity_check_options()
 
     def save(self, page_directory: str, /) -> None:
         """
-        Save the notebook page to the given directory. If the directory already exists, do not overwrite it.
+        Save the notebook page to the given directory.
+
+        If the page is already saved, does nothing.
         """
         if os.path.isdir(page_directory):
             return
@@ -692,8 +698,10 @@ class NotebookPage:
 
     def load(self, page_directory: str, /) -> None:
         """
-        Load all variables from inside the given directory. All variables already set inside of the page are
-        overwritten.
+        Load all variables from inside the given directory.
+
+        All variables already set inside of the page are overwritten. If the notebook page contains unzipped variables,
+        then a message is given.
         """
         if not os.path.isdir(page_directory):
             raise FileNotFoundError(f"Could not find page directory at {page_directory} to load from")
@@ -702,6 +710,29 @@ class NotebookPage:
         self._load_metadata(metadata_path)
         for name in self._get_variables().keys():
             self.__setattr__(name, self._load_variable(name, page_directory))
+
+        if self.get_unzipped_variables():
+            print(f"The notebook page {self.name} contains unzipped variables. You can now zip them by nb.zip()")
+
+    def zip(self, page_directory: str, /) -> None:
+        """
+        Zip any zarr Arrays/Groups if not already.
+        """
+        if not self.get_unzipped_variables():
+            return
+
+        for variable_name in tqdm.tqdm(self.get_unzipped_variables(), f"Zipping page {self.name}"):
+            variable_type: str = self._options[self.name][variable_name][0]
+            suffix = self._type_str_to_suffix(variable_type.split(self._datatype_separator)[0])
+            variable_path = self._get_variable_path(page_directory, variable_name, suffix)
+            if variable_type.startswith("zipgroup"):
+                zarray.convert_group_to_zip_store(variable_path)
+            elif variable_type.startswith("ziparray"):
+                zarray.convert_array_to_zip_store(variable_path)
+            else:
+                raise ValueError(f"Variable {variable_name} got unexpected type {variable_type}")
+
+        self.load(page_directory)
 
     def get_unset_variables(self) -> Tuple[str]:
         """
@@ -714,6 +745,26 @@ class NotebookPage:
             except AttributeError:
                 unset_variables.append(variable_name)
         return tuple(unset_variables)
+
+    def get_unzipped_variables(self) -> Tuple[str]:
+        """
+        Return a tuple containing the name of every zipgroup/ziparray that is not a zarr.ZipStore.
+
+        Unzipped variables can still be stored in the notebook pages for backwards compatibility.
+        """
+        unzipped_variables = []
+        unset_variables = self.get_unset_variables()
+        for variable_name in self._get_variables().keys():
+            if variable_name in unset_variables:
+                continue
+            variable_type: str = self._options[self._name][variable_name][0]
+            if not variable_type.startswith(("zipgroup", "ziparray")):
+                continue
+            variable_value: zarr.Group | zarr.Array = self.__getattribute__(variable_name)
+            if isinstance(variable_value.store, zarr.ZipStore):
+                continue
+            unzipped_variables.append(variable_name)
+        return tuple(unzipped_variables)
 
     def resave(self, page_directory: str, /) -> None:
         """
@@ -730,21 +781,34 @@ class NotebookPage:
                 + f"The variable(s) {', '.join(self.get_unset_variables())} are not assigned."
             )
 
+        self.close_stores()
+
         temp_directories: List[tempfile.TemporaryDirectory] = []
         for variable_name, description in self._get_variables().items():
             suffix = self._type_str_to_suffix(description[0].split(self._datatype_separator)[0])
             variable_path = self._get_variable_path(page_directory, variable_name, suffix)
 
-            if suffix in (".zarray", ".zgroup"):
+            if suffix in (".zarray", ".zgroup", ".zip", ".ziparray"):
                 # Zarr files are saved outside the page during re-save as they are not kept in memory.
                 temp_directory = tempfile.TemporaryDirectory()
-                temp_zarr_path = os.path.join(temp_directory.name, f"{variable_name}.{suffix}")
+                temp_zarr_path = os.path.join(temp_directory.name, f"{variable_name}{suffix}")
                 temp_directories.append(temp_directory)
                 shutil.move(variable_path, temp_zarr_path)
                 if suffix == ".zarray":
-                    self.__setattr__(variable_name, zarr.open_array(temp_zarr_path))
+                    self.__setattr__(variable_name, zarr.open_array(temp_zarr_path, "r"))
                 elif suffix == ".zgroup":
-                    self.__setattr__(variable_name, zarr.open_group(temp_zarr_path))
+                    self.__setattr__(variable_name, zarr.open_group(temp_zarr_path, "r"))
+                elif suffix == ".zip":
+                    store = zarr.ZipStore(temp_zarr_path, mode="r")
+                    self.__setattr__(variable_name, zarr.open_group(store))
+                    self._zip_stores.append(store)
+                elif suffix == ".ziparray":
+                    store = zarr.ZipStore(temp_zarr_path, mode="r")
+                    self.__setattr__(variable_name, zarr.open_array(store))
+                    self._zip_stores.append(store)
+                else:
+                    raise NotImplementedError(f"Unknown {suffix=}")
+
                 continue
 
             os.remove(variable_path)
@@ -804,6 +868,14 @@ class NotebookPage:
             result = result.copy()
         return result
 
+    def __del__(self) -> None:
+        self.close_stores()
+
+    def close_stores(self) -> None:
+        """If the page has any zarr.ZipStores, they are closed."""
+        [store.close() for store in self._zip_stores]
+        self._zip_stores.clear()
+
     def get_variable_count(self) -> int:
         return len(self._get_variables())
 
@@ -861,23 +933,37 @@ class NotebookPage:
                 raise PageTypeError(f"Variable {name} is of type {type(value)}, expected zarr.Array")
             old_path = os.path.abspath(value.store.path)
             shutil.move(old_path, new_path)
-            new_array = zarr.open_array(store=new_path, mode="r+")
-            new_array.read_only = True
+            new_array = zarr.open_array(new_path, "r")
+            assert new_array.read_only
             self.__setattr__(name, new_array)
-        elif file_suffix == ".zgroup":
-            if type(value) is not zarr.Group:
-                raise PageTypeError(f"Variable {name} is of type {type(value)}, expected zarr.Group")
+        elif file_suffix in (".ziparray", ".zgroup", ".zip"):
+            type_expected = zarr.Array if file_suffix == ".ziparray" else zarr.Group
+            if type(value) is not type_expected:
+                raise PageTypeError(f"Variable {name} is of type {type(value)}, expected {type_expected}")
             old_path = os.path.abspath(value.store.path)
+            value.store.close()
             shutil.move(old_path, new_path)
-            new_group = zarr.open_group(store=new_path, mode="r")
-            self.__setattr__(name, new_group)
+            store = new_path
+            if file_suffix in (".ziparray", ".zip"):
+                store = zarr.ZipStore(new_path, mode="r")
+                self._zip_stores.append(store)
+            opening_method = zarr.open_array if file_suffix == ".ziparray" else zarr.open_group
+            new_array_or_group = opening_method(store, "r")
+            self.__setattr__(name, new_array_or_group)
         else:
             raise NotImplementedError(f"File suffix {file_suffix} is not supported")
 
     def _load_variable(self, name: str, page_directory: str) -> Any:
         types_as_str = self._get_variables()[name][0].split(self._datatype_separator)
         file_suffix = self._type_str_to_suffix(types_as_str[0])
+        old_file_suffix = self._get_deprecated_suffix(file_suffix)
+        old_file_path = self._get_variable_path(page_directory, name, old_file_suffix) if old_file_suffix else None
         file_path = self._get_variable_path(page_directory, name, file_suffix)
+        if old_file_path is not None and os.path.exists(old_file_path) and os.path.exists(file_path):
+            raise SystemError(f"Found variable in two places: {old_file_path} and {file_path}")
+        elif old_file_path is not None and os.path.exists(old_file_path):
+            os.rename(old_file_path, file_path)
+
         if not os.path.exists(file_path):
             raise SystemError(f"Failed to find variable path: {file_path}")
 
@@ -891,9 +977,19 @@ class NotebookPage:
         elif file_suffix == ".npz":
             return np.load(file_path)["arr_0"]
         elif file_suffix == ".zarray":
-            return zarr.open_array(file_path)
+            return zarr.open_array(file_path, "r")
         elif file_suffix == ".zgroup":
-            return zarr.open_group(file_path)
+            return zarr.open_group(file_path, "r")
+        elif file_suffix in (".zip", ".ziparray"):
+            opening_method = zarr.open_group if file_suffix == ".zip" else zarr.open_array
+            try:
+                store = zarr.ZipStore(file_path, mode="r")
+                self._zip_stores.append(store)
+                return opening_method(store, "r")
+            except (IsADirectoryError, PermissionError):
+                # The group or array must not be a zip store.
+                # NOTE: This is for backwards compatibility with non zipstores.
+                return opening_method(zarr.DirectoryStore(file_path), "r")
         else:
             raise NotImplementedError(f"File suffix {file_suffix} is not supported")
 
@@ -910,7 +1006,7 @@ class NotebookPage:
         for page_name, page_options in self._options.items():
             for var_name, var_list in page_options.items():
                 unique_suffixes = set()
-                types_as_str = var_list[0]
+                types_as_str: str = var_list[0]
                 for type_as_str in types_as_str.split(self._datatype_separator):
                     unique_suffixes.add(self._type_str_to_suffix(type_as_str))
                 if len(unique_suffixes) > 1:
@@ -918,9 +1014,25 @@ class NotebookPage:
                         f"Variable {var_name} in page {page_name} has incompatible types: "
                         + f"{' and '.join(unique_suffixes)} in _options"
                     )
+                if page_name.startswith("debug"):
+                    continue
+                if types_as_str.startswith("zarray"):
+                    warnings.warn(
+                        "zarray is a deprecated variable type, use ziparray instead", UserWarning, stacklevel=2
+                    )
+                elif types_as_str.startswith("zgroup"):
+                    warnings.warn(
+                        "zgroup is a deprecated variable type, use zipgroup instead", UserWarning, stacklevel=2
+                    )
 
     def _type_str_to_suffix(self, type_as_str: str) -> str:
         return self._type_suffixes[type_as_str.split(self._datatype_nest_start)[0]]
+
+    def _get_deprecated_suffix(self, suffix: str) -> str | None:
+        """Get the deprecated suffix. If it does not exist, returns none."""
+        if suffix in self._replacement_suffixes:
+            return self._replacement_suffixes[suffix]
+        return None
 
     def _is_types(self, value: Any, types_as_str: str) -> bool:
         valid_types: List[str] = types_as_str.split(self._datatype_separator)
@@ -965,7 +1077,11 @@ class NotebookPage:
             return self._is_ndarray_of_dtype(value, self._get_dtypes_in_type_str(type_as_str))
         elif type_as_str.startswith("zarray"):
             return self._is_zarray_of_dtype(value, self._get_dtypes_in_type_str(type_as_str))
+        elif type_as_str.startswith("ziparray"):
+            return self._is_zarray_of_dtype(value, self._get_dtypes_in_type_str(type_as_str))
         elif type_as_str == "zgroup":
+            return type(value) is zarr.Group and isinstance(value.store, zarr.DirectoryStore)
+        elif type_as_str == "zipgroup":
             return type(value) is zarr.Group
         else:
             raise PageTypeError(f"Unexpected type '{type_as_str}' found in _options in NotebookPage class")

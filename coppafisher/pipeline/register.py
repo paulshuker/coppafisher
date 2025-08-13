@@ -97,6 +97,9 @@ def register(
     corr_loc = os.path.join(nbp_file.output_dir, "corr.zarr")
     raw_loc = os.path.join(nbp_file.output_dir, "raw.zarr")
     smooth_loc = os.path.join(nbp_file.output_dir, "smooth.zarr")
+    corr_store = zarr.ZipStore(corr_loc, mode="w")
+    raw_store = zarr.ZipStore(raw_loc, mode="w")
+    smooth_store = zarr.ZipStore(smooth_loc, mode="w")
     raw_smooth_shape = (
         max(nbp_basic.use_tiles) + 1,
         max(use_rounds) + 1,
@@ -106,7 +109,7 @@ def register(
         len(nbp_basic.use_z),
     )
     zarr.open_array(
-        store=corr_loc,
+        store=corr_store,
         mode="w",
         shape=raw_smooth_shape[:2] + raw_smooth_shape[3:],
         dtype=np.float16,
@@ -114,7 +117,7 @@ def register(
         zarr_version=2,
     )
     zarr.open_array(
-        store=raw_loc,
+        store=raw_store,
         mode="w",
         shape=raw_smooth_shape,
         dtype=np.float16,
@@ -124,13 +127,16 @@ def register(
     # Chunks are made into thin rods along the y axis as this is how flow will be gathered in OMP.
     smooth_chunks = (1, 1, None, None, min(288, nbp_basic.tile_sz), 1)
     zarr.open_array(
-        store=smooth_loc,
+        store=smooth_store,
         shape=raw_smooth_shape,
         mode="w",
         dtype=np.float16,
         chunks=smooth_chunks,
         zarr_version=2,
     )
+    corr_store.close()
+    raw_store.close()
+    smooth_store.close()
     for t in tqdm(use_tiles, desc="Optical Flow on uncompleted tiles", total=len(use_tiles)):
         # Load in the anchor image and the round images. Note that here anchor means anchor round, not necessarily
         # anchor channel
@@ -154,10 +160,14 @@ def register(
                 clip_val=config["flow_clip"],
                 n_cores=config["flow_cores"],
             )
-            nbp.flow_raw = zarr.open_array(raw_loc, "r")
-            nbp.correlation = zarr.open_array(corr_loc, "r")
-            nbp.flow = zarr.open_array(smooth_loc, "r")
     del anchor_image, round_image
+
+    corr_store = zarr.ZipStore(corr_loc, mode="r")
+    raw_store = zarr.ZipStore(raw_loc, mode="r")
+    smooth_store = zarr.ZipStore(smooth_loc, mode="r")
+    corr = zarr.open_array(corr_store)
+    raw = zarr.open_array(raw_store)
+    flow = zarr.open_array(smooth_store)
 
     # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, any remaining process after the
     # use of joblib are explicitly killed.
@@ -198,7 +208,7 @@ def register(
             # load in reference spots
             ref_spots_tr_ref = nbp_find_spots.spot_yxz[f"t{t}r{nbp_basic.anchor_round}c{nbp_basic.anchor_channel}"][:]
             # apply the flow to the reference spots to put anchor spots in the target frame
-            ref_spots_tr_ref = spot_colours_base.apply_flow_new(ref_spots_tr_ref, nbp.flow, t, r)
+            ref_spots_tr_ref = spot_colours_base.apply_flow_new(ref_spots_tr_ref, flow, t, r)
             # load in target spots
             ref_spots_tr = nbp_find_spots.spot_yxz[f"t{t}r{r}c{c_ref}"][:]
             round_correction[t, r], n_matches_round[t, r], mse_round[t, r], converged_round[t, r] = register_base.icp(
@@ -236,7 +246,7 @@ def register(
                 )
                 im_spots_trc = im_spots_trc[~oob]
                 # 2. apply the inverse of the flow to the spots
-                im_spots_trc = spot_colours_base.apply_flow_new(im_spots_trc, nbp.flow, t, r, flow_multiplier=-1.0)
+                im_spots_trc = spot_colours_base.apply_flow_new(im_spots_trc, flow, t, r, flow_multiplier=-1.0)
                 im_spots_tc = np.vstack((im_spots_tc, im_spots_trc))
             # check if there are enough spots to run ICP
             if im_spots_tc.shape[0] < config["icp_min_spots"]:
@@ -279,6 +289,9 @@ def register(
         }
 
     nbp.icp_correction = registration_data["icp"]["icp_correction"]
+    nbp.flow_raw = raw
+    nbp.correlation = corr
+    nbp.flow = flow
 
     nbp_debug.channel_transform_initial = registration_data["channel_registration"]["transform"]
     nbp_debug.round_correction = registration_data["icp"]["round_correction"]
@@ -292,6 +305,10 @@ def register(
 
     # Save a registered image subsets for debugging/plotting purposes.
     preprocessing.generate_reg_images(nbp_basic, nbp_file, nbp_filter, nbp, nbp_debug)
+
+    raw_store.close()
+    corr_store.close()
+    smooth_store.close()
 
     log.info("Register complete")
     return nbp, nbp_debug

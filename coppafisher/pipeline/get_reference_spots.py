@@ -100,9 +100,15 @@ def get_reference_spots(
 
     # Convert the numpy results to zarrays for saving.
     kwargs = dict(chunks=False, zarr_version=2)
-    local_yxz = zarr.array(local_yxz, store=os.path.join(nbp_file.output_dir, "local_yxz.zarray"), **kwargs)
-    tile = zarr.array(tile, store=os.path.join(nbp_file.output_dir, "tile.zarray"), **kwargs)
-    spot_colours = zarr.array(spot_colours, store=os.path.join(nbp_file.output_dir, "spot_colours.zarray"), **kwargs)
+    local_yxz_store = zarr.ZipStore(os.path.join(nbp_file.output_dir, "local_yxz.zarray"), mode="w")
+    local_yxz = zarr.array(local_yxz, store=local_yxz_store, **kwargs)
+    local_yxz_store.close()
+    tile_store = zarr.ZipStore(os.path.join(nbp_file.output_dir, "tile.zarray"), mode="w")
+    tile = zarr.array(tile, store=tile_store, **kwargs)
+    tile_store.close()
+    spot_colours_store = zarr.ZipStore(os.path.join(nbp_file.output_dir, "spot_colours.zarray"), mode="w")
+    spot_colours = zarr.array(spot_colours, store=spot_colours_store, **kwargs)
+    spot_colours_store.close()
 
     # save spot info to notebook
     nbp.local_yxz = local_yxz

@@ -134,8 +134,9 @@ def run_omp(
 
     # Every tile's results are appended to a zarr.Group. The zarr group is kept in the output directory until OMP is
     # complete, then it is moved into the 'omp' notebook page.
-    group_path = os.path.join(nbp_file.output_dir, "results.zgroup")
-    results = zarr.group(store=group_path, zarr_version=2)
+    results_path = os.path.join(nbp_file.output_dir, "results.zgroup")
+    results_store = zarr.ZipStore(results_path, mode="a" if os.path.exists(results_path) else "x")
+    results = zarr.group(store=results_store, zarr_version=2)
     tile_already_exists = [
         f"tile_{t}" in results
         and "colours" in results[f"tile_{t}"]
@@ -152,13 +153,15 @@ def run_omp(
 
         temp_dir = tempfile.TemporaryDirectory("coppafisher")
         filter_images: zarr.Array = nbp_filter.images
+        filter_images_store = None
         if system.is_path_on_mounted_server(filter_images.store.path):
             log.info(f"Filter images detected on mounted server. Caching tile {t}")
 
             # Copy filter image files locally only relevant to tile t.
             ignore = shutil.ignore_patterns(f"[{''.join([str(tile) for tile in nbp_basic.use_tiles if tile != t])}].*")
             shutil.copytree(filter_images.store.path, temp_dir.name, ignore=ignore, dirs_exist_ok=True)
-            filter_images = zarr.open_array(temp_dir.name, "r")
+            filter_images_store = zarr.ZipStore(temp_dir.name, mode="r")
+            filter_images = zarr.open_array(filter_images_store)
 
         spot_colour_kwargs = dict(
             image=filter_images,
@@ -170,6 +173,8 @@ def run_omp(
             output_dtype=np.float32,
             out_of_bounds_value=0,
         )
+        if filter_images_store is not None:
+            filter_images_store.close()
 
         # STEP 1: Compute an intensity threshold for the tile based on the median intensity of the middle z plane.
         log.debug(f"Computing intensity threshold for tile {t}")
@@ -232,14 +237,17 @@ def run_omp(
         log.debug(f"Compute pixel scores, tile {t} complete")
 
         tile_results = results.create_group(f"tile_{t}", overwrite=True)
-        tile_results.attrs["software_version"] = system.get_software_version()
-        tile_results.attrs["minimum_intensity"] = solver_kwargs["minimum_intensity"]
-        t_spots_local_yxz = tile_results.zeros(
-            "local_yxz", overwrite=True, shape=(0, 3), chunks=(n_chunk_max, 3), dtype=np.int16
+        tile_results.attrs.update(
+            {
+                "software_version": system.get_software_version(),
+                "minimum_intensity": solver_kwargs["minimum_intensity"],
+            }
         )
-        t_spots_tile = tile_results.zeros("tile", overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.int16)
-        t_spots_gene_no = tile_results.zeros("gene_no", overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.int16)
-        t_spots_score = tile_results.zeros("scores", overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.float16)
+
+        t_spots_local_yxz = np.zeros(shape=(0, 3), dtype=np.int16)
+        t_spots_tile = np.zeros(shape=0, dtype=np.int16)
+        t_spots_gene_no = np.zeros(shape=0, dtype=np.int16)
+        t_spots_score = np.zeros(shape=0, dtype=np.float16)
 
         batch_size = int(2e6 * system.get_available_memory(device) // n_tile_pixels)
         batch_size = max(batch_size, 1)
@@ -296,16 +304,24 @@ def run_omp(
                 g_spot_scores = g_spot_scores.numpy()
                 g_spots_tile = g_spots_tile.numpy()
                 g_spots_gene_no = g_spots_gene_no.numpy()
-                t_spots_local_yxz.append(g_spot_local_positions, axis=0)
-                t_spots_score.append(g_spot_scores, axis=0)
-                t_spots_tile.append(g_spots_tile, axis=0)
-                t_spots_gene_no.append(g_spots_gene_no, axis=0)
+                t_spots_local_yxz = np.append(t_spots_local_yxz, g_spot_local_positions, axis=0)
+                t_spots_score = np.append(t_spots_score, g_spot_scores, axis=0)
+                t_spots_tile = np.append(t_spots_tile, g_spots_tile, axis=0)
+                t_spots_gene_no = np.append(t_spots_gene_no, g_spots_gene_no, axis=0)
                 del g_spot_local_positions, g_spot_scores, g_spots_tile, g_spots_gene_no
+
         if t_spots_tile.size == 0:
             raise ValueError(
                 f"No OMP spots found on tile {t}. Please check that registration and call spots is working. "
                 + "If so, consider adjusting OMP config parameters."
             )
+
+        # Results are added to the OMP "results" zarr.Group.
+        tile_results.array("local_yxz", t_spots_local_yxz, overwrite=True, chunks=(n_chunk_max, 3), dtype=np.int16)
+        tile_results.array("tile", t_spots_tile, overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.int16)
+        tile_results.array("gene_no", t_spots_gene_no, overwrite=True, chunks=(n_chunk_max,), dtype=np.int16)
+        tile_results.array("scores", t_spots_score, overwrite=True, chunks=(n_chunk_max,), dtype=np.float16)
+
         # For each detected spot, save the image intensity at its location, without background fitting.
         log.info("Gathering final spot colours")
         t_local_yxzs = t_spots_local_yxz[:]
@@ -324,6 +340,8 @@ def run_omp(
         del t_spots_local_yxz, t_spots_tile, t_spots_gene_no, t_spots_score, t_spots_colours, t_local_yxzs, tile_results
 
     os.remove(config_path)
+
+    results_store.close()
 
     nbp.results = results
     log.info("OMP complete")

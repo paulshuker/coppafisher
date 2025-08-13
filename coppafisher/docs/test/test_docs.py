@@ -24,9 +24,10 @@ TEST_FILE_NAMES: tuple[tuple[str, int, bool]] = (
     ("omp_min_intensity", 10, False),
     ("open_viewer_0", 7, False),
     ("open_viewer_1", 7, False),
-    ("prune_notebook", 7, True),
     ("retrieve_notebook_config", 20, False),
     ("run_pipeline_0", 10, False),
+    ("update_tile_dir", 7, False),
+    ("zip_nb", 7, True),
 )
 NB_REPLACE = '"/path/to/notebook"'
 CONFIG_REPLACE = '"/path/to/config.ini"'
@@ -44,7 +45,6 @@ REPLACEMENTS = OrderedDict(
         ("view_intensity_histogram(nb)", "view_intensity_histogram(nb, show=False)"),
         ("Viewer(nb)", 'Viewer(nb, gene_marker_filepath="/path/to/custom/gene_marker_file.csv")'),
         ("Viewer(nb, ", "Viewer(nb, show=False, "),
-        ("prune()", "prune(prompt=False)"),
     ]
 )
 
@@ -63,46 +63,53 @@ def test_all_docs() -> None:
 
     pool = multiprocessing.Pool(1)
 
-    with tempfile.TemporaryDirectory(suffix="coppafisher_nb") as temp_dir:
-        nb_path_copy = os.path.join(temp_dir, "notebook_copy")
-        shutil.copytree(nb_path, nb_path_copy)
+    temp_directories = []
 
-        last_test_modified_nb = False
-        for file_name, timeout, modifies_nb in TEST_FILE_NAMES:
-            if last_test_modified_nb:
-                # Make a copy of the notebook before trying our scripts on it, this way code that modifies the notebook
-                # won't modify the original.
-                if os.path.isdir(nb_path_copy):
-                    shutil.rmtree(nb_path_copy)
-                shutil.copytree(nb_path, nb_path_copy)
+    for file_name, timeout, modifies_nb in TEST_FILE_NAMES:
+        nb_path_copy = nb_path
+        temp_dir = None
+        if modifies_nb:
+            # Make a copy of the notebook before trying our scripts on it, this way code that modifies the notebook
+            # won't modify the original.
+            temp_dir = tempfile.TemporaryDirectory("coppafisher_nb")
+            temp_directories.append(temp_dir)
+            nb_path_copy = os.path.join(temp_dir.name, "notebook")
 
-            script_file_path = os.path.join(docs_dir, file_name + ".py")
-            if os.path.isdir(script_file_path):
-                continue
-            if not script_file_path.endswith(".py"):
-                continue
+        if not os.path.isdir(nb_path_copy):
+            shutil.copytree(nb_path, nb_path_copy)
 
-            with open(script_file_path, "r") as file:
-                code = "\n".join(file.readlines())
+        script_file_path = os.path.join(docs_dir, file_name + ".py")
+        if os.path.isdir(script_file_path):
+            continue
+        if not script_file_path.endswith(".py"):
+            continue
 
-            # Ensure headless mode when testing.
-            code = "import matplotlib\nmatplotlib.use('Agg')\n" + code
+        with open(script_file_path, "r") as file:
+            code = "\n".join(file.readlines())
 
-            for replace_content, replace_to in REPLACEMENTS.items():
-                code = code.replace(replace_content, replace_to)
-            # Replace any temp notebook paths with a real notebook path.
-            code = code.replace(NB_REPLACE, f'r"{nb_path_copy}"')
-            code = code.replace(CONFIG_REPLACE, f'r"{config_path}"')
-            code = code.replace(GENE_MARKER_REPLACE, f'r"{gene_marker_path}"')
+        # Ensure headless mode when testing.
+        code = "import matplotlib\nmatplotlib.use('Agg')\n" + code
 
-            res = pool.apply_async(exec, [code])
-            try:
-                res.get(timeout=timeout)
-            except (EOFError, multiprocessing.TimeoutError):
-                # An EOFError occurs when there is the use of `input()` in the code being run.
-                pass
+        for replace_content, replace_to in REPLACEMENTS.items():
+            code = code.replace(replace_content, replace_to)
+        # Replace any temp notebook paths with a real notebook path.
+        if NB_REPLACE in code:
+            code += "\ndel nb"
+        code = code.replace(NB_REPLACE, f'r"{nb_path_copy}"')
+        code = code.replace(CONFIG_REPLACE, f'r"{config_path}"')
+        code = code.replace(GENE_MARKER_REPLACE, f'r"{gene_marker_path}"')
 
-            last_test_modified_nb = modifies_nb
+        res = pool.apply_async(exec, [code])
+        try:
+            res.get(timeout=timeout)
+        except (EOFError, multiprocessing.TimeoutError):
+            # An EOFError occurs when there is the use of `input()` in the code being run.
+            pass
+
+    pool.terminate()
+    pool.close()
+    pool.join()
+    [temp_dir.cleanup() for temp_dir in temp_directories]
 
 
 @pytest.mark.integration
