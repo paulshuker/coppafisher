@@ -1,5 +1,6 @@
 2025/MM/DD Version 1.5 Patch (v1.5.1):
  * General: Missing dependencies tabulate and plyer fix.
+ * Extract: Missing tif input file reader fix.
 
 
 2025/08/08 Version 1.5 (v1.5.0):

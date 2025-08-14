@@ -9,6 +9,7 @@ from ..extract.raw_jobs import JobsReader
 from ..extract.raw_nd2 import Nd2Reader
 from ..extract.raw_numpy import NumpyReader
 from ..extract.raw_reader import RawReader
+from ..extract.raw_tif import TifReader
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..utils import indexing, system, zarray
@@ -41,6 +42,7 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
         ".nd2": Nd2Reader(),
         ".npy": NumpyReader(),
         "JOBS": JobsReader(),
+        ".tif": TifReader(),
     }
     reader: RawReader = raw_extension_readers[nbp_file.raw_extension]
 
