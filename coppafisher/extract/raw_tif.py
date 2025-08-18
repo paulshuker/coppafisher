@@ -25,6 +25,8 @@ class TifReader(RawReader):
 
         tile_raw = super().get_tile_raw_index(tile, nbp_basic.tilepos_yx_nd2, nbp_basic.tilepos_yx)
         file_path = super().get_round_file_path(nbp_file, round)
+        if not file_path.endswith(nbp_file.raw_extension):
+            file_path += nbp_file.raw_extension
 
         # NOTE: n_tiles in the basic_info page must be the number of total tiles in the raw files, NOT necessarily the
         # same as len(nbp_basic.use_tiles). Same for n_channels too.
