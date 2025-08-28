@@ -11,6 +11,7 @@
 2025/08/08 Version 1.5 (v1.5.0):
  * Export: Custom image tile radius/channel normalisation for dapi option added.
  * Filter: Tile radius/channel normalisation on dapi channel option added.
+ * OMP: Negative signals are now discarded when computing gene expression.
 
 
 2025/08/05 Version 1.4 Patch (v1.4.2):

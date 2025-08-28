@@ -39,7 +39,9 @@ class PixelScoreSolver:
         | Tuple[np.ndarray[DTYPE], np.ndarray[DTYPE], np.ndarray[DTYPE], np.ndarray[DTYPE]]
     ):
         """
-        Compute OMP pixel scores on all pixel colours from the same tile. At each iteration of OMP, the next best gene
+        Compute OMP pixel scores on the given pixel colours.
+
+        First, the all negative signal in pixel_colours is set to 0. At each iteration of OMP, the next best gene
         assignment is found from the residual spot colours. A pixel is stopped iterating on if gene assignment fails.
         See function `get_next_gene_assignments` below for details on the stopping criteria and gene scoring. Pixels
         that do not fail are weighted and a new pixel score is added to the final pixel scores. Pixels that are gene
@@ -131,6 +133,8 @@ class PixelScoreSolver:
 
         pixel_scores = torch.zeros((n_pixels, n_genes), dtype=self.DTYPE_T)
         colours = torch.from_numpy(pixel_colours).to(dtype=self.DTYPE_T)
+        # Discard the negative signals.
+        colours = colours.clamp(0)
         # Remember the residual colour between iterations.
         residual_colours = colours.detach().clone()
         # Remember what pixels still need iterating on.
