@@ -56,7 +56,9 @@ def stitch(
         overlap=overlap,
         save_path=save_path,
     )
-    nbp.dapi_image = zarr.open_array(save_path, mode="r")
+    store = zarr.ZipStore(save_path, mode="r")
+    nbp.dapi_image = zarr.open_array(store)
+    store.close()
     nbp.tile_origin = tile_origins_full
     nbp.shifts = pairwise_shifts_full
     nbp.scores = pairwise_shift_scores_full

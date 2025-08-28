@@ -42,8 +42,8 @@ def test_Config() -> None:
     dir = parent_dir.name
     tmpdir = tempfile.TemporaryDirectory(dir=dir, ignore_cleanup_errors=True)
     tmpdir2 = tempfile.TemporaryDirectory(dir=dir, ignore_cleanup_errors=True)
-    tmpfile = tempfile.NamedTemporaryFile(dir=dir, delete=False)
-    tmpfile2 = tempfile.NamedTemporaryFile(dir=dir, delete=False)
+    tmpfile = tempfile.NamedTemporaryFile(dir=dir)
+    tmpfile2 = tempfile.NamedTemporaryFile(dir=dir)
     config_filepath = os.path.join(tmpdir.name, "test_config.ini")
 
     # Build a default config file with all parameters wrongly assigned.
@@ -130,7 +130,7 @@ def test_Config() -> None:
     del config, config_content, config_content_wrong, config_filepath, default_config_filepath
     del tmpdir, tmpdir2, tmpfile, tmpfile2
 
-    tmpfile = tempfile.NamedTemporaryFile(dir=dir, delete=False)
+    tmpfile = tempfile.NamedTemporaryFile(dir=dir)
     tmpdir = tempfile.TemporaryDirectory(dir=dir, ignore_cleanup_errors=False)
 
     # Create a correct config file and ensure the formatted values are all correct.

@@ -1,5 +1,10 @@
-2025/MM/DD Version 1.5 Patch (v1.5.1):
+2025/MM/DD Version 1.6 (v1.6.0):
  * General: Missing dependencies tabulate and plyer fix.
+ * General: The notebook now saves variables as zip files.
+ * General: Version < 1.6.0 notebooks can be zipped using the nb.zip function.
+ * General: Notebook prune function is removed.
+ * General: Missing dependencies tabulate and plyer fix.
+ * Extract: Version 1.6.0 migration guide for extracted tiles added.
  * Extract: Missing tif input file reader fix.
 
 

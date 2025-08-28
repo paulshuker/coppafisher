@@ -15,6 +15,8 @@ from ..setup.notebook_page import NotebookPage
 from ..utils import indexing, system, zarray
 
 EXTRACT_DTYPE = np.uint16
+VERSION_FILE_NAME = ".version"
+UPDATE_TILE_DIR_PATH = "docs/update_tile_dir.py"
 
 
 def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: NotebookPage) -> NotebookPage:
@@ -49,7 +51,7 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
     if not os.path.isdir(nbp_file.extract_dir):
         os.mkdir(nbp_file.extract_dir)
     # Save the earliest used coppafisher version to extract inside of the extract directory.
-    version_path = os.path.join(nbp_file.extract_dir, ".version")
+    version_path = os.path.join(nbp_file.extract_dir, VERSION_FILE_NAME)
     extract_dir_contains_images: bool = len(os.listdir(nbp_file.extract_dir)) > 1
     if os.path.isfile(version_path) and extract_dir_contains_images:
         with open(version_path, "r") as file:
@@ -105,6 +107,16 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
                 for im, c, file_path, file_exists in zip(
                     channel_images, channels, file_paths, files_exist, strict=True
                 ):
+                    # NOTE: Versions < 1.6.0 will contain unzipped DirectoryStores for the extraction images.
+                    # These need to be converted by the user.
+                    if os.path.isdir(file_path):
+                        script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), UPDATE_TILE_DIR_PATH)
+                        with open(script_path, "w") as file:
+                            update_code = file.read()
+                        raise SystemError(
+                            f"An extract image at {file_path} looks to be from coppafisher < 1.6.0. Update "
+                            + f"it by running inside of the python console:\n{update_code}"
+                        )
                     if file_exists:
                         continue
                     im = im.astype(EXTRACT_DTYPE, casting="safe")
@@ -117,8 +129,9 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
                             + f"wish to remove the affected image by setting `bad_trc = {t}, {r}, {c}, ...` in "
                             + "the basic_info config then re-run the pipeline with an empty output directory."
                         )
-                    new_zarray = zarr.open_array(file_path, **zarray_kwargs)
-                    new_zarray[:] = im
+                    with zarr.ZipStore(file_path, mode="x") as zip_store:
+                        new_zarray = zarr.open_array(zip_store, **zarray_kwargs)
+                        new_zarray[:] = im
                     del im, new_zarray
                 del channel_images
 

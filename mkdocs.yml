@@ -52,6 +52,7 @@ nav:
     - OMP: omp.md
   - Troubleshoot: troubleshoot.md
   - Glossary: glossary.md
+  - Migration: migration.md
   - Contributing: contributing.md
 
 # This part allows mathematics to be displayed LaTeX style, by using $...$ for in line or $$...$$ for multi-line.

@@ -75,7 +75,7 @@ Run integration tests (~90s)
 pytest -m integration
 ```
 
-Run unit tests requiring a notebook (~12s)
+Run unit tests requiring a notebook (~20s)
 
 ```terminal
 pytest -m notebook

@@ -31,9 +31,8 @@ class Notebook:
         "_directory",
         "_time_created",
         "_version",
-        "_prune_locations",
     )
-    _debug_page = ("debug",)
+    _debug_pages = ("debug", "debug_2")
 
     _config_path: Optional[str]
 
@@ -91,18 +90,9 @@ class Notebook:
         "debug": [
             "*debug* page for unit testing.",
         ],
-    }
-
-    _prune_locations: dict[str, tuple[str]] = {
-        "call_spots": ("gene_probabilities_initial.zarray",),
-        "register": (
-            "anchor_images.zarray",
-            "channel_images.zarray",
-            "correlation.zarray",
-            "flow_raw.zarray",
-            "round_images.zarray",
-        ),
-        "stitch": ("dapi_image.zarray",),
+        "debug_2": [
+            "*debug* page for unit testing.",
+        ],
     }
 
     def __init__(self, notebook_dir: str, config_path: Optional[str] = None, must_exist: bool = True) -> None:
@@ -142,7 +132,7 @@ class Notebook:
             raise TypeError(f"Cannot add type {type(page)} to the notebook")
         if self._config_path is None:
             raise ValueError("The notebook must have a specified config_path when instantiated to add notebook pages.")
-        if not os.path.isfile(self._config_path) and page.name not in self._debug_page:
+        if not os.path.isfile(self._config_path) and page.name not in self._debug_pages:
             raise FileNotFoundError(f"Could not add page since config at {self._config_path} was not found")
         unset_variables = page.get_unset_variables()
         if len(unset_variables) > 0:
@@ -151,7 +141,7 @@ class Notebook:
                 + f"Variable(s) unset: {', '.join(unset_variables)}"
             )
 
-        if page.name not in self._debug_page and len(self._get_modified_config_variables()) > 0:
+        if page.name not in self._debug_pages and len(self._get_modified_config_variables()) > 0:
             log.warn(
                 f"The config at {self.config_path} has modified variable(s): "
                 + ", ".join(self._get_modified_config_variables())
@@ -187,7 +177,7 @@ class Notebook:
         assert type(page_name) is str
         if not self.has_page(page_name):
             raise ValueError(f"Page name {page_name} not found")
-        page_names_after = self._get_page_names_after_page(page_name)
+        page_names_after = [] if page_name.startswith("debug") else self._get_page_names_after_page(page_name)
         if prompt and len(page_names_after) > 0:
             print(f"The notebook contains pages {', '.join(page_names_after)} that were added after page {page_name}.")
             result = input("Do you want to delete these pages too (recommended)? (y/n): ")
@@ -195,8 +185,10 @@ class Notebook:
                 for earlier_page_name in page_names_after:
                     self.delete_page(earlier_page_name, prompt=False)
         page_name_directory = self._get_page_directory(page_name)
-        shutil.rmtree(page_name_directory)
+        page: NotebookPage = self.__getattribute__(page_name)
         self.__delattr__(page_name)
+        page.close_stores()
+        shutil.rmtree(page_name_directory)
         print(f"{page_name} deleted")
 
     def resave(self) -> None:
@@ -231,41 +223,21 @@ class Notebook:
             (dict[str, str]) all_versions: each key is a page name, the value is its software version.
         """
         all_versions = {}
-        for page_name in self._get_added_page_names():
-            page: NotebookPage = self.__getattribute__(page_name)
-            all_versions[page_name] = page.version
+        for page in self._get_added_pages():
+            all_versions[page.name] = page.version
         return all_versions
 
-    def prune(self, prompt: bool = True) -> None:
+    def zip(self) -> None:
         """
-        Delete notebook page files from pages that are not used for the pipeline or Viewer. This saves disk space.
+        Zip all notebook page zarr Array/Group variables.
+
+        Does nothing if they are already zipped.
         """
-        for page_name in self._prune_locations:
-            if not self.has_page(page_name):
-                raise ValueError(f"Cannot find page {page_name} to prune")
-
-        disk_space_saved: int = 0
-        if prompt:
-            user_input = input(
-                "Note: The RegistrationViewer will no longer function. "
-                + "Re-running the pipeline, data exporting, and opening the Viewer will still work. Continue? (y/n)"
-            )
-            if user_input != "y":
-                return
-        for page_name in self._prune_locations:
-            for variable_name in self._prune_locations[page_name]:
-                variable_filepath: str = os.path.join(self._directory, page_name, variable_name)
-                if not os.path.isdir(variable_filepath):
-                    raise SystemError(f"Cannot find directory called {variable_filepath} to prune")
-
-                for filename in os.listdir(variable_filepath):
-                    if filename.startswith(".za"):
-                        continue
-                    filepath = os.path.join(variable_filepath, filename)
-                    disk_space_saved += os.path.getsize(filepath)
-                    os.remove(filepath)
-
-        print(f"Saved {disk_space_saved / 1e6} MB of disk space")
+        if all([not page.get_unzipped_variables() for page in self._get_added_pages()]):
+            print("Nothing to zip")
+            return
+        for page in self._get_added_pages():
+            page.zip(self._get_page_directory(page.name))
 
     def __setattr__(self, name: str, value: Any, /) -> None:
         """
@@ -294,6 +266,10 @@ class Notebook:
         print(f"Page name {page_name}:")
         print(f"\tVariable count: {NotebookPage(page_name).get_variable_count()}")
         print(f"\tDescription: {self._options[page_name][0]}")
+
+    def __del__(self) -> None:
+        for page in self._get_added_pages():
+            page.close_stores()
 
     def _save(self) -> None:
         """

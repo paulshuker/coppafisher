@@ -54,6 +54,11 @@ def run_filter(
     dict_io.save_dict(filter_config, config_path)
     del filter_config, last_filter_config
 
+    completed_indices_path = os.path.join(nbp_file.output_dir, "filter_completed_indices.pkl")
+    if not config_unchanged:
+        os.remove(completed_indices_path)
+    completed_indices: dict[str, list[tuple[int, int, int]]] = dict_io.try_load_dict(completed_indices_path, {"a": []})
+
     log.debug("Filter started")
 
     indices = indexing.create(
@@ -68,8 +73,10 @@ def run_filter(
     max_ind = np.array(indices).max(0).tolist()
     shape = (max_ind[0] + 1, max_ind[1] + 1, max_ind[2] + 1, nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z))
     chunks = (1, 1, 1, min(576, nbp_basic.tile_sz), min(576, nbp_basic.tile_sz), 5)
+    images_path = os.path.join(nbp_file.output_dir, "filter_images.zarr")
+    images_store = zarr.ZipStore(images_path, mode="w")
     images = zarr.open_array(
-        os.path.join(nbp_file.output_dir, "filter_images.zarr"),
+        images_store,
         "a",
         shape=shape,
         chunks=chunks,
@@ -77,17 +84,12 @@ def run_filter(
         zarr_version=2,
         dtype=FILTER_DTYPE,
     )
-    if "completed_indices" not in images.attrs:
-        images.attrs["completed_indices"] = []
-
-    if not config_unchanged:
-        # Overwriting any existing data.
-        images.attrs["completed_indices"] = []
 
     # Bad trc images are filled with zeros.
     for t, r, c in nbp_basic.bad_trc:
         images[t, r, c] = 0
-        images.attrs["completed_indices"] = images.attrs["completed_indices"] + [[t, r, c]]
+        completed_indices["a"].append((t, r, c))
+        dict_io.save_dict(completed_indices, completed_indices_path)
 
     if not os.path.isfile(nbp_file.psf):
         raise FileNotFoundError(f"Could not find the PSF at location {nbp_file.psf}")
@@ -155,7 +157,7 @@ def run_filter(
         batch_trcs: list[tuple[int, int, int]] = []
 
         for t, r, c in indices[index_min:index_max]:
-            if [t, r, c] in images.attrs["completed_indices"]:
+            if config_unchanged and (t, r, c) in completed_indices:
                 # Already saved filtered images are not re-filtered.
                 continue
 
@@ -164,7 +166,8 @@ def run_filter(
             if not raw_image_exists:
                 raise FileNotFoundError(f"Raw, extracted file at\n\t{file_path_raw}\nnot found")
 
-            image = zarr.open_array(file_path_raw, mode="r")[:]
+            with zarr.ZipStore(file_path_raw, mode="r") as raw_store:
+                image = zarr.open_array(raw_store)[:]
             image = image.astype(np.float64)
 
             if channel_radius_norm is not None and c in nbp_basic.use_channels:
@@ -192,8 +195,13 @@ def run_filter(
             # All images are deconvolved, including the DAPI.
             filtered_image = filtered_image.astype(FILTER_DTYPE)
             images[t, r, c] = filtered_image
-            images.attrs["completed_indices"] = images.attrs["completed_indices"] + [[t, r, c]]
+            completed_indices["a"].append((t, r, c))
+            dict_io.save_dict(completed_indices, completed_indices_path)
             del filtered_image
+
+    os.remove(config_path)
+    os.remove(completed_indices_path)
+    images_store.close()
 
     # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, any remaining process after the
     # use of joblib are explicitly killed.

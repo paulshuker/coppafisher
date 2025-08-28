@@ -20,6 +20,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install 7-Zip
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            choco install 7zip -y
+          elif [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get update && sudo apt-get install -y p7zip-full
+          elif [ "$RUNNER_OS" == "macOS" ]; then
+            brew install p7zip
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

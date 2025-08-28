@@ -144,7 +144,8 @@ def optical_flow_single(
         overlap: float specifying the overlap between subvolumes
         n_cores (int, optional): int specifying the number of cores to use for parallel processing. Default: CPU core
             count available.
-        loc: str specifying the location to save/ load the optical flow
+        loc (str): the location to save/load the optical flow results.
+
     Returns:
         flow: np.ndarray size [3, n_y, n_x, n_z] of the optical flow
     """
@@ -213,8 +214,10 @@ def optical_flow_single(
     # save the flow
     if loc:
         # save in yxz format
-        zarray = zarr.open_array(loc, mode="r+")
+        store = zarr.ZipStore(loc, mode="a")
+        zarray = zarr.open_array(store)
         zarray[tile, round] = flow_up
+        store.close()
     t_end = time.time()
     log.debug("Optical flow computation took " + str(t_end - t_start) + " seconds")
 
@@ -264,8 +267,10 @@ def flow_correlation(
     # save the correlation
     if loc:
         # save in yxz format
-        zarray = zarr.open_array(loc, mode="r+")
+        store = zarr.ZipStore(loc, mode="a")
+        zarray = zarr.open_array(store)
         zarray[tile, round] = correlation_upsampled
+        store.close()
     t_end = time.time()
     log.debug("Computing correlation took " + str(t_end - t_start) + " seconds")
     return correlation, correlation_upsampled
@@ -366,8 +371,10 @@ def interpolate_flow(
     # save the flow
     if loc:
         # save in yxz format
-        zarray = zarr.open_array(loc, mode="r+")
+        store = zarr.ZipStore(loc, mode="a")
+        zarray = zarr.open_array(store)
         zarray[tile, round] = flow_smooth
+        store.close()
     time_end = time.time()
     log.debug("Interpolating flow took " + str(time_end - time_start) + " seconds")
     return flow_smooth

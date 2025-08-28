@@ -56,10 +56,13 @@ def find_spots(
         fill_value=INVALID_AUTO_THRESH,
         dtype=np.float32,
     )
+    completed_indices_path = os.path.join(nbp_file.output_dir, "find_spots_completed_indices.pkl")
+    if not config_unchanged:
+        os.remove(completed_indices_path)
+    completed_indices: dict[str, list[tuple[int, int, int]]] = dict_io.try_load_dict(completed_indices_path, {"a": []})
     group_path = os.path.join(nbp_file.output_dir, "spot_yxz.zgroup")
-    spot_yxz = zarr.group(store=group_path, overwrite=True, zarr_version=2)
-    if "completed_indices" not in spot_yxz.attrs:
-        spot_yxz.attrs["completed_indices"] = []
+    group_store = zarr.ZipStore(group_path)
+    spot_yxz = zarr.group(group_store, overwrite=not config_unchanged, zarr_version=2)
     spot_no = np.zeros(
         (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.n_extra_rounds, nbp_basic.n_channels), dtype=np.int32
     )
@@ -74,7 +77,7 @@ def find_spots(
         include_anchor_channel=True,
         include_bad_trc=True,
     ):
-        if config_unchanged and [t, r, c] in spot_yxz.attrs["completed_indices"]:
+        if config_unchanged and (t, r, c) in completed_indices["a"]:
             n_skipped_images += 1
             continue
         use_indices[t, r, c] = True
@@ -112,9 +115,14 @@ def find_spots(
         trc_yxz = spot_yxz.zeros(f"t{t}r{r}c{c}", chunks=local_yxz.size == 0, shape=local_yxz.shape, dtype=np.int16)
         trc_yxz[:] = local_yxz
         del local_yxz, spot_intensity, trc_yxz
-        spot_yxz.attrs["completed_indices"] = spot_yxz.attrs["completed_indices"] + [[t, r, c]]
+        completed_indices["a"].append((t, r, c))
+        dict_io.save_dict(completed_indices, completed_indices_path)
         pbar.update()
     pbar.close()
+
+    os.remove(config_path)
+    os.remove(completed_indices_path)
+    group_store.close()
 
     # Phase 2: Save results to notebook page.
     nbp.auto_thresh = auto_thresh
