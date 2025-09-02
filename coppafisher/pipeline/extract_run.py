@@ -16,7 +16,7 @@ from ..utils import indexing, system, zarray
 
 EXTRACT_DTYPE = np.uint16
 VERSION_FILE_NAME = ".version"
-UPDATE_TILE_DIR_PATH = "docs/update_tile_dir.py"
+UPDATE_TILE_DIR_PATH = ["docs", "update_tile_dir.py"]
 
 
 def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: NotebookPage) -> NotebookPage:
@@ -110,8 +110,8 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
                     # NOTE: Versions < 1.6.0 will contain unzipped DirectoryStores for the extraction images.
                     # These need to be converted by the user.
                     if os.path.isdir(file_path):
-                        script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), UPDATE_TILE_DIR_PATH)
-                        with open(script_path, "w") as file:
+                        script_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), *UPDATE_TILE_DIR_PATH)
+                        with open(script_path, "r") as file:
                             update_code = file.read()
                         raise SystemError(
                             f"An extract image at {file_path} looks to be from coppafisher < 1.6.0. Update "
