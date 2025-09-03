@@ -15,3 +15,5 @@ The notebook from versions <= 1.5.0 will open as normal. The data can be zipped 
 ```python
 --8<-- "zip_nb.py"
 ```
+
+You may be prompted to install the 7-zip CLI if it is not found.
