@@ -1,3 +1,7 @@
+2025/09/03 Version 1.6 Patch (v1.6.1):
+ * General: Zipping the notebook or extraction tiles between different filesystems causes corruption fix.
+
+
 2025/09/03 Version 1.6 (v1.6.0):
  * General: Missing dependencies tabulate and plyer fix.
  * General: The notebook now saves variables as zip files.
