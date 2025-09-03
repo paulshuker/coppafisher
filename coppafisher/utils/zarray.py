@@ -47,6 +47,16 @@ def convert_group_to_zip_store(group_path: str) -> None:
 
     temp_dir = tempfile.TemporaryDirectory("coppafisher")
 
+    # Ensure that files can move between the temporary directory and the destination before continuing.
+    temp_test_path = os.path.join(temp_dir.name, "test_move.zip")
+    temp_test_destination = os.path.join(os.path.dirname(group_path), "test_move.zip")
+    with open(temp_test_path, "wb"):
+        pass
+    assert os.path.exists(temp_test_path)
+    shutil.move(temp_test_path, temp_test_destination)
+    assert os.path.exists(temp_test_destination)
+    os.remove(temp_test_destination)
+
     store = zarr.DirectoryStore(group_path)
     group = zarr.open_group(store, "r", zarr_version=2)
 
@@ -57,7 +67,7 @@ def convert_group_to_zip_store(group_path: str) -> None:
     temp_store.close()
 
     shutil.rmtree(group_path)
-    os.rename(temp_path, group_path)
+    shutil.move(temp_path, group_path)
 
     temp_dir.cleanup()
 
@@ -86,10 +96,21 @@ def convert_array_to_zip_store(array_path: str) -> None:
         raise SystemError(msg)
 
     temp_dir = tempfile.TemporaryDirectory("coppafisher_zarray")
+
+    # Ensure that files can move between the temporary directory and the destination before continuing.
+    temp_test_path = os.path.join(temp_dir.name, "test_move.zip")
+    temp_test_destination = os.path.join(os.path.dirname(array_path), "test_move.zip")
+    with open(temp_test_path, "wb"):
+        pass
+    assert os.path.exists(temp_test_path)
+    shutil.move(temp_test_path, temp_test_destination)
+    assert os.path.exists(temp_test_destination)
+    os.remove(temp_test_destination)
+
     temp_path = os.path.join(temp_dir.name, "temp_zarr_copy.zip")
     subprocess.run(["7z", "a", "-tzip", temp_path, os.path.join(array_path, ".")], capture_output=True, check=True)
     if not os.path.isfile(temp_path):
         raise FileNotFoundError(f"Failed to zip to file position {temp_path}, file was not found")
     shutil.rmtree(array_path)
-    os.rename(temp_path, array_path)
+    shutil.move(temp_path, array_path)
     temp_dir.cleanup()
