@@ -53,24 +53,7 @@ The metadata file required for [numpy](#numpy) and [tif](#tif) input formats. It
 the raw input files. This can be done using Python:
 
 ```python
-import json
-
-metadata = {
-    "n_tiles": n_tiles,
-    "n_rounds": n_rounds,
-    "n_channels": n_total_channels,
-    "tile_sz": n_y, # or n_x
-    "pixel_size_xy": pixel_size_xy,
-    "pixel_size_z": pixel_size_z,
-    "tile_centre": [n_y / 2, n_y / 2, n_z / 2],
-    "tilepos_yx": tile_origins_yx,
-    "tilepos_yx_nd2": list(reversed(tile_origins_yx)),
-    "channel_camera": [1] * n_total_channels,
-    "channel_laser": [1] * n_total_channels,
-}
-file_path = os.path.join(raw_path, "metadata.json")
-with open(file_path, "w") as f:
-    json.dump(metadata, f, indent=4)
+--8<-- "create_metadata.py"
 ```
 
 `n_tiles` must be the total number of tiles inside of the raw inputted files (even if you only plan on selecting a

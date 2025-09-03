@@ -1,5 +1,6 @@
 import json
 import os
+from collections import Counter
 
 import numpy as np
 
@@ -131,6 +132,15 @@ def set_basic_info(config: Config) -> NotebookPage:
         use_z = np.arange(metadata["nz"]).tolist()
         use_z.sort()
         nbp.use_z = tuple(use_z)
+
+    counts = Counter(nbp.use_z)
+    for z_plane, count in counts.items():
+        if count > 1:
+            raise ValueError(f"Got {z_plane=} {count} times in [basic_info] use_z, expected only once")
+
+    if len(nbp.use_z) == 2:
+        use_z = sorted(nbp.use_z)
+        nbp.use_z = list(range(use_z[0], use_z[1] + 1, 1))
 
     # This has not been assigned yet but now we can be sure that use_z not None!
     nbp.nz = len(nbp.use_z)

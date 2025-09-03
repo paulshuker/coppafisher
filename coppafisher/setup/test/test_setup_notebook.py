@@ -15,35 +15,6 @@ from coppafisher.utils import system
 def test_Notebook() -> None:
     rng = np.random.RandomState(0)
 
-    nb_temp_dir = tempfile.TemporaryDirectory("coppafisher_nb")
-    nb_path = os.path.join(nb_temp_dir.name, ".notebook_test")
-    if os.path.isdir(nb_path):
-        shutil.rmtree(nb_path)
-    config_path = os.path.abspath("dslkhgdsjlgh")
-    nb = Notebook(nb_path, config_path, must_exist=False)
-    assert len(nb.get_all_versions()) == 0
-
-    assert not nb.has_page("debug")
-    assert nb.config_path == config_path
-
-    nb_page: NotebookPage = NotebookPage("debug")
-
-    a = 5
-    b = 5.0
-    c = True
-    d = (4, 5, 6, 7)
-    e = ((0.4, 5.0), (2.0, 1.0, 4.5), tuple())
-    f = 3.0
-    g = None
-    h = 4.3
-    i = "Hello, World"
-    j = rng.rand(3, 10).astype(dtype=np.float16)
-    k = rng.randint(2000, size=10, dtype=np.int64)
-    l = rng.randint(2, size=(3, 4, 6), dtype=bool)
-    m = np.zeros(3, dtype=str)
-    m[0] = "blah"
-    n = rng.randint(200, size=(7, 8), dtype=np.uint32)
-
     def _check_variables(nb: Notebook):
         assert nb.has_page("debug")
         assert np.allclose(nb.debug.a, a)
@@ -72,6 +43,67 @@ def test_Notebook() -> None:
         assert type(nb.debug.p["subgroup"]) is zarr.Group
         assert type(nb.debug.p["subarray.zarr"]) is zarr.Array
         assert nb.debug.p["subarray.zarr"].shape == (10, 5)
+        zip_path = os.path.abspath(nb.debug.q.store.path)
+        assert os.path.isfile(zip_path)
+        assert type(nb.debug.q["subgroup"]) is zarr.Group
+        assert type(nb.debug.q["subarray.zarr"]) is zarr.Array
+        assert nb.debug.q["subarray.zarr"].shape == (9, 4)
+        ziparray_path = os.path.abspath(nb.debug.r.store.path)
+        assert os.path.isfile(ziparray_path)
+        assert PurePath(nb_path) in PurePath(ziparray_path).parents
+        assert nb.debug.r.shape == (3, 10)
+        assert np.allclose(nb.debug.r[:], 0.8)
+
+    nb_temp_dir = tempfile.TemporaryDirectory("coppafisher_nb")
+    nb_path = os.path.join(nb_temp_dir.name, ".notebook_test")
+    if os.path.isdir(nb_path):
+        shutil.rmtree(nb_path)
+    config_dir = tempfile.TemporaryDirectory("coppafisher")
+    config_path = os.path.join(config_dir.name, "config.ini")
+    nb = Notebook(nb_path, config_path, must_exist=False)
+    assert len(nb.get_all_versions()) == 0
+
+    assert not nb.has_page("debug")
+    assert nb.config_path == config_path
+
+    nb_page: NotebookPage = NotebookPage("debug")
+    nb_page._options["debug"] = {
+        "a": ["int"],
+        "b": ["float"],
+        "c": ["bool"],
+        "d": ["tuple[int]"],
+        "e": ["tuple[tuple[float]]"],
+        "f": ["int or float"],
+        "g": ["none"],
+        "h": ["float or none"],
+        "i": ["str"],
+        "j": ["ndarray[float]"],
+        "k": ["ndarray[int]"],
+        "l": ["ndarray[bool]"],
+        "m": ["ndarray[str]"],
+        "n": ["ndarray[uint]"],
+        "o": ["zarray[float]"],
+        "p": ["zgroup"],
+        "q": ["zipgroup"],
+        "r": ["ziparray[float]"],
+    }
+    nb_page._sanity_check_options()
+
+    a = 5
+    b = 5.0
+    c = True
+    d = (4, 5, 6, 7)
+    e = ((0.4, 5.0), (2.0, 1.0, 4.5), tuple())
+    f = 3.0
+    g = None
+    h = 4.3
+    i = "Hello, World"
+    j = rng.rand(3, 10).astype(dtype=np.float16)
+    k = rng.randint(2000, size=10, dtype=np.int64)
+    l = rng.randint(2, size=(3, 4, 6), dtype=bool)
+    m = np.zeros(3, dtype=str)
+    m[0] = "blah"
+    n = rng.randint(200, size=(7, 8), dtype=np.uint32)
 
     nb_page.a = a
     try:
@@ -150,12 +182,11 @@ def test_Notebook() -> None:
     )
     zarr_array_temp[:] = array_saved.copy()
 
-    assert nb_page.get_unset_variables() == ("o", "p")
+    assert nb_page.get_unset_variables() == ("o", "p", "q", "r")
 
     nb_page.o = zarr_array_temp
-    del zarr_array_temp
 
-    assert len(nb_page.get_unset_variables()) == 1
+    assert len(nb_page.get_unset_variables()) == 3
     assert nb_page.name == "debug"
 
     try:
@@ -169,6 +200,35 @@ def test_Notebook() -> None:
     group.create_dataset("subarray.zarr", shape=(10, 5), dtype=np.int16)
     group.create_group("subgroup")
     nb_page.p = group
+
+    assert len(nb_page.get_unset_variables()) == 2
+
+    temp_zipstore_dir = tempfile.TemporaryDirectory()
+    store = zarr.ZipStore(os.path.join(temp_zipstore_dir.name, "q.zip"), mode="x")
+    zip_group = zarr.group(store, zarr_version=2)
+    zip_group.create_dataset("subarray.zarr", shape=(9, 4), dtype=np.int16)
+    zip_group.create_group("subgroup")
+    store.close()
+
+    try:
+        nb_page.p = zip_group
+        raise AssertionError("Expected PageTypeError when ZipStore is assigned to DirectoryStore group.")
+    except PageTypeError:
+        pass
+
+    nb_page.q = zip_group
+
+    temp_ziparray_dir = tempfile.TemporaryDirectory()
+    store = zarr.ZipStore(os.path.join(temp_ziparray_dir.name, "r.ziparray"), mode="x")
+    zip_array = zarr.open_array(store, shape=(3, 10), dtype=np.float16, zarr_version=2)
+    zip_array[:] = 0.8
+    store.close()
+
+    assert nb_page.get_unset_variables() == ("r",)
+
+    nb_page.r = zip_array
+
+    assert not nb_page.get_unset_variables()
 
     nb += nb_page
 
@@ -202,14 +262,7 @@ def test_Notebook() -> None:
     nb = Notebook(nb_path, must_exist=True)
     _check_variables(nb)
 
-    nb._prune_locations = {"debug": ("o.zarray",)}
     _check_variables(nb)
-    nb.prune(prompt=False)
-    try:
-        _check_variables(nb)
-        AssertionError("Excepted prune to cause an error when checking variable o")
-    except AssertionError:
-        pass
 
     # Check that the resave function can safely remove pages.
     del nb.debug
@@ -222,6 +275,111 @@ def test_Notebook() -> None:
     assert not os.path.exists(os.path.join(nb_path, "debug"))
 
     # Clean any temporary files/directories.
+    config_dir.cleanup()
     nb_temp_dir.cleanup()
     temp_zarr.cleanup()
     temp_zgroup.cleanup()
+
+
+def test_Notebook_zipstores() -> None:
+    """
+    Check that the notebook pages are able to load in variables that are non-zipstore (for backwards compatibility with
+    versions <= 1.5.0). Then ensure that the variables can be zipped using the nb.zip() function.
+    """
+    rng = np.random.RandomState(0)
+
+    config_dir = tempfile.TemporaryDirectory("coppafisher")
+    config_path = os.path.join(config_dir.name, "config.ini")
+    with open(config_path, "w") as file:
+        file.write("")
+    nb_dir = tempfile.TemporaryDirectory("coppafisher")
+    nb_path = os.path.join(nb_dir.name, "notebook_debug_2")
+
+    nb = Notebook(nb_path, config_path, must_exist=False)
+    del nb
+
+    nb_page = NotebookPage("debug_2")
+    nb_page._options["debug_2"] = {
+        "a": ["zgroup"],
+        "b": ["zarray[float16]"],
+        "c": ["zarray[int]"],
+    }
+    nb_page._sanity_check_options()
+    page_dir = os.path.join(nb_dir.name, "debug_2")
+
+    # Add non zipstores to the variable positions, which will be tested to check for backwards compatibility.
+    os.mkdir(page_dir)
+    nb_page._save_metadata(nb_page._get_metadata_path(page_dir))
+
+    a_data = rng.rand(2, 3)
+    a_path = os.path.join(page_dir, "a.zgroup")
+    a = zarr.open_group(a_path, "w-")
+    a.create_group("foo")
+    a["foo"].zeros("bar", shape=a_data.shape)
+    a["foo"]["bar"][:] = a_data
+    a.store.close()
+
+    b_data = (10 * rng.rand(4, 5)).astype(np.float16)
+    b_path = os.path.join(page_dir, "b.zarray")
+    b = zarr.open_array(b_path, "w-", shape=b_data.shape, dtype=b_data.dtype)
+    b[:] = b_data
+    b.store.close()
+
+    c_data = (10 * rng.rand(4, 5)).astype(np.int32)
+    c_path = os.path.join(page_dir, "c.zarray")
+    c = zarr.open_array(c_path, "w-", shape=c_data.shape, dtype=c_data.dtype)
+    c[:] = c_data
+    c.store.close()
+
+    def check_variables(nbp: NotebookPage) -> None:
+        assert np.allclose(nbp.a["foo/bar"][:], a_data)
+        assert np.allclose(nbp.b[:], b_data)
+        assert np.allclose(nbp.c[:], c_data)
+
+    nb_page._options["debug_2"] = {
+        "a": ["zgroup"],
+        "b": ["zarray[float16]"],
+        "c": ["zarray[int]"],
+    }
+    nb_page._sanity_check_options()
+
+    nb_page.load(page_dir)
+    check_variables(nb_page)
+
+    nb = Notebook(nb_path, config_path)
+    nb += nb_page
+
+    check_variables(nb.debug_2)
+
+    nb.debug_2._options["debug_2"] = {
+        "a": ["zipgroup"],
+        "b": ["ziparray[float16]"],
+        "c": ["ziparray[int]"],
+    }
+    check_variables(nb.debug_2)
+
+    nb = Notebook(nb_path)
+
+    assert "a" in nb.debug_2.get_unzipped_variables()
+    assert "b" in nb.debug_2.get_unzipped_variables()
+    assert "c" in nb.debug_2.get_unzipped_variables()
+
+    check_variables(nb.debug_2)
+    nb.zip()
+    check_variables(nb.debug_2)
+
+    assert not nb.debug_2.get_unzipped_variables()
+
+    del nb
+
+    nb = Notebook(nb_path)
+    check_variables(nb.debug_2)
+
+    nb.delete_page("debug_2")
+    assert not nb.has_page("debug")
+    assert not nb.has_page("debug_2")
+
+    del nb
+
+    config_dir.cleanup()
+    nb_dir.cleanup()

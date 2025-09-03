@@ -111,9 +111,10 @@ def call_reference_spots(
     while pixel_chunk_size * 4 > MAX_BUFFER_SIZE_BYTES:
         pixel_chunk_size = maths.ceil(pixel_chunk_size / 2)
     kwargs = dict(zarr_version=2, overwrite=True)
+    gene_prob_initial_store = zarr.ZipStore(os.path.join(nbp_file.output_dir, "gene_prob_init.zarray"), mode="w")
     gene_prob_initial = zarr.array(
         gene_prob_initial,
-        store=os.path.join(nbp_file.output_dir, "gene_prob_init.zarray"),
+        store=gene_prob_initial_store,
         chunks=(pixel_chunk_size, 1),
         **kwargs,
     )
@@ -187,9 +188,8 @@ def call_reference_spots(
     spot_colours *= tile_scale[spot_tile, :, :]  # update the spot colours
     gene_prob = gene_prob_score(spot_colours=spot_colours, bled_codes=bled_codes, kappa=config["kappa"])  # update probs
     prob_mode, prob_score = np.argmax(gene_prob, axis=1), np.max(gene_prob, axis=1)
-    gene_prob = zarr.array(
-        gene_prob, store=os.path.join(nbp_file.output_dir, "gene_prob.zarray"), chunks=(pixel_chunk_size, 1), **kwargs
-    )
+    gene_prob_store = zarr.ZipStore(os.path.join(nbp_file.output_dir, "gene_prob.zarray"), mode="w")
+    gene_prob = zarr.array(gene_prob, store=gene_prob_store, chunks=(pixel_chunk_size, 1), **kwargs)
     # Computing all dot product scores at once can take too much memory.
     gene_dot_products = np.zeros((n_spots, n_genes), np.float16)
     n_max_score_pixels = 8.7e-2 * system.get_available_memory() * 1e9 / (n_genes * n_rounds * n_channels_use)
@@ -205,12 +205,10 @@ def call_reference_spots(
         gene_dot_products[index_min:index_max] = batch_scores
         del batch_scores
     dp_gene, dp_score = np.argmax(gene_dot_products, axis=1).astype(np.int16), np.max(gene_dot_products, axis=1)
-    dp_gene = zarr.array(
-        dp_gene, store=os.path.join(nbp_file.output_dir, "dp_mode.zarray"), chunks=pixel_chunk_size, **kwargs
-    )
-    dp_score = zarr.array(
-        dp_score, store=os.path.join(nbp_file.output_dir, "dp_score.zarray"), chunks=pixel_chunk_size, **kwargs
-    )
+    dp_gene_store = zarr.ZipStore(os.path.join(nbp_file.output_dir, "dp_mode.zarray"), mode="w")
+    dp_gene = zarr.array(dp_gene, store=dp_gene_store, chunks=pixel_chunk_size, **kwargs)
+    dp_score_store = zarr.ZipStore(os.path.join(nbp_file.output_dir, "dp_score.zarray"), mode="w")
+    dp_score = zarr.array(dp_score, store=dp_score_store, chunks=pixel_chunk_size, **kwargs)
     # Update bleed matrix.
     good = (prob_score > prob_threshold) & (spot_intensities > intensity_threshold)
     bleed_matrix = compute_bleed_matrix(spot_colours[good], prob_mode[good], gene_codes, n_dyes)
@@ -220,12 +218,17 @@ def call_reference_spots(
     intensity = intensity.numpy()
 
     # 8. Save the results.
-    nbp.intensity = zarr.array(
-        intensity, store=os.path.join(nbp_file.output_dir, "intensity.zarray"), chunks=pixel_chunk_size, **kwargs
-    )
-    nbp.dot_product_gene_no, nbp.dot_product_gene_score = dp_gene, dp_score
+    intensity_store = zarr.ZipStore(os.path.join(nbp_file.output_dir, "intensity.zarray"), mode="w")
+    nbp.intensity = zarr.array(intensity, store=intensity_store, chunks=pixel_chunk_size, **kwargs)
+    intensity_store.close()
+    nbp.dot_product_gene_no = dp_gene
+    dp_gene_store.close()
+    nbp.dot_product_gene_score = dp_score
+    dp_score_store.close()
     nbp.gene_probabilities_initial = gene_prob_initial
+    gene_prob_initial_store.close()
     nbp.gene_probabilities = gene_prob
+    gene_prob_store.close()
     nbp.gene_names, nbp.gene_codes = gene_names, gene_codes
     nbp.initial_scale, nbp.rc_scale, nbp.tile_scale = colour_norm_factor_initial, rc_scale, tile_scale
     nbp.colour_norm_factor = colour_norm_factor

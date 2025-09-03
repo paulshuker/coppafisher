@@ -27,7 +27,14 @@ def export_pciseq_unfiltered_dapi_image(nb: Notebook, config_file_path: str) -> 
         nbp_file.tile_unfiltered[t][nb.basic_info.anchor_round][nb.basic_info.dapi_channel]
         for t in nb.basic_info.use_tiles
     ]
-    dapi_images = [zarr.open_array(path, "r")[:] for path in dapi_image_paths]
+    dapi_images = []
+    for dapi_path in dapi_image_paths:
+        try:
+            with zarr.ZipStore(dapi_path, mode="r") as dapi_store:
+                dapi_images.append(zarr.open_array(dapi_store)[:])
+        except (IsADirectoryError, PermissionError):
+            dapi_images.append(zarr.open_array(dapi_path, "r")[:])
+
     fused_image = background.generate_global_image(
         dapi_images, nb.basic_info.use_tiles, nb.basic_info, nb.stitch, dapi_images[0].dtype, silent=False
     )

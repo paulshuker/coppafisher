@@ -236,8 +236,10 @@ def fuse_tiles(
         )
 
     # save the fused image
-    zarray = zarr.open_array(store=save_path, mode="w", shape=large_image.shape, dtype=large_image.dtype)
+    store = zarr.ZipStore(save_path, mode="w")
+    zarray = zarr.open_array(store, shape=large_image.shape, dtype=large_image.dtype)
     zarray[:] = large_image
+    store.close()
 
     return large_image
 

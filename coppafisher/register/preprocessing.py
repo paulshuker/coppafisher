@@ -224,21 +224,24 @@ def generate_reg_images(
     yxz_coords = np.array(yxz_coords).reshape((3, -1)).T
     image_shape = tuple([yxz_max[i] - yxz_min[i] for i in range(3)])
 
-    # initialise zarr arrays to store the images
+    # Initialise zarr arrays to store the images.
+    anchor_images_store = zarr.ZipStore(os.path.join(nbp_file.output_dir, "anchor_reg_images.zarr"))
     anchor_images = zarr.open_array(
-        os.path.join(nbp_file.output_dir, "anchor_reg_images.zarr"),
+        anchor_images_store,
         dtype=np.uint8,
         shape=(max(use_tiles) + 1, 2) + image_shape,
         chunks=(1, 1) + image_shape,
     )
+    round_images_store = zarr.ZipStore(os.path.join(nbp_file.output_dir, "round_reg_images.zarr"))
     round_images = zarr.open_array(
-        os.path.join(nbp_file.output_dir, "round_reg_images.zarr"),
+        round_images_store,
         dtype=np.uint8,
         shape=(max(use_tiles) + 1, max(use_rounds) + 1, 3) + image_shape,
         chunks=(1, 1, 1) + image_shape,
     )
+    channel_images_store = zarr.ZipStore(os.path.join(nbp_file.output_dir, "channel_reg_images.zarr"))
     channel_images = zarr.open_array(
-        os.path.join(nbp_file.output_dir, "channel_reg_images.zarr"),
+        channel_images_store,
         dtype=np.uint8,
         shape=(max(use_tiles) + 1, max(use_channels) + 1, 3) + image_shape,
         chunks=(1, 1, 1) + image_shape,
@@ -252,6 +255,7 @@ def generate_reg_images(
         im = fill_to_uint8(im)
         sub_index = 0 if c == dapi_channel else 1
         anchor_images[t, sub_index] = im
+    anchor_images_store.close()
     nbp_register.anchor_images = anchor_images
 
     # get the round images, apply optical flow, optical flow + icp, concatenate and save
@@ -292,6 +296,7 @@ def generate_reg_images(
             im_tr_concat = np.concatenate([im_tr[None], im_t_flow[r], im_t_flow_icp[r]], axis=0)
             im_tr_concat = fill_to_uint8(im_tr_concat)
             round_images[t, r] = im_tr_concat
+    round_images_store.close()
     nbp_register.round_images = round_images
 
     # get the channel images, save, apply optical flow + channel transform initial, save, apply icp, save
@@ -343,6 +348,7 @@ def generate_reg_images(
             im_tc_concat = np.concatenate([im_tc[None], im_t_flow[:, i], im_t_flow_icp[:, i]], axis=0)
             im_tc_concat = fill_to_uint8(im_tc_concat)
             channel_images[t, c] = im_tc_concat
+    channel_images_store.close()
     nbp_register.channel_images = channel_images
 
 

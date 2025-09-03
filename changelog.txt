@@ -1,3 +1,13 @@
+2025/09/03 Version 1.6 (v1.6.0):
+ * General: Missing dependencies tabulate and plyer fix.
+ * General: The notebook now saves variables as zip files.
+ * General: Version < 1.6.0 notebooks can be zipped using the nb.zip function.
+ * General: Notebook prune function is removed.
+ * General: Missing dependencies tabulate and plyer fix.
+ * Extract: Version 1.6.0 migration guide for extracted tiles added.
+ * Extract: Missing tif input file reader fix.
+
+
 2025/08/08 Version 1.5 (v1.5.0):
  * Export: Custom image tile radius/channel normalisation for dapi option added.
  * Filter: Tile radius/channel normalisation on dapi channel option added.
