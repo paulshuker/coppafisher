@@ -1,3 +1,7 @@
+2025/09/08 Version 1.7 (v1.7.0):
+ * Stitch: Removed unused dapi image generation in pipeline.
+
+
 2025/09/03 Version 1.6 Patch (v1.6.1):
  * General: Zipping the notebook or extraction tiles between different filesystems causes corruption fix.
 
