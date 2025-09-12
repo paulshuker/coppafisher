@@ -232,6 +232,12 @@ def test_Notebook() -> None:
 
     nb += nb_page
 
+    assert nb.has_page("debug")
+    assert nb.has_pages(["debug"])
+    assert not nb.has_pages(["debug", "debug_2"])
+    assert not nb.has_pages(["debug", "filter"])
+    assert not nb.has_pages(["filter", "debug"])
+
     try:
         nb.fake_variable = 4
         raise AssertionError("Should not be able to add integer variables to the notebook")
