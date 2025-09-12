@@ -109,13 +109,15 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
                 html.Div(
                     [
                         html.Label("Z Plane", style=label_style),
-                        dcc.Slider(0, MAX_Z_PLANE - 1, 1, id="z-plane-slider", value=default_z_plane, marks={0: "0",
-                                                                                                             MAX_Z_PLANE
-                                                                                                             - 1:
-                                                                                                             str(MAX_Z_PLANE
-                                                                                                                 - 1)},
+                        dcc.Slider(
+                            0,
+                            MAX_Z_PLANE - 1,
+                            1,
+                            id="z-plane-slider",
+                            value=default_z_plane,
+                            marks={0: "0", MAX_Z_PLANE - 1: str(MAX_Z_PLANE - 1)},
                             tooltip={"placement": "bottom", "always_visible": True},
-                                   ),
+                        ),
                     ],
                     style=dict(width="10vw"),
                 ),
@@ -150,27 +152,39 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
                 html.Div(
                     [
                         html.Label("Radius XY", style=label_style),
-                        dcc.Slider(1, max_radius_xy, id="radius-xy-slider", value=default_radius_xy,
+                        dcc.Slider(
+                            1,
+                            max_radius_xy,
+                            id="radius-xy-slider",
+                            value=default_radius_xy,
                             tooltip={"placement": "bottom", "always_visible": True},
-                                   ),
+                        ),
                     ],
                     style=dict(width="15vw"),
                 ),
                 html.Div(
                     [
                         html.Label("Radius Z", style=label_style),
-                        dcc.Slider(1, max_radius_z, id="radius-z-slider", value=default_radius_z,
+                        dcc.Slider(
+                            1,
+                            max_radius_z,
+                            id="radius-z-slider",
+                            value=default_radius_z,
                             tooltip={"placement": "bottom", "always_visible": True},
-                                   ),
+                        ),
                     ],
                     style=dict(width="15vw"),
                 ),
                 html.Div(
                     [
                         html.Label("Marker Size", style=label_style),
-                        dcc.Slider(1, 30, id="marker-size-slider", value=6,
-                            tooltip={"placement": "bottom", "always_visible": True}
-                                   ),
+                        dcc.Slider(
+                            1,
+                            30,
+                            id="marker-size-slider",
+                            value=6,
+                            tooltip={"placement": "bottom", "always_visible": True},
+                        ),
                     ],
                     style=dict(width="15vw"),
                 ),
