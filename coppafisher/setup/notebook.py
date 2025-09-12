@@ -2,7 +2,7 @@ import json
 import os
 import shutil
 import time
-from typing import Any, Optional, Tuple
+from typing import Any, Iterable, Optional, Tuple
 
 import numpy as np
 
@@ -150,6 +150,21 @@ class Notebook:
         self.__setattr__(page.name, page)
         self._save()
         return self
+
+    def has_pages(self, page_names: Iterable[str]) -> bool:
+        """Does the notebook contain all the given pages.
+
+        Args:
+            page_names (iterable of str): page names to check for.
+
+        Returns:
+            (bool): has_pages. Whether all the given page names are inside the notebook.
+        """
+        for page_name in page_names:
+            if not self.has_page(page_name):
+                return False
+
+        return True
 
     def has_page(self, page_name: str) -> bool:
         assert type(page_name) is str
