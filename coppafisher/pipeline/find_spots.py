@@ -57,7 +57,7 @@ def find_spots(
         dtype=np.float32,
     )
     completed_indices_path = os.path.join(nbp_file.output_dir, "find_spots_completed_indices.pkl")
-    if not config_unchanged:
+    if not config_unchanged and os.path.isfile(completed_indices_path):
         os.remove(completed_indices_path)
     completed_indices: dict[str, list[tuple[int, int, int]]] = dict_io.try_load_dict(completed_indices_path, {"a": []})
     group_path = os.path.join(nbp_file.output_dir, "spot_yxz.zgroup")
@@ -108,6 +108,7 @@ def find_spots(
             radius_xy=config["radius_xy"],
             radius_z=config["radius_z"],
         )
+        del image_trc
 
         spot_no[t, r, c] = local_yxz.shape[0]
         log.debug(f"Found {spot_no[t, r, c]} spots on {t=}, {r=}, {c=}")
