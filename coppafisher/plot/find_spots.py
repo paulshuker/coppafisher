@@ -279,6 +279,7 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
             # Must recompute find spots threshold.
             image = filter_images[tile, round, channel, ..., central_z].astype(np.float32)
             auto_thresholds[tile, round, channel] = np.percentile(np.abs(image), auto_thresh_percentile)
+            auto_thresholds[tile, round, channel] *= default_auto_thresh_multiplier
             prev_auto_thresh_percentiles[tile, round, channel] = auto_thresh_percentile
 
         current_auto_thresh = (
