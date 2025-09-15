@@ -17,7 +17,7 @@ def test_detect_spots() -> None:
     assert maxima_intensity.shape == (1,), f"Got shape {maxima_intensity.shape}"
     assert maxima_intensity[0] == 1
     maxima_yxz, maxima_intensity = detect.detect_spots(
-        image, intensity_thresh, remove_duplicates=True, radius_xy=1, radius_z=1
+        [image], intensity_thresh, remove_duplicates=True, radius_xy=1, radius_z=1
     )
     assert type(maxima_yxz) is np.ndarray
     assert maxima_yxz.shape == (1, 3)
@@ -38,7 +38,7 @@ def test_detect_spots() -> None:
     assert maxima_intensity[1] == 2
     assert maxima_intensity[2] == 2
     maxima_yxz, maxima_intensity = detect.detect_spots(
-        image, intensity_thresh, remove_duplicates=True, radius_z=1, radius_xy=2
+        [image], intensity_thresh, remove_duplicates=True, radius_z=1, radius_xy=2
     )
     assert maxima_yxz.shape == (3, 3)
     assert (maxima_yxz[0] == 0).all()

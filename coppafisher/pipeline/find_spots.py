@@ -101,6 +101,7 @@ def find_spots(
         if np.isclose(auto_thresh[t, r, c], 0):
             raise ValueError(f"Find spots auto threshold is zero. Percentile {auto_thresh_percentile} might be too low")
 
+        image_trc = [image_trc]
         local_yxz, spot_intensity = detect.detect_spots(
             image_trc,
             auto_thresh[t, r, c].item(),
