@@ -15,6 +15,9 @@
  * General: Missing dependencies tabulate and plyer fix.
  * Extract: Version 1.6.0 migration guide for extracted tiles added.
  * Extract: Missing tif input file reader fix.
+ * Filter: Improved Point Spread Function for better image filtering.
+ * Find spots: FileNotFoundError when re-running fix.
+ * Find spots: Reduced memory usage.
 
 
 2025/08/08 Version 1.5 (v1.5.0):
