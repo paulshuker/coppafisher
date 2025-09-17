@@ -1,5 +1,6 @@
 2025/MM/DD Version 1.7 (v1.7.0):
  * Diagnostics: Find spots viewer percentile slider added.
+ * Find spots: Reduced memory usage.
  * Stitch: Removed unused dapi image generation in pipeline.
 
 
