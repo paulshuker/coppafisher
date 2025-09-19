@@ -46,14 +46,9 @@ def find_spots(
     del find_spots_config, last_find_spots_config
 
     # Phase 0: Initialisation.
-    auto_thresh_multiplier = config["auto_thresh_multiplier"]
-    auto_thresh_percentile = config["auto_thresh_percentile"]
-    if auto_thresh_multiplier <= 0:
-        raise ValueError("The auto_thresh_multiplier in 'find_spots' config must be positive")
-    INVALID_AUTO_THRESH = -1
     auto_thresh = np.full(
         (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.n_extra_rounds, nbp_basic.n_channels),
-        fill_value=INVALID_AUTO_THRESH,
+        fill_value=config["threshold"],
         dtype=np.float32,
     )
     completed_indices_path = os.path.join(nbp_file.output_dir, "find_spots_completed_indices.pkl")
@@ -90,16 +85,6 @@ def find_spots(
     for t, r, c in np.argwhere(use_indices).tolist():
         pbar.set_postfix_str(f"{t=}, {r=}, {c=}")
         image_trc = nbp_filter.images[t, r, c].astype(np.float32)
-
-        # Compute the image's auto threshold to detect spots.
-        mid_z = image_trc.shape[2] // 2
-        auto_thresh[t, r, c] = np.percentile(np.abs(image_trc[..., mid_z]), auto_thresh_percentile)
-        auto_thresh[t, r, c] *= auto_thresh_multiplier
-        if config["auto_thresh_clip"]:
-            auto_thresh[t, r, c] = np.max([auto_thresh[t, r, c], auto_thresh_multiplier])
-
-        if np.isclose(auto_thresh[t, r, c], 0):
-            raise ValueError(f"Find spots auto threshold is zero. Percentile {auto_thresh_percentile} might be too low")
 
         image_trc = [image_trc]
         local_yxz, spot_intensity = detect.detect_spots(
