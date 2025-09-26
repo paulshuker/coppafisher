@@ -28,10 +28,12 @@ TEST_FILE_NAMES: tuple[tuple[str, int, bool]] = (
     ("run_pipeline_0", 10, False),
     ("update_tile_dir", 7, False),
     ("zip_nb", 7, True),
+    ("zip_nb_2", 7, True),
 )
 NB_REPLACE = '"/path/to/notebook"'
 CONFIG_REPLACE = '"/path/to/config.ini"'
 GENE_MARKER_REPLACE = '"/path/to/custom/gene_marker_file.csv"'
+TEMP_DIRECTORY_REPLACE = '"/path/to/temporary/directory/"'
 REPLACEMENTS = OrderedDict(
     [
         ("method", '"prob"'),
@@ -63,7 +65,7 @@ def test_all_docs() -> None:
 
     pool = multiprocessing.Pool(1)
 
-    temp_directories = []
+    temp_directories = [tempfile.TemporaryDirectory("coppafisher")]
 
     for file_name, timeout, modifies_nb in TEST_FILE_NAMES:
         nb_path_copy = nb_path
@@ -98,6 +100,7 @@ def test_all_docs() -> None:
         code = code.replace(NB_REPLACE, f'r"{nb_path_copy}"')
         code = code.replace(CONFIG_REPLACE, f'r"{config_path}"')
         code = code.replace(GENE_MARKER_REPLACE, f'r"{gene_marker_path}"')
+        code = code.replace(TEMP_DIRECTORY_REPLACE, f'r"{temp_directories[0].name}"')
 
         res = pool.apply_async(exec, [code])
         try:

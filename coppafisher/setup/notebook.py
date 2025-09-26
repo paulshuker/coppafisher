@@ -242,17 +242,22 @@ class Notebook:
             all_versions[page.name] = page.version
         return all_versions
 
-    def zip(self) -> None:
+    def zip(self, temp_directory: str = "") -> None:
         """
         Zip all notebook page zarr Array/Group variables.
 
         Does nothing if they are already zipped.
+
+        Args:
+            temp_directory (str, optional): the directory to store zipped notebook variables temporarily. If set to "",
+                a temporary directory is made using [`tempfile`](https://docs.python.org/3/library/tempfile.html).
+                Default: "".
         """
         if all([not page.get_unzipped_variables() for page in self._get_added_pages()]):
             print("Nothing to zip")
             return
         for page in self._get_added_pages():
-            page.zip(self._get_page_directory(page.name))
+            page.zip(self._get_page_directory(page.name), temp_directory)
 
     def __setattr__(self, name: str, value: Any, /) -> None:
         """

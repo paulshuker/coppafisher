@@ -714,9 +714,14 @@ class NotebookPage:
         if self.get_unzipped_variables():
             print(f"The notebook page {self.name} contains unzipped variables. You can now zip them by nb.zip()")
 
-    def zip(self, page_directory: str, /) -> None:
+    def zip(self, page_directory: str, temp_directory: str, /) -> None:
         """
         Zip any zarr Arrays/Groups if not already.
+
+        Args:
+            page_directory (str): the directory where the page is stored.
+            temp_directory (str, optional): the directory to store zipped notebook variables temporarily. If set to "",
+                a temporary directory is made using [`tempfile`](https://docs.python.org/3/library/tempfile.html).
         """
         if not self.get_unzipped_variables():
             return
@@ -726,9 +731,9 @@ class NotebookPage:
             suffix = self._type_str_to_suffix(variable_type.split(self._datatype_separator)[0])
             variable_path = self._get_variable_path(page_directory, variable_name, suffix)
             if variable_type.startswith("zipgroup"):
-                zarray.convert_group_to_zip_store(variable_path)
+                zarray.convert_group_to_zip_store(variable_path, temp_directory)
             elif variable_type.startswith("ziparray"):
-                zarray.convert_array_to_zip_store(variable_path)
+                zarray.convert_array_to_zip_store(variable_path, temp_directory)
             else:
                 raise ValueError(f"Variable {variable_name} got unexpected type {variable_type}")
 
