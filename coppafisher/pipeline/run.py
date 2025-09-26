@@ -46,7 +46,7 @@ def run_pipeline(config_file: str) -> Notebook:
         nb += nbp
     log.error_catch(BuildPDF, nb, nbp_file)
 
-    if not nb.has_page("filter") or not nb.has_page("filter_debug"):
+    if not nb.has_pages(("filter", "filter_debug")):
         nbp, nbp_debug = log.error_catch(filter_run.run_filter, config["filter"], nbp_file, nb.basic_info)
         nb += nbp
         nb += nbp_debug
@@ -58,7 +58,7 @@ def run_pipeline(config_file: str) -> Notebook:
     log.error_catch(check_spots.check_n_spots, nb)
     log.error_catch(BuildPDF, nb, nbp_file)
 
-    if not nb.has_page("register") or not nb.has_page("register_debug"):
+    if not nb.has_pages(("register", "register_debug")):
         nbp, nbp_debug = log.error_catch(
             register.register, nb.basic_info, nbp_file, nb.filter, nb.find_spots, config["register"]
         )

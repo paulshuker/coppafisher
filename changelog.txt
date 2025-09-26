@@ -1,3 +1,9 @@
+2025/09/26 Version 1.7 (v1.7.0):
+ * General: Can now zip the notebook using any drive.
+ * Diagnostics: Find spots viewer percentile slider added.
+ * Stitch: Removed unused dapi image generation in pipeline.
+
+
 2025/09/03 Version 1.6 Patch (v1.6.1):
  * General: Zipping the notebook or extraction tiles between different filesystems causes corruption fix.
 

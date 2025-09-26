@@ -17,3 +17,13 @@ The notebook from versions <= 1.5.0 will open as normal. The data can be zipped 
 ```
 
 You may be prompted to install the 7-zip CLI if it is not found.
+
+??? info "Specify drive to zip from"
+
+    By default, the default drive is used for zipping notebook variables (i.e. within `/tmp/...` on Linux). If you do
+    not have sufficient disk space on this drive and wish to use a different location, specify your own existing
+    temporary directory by doing
+
+    ```python
+    --8<-- "zip_nb_2.py"
+    ```

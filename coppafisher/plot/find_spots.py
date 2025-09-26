@@ -8,6 +8,10 @@ from dash import Dash, Input, Output, dcc, html
 from ..find_spots import detect
 from ..setup.notebook import Notebook
 
+# Gather a central square from the filtered images no larger than 250x250 pixels.
+MAX_XY_PIXELS = 400
+MAX_Z_PLANE = 15
+
 
 def view_find_spots(nb: Notebook, debug: bool = False) -> None:
     """
@@ -18,9 +22,8 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
         - debug (bool, optional): run the app continuously after it is built. Default: true.
     """
     page_names_required = ("basic_info", "filter", "find_spots")
-    for page_name in page_names_required:
-        if not nb.has_page(page_name):
-            raise ValueError(f"The notebook does not contain required page: {page_name}")
+    if not nb.has_pages(page_names_required):
+        raise ValueError(f"The notebook does not contain all required pages: {page_names_required}")
     anchor_round: int = nb.basic_info.anchor_round
     dapi_channel: int = nb.basic_info.dapi_channel
     use_tiles: list[int] = nb.basic_info.use_tiles
@@ -31,36 +34,36 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
     channel = nb.basic_info.anchor_channel
 
     def r_to_str(r: int) -> str:
-        return "anchor" if r == anchor_round else str(r)
+        return "Anchor" if r == anchor_round else str(r)
 
     def c_to_str(c: int) -> str:
-        return "dapi" if c == dapi_channel else str(c)
+        return "Dapi" if c == dapi_channel else str(c)
 
     config = nb.find_spots.associated_configs["find_spots"]
     auto_thresholds = nb.find_spots.auto_thresh
     default_auto_thresh_multiplier = float(config["auto_thresh_multiplier"])
+    default_auto_thresh_percentile = float(config["auto_thresh_percentile"])
+    prev_auto_thresh_percentiles = np.full_like(auto_thresholds, default_auto_thresh_percentile, np.float32)
     max_auto_thresh_multiplier = default_auto_thresh_multiplier * 5
     default_radius_xy = int(config["radius_xy"])
     max_radius_xy = max(5 * default_radius_xy, 6)
     default_radius_z = int(config["radius_z"])
     max_radius_z = max(5 * default_radius_z, 10)
-    max_z_plane = 7
-    # Gather a central square from the filtered images no larger than 250x250 pixels.
-    max_xy_pixels = 250
-    xy_pixels = min(max_xy_pixels, nb.filter.images.shape[3])
+    filter_images = nb.filter.images
+    xy_pixels = min(MAX_XY_PIXELS, filter_images.shape[3])
     mid_xy = nb.basic_info.tile_sz // 2
     xy_slice = slice(mid_xy - xy_pixels // 2, mid_xy + xy_pixels // 2, 1)
-    new_xy_slice = slice(max_xy_pixels // 2 - xy_pixels // 2, max_xy_pixels // 2 + xy_pixels // 2, 1)
-    default_z_plane = max_z_plane // 2
+    new_xy_slice = slice(MAX_XY_PIXELS // 2 - xy_pixels // 2, MAX_XY_PIXELS // 2 + xy_pixels // 2, 1)
+    default_z_plane = MAX_Z_PLANE // 2
     trc_filter_images = np.zeros(
-        (len(use_tiles), len(valid_rounds), len(valid_channels), max_xy_pixels, max_xy_pixels, max_z_plane),
+        (len(use_tiles), len(valid_rounds), len(valid_channels), MAX_XY_PIXELS, MAX_XY_PIXELS, MAX_Z_PLANE),
         dtype=np.float16,
     )
-    central_z = nb.filter.images.shape[5] // 2
+    central_z = filter_images.shape[5] // 2
     for (t_i, t), (r_i, r), (c_i, c) in itertools.product(
         enumerate(use_tiles), enumerate(valid_rounds), enumerate(valid_channels)
     ):
-        for z_i, z in enumerate(range(central_z - max_z_plane // 2, central_z + max_z_plane // 2)):
+        for z_i, z in enumerate(range(central_z - MAX_Z_PLANE // 2, 1 + central_z + MAX_Z_PLANE // 2)):
             if z not in nb.basic_info.use_z:
                 continue
             trc_filter_images[t_i, r_i, c_i, new_xy_slice, new_xy_slice, z_i] = nb.filter.images[
@@ -75,7 +78,7 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
         "fontFamily": "Arial",
     }
 
-    app = Dash(__name__, title="Coppapy: Find Spots")
+    app = Dash(__name__, title="Coppafisher: Find Spots")
     app.layout = [
         html.Div(
             children=[
@@ -106,18 +109,42 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
                 html.Div(
                     [
                         html.Label("Z Plane", style=label_style),
-                        dcc.Slider(0, max_z_plane - 1, 1, id="z-plane-slider", value=default_z_plane),
+                        dcc.Slider(
+                            0,
+                            MAX_Z_PLANE - 1,
+                            1,
+                            id="z-plane-slider",
+                            value=default_z_plane,
+                            marks={0: "0", MAX_Z_PLANE - 1: str(MAX_Z_PLANE - 1)},
+                            tooltip={"placement": "bottom", "always_visible": True},
+                        ),
                     ],
-                    style=dict(width="15vw"),
+                    style=dict(width="10vw"),
                 ),
                 html.Div(
                     [
-                        html.Label("Auto Threshold Multiplier", style=label_style),
+                        html.Label("Auto Thresh Multiplier", style=label_style),
                         dcc.Slider(
                             0.0,
                             max_auto_thresh_multiplier,
                             id="auto-thresh-multiplier-slider",
                             value=default_auto_thresh_multiplier,
+                            tooltip={"placement": "bottom", "always_visible": True},
+                        ),
+                    ],
+                    style=dict(width="15vw"),
+                ),
+                html.Div(
+                    [
+                        html.Label("Auto Thresh Percentile", style=label_style),
+                        dcc.Slider(
+                            0.0,
+                            100.0,
+                            id="auto-thresh-percentile-slider",
+                            value=default_auto_thresh_percentile,
+                            step=2.5,
+                            marks={n: f"{n}" for n in range(0, 101, 25)},
+                            tooltip={"placement": "bottom", "always_visible": True},
                         ),
                     ],
                     style=dict(width="15vw"),
@@ -125,21 +152,39 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
                 html.Div(
                     [
                         html.Label("Radius XY", style=label_style),
-                        dcc.Slider(1, max_radius_xy, id="radius-xy-slider", value=default_radius_xy),
+                        dcc.Slider(
+                            1,
+                            max_radius_xy,
+                            id="radius-xy-slider",
+                            value=default_radius_xy,
+                            tooltip={"placement": "bottom", "always_visible": True},
+                        ),
                     ],
                     style=dict(width="15vw"),
                 ),
                 html.Div(
                     [
                         html.Label("Radius Z", style=label_style),
-                        dcc.Slider(1, max_radius_z, id="radius-z-slider", value=default_radius_z),
+                        dcc.Slider(
+                            1,
+                            max_radius_z,
+                            id="radius-z-slider",
+                            value=default_radius_z,
+                            tooltip={"placement": "bottom", "always_visible": True},
+                        ),
                     ],
                     style=dict(width="15vw"),
                 ),
                 html.Div(
                     [
                         html.Label("Marker Size", style=label_style),
-                        dcc.Slider(1, 30, id="marker-size-slider", value=6),
+                        dcc.Slider(
+                            1,
+                            30,
+                            id="marker-size-slider",
+                            value=6,
+                            tooltip={"placement": "bottom", "always_visible": True},
+                        ),
                     ],
                     style=dict(width="15vw"),
                 ),
@@ -208,6 +253,7 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
         Input("channel-slider", "value"),
         Input("z-plane-slider", "value"),
         Input("auto-thresh-multiplier-slider", "value"),
+        Input("auto-thresh-percentile-slider", "value"),
         Input("radius-xy-slider", "value"),
         Input("radius-z-slider", "value"),
         Input("marker-size-slider", "value"),
@@ -219,6 +265,7 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
         channel: int,
         z_plane: int,
         auto_thresh_multiplier: float,
+        auto_thresh_percentile: float,
         radius_xy: float,
         radius_z: float,
         marker_size: float,
@@ -228,14 +275,19 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
         selected_r_i = valid_rounds.index(round)
         selected_c_i = valid_channels.index(channel)
         remove_duplicates: bool = len(remove_duplicates) != 0
+        if not np.isclose(auto_thresh_percentile, prev_auto_thresh_percentiles[tile, round, channel]):
+            # Must recompute find spots threshold.
+            image = filter_images[tile, round, channel, ..., central_z].astype(np.float32)
+            auto_thresholds[tile, round, channel] = np.percentile(np.abs(image), auto_thresh_percentile)
+            auto_thresholds[tile, round, channel] *= default_auto_thresh_multiplier
+            prev_auto_thresh_percentiles[tile, round, channel] = auto_thresh_percentile
+
         current_auto_thresh = (
             auto_thresh_multiplier * auto_thresholds.item(tile, round, channel) / default_auto_thresh_multiplier
         )
         fig = go.Figure()
         fig.update_layout(
-            title=f"Tile: {t}, round: {r_to_str(r)}, channel: {c_to_str(c)}, Threshold: {current_auto_thresh}",
-            xaxis_title="X",
-            yaxis_title="Y",
+            title=f"Tile: {t}, Round: {r_to_str(r)}, Channel: {c_to_str(c)}, Threshold: {current_auto_thresh:.2f}",
             xaxis=dict(scaleanchor="y"),  # Link x-axis and y-axis scales
             yaxis=dict(constrain="domain"),  # Prevent stretching
             autosize=True,

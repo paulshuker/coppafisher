@@ -32,7 +32,6 @@ def stitch(
     # shift/scores.
 
     # Initialize the variables.
-    overlap = config["expected_overlap"]
     use_tiles, anchor_round, dapi_channel = list(nbp_basic.use_tiles), nbp_basic.anchor_round, nbp_basic.dapi_channel
     tilepos_yx = nbp_basic.tilepos_yx[use_tiles]
 
@@ -49,16 +48,10 @@ def stitch(
 
     # Fuse the tiles and save the notebook page variables.
     save_path = os.path.join(nbp_file.output_dir, "fused_dapi_image.zarr")
-    _ = base.fuse_tiles(
-        tiles=tiles,
-        tile_origins=tile_origins_full[use_tiles],
-        tilepos_yx=tilepos_yx,
-        overlap=overlap,
-        save_path=save_path,
-    )
-    store = zarr.ZipStore(save_path, mode="r")
-    nbp.dapi_image = zarr.open_array(store)
+    store = zarr.ZipStore(save_path, mode="w")
+    zarr.zeros(store=store, shape=1, dtype=np.float16)
     store.close()
+    nbp.dapi_image = zarr.open_array(zarr.ZipStore(save_path, mode="r"))
     nbp.tile_origin = tile_origins_full
     nbp.shifts = pairwise_shifts_full
     nbp.scores = pairwise_shift_scores_full
