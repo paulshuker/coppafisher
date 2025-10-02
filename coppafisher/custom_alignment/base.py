@@ -129,7 +129,8 @@ def extract_raw(
             continue
         # Load raw image.
         raw_path = nbp_file_names.tile_unfiltered[t][nb.basic_info.anchor_round][c_dapi]
-        image_raw: npt.NDArray[np.uint16] = zarr.open_array(raw_path, "r")[:]
+        # YXZ shape.
+        image_raw: npt.NDArray[np.uint16] = zarr.open_array(raw_path, "r")[:, :, nb.basic_info.use_z]
         if dapi_radius_norm is not None:
             print("Tile radius normalising DAPI image")
             image_raw = image_raw.astype(np.float32)
@@ -156,6 +157,7 @@ def extract_raw(
             image = np.rot90(image, k=num_rotations, axes=(1, 2))
             # zyx -> yxz.
             image = image.swapaxes(0, 2).swapaxes(0, 1)
+            image = image[:, :, nb.basic_info.use_z]
             if radius_norm is not None and c in radius_norm_channels:
                 print(f"Tile radius normalising custom image channel {c}")
                 image = radius_normalisation.radius_normalise_image(image, radius_norm[radius_norm_channels.index(c)])

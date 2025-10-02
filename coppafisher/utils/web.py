@@ -2,6 +2,8 @@ import socket
 import ssl
 import urllib
 
+TIMEOUT: float = 3.0
+
 
 def try_read_url_at(url: str) -> bytes | None:
     """
@@ -14,9 +16,9 @@ def try_read_url_at(url: str) -> bytes | None:
         (bytes or none): result. The resulting contents. None if it fails for any reason.
     """
     try:
-        f = urllib.request.urlopen(url)
+        f = urllib.request.urlopen(url, timeout=TIMEOUT)
         return f.read()
-    except (urllib.error.HTTPError, urllib.error.URLError):
+    except (TimeoutError, urllib.error.HTTPError, urllib.error.URLError):
         return None
 
 
@@ -28,7 +30,7 @@ def internet_is_active() -> bool:
         bool: whether the system is connected to the internet.
     """
     try:
-        urllib.request.urlopen("http://www.google.com")
+        urllib.request.urlopen("http://www.google.com", timeout=TIMEOUT)
         return True
     except (
         urllib.error.URLError,
