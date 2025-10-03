@@ -129,13 +129,13 @@ def extract_raw(
             continue
         # Load raw image.
         raw_path = nbp_file_names.tile_unfiltered[t][nb.basic_info.anchor_round][c_dapi]
+        # YXZ shape.
         image_raw: npt.NDArray[np.uint16] = zarr.open_array(raw_path, "r")[:]
         if dapi_radius_norm is not None:
             print("Tile radius normalising DAPI image")
             image_raw = image_raw.astype(np.float32)
             image_raw = radius_normalisation.radius_normalise_image(image_raw, dapi_radius_norm)
-            image_raw = np.round(image_raw)
-            image_raw = image_raw.astype(np.uint16)
+        image_raw: npt.NDArray[np.float16] = image_raw.astype(np.float16)
 
         # Save image in the format `x_y.tif`.
         tifffile.imwrite(save_path, image_raw)
@@ -156,13 +156,15 @@ def extract_raw(
             image = np.rot90(image, k=num_rotations, axes=(1, 2))
             # zyx -> yxz.
             image = image.swapaxes(0, 2).swapaxes(0, 1)
+            image = image[:, :, nb.basic_info.use_z]
             if radius_norm is not None and c in radius_norm_channels:
                 print(f"Tile radius normalising custom image channel {c}")
                 image = radius_normalisation.radius_normalise_image(image, radius_norm[radius_norm_channels.index(c)])
-                image = np.round(image)
-            image = image.astype(np.uint16)
+            # Keep the image as float since some images have large rounding errors after radius normalisation.
+            image = image.astype(np.float16)
             if reverse_custom_z:
                 image = image[:, :, ::-1]
+
             # Save image in the format x_y.tif.
             tifffile.imwrite(save_path, image)
 
@@ -236,13 +238,13 @@ def fuse_custom_and_dapi(nb: Notebook, extract_dir: str, channel: int) -> np.nda
     # The DAPI stitch results are taken from the notebook. This is important so that the images are aligned with the
     # exported spot positions.
     dapi_fused_image = background.generate_global_image(
-        dapi_images, tile_indices, nbp_basic, nb.stitch, np.uint16, silent=False
+        dapi_images, tile_indices, nbp_basic, nb.stitch, np.float16, silent=False
     )
 
     nbp_stitch = NotebookPage("stitch", {"stitch": {"expected_overlap": expected_overlap}})
     nbp_stitch.tile_origin = tile_origins_custom
     custom_fused_image = background.generate_global_image(
-        custom_images, tile_indices, nbp_basic, nbp_stitch, np.uint16, silent=False
+        custom_images, tile_indices, nbp_basic, nbp_stitch, np.float16, silent=False
     )
 
     # The custom image is cropped/padded with zeros to share the same position and shape of the DAPI fused image.
