@@ -1,16 +1,21 @@
+import importlib.resources as importlib_resources
 import os
 from numbers import Number
 
 import numpy as np
 import zarr
 
+from ..filter import radius_normalisation
+from ..pipeline import filter_run
 from ..plot.results_viewer import background
 from ..results.base import MethodData
 from ..setup import file_names
 from ..setup.notebook import Notebook
 
 
-def export_pciseq_unfiltered_dapi_image(nb: Notebook, config_file_path: str) -> None:
+def export_pciseq_unfiltered_dapi_image(
+    nb: Notebook, config_file_path: str, radius_norm_file: str | None = None
+) -> None:
     """
     Save a global, unfiltered anchor DAPI image based on stitch results as uint16.
 
@@ -20,6 +25,9 @@ def export_pciseq_unfiltered_dapi_image(nb: Notebook, config_file_path: str) -> 
     Args:
         nb (Notebook): the experiment's coppafisher outputted Notebook, must have completed at least up to stitch.
         config_file_path (str): the experiment's config file location.
+        radius_norm_file (str or none, optional): file path to the DAPI channel radius normalisation file. See
+           `dapi_radius_normalisation_filepath` in coppafisher/setup/default.ini for details. Set to "default" for the
+           default radius normalisation (only works when nb.basic_info.dapi_channel == 0).
     """
     nbp_file = file_names.get_file_names(nb.basic_info, config_file_path)
 
@@ -27,13 +35,28 @@ def export_pciseq_unfiltered_dapi_image(nb: Notebook, config_file_path: str) -> 
         nbp_file.tile_unfiltered[t][nb.basic_info.anchor_round][nb.basic_info.dapi_channel]
         for t in nb.basic_info.use_tiles
     ]
-    dapi_images = []
+    dapi_images: list[np.np.ndarray] = []
     for dapi_path in dapi_image_paths:
         try:
             with zarr.ZipStore(dapi_path, mode="r") as dapi_store:
                 dapi_images.append(zarr.open_array(dapi_store)[:])
         except (IsADirectoryError, PermissionError):
             dapi_images.append(zarr.open_array(dapi_path, "r")[:])
+
+    radius_norm = None
+    if radius_norm_file == "default" and nb.basic_info.dapi_channel == 0:
+        radius_norm_file = importlib_resources.files(filter_run.DAPI_CHANNEL_DIR).joinpath(filter_run.DAPI_CHANNEL_NAME)
+
+    if radius_norm_file is not None:
+        if not os.path.isfile(radius_norm_file):
+            raise FileNotFoundError(f"Failed to find dapi radius norm file at {radius_norm_file}")
+        radius_norm = np.load(str(radius_norm_file))["arr_0"]
+        radius_normalisation.validate_radius_normalisation(radius_norm, nb.basic_info.tile_sz)
+
+    if radius_norm is not None:
+        for i, dapi_image in enumerate(dapi_images):
+            dapi_images[i] = radius_normalisation.radius_normalise_image(dapi_image.astype(np.float32), radius_norm)
+            dapi_images[i] = dapi_images[i].astype(np.float16)
 
     fused_image = background.generate_global_image(
         dapi_images, nb.basic_info.use_tiles, nb.basic_info, nb.stitch, dapi_images[0].dtype, silent=False
