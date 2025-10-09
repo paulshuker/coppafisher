@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 from dash import Dash, Input, Output, dcc, html
 
 from ..find_spots import detect
+from ..setup.config import Config
 from ..setup.notebook import Notebook
 
 # Gather a central square from the filtered images no larger than 250x250 pixels.
@@ -21,7 +22,7 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
         - nb (Notebook): notebook containing `find_spots` page.
         - debug (bool, optional): run the app continuously after it is built. Default: true.
     """
-    page_names_required = ("basic_info", "filter", "find_spots")
+    page_names_required = ("basic_info", "filter")
     if not nb.has_pages(page_names_required):
         raise ValueError(f"The notebook does not contain all required pages: {page_names_required}")
     anchor_round: int = nb.basic_info.anchor_round
@@ -39,15 +40,31 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
     def c_to_str(c: int) -> str:
         return "Dapi" if c == dapi_channel else str(c)
 
-    config = nb.find_spots.associated_configs["find_spots"]
-    auto_thresholds = nb.find_spots.auto_thresh
-    default_auto_thresh_multiplier = float(config["auto_thresh_multiplier"])
-    default_auto_thresh_percentile = float(config["auto_thresh_percentile"])
-    prev_auto_thresh_percentiles = np.full_like(auto_thresholds, default_auto_thresh_percentile, np.float32)
+    if nb.has_page("find_spots"):
+        config = nb.find_spots.associated_configs["find_spots"]
+        default_auto_thresh_multiplier = float(config["auto_thresh_multiplier"])
+        default_auto_thresh_percentile = float(config["auto_thresh_percentile"])
+        auto_thresholds = nb.find_spots.auto_thresh
+        prev_auto_thresh_percentiles = np.full_like(auto_thresholds, default_auto_thresh_percentile, np.float32)
+        default_radius_xy = int(config["radius_xy"])
+        default_radius_z = int(config["radius_z"])
+        del config
+    else:
+        default_auto_thresh_multiplier = float(Config.get_default_for("find_spots", "auto_thresh_multiplier"))
+        default_auto_thresh_percentile = float(Config.get_default_for("find_spots", "auto_thresh_percentile"))
+        auto_thresholds = np.full(
+            (nb.basic_info.n_tiles, nb.basic_info.n_rounds + nb.basic_info.n_extra_rounds, nb.basic_info.n_channels),
+            -1,
+            np.float32,
+        )
+        # Set to -1 so that each image will lazy-compute the threshold when selected by the user as they have not been
+        # computed since find spots has not been run yet.
+        prev_auto_thresh_percentiles = np.full_like(auto_thresholds, -1, np.float32)
+        default_radius_xy = Config.get_default_for("find_spots", "radius_xy")
+        default_radius_z = Config.get_default_for("find_spots", "radius_z")
+
     max_auto_thresh_multiplier = default_auto_thresh_multiplier * 5
-    default_radius_xy = int(config["radius_xy"])
     max_radius_xy = max(5 * default_radius_xy, 6)
-    default_radius_z = int(config["radius_z"])
     max_radius_z = max(5 * default_radius_z, 10)
     filter_images = nb.filter.images
     xy_pixels = min(MAX_XY_PIXELS, filter_images.shape[3])

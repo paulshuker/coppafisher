@@ -1,3 +1,9 @@
+2025/MM/DD Version 1.8 (v1.8.0):
+ * Filter: Improved default Point Spread Function (PSF).
+ * Find Spots: Chance of out-of-memory crash fix.
+ * OMP: High chance of corrupting OMP ZipStore checkpoint-data fix.
+
+
 2025/10/09 Version 1.7 Patch (v1.7.1):
  * General: Waiting for internet connection can hang forever fix.
  * Export: Radius normalise unfiltered dapi image for pciseq option added.
