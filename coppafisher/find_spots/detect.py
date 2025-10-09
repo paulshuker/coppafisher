@@ -69,7 +69,7 @@ def detect_spots(
     maxima_intensities = np.array(image[tuple(maxima_locations.T)])
     del image
 
-    if not remove_duplicates:
+    if not maxima_intensities.size or not remove_duplicates:
         return maxima_locations, maxima_intensities
 
     # Sometimes the KDTree query gets too large and causes a memory crash.

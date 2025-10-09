@@ -236,14 +236,6 @@ def run_omp(
                 index_subset += 1
         log.debug(f"Compute pixel scores, tile {t} complete")
 
-        tile_results = results.create_group(f"tile_{t}", overwrite=True)
-        tile_results.attrs.update(
-            {
-                "software_version": system.get_software_version(),
-                "minimum_intensity": solver_kwargs["minimum_intensity"],
-            }
-        )
-
         t_spots_local_yxz = np.zeros(shape=(0, 3), dtype=np.int16)
         t_spots_tile = np.zeros(shape=0, dtype=np.int16)
         t_spots_gene_no = np.zeros(shape=0, dtype=np.int16)
@@ -317,6 +309,13 @@ def run_omp(
             )
 
         # Results are added to the OMP "results" zarr.Group.
+        tile_results = results.create_group(f"tile_{t}")
+        tile_results.attrs.update(
+            {
+                "software_version": system.get_software_version(),
+                "minimum_intensity": solver_kwargs["minimum_intensity"],
+            }
+        )
         tile_results.array("local_yxz", t_spots_local_yxz, overwrite=True, chunks=(n_chunk_max, 3), dtype=np.int16)
         tile_results.array("tile", t_spots_tile, overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.int16)
         tile_results.array("gene_no", t_spots_gene_no, overwrite=True, chunks=(n_chunk_max,), dtype=np.int16)
