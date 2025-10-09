@@ -141,15 +141,15 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
 
         self.score_slider_ax = self.fig.add_axes([0.20, 0.1, 0.60, 0.03])
         self.score_slider = RangeSlider(
-            self.score_slider_ax, f"{self.method.capitalize()} Score Threshold", 0, 1, valinit=starting_score_threshold
+            self.score_slider_ax, "Spot Score Threshold", 0, 1, valinit=starting_score_threshold
         )
 
         self.intensity_slider_ax = self.fig.add_axes([0.20, 0.03, 0.60, 0.03])
         self.intensity_slider = RangeSlider(
             self.intensity_slider_ax,
-            f"{self.method.capitalize()} Score Threshold",
+            "Spot Intensity Threshold",
             0,
-            max(1, starting_intensity_threshold[1] * 3),
+            max(1, starting_intensity_threshold[1]),
             valinit=starting_intensity_threshold,
         )
 
