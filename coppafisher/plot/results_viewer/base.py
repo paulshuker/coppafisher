@@ -739,6 +739,7 @@ class Viewer:
             self.nbp_call_spots.bled_codes,
             self.score_threshs[self.selected_method],
             self.intensity_threshs[self.selected_method],
+            show=self.show,
         )
 
     def view_gene_efficiencies(self) -> Subplot:

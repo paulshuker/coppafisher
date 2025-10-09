@@ -106,6 +106,7 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
         bled_codes: np.ndarray,
         starting_score_threshold: Tuple[float, float],
         starting_intensity_threshold: Tuple[float, float],
+        show: bool = True,
     ):
         """
         Plot and show a density plot of spot scores and similarity scores.
@@ -116,6 +117,7 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
             bled_codes (`(n_genes x n_rounds x n_channels_use) ndarray[float32]`): the final gene bled codes.
             starting_score_threshold (tuple of two floats): the starting spot score thresholds for spot selection.
             starting_intensity_threshold (tuple of two floats): the starting spot intensity thresholds for spot selection.
+            show (bool, optional): show plot after building it. Default: true.
         """
         assert method in ("prob", "anchor", "omp")
         assert isinstance(spot_data, MethodData)
@@ -158,7 +160,8 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
         self.score_slider.on_changed(self._update_score_keep)
         self.intensity_slider.on_changed(self._update_intensity_keep)
         self.fig.legend()
-        self.fig.show()
+        if show:
+            self.fig.show()
 
     def _update_data(self) -> None:
         assert type(self.ax) is Axes
