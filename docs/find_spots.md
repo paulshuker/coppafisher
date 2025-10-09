@@ -3,28 +3,15 @@
 Spots are detected as local intensity maxima on the filtered images to create 3D point clouds. Spot positions are used
 later in [register](register.md) and [call spots](call_spots.md).
 
-## 0: Auto Threshold
-
-For each tile ($t$)/round ($r$)/channel ($c$) image, an automatic intensity threshold (shortened to `auto_thresh`) is
-computed. This is done by taking all pixels on a single, central z plane on the filtered image called $I_{xy}$. The
-`auto_thresh` is
-
-$$
-\text{auto\_thresh}_{trc} = \text{n}^{\text{th}}\text{ percentile}(|I|_{trcxy})_{trc..} \times a
-$$
-
-where $|...|$ is the absolute value of each element separately. The median is computed over all x and y values to give a
-scalar that is a good lower bound estimate for the random noise amplitude. $n$ is the `auto_thresh_percentile`
-(typically $5$). $a$ is the `auto_thresh_multiplier` (typically $160$). Higher `auto_thresh_multiplier` makes spot
-detection stricter.
-
 ## 1: Spot Detection
 
 For each tile/round/channel filtered image ($I_{trcxyz}$), a 3D point cloud is created out of all points where
 
 $$
-I_{trcxyz} > \text{auto\_thresh}_{trc}
+I_{trcxyz} > \text{threshold}_{trc}
 $$
+
+where `threshold` (typically `0.2`) is given in the find spots config.
 
 ## 2: Remove Duplicates
 
@@ -36,18 +23,6 @@ with the greatest intensity is kept. If a point is isolated, it is kept. The pro
 If too few spots are found for a tile/round/channel image, then a warning and/or error is raised to the user.
 
 ## Diagnostics
-
-### Auto Threshold
-
-The calculated auto thresholds can be seen from the notebook. For tile `t`, round `r`, channel `c`, the `auto_thresh`
-value is saved as `float32` at
-
-```py
-from coppafisher import Notebook
-
-nb = Notebook("/path/to/notebook")
-nb.find_spots.auto_thresh[t, r, c]
-```
 
 ### Detected Spots
 

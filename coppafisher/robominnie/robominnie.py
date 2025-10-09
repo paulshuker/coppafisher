@@ -594,9 +594,6 @@ class Robominnie:
         channel_radius_normalisation_filepath = {self.radius_normalisations_path}
 
         [find_spots]
-        auto_thresh_multiplier = 4
-        auto_thresh_percentile = 50
-        auto_thresh_clip = true
         n_spots_warn_fraction = 0
         n_spots_error_fraction = 1
 
