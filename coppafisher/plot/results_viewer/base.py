@@ -61,7 +61,7 @@ class Viewer:
         "omp": (0.15, None),
     }
     _default_spot_size: float = 8.0
-    _bg_opts: tuple[str, ...] = ("dapi_detailed", "anchor_detailed")
+    _bg_opts: tuple[str, ...] = ("dapi", "anchor")
     _max_open_subplots: int = 7
 
     # Attributes:
@@ -116,7 +116,7 @@ class Viewer:
         nb: Optional[Notebook] = None,
         gene_marker_filepath: Optional[str] = None,
         gene_legend_order_by: str = "cell_type",
-        background_images: Iterable[str] = ("dapi_detailed",),
+        background_images: Iterable[str] = ("dapi",),
         background_image_colours: Iterable[str] = ("gray",),
         nbp_basic: Optional[NotebookPage] = None,
         nbp_filter: Optional[NotebookPage] = None,
@@ -128,8 +128,10 @@ class Viewer:
         show: bool = True,
     ):
         """
-        Instantiate a Viewer based on the given output data. The data can be given as a notebook or all the required
-        notebook pages (used for unit testing).
+        Open the coppafisher Viewer.
+
+        Instantiate a Viewer based on the given output data. The data can be given by one notebook or all the required
+        notebook pages.
 
         Args:
             nb (Notebook, optional): the notebook to visualise. Must have completed up to `call_spots` at least. If
@@ -140,11 +142,11 @@ class Viewer:
                 row in the gene marker file. Use "colour" to group genes based on their colour RGB's. Each colour group
                 is sorted by hue and each gene name in each colour group is sorted alphabetically. Default: "colour".
             background_images (iterable[str], optional): what to use as the background image(s), each background image
-                can be "dapi_detailed" or a file path to a .npy, .npz, or .tif file. The array at a file path must be a
-                numpy array of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the background image must
-                be located at key 'arr_0'. Set to `[]` for no background images. Default: ("dapi_detailed",).
+                can be "dapi", "anchor", or a file path to a .npy, .npz, or .tif file. The array at a file path must be
+                a numpy array of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the background image
+                must be located at key 'arr_0'. Set to `[]` for no background images. Default: ("dapi",).
             background_image_colours (iterable[str], optional): the napari colour mapping(s) used for the background
-                image(s). Default: ("gray",).
+                image(s). Set to `[]` when using no background images. Default: ("gray",).
             nbp_basic (NotebookPage, optional): `basic_info` notebook page. Default: not given.
             nbp_filter (NotebookPage, optional): `filter` notebook page. Default: not given.
             nbp_register (NotebookPage, optional): `register` notebook page. Default: not given.
@@ -400,6 +402,14 @@ class Viewer:
                 "t",
                 "Show scores and intensities as a heatmap",
                 lambda _: self._add_subplot(self.view_score_intensity_distributions()),
+                "General Diagnostics",
+                requires_selection=False,
+            ),
+            Hotkey(
+                "View Score/Similarity Density Plots",
+                "y",
+                "Show spot score and bled code similarity distributions as density plots",
+                lambda _: self._add_subplot(self.view_spot_score_and_similarity_density_plot()),
                 "General Diagnostics",
                 requires_selection=False,
             ),
@@ -721,6 +731,16 @@ class Viewer:
             self.selected_method, spot_data.score, spot_data.intensity, show=self.show
         )
 
+    def view_spot_score_and_similarity_density_plot(self) -> Subplot:
+        self._free_subplot_spaces()
+        return distribution.ViewSpotScoreAndSimilarityDensityPlots(
+            self.selected_method,
+            self.spot_data[self.selected_method],
+            self.nbp_call_spots.bled_codes,
+            self.score_threshs[self.selected_method],
+            self.intensity_threshs[self.selected_method],
+        )
+
     def view_gene_efficiencies(self) -> Subplot:
         self._free_subplot_spaces(2)
         return spot_colours.ViewGeneEfficiencies(
@@ -909,8 +929,8 @@ class Viewer:
         if image is not None and image not in self._bg_opts and not path.isfile(image):
             raise FileNotFoundError(f"Cannot find background image at given file path: {image}")
 
-        if image in ("dapi_detailed", "anchor_detailed"):
-            channel = self.nbp_basic.dapi_channel if image.startswith("dapi") else self.nbp_basic.anchor_channel
+        if image in ("dapi", "anchor"):
+            channel = self.nbp_basic.dapi_channel if image == "dapi" else self.nbp_basic.anchor_channel
             tiles = self.nbp_basic.use_tiles
             images = [self.nbp_filter.images[t, self.nbp_basic.anchor_round, channel] for t in tiles]
             new_image = background.generate_global_image(images, tiles, self.nbp_basic, self.nbp_stitch)
@@ -986,7 +1006,7 @@ class Viewer:
             method_max_score = self.spot_data[method].score.max()
             if method_max_score > max_score:
                 max_score = method_max_score
-            method_max_intensity = self.spot_data[method].intensity.max()
+            method_max_intensity = self.spot_data[method].intensity.max().item()
             if method_max_intensity > max_intensity:
                 max_intensity = method_max_intensity
             method_min_yxz = self.spot_data[method].yxz.min(0)

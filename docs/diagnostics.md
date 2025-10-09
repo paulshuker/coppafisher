@@ -37,20 +37,20 @@ python -m coppafisher -v /path/to/notebook --gene_marker /path/to/gene_marker.cs
 
 see [here](https://github.com/paulshuker/coppafisher/raw/HEAD/coppafisher/plot/results_viewer/gene_colour.csv) for the
 default gene marker file. The gene marker file supports all napari symbols that are shown under the `symbol` parameter
-in their [documentation](https://napari.org/0.5.4/api/napari.layers.Points.html).
+in their [documentation](https://napari.org/stable/api/napari.layers.Points.html).
 
-The default background image is a low resolution dapi image over all tiles produced during stitch. You can specify
-custom images and their colour mappings in python
+The default background image is a dapi image over all tiles. You can specify custom images and their colour mappings in
+python, e.g.
 
 ```py
 from coppafisher import Notebook, Viewer
 
 nb = Notebook("/path/to/notebook")
-Viewer(nb, background_images=["/path/to/custom/background_image.npy", "dapi_detailed"], background_image_colours=["Reds", "gray"])
+Viewer(nb, background_images=["/path/to/custom/background_image.npy", "dapi"], background_image_colours=["Reds", "gray"])
 ```
 
-You can specify the background_images to be `#!python ["dapi_detailed"]` or `#!python ["anchor_detailed"]` for
-16-bit precision background images.
+You can specify the background_images to be `#!python ["dapi"]` or `#!python ["anchor"]` for 16-bit precision background
+images.
 
 The colourmaps can be any [vispy](https://vispy.org/api/vispy.color.colormap.html#vispy.color.colormap.get_colormaps)
 or [matplotlib](https://matplotlib.org/stable/users/explain/colors/colormaps.html) colourmap.
