@@ -1,4 +1,4 @@
-2025/10/09 Version 1.7 Patch (v1.7.1):
+2025/10/10 Version 1.7 Patch (v1.7.1):
  * General: Waiting for internet connection can hang forever fix.
  * Export: Radius normalise unfiltered dapi image for pciseq option added.
  * Export: Fusing custom and dapi image with a z subset ValueError fix.
