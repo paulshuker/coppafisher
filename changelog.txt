@@ -1,3 +1,10 @@
+2025/10/10 Version 1.7 Patch (v1.7.1):
+ * General: Waiting for internet connection can hang forever fix.
+ * Export: Radius normalise unfiltered dapi image for pciseq option added.
+ * Export: Fusing custom and dapi image with a z subset ValueError fix.
+ * Export: Custom and dapi image rounding errors when radius normalising fix.
+
+
 2025/09/26 Version 1.7 (v1.7.0):
  * General: Can now zip the notebook using any drive.
  * Diagnostics: Find spots viewer percentile slider added.

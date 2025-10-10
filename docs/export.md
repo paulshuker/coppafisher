@@ -27,6 +27,8 @@ positions must be exported.
     --8<-- "export_unfiltered_dapi_to_pciseq.py"
     ```
 
+    You can set `radius_norm_file="default"` to use the default dapi radius normalisation when the dapi channel is 0.
+
     The DAPI image can then be loaded into memory by
 
     ```py

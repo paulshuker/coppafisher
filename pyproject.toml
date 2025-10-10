@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "coppafisher"
-version = "1.7.0"
+version = "1.7.1"
 description = "coppaFISH software for Python"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
@@ -57,7 +57,10 @@ Homepage = "https://paulshuker.github.io/coppafisher/"
 include-package-data = true
 
 [tool.setuptools.packages.find]
-# Empty for default package discovery
+where = ["."]
+
+[tool.setuptools.package-dir]
+"" = "."
 
 [tool.setuptools.package-data]
 "coppafisher.setup" = [
