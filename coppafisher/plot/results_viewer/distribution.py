@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import scipy
 from matplotlib.axes import Axes
+from matplotlib.colors import LogNorm
 from matplotlib.widgets import Button, RangeSlider
 
 from ...results.base import MethodData
@@ -135,9 +136,10 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
         self.score_threshold = [None] * 2
         self.intensity_threshold = [None] * 2
 
-        self.fig, self.ax = plt.subplots(1, 1, figsize=(7, 10))
+        self.fig, axes = plt.subplots(1, 2, figsize=(7, 10))
+        self.density_ax: Axes = axes[0]
+        self.imshow_ax: Axes = axes[1]
         self.fig.subplots_adjust(bottom=0.25)
-        self.fig.suptitle(f"{self.method.upper()} Gaussian KDE of Spot Scores")
 
         self.score_slider_ax = self.fig.add_axes([0.20, 0.1, 0.60, 0.03])
         self.score_slider = RangeSlider(
@@ -164,8 +166,8 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
             self.fig.show()
 
     def _update_data(self) -> None:
-        assert type(self.ax) is Axes
-        self.ax.clear()
+        self.density_ax.clear()
+        self.imshow_ax.clear()
 
         keep = self.keep_scores & self.keep_intensities
         spot_scores = self.spot_data.score[keep].astype(np.float32)
@@ -179,6 +181,7 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
         spot_colours = self.spot_data.colours[keep]
         spot_colours = spot_colours.clip(0, None).reshape((n_spots, -1))
         spot_bled_codes = spot_bled_codes.reshape((n_spots, -1))
+        # TODO: Use the residual colour from OMP instead of the total colour to compute similarities.
         similarity_scores = (spot_colours * spot_bled_codes).sum(1) / (
             np.linalg.norm(spot_colours, axis=1) * np.linalg.norm(spot_bled_codes, axis=1)
         )
@@ -189,20 +192,43 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
 
         spot_score_density = scipy.stats.gaussian_kde(spot_scores)
         spot_score_density = spot_score_density(xs)
-        self.ax.set_xlabel("Score")
-        self.ax.set_ylabel("Density")
-        self.ax.set_xlim(0, 1)
-        self.ax.plot(xs, spot_score_density, linewidth=1, color="darkviolet", label=f"{self.method} score")
-        self.ax.fill_between(xs, spot_score_density, alpha=0.3, color="violet")
+        self.imshow_ax.set_title(f"{self.method.upper()} Gaussian KDE of Spot Scores")
+        self.density_ax.set_xlabel("Score")
+        self.density_ax.set_ylabel("Density")
+        self.density_ax.set_xlim(0, 1)
+        self.density_ax.plot(xs, spot_score_density, linewidth=1, color="darkviolet", label=f"{self.method} score")
+        self.density_ax.fill_between(xs, spot_score_density, alpha=0.3, color="#e9a3c9")
 
         spot_similarity_density = scipy.stats.gaussian_kde(similarity_scores)
         spot_similarity_density = spot_similarity_density(xs)
-        assert type(self.ax) is Axes
-        self.ax.set_xlabel("Score")
-        self.ax.set_ylabel("Density")
-        self.ax.set_xlim(0, 1)
-        self.ax.plot(xs, spot_similarity_density, linewidth=1, color="darkgreen", label=f"{self.method} similarity")
-        self.ax.fill_between(xs, spot_similarity_density, alpha=0.3, color="limegreen")
+        self.density_ax.set_xlabel("Score")
+        self.density_ax.set_ylabel("Density")
+        self.density_ax.set_xlim(0, 1)
+        self.density_ax.plot(
+            xs, spot_similarity_density, linewidth=1, color="darkgreen", label=f"{self.method} similarity"
+        )
+        self.density_ax.fill_between(xs, spot_similarity_density, alpha=0.3, color="#a1d76a")
+
+        self.imshow_ax.set_title(f"{self.method} Spot Scores Versus Similarity Scores")
+        # _, _, _, im = self.imshow_ax.hist2d(spot_scores, similarity_scores, bins=100, color="#e34a33", linewidths=0, norm=LogNorm(0, 1000))
+        # self.scatter_ax.scatter(spot_scores, similarity_scores, s=0.5, c="#e34a33")
+        H, xedges, yedges = np.histogram2d(spot_scores, similarity_scores, bins=100, range=[[0, 1], [0, 1]])
+        H = H.T
+        norm = LogNorm(1, H.max())
+        im = self.imshow_ax.imshow(
+            H,
+            aspect="auto",
+            interpolation="nearest",
+            origin="lower",
+            extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
+            norm=norm,
+            cmap="plasma",
+        )
+        self.fig.colorbar(im, ax=self.imshow_ax, label="Count")
+        self.imshow_ax.set_xlabel(f"{self.method.capitalize()} score")
+        self.imshow_ax.set_ylabel("Similarity score")
+        self.imshow_ax.set_xlim(0, 1)
+        self.imshow_ax.set_ylim(0, 1)
 
         self.fig.canvas.draw()
 
