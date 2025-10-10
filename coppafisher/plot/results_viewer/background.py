@@ -1,8 +1,19 @@
+from typing import Callable, Optional
+
 import numpy as np
 import numpy.typing as npt
 import tqdm
 
 from ...setup.notebook import NotebookPage
+
+
+def _default_compute_overlap_weight(tile_a: np.ndarray, tile_b: np.ndarray) -> np.ndarray[np.float32]:
+    assert type(tile_a) is np.ndarray
+    assert type(tile_b) is np.ndarray
+    assert tile_a.shape == tile_b.shape
+
+    overlap_size = tile_a.shape[0]
+    return np.linspace(0, 1, overlap_size, endpoint=True, dtype=np.float32)
 
 
 def generate_global_image(
@@ -11,6 +22,9 @@ def generate_global_image(
     nbp_basic: NotebookPage,
     nbp_stitch: NotebookPage,
     output_dtype: npt.DTypeLike = np.float16,
+    compute_overlap_weight: Optional[
+        Callable[[np.ndarray[np.float32], np.ndarray[np.float32]], np.ndarray[np.float32]]
+    ] = None,
     silent: bool = True,
 ) -> np.ndarray[np.float16]:
     """
@@ -25,6 +39,12 @@ def generate_global_image(
         nbp_stitch (NotebookPage): `stitch` notebook page.
         output_dtype (dtype-like, optional): the fused_image datatype. Default: float16. If this is a integer type, then
             the final pixels are rounded to integer values.
+        compute_overlap_weight: (callable, optional): the function that computes the weighting that is applied to a
+            tile in the overlapping region. The function input is one tile's pixel values in the overlapping region
+            (`(n_overlap_size x tile_sz x len(nbp_basic.use_z)) ndarray[float32]`), then the other tile's pixel values
+            in the overlapping region (`(overlap_size x tile_sz x len(nbp_basic.use_z)) ndarray[float32]`). The output
+            multiplier must be a `(n_overlap_size) ndarray[float32]`. Default: a linear decrease from 1 to 0 from one
+            edge to the other.
         silent (bool, optional): do not print a progress bar. Default: true.
 
     Returns:
@@ -39,6 +59,10 @@ def generate_global_image(
     assert len(tiles_given) == len(images)
     assert type(nbp_basic) is NotebookPage
     assert type(nbp_stitch) is NotebookPage
+    if compute_overlap_weight is None:
+        compute_overlap_weight = _default_compute_overlap_weight
+    assert callable(compute_overlap_weight)
+    assert type(silent) is bool
 
     tiles_given = tiles_given.copy()
     tile_shape = (nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z))
@@ -88,13 +112,26 @@ def generate_global_image(
                 if overlap_size < 2:
                     # No taper required.
                     continue
-                multiplier = np.linspace(0, 1, overlap_size, endpoint=True, dtype=np.float32)
-                if neighbour_on_left_or_bottom:
-                    ind_min, ind_max = 0, overlap_size
-                else:
-                    ind_min, ind_max = nbp_basic.tile_sz - overlap_size, nbp_basic.tile_sz
-                    multiplier = multiplier[::-1]
 
+                ind_min, ind_max = 0, overlap_size
+                b_ind_min, b_ind_max = nbp_basic.tile_sz - overlap_size, nbp_basic.tile_sz
+                if not neighbour_on_left_or_bottom:
+                    tmp = ind_min, ind_max
+                    ind_min, ind_max = b_ind_min, b_ind_max
+                    b_ind_min, b_ind_max = tmp
+
+                a_tile = t_image[:, ind_min:ind_max].transpose((1, 0, 2)) if dim else t_image[ind_min:ind_max]
+                b_tile = t_image[:, ind_min:ind_max].transpose((1, 0, 2)) if dim else t_image[ind_min:ind_max]
+                multiplier = compute_overlap_weight(a_tile, b_tile)
+                if type(multiplier) is not np.ndarray:
+                    raise TypeError(f"compute_overlap_weight returned unexpected type {type(multiplier)}")
+                if multiplier.dtype != np.float32:
+                    raise ValueError(
+                        f"compute_overlap_weight return np.ndarray of dtype {multiplier.dtype}, expected np.float32"
+                    )
+
+                if not neighbour_on_left_or_bottom:
+                    multiplier = multiplier[::-1]
                 if dim == 0:
                     t_image[ind_min:ind_max] *= multiplier[:, np.newaxis, np.newaxis]
                 else:
