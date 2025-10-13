@@ -161,6 +161,7 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
 
         self.score_slider.on_changed(self._update_score_keep)
         self.intensity_slider.on_changed(self._update_intensity_keep)
+        self.colourbar = None
         self.fig.legend()
         if show:
             self.fig.show()
@@ -224,7 +225,10 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
             norm=norm,
             cmap="plasma",
         )
-        self.fig.colorbar(im, ax=self.imshow_ax, label="Count")
+        if self.colourbar:
+            self.colourbar.remove()
+            self.colourbar = None
+        self.colourbar = self.fig.colorbar(im, ax=self.imshow_ax, label="Count")
         self.imshow_ax.set_xlabel(f"{self.method.capitalize()} score")
         self.imshow_ax.set_ylabel("Similarity score")
         self.imshow_ax.set_xlim(0, 1)
