@@ -163,11 +163,12 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
 
         self.score_slider.on_changed(self._update_score_keep)
         self.intensity_slider.on_changed(self._update_intensity_keep)
-        self.fig.legend()
         if show:
             self.fig.show()
 
     def _update_data(self) -> None:
+        if self.colourbar is not None:
+            self.colourbar.remove()
         self.density_ax.clear()
         self.imshow_ax.clear()
 
@@ -194,7 +195,7 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
 
         spot_score_density = scipy.stats.gaussian_kde(spot_scores)
         spot_score_density = spot_score_density(xs)
-        self.imshow_ax.set_title(f"{self.method.upper()} Gaussian KDE of Spot Scores")
+        self.density_ax.set_title(f"{self.method.capitalize()} Gaussian KDE of Spot Scores")
         self.density_ax.set_xlabel("Score")
         self.density_ax.set_ylabel("Density")
         self.density_ax.set_xlim(0, 1)
@@ -210,8 +211,9 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
             xs, spot_similarity_density, linewidth=1, color="darkgreen", label=f"{self.method} similarity"
         )
         self.density_ax.fill_between(xs, spot_similarity_density, alpha=0.3, color="#a1d76a")
+        self.density_ax.legend()
 
-        self.imshow_ax.set_title(f"{self.method} Spot Scores Versus Similarity Scores")
+        self.imshow_ax.set_title(f"{self.method.capitalize()} Spot Scores Versus Similarity Scores")
         # _, _, _, im = self.imshow_ax.hist2d(spot_scores, similarity_scores, bins=100, color="#e34a33", linewidths=0, norm=LogNorm(0, 1000))
         # self.scatter_ax.scatter(spot_scores, similarity_scores, s=0.5, c="#e34a33")
         H, xedges, yedges = np.histogram2d(spot_scores, similarity_scores, bins=100, range=[[0, 1], [0, 1]])
@@ -226,9 +228,6 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
             norm=norm,
             cmap="plasma",
         )
-        if self.colourbar:
-            self.colourbar.remove()
-            self.colourbar = None
         self.colourbar = self.fig.colorbar(im, ax=self.imshow_ax, label="Count")
         self.imshow_ax.set_xlabel(f"{self.method.capitalize()} score")
         self.imshow_ax.set_ylabel("Similarity score")
