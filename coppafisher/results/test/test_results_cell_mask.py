@@ -39,7 +39,7 @@ def test_merge_cell_masks() -> None:
     assert not (merged_cell_mask > 2).any()
 
     merged_cell_mask = cell_mask.merge_cell_masks(
-        [tile_a_file_path, tile_b_file_path], [[0, 0, 0], [0, 2, 0]], 0.1, merge_cells_method="merge 0"
+        [tile_a_file_path, tile_b_file_path], np.array([[0, 0, 0], [0, 2, 0]], float), 0.1, merge_cells_method="merge 0"
     )
     assert type(merged_cell_mask) is np.ndarray
     assert merged_cell_mask.dtype == np.uint16
