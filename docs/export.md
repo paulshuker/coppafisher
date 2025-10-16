@@ -3,41 +3,45 @@
 For probabilistic cell typing with [pciSeq](https://github.com/acycliq/pciSeq), a DAPI background image and gene spot
 positions must be exported.
 
-??? "Filtered DAPI"
+### DAPI image export
 
-    To export the anchor's filtered DAPI stitched image
+#### Filtered DAPI
 
-    ```py
-    --8<-- "export_dapi_to_pciseq.py"
-    ```
+To export the anchor's filtered DAPI stitched image
 
-    The DAPI image can then be loaded into memory by
+```py
+--8<-- "export_dapi_to_pciseq.py"
+```
 
-    ```py
-    import numpy as np
+The DAPI image can then be loaded into memory by
 
-    dapi_image = np.load("/path/to/dapi_image.npz")["arr_0"]
-    ```
+```py
+import numpy as np
 
-??? "Unfiltered DAPI"
+dapi_image = np.load("/path/to/dapi_image.npz")["arr_0"]
+```
 
-    To export the anchor's unfiltered DAPI stitched image
+#### Unfiltered DAPI
 
-    ```py
-    --8<-- "export_unfiltered_dapi_to_pciseq.py"
-    ```
+To export the anchor's unfiltered DAPI stitched image
 
-    You can set `radius_norm_file="default"` to use the default dapi radius normalisation when the dapi channel is 0.
+```py
+--8<-- "export_unfiltered_dapi_to_pciseq.py"
+```
 
-    The DAPI image can then be loaded into memory by
+You can set `radius_norm_file="default"` to use the default dapi radius normalisation when the dapi channel is 0.
 
-    ```py
-    import numpy as np
+The DAPI image can then be loaded into memory by
 
-    dapi_image = np.load("/path/to/dapi_image.npz")["arr_0"]
-    ```
+```py
+import numpy as np
 
-Export gene reads into a compatible csv file by
+dapi_image = np.load("/path/to/dapi_image.npz")["arr_0"]
+```
+
+### Gene spots export
+
+Export gene spots into a compatible csv file by
 
 ```py
 --8<-- "export_to_pciseq_0.py"
@@ -52,6 +56,50 @@ minimum threshold:
 
 score_thresh and intensity_thresh must be numbers. Use the [Viewer](diagnostics.md#viewer) to help decide on thresholds.
 intensity_thresh is set to `0.15` for OMP in the Viewer by default.
+
+### Merge cell mask chunks
+
+Multiple cell masks for separate tiles can be merged together that are produced by cellpose. The cell masks must be
+uint16 3d images all of the same shape `(im_z, im_y, im_x)`. They must be saved as .npy files.
+
+```python
+from coppafisher.results import merge_cell_masks
+
+merge_cell_masks(
+    cell_mask_file_paths=["/path/to/cell_mask_0.npy", "/path/to/cell_mask_1.npy"],
+    cell_mask_origin_yxzs=[[0.0, 0.0, 0.0], [1100, 1.0, 0.0]],
+    expected_tile_overlap=0.15,
+    merge_cells_method="",
+)
+```
+
+where `cell_mask_origin_yxzs` is the bottom-leftmost position for each cell mask in a global coordinate frame. For more
+details, see the `merge_cell_masks` docstring at `coppafisher/results/cell_mask.py`.
+
+If you have a coppafisher notebook, you can base the merging off the tile stitch results:
+
+```python
+from coppafisher import Notebook
+from coppafisher.results import merge_cell_masks
+
+nb = Notebook("/path/to/notebook")
+merge_cell_masks(
+    cell_mask_file_paths=["/path/to/cell_mask_0.npy", "/path/to/cell_mask_1.npy"],
+    cell_mask_origin_yxzs=nb.stitch.tile_origin,
+    expected_tile_overlap=nb.stitch.associated_config["stitch"]["expected_overlap"],
+    merge_cells_method="",
+)
+```
+
+??? info "Merging methods"
+
+    There are two strategies for merging cell masks together:
+
+    1) `#!python merge_cells_method=""` does no cell merging and the tile that has the closest tile centre to the overlapping
+    pixel data is used.
+
+    2) `#!python merge_cells_method="merge 0.5"` merges cells together in the overlapping region when the cells have at least
+    50% overlap. You can adjust the number 0.5 for anything betweeen 0 and 1 to best suit your data.
 
 ## Custom Images
 
