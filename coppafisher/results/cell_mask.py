@@ -66,7 +66,13 @@ def _compute_overlap_weight_merge(
 
             # Merge the two cells.
             result[current_overlap_region == other_cell_num] = cell_num
-            overlapping_cell_nums = np.concat([overlapping_cell_nums[:index], overlapping_cell_nums[index + 1 :]])
+
+            # Update where the cell is.
+            all_cell_positions = result == cell_num
+            cell_size = all_cell_positions.sum().item()
+            overlapping_cell_nums = np.unique(
+                current_overlap_region[np.logical_and(all_cell_positions, current_overlap_region > 0)]
+            )
             index = 0
 
     return result
@@ -154,15 +160,12 @@ def merge_cell_masks(
     )
 
     # Compress the cell numbers together so they are labelled 1, 2, 3, ...
-    cell_numbers = np.unique(merged_cell_mask)
-    for i, cell_number in enumerate(cell_numbers):
-        if i == len(cell_numbers) - 1:
-            break
-        next_cell_number = cell_numbers[i + 1]
-        cell_difference = next_cell_number - cell_number - 1
-        if not cell_difference:
-            continue
-        merged_cell_mask[merged_cell_mask > cell_number] -= cell_difference
+    where_background_is = merged_cell_mask == 0
+    merged_cell_mask[where_background_is] = merged_cell_mask.max()
+    _, inverse = np.unique(merged_cell_mask, return_inverse=True, axis=None)
+    inverse = inverse.astype(np.int32)
+    merged_cell_mask = inverse + 1
+    merged_cell_mask[where_background_is] = 0
 
     merged_cell_mask = merged_cell_mask.astype(np.uint16)
     return merged_cell_mask
