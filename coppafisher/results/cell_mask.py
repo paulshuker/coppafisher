@@ -1,7 +1,9 @@
 import math as maths
+import warnings
 from typing import Iterable
 
 import numpy as np
+import tqdm
 
 from ..plot.results_viewer import background
 from ..setup.notebook_page import NotebookPage
@@ -43,37 +45,45 @@ def _compute_overlap_weight_merge(
     # already occupying the space and the overlap between the cells is above overlap_threshold, then the cells are
     # combined into one cell.
     result = current_overlap_region.copy()
-    for cell_num in np.unique(tile_a):
+    tile_a_cell_numbers = np.unique(tile_a.ravel())
+    tile_a_cell_numbers = tile_a_cell_numbers[tile_a_cell_numbers > 0]
+    where_merge_already_happened = np.zeros_like(tile_a, bool)
+    pbar = tqdm.tqdm(desc="Merging cells", total=tile_a_cell_numbers.size, unit="cell")
+    for cell_num in tile_a_cell_numbers:
         cell_num = int(cell_num)
-        if not cell_num:
-            continue
-
         all_cell_positions: np.ndarray[bool] = tile_a == cell_num
+        if where_merge_already_happened[all_cell_positions].all():
+            pbar.update()
+            continue
         cell_size: int = all_cell_positions.sum().item()
         overlapping_cell_nums: np.ndarray[int] = np.unique(
-            current_overlap_region[np.logical_and(tile_a == cell_num, current_overlap_region > 0)]
+            result[np.logical_and(all_cell_positions, result > 0)].ravel()
         )
-        result[np.logical_and(all_cell_positions, current_overlap_region == 0)] = cell_num
+        result[np.logical_and(all_cell_positions, result == 0)] = cell_num
         index = 0
         while overlapping_cell_nums.size and index < overlapping_cell_nums.size:
             other_cell_num: int = overlapping_cell_nums.item(index)
-            other_cell_size: int = (current_overlap_region == other_cell_num).sum().item()
-            overlap_fraction = np.logical_and(all_cell_positions, current_overlap_region == other_cell_num).sum().item()
+            other_cell_size: int = (result == other_cell_num).sum().item()
+            overlap_fraction = np.logical_and(all_cell_positions, result == other_cell_num).sum().item()
             overlap_fraction /= min(cell_size, other_cell_size)
             if overlap_fraction < overlap_threshold:
                 index += 1
                 continue
 
             # Merge the two cells.
-            result[current_overlap_region == other_cell_num] = cell_num
+            result[result == other_cell_num] = cell_num
 
             # Update where the cell is.
             all_cell_positions = result == cell_num
+            where_merge_already_happened[all_cell_positions] = True
             cell_size = all_cell_positions.sum().item()
-            overlapping_cell_nums = np.unique(
-                current_overlap_region[np.logical_and(all_cell_positions, current_overlap_region > 0)]
-            )
+            overlapping_cell_nums = np.unique(result[np.logical_and(all_cell_positions, result > 0)].ravel())
+            if overlapping_cell_nums.size == 1 and overlapping_cell_nums[0] == other_cell_num:
+                break
             index = 0
+
+        pbar.update()
+    pbar.close()
 
     return result
 
@@ -156,7 +166,7 @@ def merge_cell_masks(
         np.int32,
         compute_overlap=compute_overlap,
         compute_overlap_kwargs=compute_overlap_kwargs,
-        silent=False,
+        silent=True,
     )
 
     # Compress the cell numbers together so they are labelled 1, 2, 3, ...
@@ -166,6 +176,13 @@ def merge_cell_masks(
     inverse = inverse.astype(np.int32)
     merged_cell_mask = inverse + 1
     merged_cell_mask[where_background_is] = 0
+
+    if merged_cell_mask[merged_cell_mask == np.iinfo(np.uint16).max].sum():
+        warnings.warn(
+            "Merged cell mask contains a cell number at the largest value possible. Overflow may have occurred.",
+            UserWarning,
+            1,
+        )
 
     merged_cell_mask = merged_cell_mask.astype(np.uint16)
     return merged_cell_mask
