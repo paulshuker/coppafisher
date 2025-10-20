@@ -58,6 +58,7 @@ class CompatibilityTracker:
             ("1.8.0", "none"),
             ("1.8.1", "none"),
             ("1.9.0", "none"),
+            ("1.10.0", "omp"),
         )
     )
     _stage_instructions: list[tuple[str, ...]]
@@ -139,7 +140,7 @@ class CompatibilityTracker:
         for instruction in instructions:
             log.info(instruction)
 
-        return instructions
+        return tuple(instructions)
 
     def is_notebook_compatible(self, nb_page_versions: dict[str, str], current_version: str | None = None) -> bool:
         """
@@ -301,6 +302,8 @@ class CompatibilityTracker:
         for i, (stage_name, page_names) in enumerate(self._stages.items()):
             if page_name in self._parse_page_names(page_names):
                 return stage_name, i
+
+        raise ValueError(f"Failed to find page name {page_name}")
 
     def _parse_page_names(self, page_name_str: str) -> list[str]:
         return page_name_str.split(" and ")
