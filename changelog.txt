@@ -1,4 +1,5 @@
 2025/MM/DD Version 1.10 (v1.10.0):
+ * General: Update extracted tiles directory crashes fix.
  * OMP: Narrower default mean spot for better OMP spot scores.
 
 
