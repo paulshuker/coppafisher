@@ -1,4 +1,5 @@
 import os
+import tempfile
 
 import tqdm
 
@@ -52,6 +53,8 @@ def update_tile_dir(config_path: str) -> None:
     with open(version_path, "w") as file:
         file.write(system.get_software_version())
 
+    temp_dir = tempfile.TemporaryDirectory("coppafisher")
     for file_name in tqdm.tqdm(file_names, desc="Migrating extract files"):
         file_path = os.path.join(extract_dir, file_name)
-        zarray.convert_array_to_zip_store(file_path)
+        zarray.convert_array_to_zip_store(file_path, temp_dir.name)
+    temp_dir.cleanup()
