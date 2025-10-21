@@ -5,7 +5,7 @@ import time
 import warnings
 from collections.abc import Iterable
 from os import path
-from typing import Optional
+from typing import List, Optional
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -73,6 +73,7 @@ class Viewer:
     nbp_ref_spots: NotebookPage
     nbp_call_spots: NotebookPage
     nbp_omp: NotebookPage | None
+    show_tiles: list[int]
     # When False, there is no napari Viewer created. Used for headless testing.
     show: bool
     n_z_planes: int
@@ -118,6 +119,7 @@ class Viewer:
         gene_legend_order_by: str = "cell_type",
         background_images: Iterable[str] = ("dapi",),
         background_image_colours: Iterable[str] = ("gray",),
+        show_tiles: Optional[List[int]] = None,
         nbp_basic: Optional[NotebookPage] = None,
         nbp_filter: Optional[NotebookPage] = None,
         nbp_register: Optional[NotebookPage] = None,
@@ -147,6 +149,7 @@ class Viewer:
                 must be located at key 'arr_0'. Set to `[]` for no background images. Default: ("dapi",).
             background_image_colours (iterable[str], optional): the napari colour mapping(s) used for the background
                 image(s). Set to `[]` when using no background images. Default: ("gray",).
+            show_tiles (list of int, optional): list of tile indices to display. Default: all tiles in the notebook.
             nbp_basic (NotebookPage, optional): `basic_info` notebook page. Default: not given.
             nbp_filter (NotebookPage, optional): `filter` notebook page. Default: not given.
             nbp_register (NotebookPage, optional): `register` notebook page. Default: not given.
@@ -186,6 +189,8 @@ class Viewer:
             raise ValueError(
                 f"Got {len(background_images)} background images but {len(background_image_colours)} colour maps"
             )
+        if show_tiles is not None and type(show_tiles) is not list:
+            raise TypeError(f"show_tiles must be a list, got {type(show_tiles)} instead")
 
         assert type(nbp_basic) is NotebookPage or nbp_basic is None
         assert type(nbp_filter) is NotebookPage or nbp_filter is None
@@ -228,6 +233,11 @@ class Viewer:
         assert self.nbp_stitch is not None
         assert self.nbp_ref_spots is not None
         assert self.nbp_call_spots is not None
+        self.show_tiles = show_tiles
+        if self.show_tiles is None:
+            self.show_tiles = self.nbp_basic.use_tiles
+        assert type(self.show_tiles) is list
+        assert self.show_tiles
         del nb
 
         plt.style.use("dark_background")
@@ -241,19 +251,43 @@ class Viewer:
         print("Gathering spot data")
         self.spot_data: dict[str, Viewer.MethodData] = {}
         self.spot_data["prob_init"] = MethodData(
-            "prob_init", self.nbp_basic, self.nbp_stitch, self.nbp_ref_spots, self.nbp_call_spots, self.nbp_omp
+            "prob_init",
+            self.nbp_basic,
+            self.nbp_stitch,
+            self.nbp_ref_spots,
+            self.nbp_call_spots,
+            self.nbp_omp,
+            self.show_tiles,
         )
         self.spot_data["prob"] = MethodData(
-            "prob", self.nbp_basic, self.nbp_stitch, self.nbp_ref_spots, self.nbp_call_spots, self.nbp_omp
+            "prob",
+            self.nbp_basic,
+            self.nbp_stitch,
+            self.nbp_ref_spots,
+            self.nbp_call_spots,
+            self.nbp_omp,
+            self.show_tiles,
         )
         self.spot_data["anchor"] = MethodData(
-            "anchor", self.nbp_basic, self.nbp_stitch, self.nbp_ref_spots, self.nbp_call_spots, self.nbp_omp
+            "anchor",
+            self.nbp_basic,
+            self.nbp_stitch,
+            self.nbp_ref_spots,
+            self.nbp_call_spots,
+            self.nbp_omp,
+            self.show_tiles,
         )
         self.selected_method = "anchor"
         self.selected_spot = None
         if self.nbp_omp is not None:
             self.spot_data["omp"] = MethodData(
-                "omp", self.nbp_basic, self.nbp_stitch, self.nbp_ref_spots, self.nbp_call_spots, self.nbp_omp
+                "omp",
+                self.nbp_basic,
+                self.nbp_stitch,
+                self.nbp_ref_spots,
+                self.nbp_call_spots,
+                self.nbp_omp,
+                self.show_tiles,
             )
             self.selected_method = "omp"
 
@@ -932,9 +966,10 @@ class Viewer:
 
         if image in ("dapi", "anchor"):
             channel = self.nbp_basic.dapi_channel if image == "dapi" else self.nbp_basic.anchor_channel
-            tiles = self.nbp_basic.use_tiles
-            images = [self.nbp_filter.images[t, self.nbp_basic.anchor_round, channel] for t in tiles]
-            new_image = background.generate_global_image(images, tiles, self.nbp_basic, self.nbp_stitch)
+            images = [self.nbp_filter.images[t, self.nbp_basic.anchor_round, channel] for t in self.show_tiles]
+            new_image = background.generate_global_image(
+                images, self.show_tiles, self.nbp_basic, self.nbp_stitch, silent=False
+            )
             new_image_name = image.capitalize()
         elif type(image) is str and image.endswith(".npy"):
             new_image = np.load(image)
@@ -967,6 +1002,10 @@ class Viewer:
         if not self.show:
             return
         image_count: int = len(self.background_images)
+        tile_origins = self.nbp_stitch.tile_origin
+        translate = np.floor(tile_origins[self.show_tiles].min(0)) - np.floor(tile_origins.min(0))
+        # YXZ -> ZYX.
+        translate = translate[[2, 0, 1]]
         for background_image, name, colour_map in zip(
             self.background_images, self.background_image_names, colour_maps, strict=True
         ):
@@ -987,6 +1026,7 @@ class Viewer:
                 background_image,
                 name=name,
                 axis_labels=("Z", "Y", "X"),
+                translate=translate,
                 rgb=False,
                 multiscale=False,
                 colormap=colour_map,

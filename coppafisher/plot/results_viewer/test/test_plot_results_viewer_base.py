@@ -112,6 +112,8 @@ def test_Viewer() -> None:
     background_images.append([npy_filepath, "dapi", tiff_filepath])
     background_image_colours.append(["Greens", "Reds", "Greys"])
     for background_image, colour_maps in zip(background_images, background_image_colours, strict=True):
+        show_tiles = list(use_tiles)
+        show_tiles.pop(rng.randint(len(show_tiles)))
         viewer = Viewer(
             background_images=background_image,
             background_image_colours=colour_maps,
@@ -123,6 +125,7 @@ def test_Viewer() -> None:
             nbp_ref_spots=nbp_ref_spots,
             nbp_call_spots=nbp_call_spots,
             nbp_omp=nbp_omp,
+            show_tiles=show_tiles,
             show=False,
         )
         # Test every hotkey.
