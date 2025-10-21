@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 import numpy as np
 import pandas as pd
@@ -40,6 +41,7 @@ class MethodData:
         nbp_ref_spots: NotebookPage,
         nbp_call_spots: NotebookPage,
         nbp_omp: NotebookPage | None,
+        show_tiles: List[int] | None = None,
     ) -> None:
         """
         Gather all spot data for a particular gene calling method that is stored in self.
@@ -51,6 +53,7 @@ class MethodData:
             nbp_ref_spots (NotebookPage): `ref_spots` notebook page.
             nbp_call_spots (NotebookPage): `call_spots` notebook page.
             nbp_omp (NotebookPage or none): `omp` notebook page.
+            show_tiles (list of int, optional): tile indices to gather. Default: all tiles.
         """
         assert type(method) is str
         assert method in ("prob_init", "prob", "anchor", "omp"), f"Unknown method {method}"
@@ -92,6 +95,9 @@ class MethodData:
 
         # Sanity check spot data.
         self._check_variables()
+        if show_tiles is not None:
+            self.remove_data_at((self.tile[np.newaxis] != np.array(show_tiles)[:, np.newaxis]).all(0))
+            self._check_variables()
 
     def remove_data_at(self, remove: np.ndarray[bool]) -> None:
         """
