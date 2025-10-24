@@ -135,6 +135,8 @@ def extract_raw(
             print("Tile radius normalising DAPI image")
             image_raw = image_raw.astype(np.float32)
             image_raw = radius_normalisation.radius_normalise_image(image_raw, dapi_radius_norm)
+        if (image_raw > np.finfo(np.float16).max).any():
+            image_raw *= np.finfo(np.float16).max / image_raw.max()
         image_raw: npt.NDArray[np.float16] = image_raw.astype(np.float16)
 
         # Save image in the format `x_y.tif`.
@@ -161,6 +163,8 @@ def extract_raw(
                 print(f"Tile radius normalising custom image channel {c}")
                 image = radius_normalisation.radius_normalise_image(image, radius_norm[radius_norm_channels.index(c)])
             # Keep the image as float since some images have large rounding errors after radius normalisation.
+            if (image > np.finfo(np.float16).max).any():
+                image *= np.finfo(np.float16).max / image.max()
             image = image.astype(np.float16)
             if reverse_custom_z:
                 image = image[:, :, ::-1]
