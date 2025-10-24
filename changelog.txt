@@ -1,4 +1,4 @@
-2025/10/DD Version 1.8 (v1.8.0):
+2025/10/24 Version 1.8 (v1.8.0):
  * Viewer: Open a subset of tiles support added.
  * Viewer: Spot score and bled code similarity density subplot added.
  * Export: extract_raw for custom alignment can create infinite values fix.
