@@ -109,9 +109,11 @@ def test_Viewer() -> None:
     background_image_colours.append(["Greens"])
     background_images.append([tiff_filepath])
     background_image_colours.append(["Greens"])
-    background_images.append([npy_filepath, "dapi_detailed", tiff_filepath])
+    background_images.append([npy_filepath, "dapi", tiff_filepath])
     background_image_colours.append(["Greens", "Reds", "Greys"])
     for background_image, colour_maps in zip(background_images, background_image_colours, strict=True):
+        show_tiles = list(use_tiles)
+        show_tiles.pop(rng.randint(len(show_tiles)))
         viewer = Viewer(
             background_images=background_image,
             background_image_colours=colour_maps,
@@ -123,6 +125,7 @@ def test_Viewer() -> None:
             nbp_ref_spots=nbp_ref_spots,
             nbp_call_spots=nbp_call_spots,
             nbp_omp=nbp_omp,
+            show_tiles=show_tiles,
             show=False,
         )
         # Test every hotkey.
@@ -142,7 +145,7 @@ def test_Viewer() -> None:
         for i, gene_name in enumerate(nbp_call_spots.gene_names):
             writer.writerow((i, gene_name, rng.rand(), rng.rand(), rng.rand(), random.choice(("cross", "disc"))))
     viewer = Viewer(
-        background_images=("dapi_detailed", "anchor_detailed"),
+        background_images=("dapi", "anchor"),
         background_image_colours=("Reds", "Greens"),
         gene_marker_filepath=gene_marker_filepath,
         gene_legend_order_by="colour",
@@ -203,7 +206,7 @@ def test_Viewer() -> None:
         subgroup.colours[:] = rng.rand(*subgroup.colours.shape).astype(np.float16)
     nbp_omp.results = group
     viewer = Viewer(
-        background_images=("dapi_detailed",),
+        background_images=("dapi",),
         nbp_basic=nbp_basic,
         nbp_filter=nbp_filter,
         nbp_register=nbp_register,

@@ -15,12 +15,6 @@ terminal:
 --8<-- "open_viewer_0.py"
 ```
 
-or from the command line
-
-```terminal
-python -m coppafisher -v /path/to/notebook
-```
-
 where a napari window will be opened.
 
 You can specify the colour and symbols of genes using a .csv file, then the Viewer can be opened by
@@ -29,28 +23,22 @@ You can specify the colour and symbols of genes using a .csv file, then the View
 --8<-- "open_viewer_1.py"
 ```
 
-or from the terminal
-
-```terminal
-python -m coppafisher -v /path/to/notebook --gene_marker /path/to/gene_marker.csv
-```
-
 see [here](https://github.com/paulshuker/coppafisher/raw/HEAD/coppafisher/plot/results_viewer/gene_colour.csv) for the
 default gene marker file. The gene marker file supports all napari symbols that are shown under the `symbol` parameter
-in their [documentation](https://napari.org/0.5.4/api/napari.layers.Points.html).
+in their [documentation](https://napari.org/stable/api/napari.layers.Points.html).
 
-The default background image is a low resolution dapi image over all tiles produced during stitch. You can specify
-custom images and their colour mappings in python
+The default background image is a dapi image in greyscale. You can specify custom images and their colour mappings in
+python, e.g.
 
 ```py
 from coppafisher import Notebook, Viewer
 
 nb = Notebook("/path/to/notebook")
-Viewer(nb, background_images=["/path/to/custom/background_image.npy", "dapi_detailed"], background_image_colours=["Reds", "gray"])
+Viewer(nb, background_images=["/path/to/custom/background_image.npy", "dapi"], background_image_colours=["Reds", "gray"])
 ```
 
-You can specify the background_images to be `#!python ["dapi_detailed"]` or `#!python ["anchor_detailed"]` for
-16-bit precision background images.
+You can specify the background_images to be `#!python ["dapi"]` or `#!python ["anchor"]` for 16-bit precision background
+images.
 
 The colourmaps can be any [vispy](https://vispy.org/api/vispy.color.colormap.html#vispy.color.colormap.get_colormaps)
 or [matplotlib](https://matplotlib.org/stable/users/explain/colors/colormaps.html) colourmap.
@@ -60,14 +48,27 @@ be a .npy file, a compressed .npz file with image at key `"arr_0"`, or a .tif fi
 [tifffile](https://github.com/cgohlke/tifffile) package). For further customisation, see the Viewer
 [docstring](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/plot/results_viewer/base.py).
 
-??? info "Multiple Background Images"
+??? info "No Background Image"
+
+    Specify no background images by setting `#!python background_images=[]` and `#!python background_image_colours=[]`.
+
+??? info "When Using Multiple Background Images"
 
     With multiple background images, you will not see a background contrast slider anymore. This is intentional. To
     change the settings of each background image, click on Window -> Layer List and Window -> Layer Controls. From these
     windows, you have full control over the background images by selecting one. You can change their blending modes and
     opacities individually.
 
-Specify no background images by setting `#!python background_images=[]` and `#!python background_image_colours=[]`.
+??? info "Open a Subset of Tiles"
+
+    You can open a subset of tiles from the notebook. For example, to open only tiles 0 and 1
+
+    ```python
+    from coppafisher import Notebook, Viewer
+
+    nb = Notebook("/path/to/notebook")
+    Viewer(nb, show_tiles=[0, 1])
+    ```
 
 Close the Viewer and all subplots by pressing Ctrl + C in the terminal.
 

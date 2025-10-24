@@ -17,10 +17,10 @@ def generate_global_image(
     Produce a high-resolution, filtered global background image based on stitch results.
 
     Args:
-        images (list of `(im_y x im_x x im_z) ndarray`): a list of images for each given tile. The list of emptied by
-            the end of the function.
-        tiles_given (list of int): tiles_given[i] is the tile index for images[i]. The list of emptied by the end of the
-            function.
+        images (list of `(im_y x im_x x im_z) ndarray`): images[i] is the image representing tile index tiles_given[i].
+            The list of emptied by the end of the function.
+        tiles_given (list of int): tiles_given[i] is the tile index for images[i]. If tiles_given does not contain a
+            tile in the notebook, then that tile's area is set to all zeros.
         nbp_basic (NotebookPage): `basic_info` notebook page.
         nbp_stitch (NotebookPage): `stitch` notebook page.
         output_dtype (dtype-like, optional): the fused_image datatype. Default: float16. If this is a integer type, then
@@ -42,7 +42,7 @@ def generate_global_image(
 
     tiles_given = tiles_given.copy()
     tile_shape = (nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z))
-    tile_origins_yxz: np.ndarray = nbp_stitch.tile_origin[nbp_basic.use_tiles]
+    tile_origins_yxz: np.ndarray = nbp_stitch.tile_origin[tiles_given]
 
     # The lowest x/y/z tile origin values are floored down for consistency with the spot yxz positions.
     minimum_tile_origin_indices = np.argmin(tile_origins_yxz, 0)
@@ -59,13 +59,13 @@ def generate_global_image(
 
     output_shape = (max_yxz - min_yxz).tolist()
     output = np.zeros(output_shape, output_dtype)
-    for t_i, t in enumerate(tqdm.tqdm(nbp_basic.use_tiles, desc="Fusing images", unit="tile", disable=silent)):
-        t_index = tiles_given.index(t)
-        tiles_given.remove(t)
+    for t_i, t in enumerate(tqdm.tqdm(tiles_given, desc="Generating global image", unit="tile", disable=silent)):
+        if t not in tiles_given:
+            continue
         t_centre = tile_centres_yxz[t_i]
         tile_centres_except_t = np.concat((tile_centres_yxz[:t], tile_centres_yxz[t + 1 :]), axis=0)
 
-        t_image = images.pop(t_index).astype(np.float32)
+        t_image = images.pop(0).astype(np.float32)
 
         # Taper along the x and y axes if there is an overlapping tile.
         for dim in (0, 1):
