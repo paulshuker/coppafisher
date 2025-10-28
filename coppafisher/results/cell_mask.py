@@ -133,8 +133,10 @@ def merge_cell_masks(
             x/y direction.
         merge_cells_method (str, optional): the method used for dealing with tile overlaps. If set to "", then the pixel
             values for the tile with the closest centre are always taken and no attempt at cell merging is made. If set
-            to "merge 0.5" then two cells are merged together into one cell if the overlapping region is at least 50%
-            for either one of the cells. The number 0.5 can be changed to any value between 0 and 1. Default: "".
+            to "merge 0.5" then cells in at the midpoint between the overlapping tiles are merged together into one cell
+            if the overlapping region is at least 50% for either one of the cells. The merging can cascade. Therefore,
+            one cell can continuously grow and hoover up overlapping cells. The number 0.5 can be changed to any value
+            between 0 and 1. Default: "".
 
     Returns:
         (`(big_im_z x big_im_y x big_im_x) ndarray[uint16]`): merged_cell_mask. The merged cell mask.

@@ -96,10 +96,32 @@ merge_cell_masks(
     There are two strategies for merging cell masks together:
 
     1) `#!python merge_cells_method=""` does no cell merging and the tile that has the closest tile centre to the overlapping
-    pixel data is used.
+    pixel data is used. This can leave erroneous split cells at the midpoint between the tile overlap.
 
-    2) `#!python merge_cells_method="merge 0.5"` merges cells together in the overlapping region when the cells have at least
-    50% overlap. You can adjust the number 0.5 for anything betweeen 0 and 1 to best suit your data.
+    <figure markdown="span">
+      ![Image title](images/cell_mask/no_merge.png){ width="600" }
+      <figcaption>No merging result.</figcaption>
+    </figure>
+
+    2) `#!python merge_cells_method="merge 0.5"` merges cells together in the overlapping region when the cells have at
+    least 50% overlap. You can adjust the number 0.5 for anything between 0 and 1 to best suit your data. For more
+    details on the mering method:
+
+    ```python
+    from coppafisher.results import merge_cell_masks
+    print(merge_cell_masks.__doc__)
+    ```
+
+    <figure markdown="span">
+      ![Image title](images/cell_mask/merge_all.png){ width="600" }
+      <figcaption>Merging with a low overlap threshold.</figcaption>
+    </figure>
+
+    <figure markdown="span">
+      ![Image title](images/cell_mask/merge_strict.png){ width="600" }
+      <figcaption>Merging with a high overlap threshold.</figcaption>
+    </figure>
+
 
 ## Custom Images
 
