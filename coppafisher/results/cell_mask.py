@@ -27,29 +27,54 @@ def _compute_overlap_no_merge(
 
 
 def _compute_overlap_weight_merge(
-    tile_a: np.ndarray, current_overlap_region: np.ndarray, _: bool, overlap_threshold: float
+    tile_a: np.ndarray, current_overlap_region: np.ndarray, neighbour_on_left_or_bottom: bool, overlap_threshold: float
 ) -> np.ndarray:
     """
-    See merged_cell_mask for details.
+    See merge_cell_masks for details.
     """
     assert type(overlap_threshold) is float
     assert 0 <= overlap_threshold <= 1
 
     tile_a = tile_a.round().astype(current_overlap_region.dtype)
+    overlap_size = tile_a.shape[0]
     if (current_overlap_region == np.iinfo(current_overlap_region.dtype).max).all():
         # There are no overlapping cells yet.
-        return tile_a
+        return tile_a.copy()
 
-    # Every cell on the border is extended into the other tile's region unless the overlapping region already has a cell
-    # there. Therefore, the algorithm works on a first-come first-serve basis for simplicity. But, if there is a cell
-    # already occupying the space and the overlap between the cells is above overlap_threshold, then the cells are
-    # combined into one cell.
+    # Cells on the overlap midpoint are extended into the other tile's region unless the overlapping region already has
+    # a computed overlap there. Therefore, the algorithm works on a first-come first-serve basis for simplicity. But, if
+    # there is a cell already occupying space and the overlap between the cells is above overlap_threshold, then the
+    # cells are combined into one cell.
     result = current_overlap_region.copy()
-    tile_a_cell_numbers = np.unique(tile_a.ravel())
-    tile_a_cell_numbers = tile_a_cell_numbers[tile_a_cell_numbers > 0]
-    where_merge_already_happened = np.zeros_like(tile_a, bool)
-    pbar = tqdm.tqdm(desc="Merging cells", total=tile_a_cell_numbers.size, unit="cell")
+    midpoint = [maths.ceil(overlap_size / 2) - 1, maths.ceil(overlap_size / 2)]
+    tile_a_midpoint_cell_numbers = np.unique(tile_a[midpoint].ravel())
+    tile_a_midpoint_cell_numbers = tile_a_midpoint_cell_numbers[tile_a_midpoint_cell_numbers > 0]
+    current_midpoint_cell_numbers = np.unique(current_overlap_region[midpoint].ravel())
+    current_midpoint_cell_numbers = current_midpoint_cell_numbers[current_midpoint_cell_numbers > 0]
+
+    if neighbour_on_left_or_bottom:
+        tile_a_cell_numbers = np.unique(tile_a[maths.ceil(overlap_size / 2) :].ravel())
+    else:
+        tile_a_cell_numbers = np.unique(tile_a[: maths.ceil(overlap_size / 2)].ravel())
+    # The tile_a takes cell precedence in places closer to the tile_a centre.
+    # But, this does not apply for any cells that touch the midpoint, which will be dealt with separately.
     for cell_num in tile_a_cell_numbers:
+        if int(cell_num) == 0:
+            continue
+        if (cell_num == tile_a_midpoint_cell_numbers).any():
+            # Deal with potential cell merges after.
+            continue
+        for curr_cell_num in np.unique(result[tile_a == cell_num].ravel()):
+            if int(curr_cell_num) == 0:
+                continue
+            if (curr_cell_num == current_midpoint_cell_numbers).any():
+                continue
+            result[result == curr_cell_num] = 0
+        result[tile_a == cell_num] = cell_num
+
+    where_merge_already_happened = np.zeros_like(tile_a, bool)
+    pbar = tqdm.tqdm(desc="Merging cells", total=tile_a_midpoint_cell_numbers.size, unit="cell")
+    for cell_num in tile_a_midpoint_cell_numbers:
         cell_num = int(cell_num)
         all_cell_positions: np.ndarray[bool] = tile_a == cell_num
         if where_merge_already_happened[all_cell_positions].all():
