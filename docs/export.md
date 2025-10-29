@@ -65,7 +65,7 @@ uint16 3d images all of the same shape `(im_z, im_y, im_x)`. They must be saved 
 ```python
 from coppafisher.results import merge_cell_masks
 
-merge_cell_masks(
+merged_cell_mask = merge_cell_masks(
     cell_mask_file_paths=["/path/to/cell_mask_0.npy", "/path/to/cell_mask_1.npy"],
     cell_mask_origin_yxzs=[[0.0, 0.0, 0.0], [1100, 1.0, 0.0]],
     expected_tile_overlap=0.15,
@@ -83,7 +83,7 @@ from coppafisher import Notebook
 from coppafisher.results import merge_cell_masks
 
 nb = Notebook("/path/to/notebook")
-merge_cell_masks(
+merged_cell_mask = merge_cell_masks(
     cell_mask_file_paths=["/path/to/cell_mask_0.npy", "/path/to/cell_mask_1.npy"],
     cell_mask_origin_yxzs=nb.stitch.tile_origin,
     expected_tile_overlap=nb.stitch.associated_config["stitch"]["expected_overlap"],
@@ -122,6 +122,23 @@ merge_cell_masks(
       <figcaption>Merging with a high overlap threshold.</figcaption>
     </figure>
 
+??? tip "Saving the merged cell mask"
+
+    You can save the resulting merged cell mask as a .npy file
+
+    ```python
+    import numpy as np
+
+    np.save("/path/to/merged_cell_mask.npy", merged_cell_mask)
+    ```
+
+    Or a compressed .npz file
+
+    ```python
+    import numpy as np
+
+    np.savez_compressed("/path/to/merged_cell_mask.npy", merged_cell_mask)
+    ```
 
 ## Custom Images
 
