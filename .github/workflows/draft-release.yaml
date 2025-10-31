@@ -23,4 +23,4 @@ jobs:
         makeLatest: true
         draft: true
         skipIfReleaseExists: true
-        generateReleaseNotes: true
+        generateReleaseNotes: false

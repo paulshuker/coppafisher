@@ -1,3 +1,8 @@
+2025/10/31 Version 1.9 (v1.9.0):
+ * Viewer: Subplot for setting manual thresholds added.
+ * Export: Merge cell mask chunks together for pciseq tool added.
+
+
 2025/10/27 Version 1.8 Patch (v1.8.1):
  * Export: Gather dapi raw images from >=1.6.0 extract data for custom image alignment fix.
 

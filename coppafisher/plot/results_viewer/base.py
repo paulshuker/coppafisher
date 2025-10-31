@@ -36,6 +36,7 @@ from ..omp.scores import ViewOMPGeneScores
 from . import background, distribution, exporter, legend
 from .hotkeys import Hotkey
 from .subplot import Subplot
+from .threshold import ManualThreshold
 
 
 class Viewer:
@@ -383,6 +384,14 @@ class Viewer:
                 "Open tool for instructions",
                 lambda _: self._add_subplot(self.view_2d_export_tool()),
                 "Export",
+                requires_selection=False,
+            ),
+            Hotkey(
+                "Manually Set Thresholds",
+                "q",
+                "Manually set threshold values",
+                lambda _: self._add_subplot(self.view_manual_threshold()),
+                "Visual",
                 requires_selection=False,
             ),
             Hotkey(
@@ -916,6 +925,24 @@ class Viewer:
             if not path.isfile(file_path):
                 break
         return file_path
+
+    def view_manual_threshold(self, _=None) -> Subplot:
+        def on_score_threshold_changed(new_value: tuple[float, float]) -> None:
+            self.score_slider.setValue(new_value)
+            self.score_thresholds_changed()
+
+        def on_intensity_threshold_changed(new_value: tuple[float, float]) -> None:
+            self.intensity_slider.setValue(new_value)
+            self.intensity_thresholds_changed()
+
+        self._free_subplot_spaces()
+        return ManualThreshold(
+            on_score_threshold_changed,
+            on_intensity_threshold_changed,
+            self.score_threshs[self.selected_method],
+            self.intensity_threshs[self.selected_method],
+            show=self.show,
+        )
 
     def toggle_background(self, _=None) -> None:
         if not self.show:

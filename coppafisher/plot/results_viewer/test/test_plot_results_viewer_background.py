@@ -73,6 +73,7 @@ def test_generate_global_image() -> None:
     images = [np.ones(tile_shape_yxz, np.float16) * t for t in range(n_tiles)]
 
     result = background.generate_global_image(images, nbp_basic.use_tiles, nbp_basic, nbp_stitch)
+
     assert type(result) is np.ndarray
     assert result.shape == (tile_shape_yxz[2], tile_shape_yxz[0] * n_tiles_y, tile_shape_yxz[1] * n_tiles_x)
     t = 0
