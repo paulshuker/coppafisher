@@ -56,6 +56,7 @@ def test_CompatibilityTracker() -> None:
     assert not tracker.has_version("1")
 
     output = tracker.check("0.1.0", "0.2.0")
+    assert type(output) is tuple
     assert tracker._stage_instructions[0][0] not in output
     assert tracker._stage_instructions[1][0] in output
     assert tracker._stage_instructions[2][0] not in output
