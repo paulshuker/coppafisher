@@ -995,7 +995,7 @@ class Viewer:
             channel = self.nbp_basic.dapi_channel if image == "dapi" else self.nbp_basic.anchor_channel
             images = [self.nbp_filter.images[t, self.nbp_basic.anchor_round, channel] for t in self.show_tiles]
             new_image = background.generate_global_image(
-                images, self.show_tiles, self.nbp_basic, self.nbp_stitch, silent=False
+                images, self.show_tiles, self.nbp_basic, self.nbp_stitch, unbound_value=0, silent=False
             )
             new_image_name = image.capitalize()
         elif type(image) is str and image.endswith(".npy"):
@@ -1029,10 +1029,11 @@ class Viewer:
         if not self.show:
             return
         image_count: int = len(self.background_images)
-        tile_origins = self.nbp_stitch.tile_origin
-        translate = np.floor(tile_origins[self.show_tiles].min(0)) - np.floor(tile_origins.min(0))
+        tile_origins: np.ndarray = self.nbp_stitch.tile_origin
+        translate = np.floor(tile_origins[self.show_tiles].min(0)) - np.floor(np.nanmin(tile_origins, 0))
         # YXZ -> ZYX.
         translate = translate[[2, 0, 1]]
+        assert not np.isnan(translate).any()
         for background_image, name, colour_map in zip(
             self.background_images, self.background_image_names, colour_maps, strict=True
         ):

@@ -40,6 +40,7 @@ def generate_global_image(
     nbp_basic: NotebookPage,
     nbp_stitch: NotebookPage,
     output_dtype: npt.DTypeLike = np.float16,
+    unbound_value: int | float | None = None,
     compute_overlap: Optional[Callable[[np.ndarray, np.ndarray, bool], np.ndarray]] = None,
     compute_overlap_kwargs: Dict[str, Any] | None = None,
     silent: bool = True,
@@ -57,6 +58,8 @@ def generate_global_image(
         nbp_stitch (NotebookPage): `stitch` notebook page.
         output_dtype (dtype-like, optional): the fused_image datatype. Default: float16. If this is a integer type, then
             the final pixels are rounded to integer values.
+        unbound_value (int or float, optional): pixels are set to unbound_value when the pixel is out of bounds from all
+            tiles. Default: nan for floating point output_dtypes, np.iinfo(output_dtype).max otherwise.
         compute_overlap: (callable, optional): the function that computes overlapping regions. The function input is a
             tile's pixel values in the overlapping region (`(n_overlap_size x tile_sz x len(nbp_basic.use_z))
             ndarray[images[0].dtype]`), the current overlapping region values (`(n_overlap_size x tile_sz x
@@ -81,6 +84,11 @@ def generate_global_image(
     assert len(tiles_given) == len(images)
     assert type(nbp_basic) is NotebookPage
     assert type(nbp_stitch) is NotebookPage
+    if unbound_value is None:
+        if np.issubdtype(output_dtype, np.floating):
+            unbound_value = np.nan
+        else:
+            unbound_value = np.iinfo(output_dtype).max
     if compute_overlap is None:
         compute_overlap = _default_compute_overlap
     assert callable(compute_overlap)
@@ -108,11 +116,9 @@ def generate_global_image(
     expected_overlap = nbp_stitch.associated_configs["stitch"]["expected_overlap"]
 
     output_shape = (max_yxz - min_yxz).tolist()
-    output = np.full(
-        output_shape, np.nan if np.issubdtype(output_dtype, np.floating) else np.iinfo(output_dtype).max, output_dtype
-    )
+    output = np.full(output_shape, unbound_value, output_dtype)
 
-    for t_i, _ in tqdm.tqdm(enumerate(tiles_given), desc="Generating global image", unit="tile", disable=silent):
+    for t_i, _ in enumerate(tqdm.tqdm(tiles_given, desc="Generating global image", unit="tile", disable=silent)):
         t_image = images.pop(0)
         t_origin = tile_origins_yxz[t_i]
         t_centre = tile_centres_yxz[t_i]
