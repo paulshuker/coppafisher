@@ -23,7 +23,6 @@ class TifReader(RawReader):
         """
         super().read(nbp_basic, nbp_file, tile, round, channels)
 
-        tile_raw = super().get_tile_raw_index(tile, nbp_basic.tilepos_yx_nd2, nbp_basic.tilepos_yx)
         file_path = super().get_round_file_path(nbp_file, round)
         if not file_path.endswith(nbp_file.raw_extension):
             file_path += nbp_file.raw_extension
@@ -42,7 +41,7 @@ class TifReader(RawReader):
         n_total_z = all_images.shape[0] // (n_channels * n_tiles)
 
         for c in channels:
-            start_index = c + tile_raw * n_channels * n_total_z
+            start_index = c + tile * n_channels * n_total_z
             combined_slice = slice(start_index, start_index + n_channels * n_total_z, n_channels)
             c_image = all_images[combined_slice]
             c_image = c_image[nbp_basic.use_z]
