@@ -37,7 +37,7 @@ $$
 \text{minimum\_intensity}_t = a\times\text{nth percentile}_{xy}(I_{txy})
 $$
 
-$n$ is the `minimum_intensity_percentile` (typically 5) and $a$ is the `minimum_intensity_multiplier` (typically 4).
+$n$ is the `minimum_intensity_percentile` (typically 5) and $a$ is the `minimum_intensity_multiplier` (typically 6).
 
 ## 2: Next Gene Assignment
 
