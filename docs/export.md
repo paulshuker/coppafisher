@@ -105,7 +105,7 @@ merged_cell_mask = merge_cell_masks(
 
     2) `#!python merge_cells_method="merge 0.5"` merges cells together in the overlapping region when the cells have at
     least 50% overlap. You can adjust the number 0.5 for anything between 0 and 1 to best suit your data. For more
-    details on the mering method:
+    details on the merging method:
 
     ```python
     from coppafisher.results import merge_cell_masks
