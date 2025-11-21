@@ -72,7 +72,7 @@ def call_reference_spots(
     # load in frequently used variables
     spot_colours = nbp_ref_spots.colours[:].astype(np.float32)
     spot_tile = nbp_ref_spots.tile[:]
-    n_tiles, n_rounds, n_channels_use = nbp_basic.n_tiles, nbp_basic.n_rounds, len(nbp_basic.use_channels)
+    n_tiles, n_rounds, n_channels_use = nbp_basic.n_tiles, len(nbp_basic.use_rounds), len(nbp_basic.use_channels)
     n_dyes, n_spots, n_genes = len(nbp_basic.dye_names), len(spot_colours), len(gene_names)
     use_tiles, use_channels = (nbp_basic.use_tiles, nbp_basic.use_channels)
 
@@ -102,7 +102,7 @@ def call_reference_spots(
     intensity_threshold = config["gene_intensity_threshold"]
 
     # 2. Compute gene probabilities for each spot
-    bled_codes = raw_bleed_matrix[gene_codes]
+    bled_codes = raw_bleed_matrix[gene_codes][:, nbp_basic.use_rounds]
     gene_prob_initial = gene_prob_score(spot_colours, bled_codes, kappa=config["kappa"])
 
     # 3. Use spots with score above threshold to work out global dye codes

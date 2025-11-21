@@ -1,3 +1,7 @@
+2025/MM/DD Version 1.10 Patch (v1.10.2):
+ * General: Excluded round(s) in config causes crashes fix.
+
+
 2025/11/10 Version 1.10 Patch (v1.10.1):
  * Viewer: Crash when placing dapi or anchor background image fix.
 
