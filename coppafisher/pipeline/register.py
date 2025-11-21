@@ -220,6 +220,9 @@ def register(
                 n_iters=config["icp_max_iter"],
                 robust=False,
             )
+            if len(nbp_basic.use_z) == 1:
+                round_correction[t, r, 2, 2] = 1
+                round_correction[t, r, 3, 2] = 0
             log.info(f"Tile: {t}, Round: {r}, Converged: {converged_round[t, r]}")
         # compute an affine correction to the channel transforms. This is done by finding the best affine map that
         # takes the anchor channel (post application of optical flow and round correction) to the other channels.

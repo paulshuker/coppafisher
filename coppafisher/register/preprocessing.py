@@ -214,7 +214,7 @@ def generate_reg_images(
 
     tile_centre = (int(yx_centre[0]), int(yx_centre[1]))
     yxz_min = (tile_centre[0] - yx_radius, tile_centre[1] - yx_radius, int(z_planes[0]))
-    yxz_max = (tile_centre[0] + yx_radius, tile_centre[1] + yx_radius, int(z_planes[-1]))
+    yxz_max = (tile_centre[0] + yx_radius, tile_centre[1] + yx_radius, int(z_planes[-1] + 1))
     yxz_coords = np.meshgrid(
         np.arange(yxz_min[0], yxz_max[0]),
         np.arange(yxz_min[1], yxz_max[1]),

@@ -22,7 +22,7 @@ def get_robominnie_scores(rm: Robominnie) -> None:
     if any([score < 40 for score in tile_scores]):
         raise ValueError("Anchor method has a tile score < 40%. This can be a sign of a pipeline bug")
 
-    tile_scores = rm.score_tiles("omp", score_threshold=0.05, intensity_threshold=0.4)
+    tile_scores = rm.score_tiles("omp", score_threshold=0.90, intensity_threshold=0.813)
     print(f"OMP scores for each tile: {tile_scores}")
     if any([score < 75 for score in tile_scores]):
         warnings.warn("OMP method contains tile score < 75%", stacklevel=1)
@@ -30,15 +30,37 @@ def get_robominnie_scores(rm: Robominnie) -> None:
         raise ValueError("OMP method has a tile score < 40%. This can be a sign of a pipeline bug")
 
 
-@pytest.mark.integration
-def test_integration_small_two_tile():
+@pytest.mark.slow
+def test_integration_2d_two_tiles():
     """
     Summary of input data: random spots and pink noise.
 
-    Includes anchor round, sequencing rounds, one `4x100x100` tile.
+    Includes anchor round, sequencing rounds, two `1x100x100` tiles.
+    """
+    output_dir = get_output_dir()
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
 
-    Returns:
-        Notebook: complete coppafisher Notebook.
+    robominnie = Robominnie(n_channels=5, n_planes=1, tile_sz=128, n_tiles_y=2)
+    robominnie.generate_gene_codes()
+    robominnie.generate_pink_noise()
+    robominnie.add_spots()
+    robominnie.save_raw_images(output_dir)
+    robominnie.run_coppafisher()
+    robominnie.score_tiles("prob", 0.9, 0.4)
+    robominnie.score_tiles("anchor", 0.5, 0.4)
+    robominnie.score_tiles("omp", 0.05, 0.4)
+    robominnie.view_spot_positions()
+    get_robominnie_scores(robominnie)
+    del robominnie
+
+
+@pytest.mark.integration
+def test_integration_small_two_tiles():
+    """
+    Summary of input data: random spots and pink noise.
+
+    Includes anchor round, sequencing rounds, two `10x128x128` tiles.
     """
     output_dir = get_output_dir()
     if not os.path.isdir(output_dir):
@@ -84,5 +106,6 @@ def get_config_path() -> str:
 
 
 if __name__ == "__main__":
-    test_integration_small_two_tile()
+    # test_integration_small_two_tiles()
+    test_integration_2d_two_tiles()
     viewers_test()

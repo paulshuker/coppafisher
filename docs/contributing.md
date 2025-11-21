@@ -63,13 +63,20 @@ examples.
 
 ## Run Tests
 
-Run unit tests (~10s)
+Run unit tests (~4s)
 
 ```terminal
 pytest
 ```
 
-Run integration tests (~90s)
+Run slow tests (~25s)
+
+```terminal
+pytest -m slow
+```
+
+Run integration tests (~90s). This is separated from the slow tests because one of the tests here produces the notebook
+for the tests that require a notebook.
 
 ```terminal
 pytest -m integration

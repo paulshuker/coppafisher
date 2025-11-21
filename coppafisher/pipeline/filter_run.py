@@ -14,7 +14,7 @@ from .. import log
 from ..filter import radius_normalisation
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
-from ..utils import dict_io, indexing, system, zarray
+from ..utils import dict_io, dimensions, indexing, system, zarray
 
 FILTER_DTYPE = np.float16
 NINE_CHANNEL_DIR = "coppafisher.setup"
@@ -140,6 +140,7 @@ def run_filter(
         * np.hanning(psf.shape[1]).reshape(1, -1, 1)
         * np.hanning(psf.shape[2]).reshape(1, 1, -1)
     )
+    psf = dimensions.DimensionReducer().reduce(psf)
     nbp_debug.psf = psf
 
     batch_size: int | None = config["num_cores"]
@@ -150,6 +151,7 @@ def run_filter(
 
     current_process = psutil.Process()
     subproc_before = set([p.pid for p in current_process.children(recursive=True)])
+    image_reducer = dimensions.DimensionReducer()
 
     for batch_i in tqdm.trange(batch_count, desc="Filtering extract images", unit="batch"):
         index_min, index_max = batch_i * batch_size, min((batch_i + 1) * batch_size, len(indices))
@@ -177,6 +179,7 @@ def run_filter(
             elif dapi_radius_norm is not None and c == nbp_basic.dapi_channel:
                 image = radius_normalisation.radius_normalise_image(image, dapi_radius_norm)
 
+            image = image_reducer.reduce(image)
             batch_images.append(image)
             batch_trcs.append((t, r, c))
             del image
@@ -194,6 +197,7 @@ def run_filter(
         for filtered_image, (t, r, c) in zip(filtered_images, batch_trcs, strict=True):
             # All images are deconvolved, including the DAPI.
             filtered_image = filtered_image.astype(FILTER_DTYPE)
+            filtered_image = image_reducer.undo(filtered_image)
             images[t, r, c] = filtered_image
             completed_indices["a"].append((t, r, c))
             dict_io.save_dict(completed_indices, completed_indices_path)

@@ -14,19 +14,19 @@ def compare_spots(
     """
     Compare two collections of spots and assign each spot in the 0 collection either true positive, wrong positive,
     false positive. If a spot in collection 0 is matched to a spot in collection 1 if close together and of the same
-    gene index, then this spot is a true positive. Any remaining spots are matched to close together spots in
-    collection 1 also left unmatched and assigned as wrong positives. Remaining spots in collection 0 are false
-    positives. If there are still unassigned spots in collection 1, these add to the false negative count. When
-    multiple matches are found, the matched spots are the ones appearing first in the arrays for deterministic
-    results. Collection 1 acts as the ground truth dataset.
+    gene index, then this spot is a true positive. Any remaining spots are matched to close together spots in collection
+    1 also left unmatched and assigned as wrong positives. Remaining spots in collection 0 are false positives. If there
+    are still unassigned spots in collection 1, these add to the false negative count. When multiple matches are found,
+    the matched spots are the ones appearing first in the arrays for deterministic results. Collection 1 acts as the
+    ground truth dataset.
 
     Args:
-        - (`(n_spots_0 x 3) ndarray[float]`) spot_positions_0: spot collection 0 positions. spot_positions_0[i] is the
-            ith spot's y, x, and z position.
-        - (`(n_spots_0) ndarray[int]`) spot_gene_indices_0: spot gene indices.
-        - (`(n_spots_1 x 3) ndarray[float]`) spot_positions_1: spot collection 1 positions.
-        - (`(n_spots_1) ndarray[int]`) spot_gene_indices_1: spot collection 1 gene indices.
-        - (float) distance_threshold: spot's are matched if their distance is no greater than distance_threshold.
+        spot_positions_0 (`(n_spots_0 x 3) ndarray[float]`): spot collection 0 positions. spot_positions_0[i] is the ith
+            spot's y, x, and z position.
+        spot_gene_indices_0 (`(n_spots_0) ndarray[int]`): spot gene indices.
+        spot_positions_1 (`(n_spots_1 x 3) ndarray[float]`): spot collection 1 positions.
+        spot_gene_indices_1 (`(n_spots_1) ndarray[int]`): spot collection 1 gene indices.
+        distance_threshold (float): spot's are matched if their distance is no greater than distance_threshold.
 
     Returns:
         - spot_assignments (`(n_spots_0) ndarray[int8]): each collection 0 spot is given a label. 0 represents a true
