@@ -12,6 +12,7 @@ from tqdm import tqdm
 
 from .. import log
 from ..register import preprocessing
+from ..utils import dimensions
 from ..utils import system as utils_system
 
 
@@ -178,14 +179,31 @@ def optical_flow_single(
     if n_cores is None:
         n_cores = utils_system.get_core_count()
     log.debug(f"Computing optical flow using {n_cores} cores")
+    dim_reducer = dimensions.DimensionReducer()
     flow_sub = joblib.Parallel(n_jobs=n_cores, timeout=45 * 60)(
         joblib.delayed(skimage.registration.optical_flow_ilk)(
-            target_sub[n], base_sub[n], radius=window_radius, prefilter=True
+            dim_reducer.reduce(target_sub[n]), dim_reducer.reduce(base_sub[n]), radius=window_radius, prefilter=True
         )
         for n in range(pos.shape[0])
     )
     # Convert list to numpy array with shape (n_subvols, 3, n_y, n_x, n_z).
     flow_sub = np.array(flow_sub)
+    if flow_sub.ndim == 4:
+        flow_sub = np.concat(
+            (
+                flow_sub,
+                np.zeros(
+                    (
+                        flow_sub.shape[0],
+                        1,
+                    )
+                    + flow_sub.shape[2:],
+                    flow_sub.dtype,
+                ),
+            ),
+            1,
+        )
+        flow_sub = flow_sub[..., np.newaxis]
 
     # Now that we have the optical flow for each subvolume, we need to merge them back together
     flow = np.array(

@@ -4,6 +4,7 @@ import tempfile
 from pathlib import PurePath
 
 import numpy as np
+import pytest
 import zarr
 
 from coppafisher import utils
@@ -106,20 +107,14 @@ def test_Notebook() -> None:
     n = rng.randint(200, size=(7, 8), dtype=np.uint32)
 
     nb_page.a = a
-    try:
+    with pytest.raises(PageTypeError):
         nb_page.b = 5
-        raise AssertionError("Should not be able to set a float type to an int")
-    except PageTypeError:
-        pass
     nb_page.b = b
     nb_page.c = c
-    try:
+    with pytest.raises(PageTypeError):
         nb_page.d = (5, "4", True)
         nb_page.d = (5, "4")
         nb_page.d = (5, 0.5)
-        raise AssertionError("Should not be able to set a tuple[int] type like this")
-    except PageTypeError:
-        pass
     nb_page.d = tuple()
     del nb_page.d
     nb_page.d = d
@@ -132,48 +127,27 @@ def test_Notebook() -> None:
     del nb_page.h
     nb_page.h = h
     nb_page.i = i
-    try:
+    with pytest.raises(PageTypeError):
         nb_page.j = np.zeros(10, dtype=int)
-        raise AssertionError("Should not be able to set a ndarray[float] type like this")
-    except PageTypeError:
-        pass
-    try:
+    with pytest.raises(PageTypeError):
         nb_page.j = np.zeros(10, dtype=bool)
-        raise AssertionError("Should not be able to set a ndarray[float] type like this")
-    except PageTypeError:
-        pass
     nb_page.j = j
-    try:
+    with pytest.raises(PageTypeError):
         nb_page.k = np.zeros(10, dtype=np.float32)
-        raise AssertionError("Should not be able to set a ndarray[int] type like this")
-    except PageTypeError:
-        pass
-    try:
+    with pytest.raises(PageTypeError):
         nb_page.k = zarr.array(np.ones(10))
-        raise AssertionError("Should not be able to set a ndarray[int] type to zarray")
-    except PageTypeError:
-        pass
-    try:
+    with pytest.raises(PageTypeError):
         nb_page.k = np.zeros(10, dtype=bool)
-        raise AssertionError("Should not be able to set a ndarray[int] type like this")
-    except PageTypeError:
-        pass
-    try:
+    with pytest.raises(PageTypeError):
         nb_page.k = False
-        raise AssertionError("Should not be able to set a ndarray[int] type like this")
-    except PageTypeError:
-        pass
     nb_page.k = k
     nb_page.l = l
 
     nb_page.m = m
     nb_page.n = n
 
-    try:
+    with pytest.raises(ValueError):
         nb += nb_page
-        raise AssertionError("Should crash when adding an unfinished notebook page")
-    except ValueError:
-        pass
 
     temp_zarr = tempfile.TemporaryDirectory()
     array_saved = np.zeros((4, 8), dtype=np.float32)
@@ -189,11 +163,8 @@ def test_Notebook() -> None:
     assert len(nb_page.get_unset_variables()) == 3
     assert nb_page.name == "debug"
 
-    try:
+    with pytest.raises(ValueError):
         nb += nb_page
-        raise AssertionError("Should not be able to add an unfinished page to the notebook")
-    except ValueError:
-        pass
 
     temp_zgroup = tempfile.TemporaryDirectory()
     group = zarr.group(store=temp_zgroup.name, zarr_version=2)
@@ -210,11 +181,8 @@ def test_Notebook() -> None:
     zip_group.create_group("subgroup")
     store.close()
 
-    try:
+    with pytest.raises(PageTypeError):
         nb_page.p = zip_group
-        raise AssertionError("Expected PageTypeError when ZipStore is assigned to DirectoryStore group.")
-    except PageTypeError:
-        pass
 
     nb_page.q = zip_group
 
@@ -238,16 +206,10 @@ def test_Notebook() -> None:
     assert not nb.has_pages(["debug", "filter"])
     assert not nb.has_pages(["filter", "debug"])
 
-    try:
+    with pytest.raises(TypeError):
         nb.fake_variable = 4
-        raise AssertionError("Should not be able to add integer variables to the notebook")
-    except TypeError:
-        pass
-    try:
+    with pytest.raises(ValueError):
         nb += nb_page
-        raise AssertionError("Should not be able to add the same page twice")
-    except ValueError:
-        pass
 
     _ = nb > "debug"
     _ = nb_page > "o"
