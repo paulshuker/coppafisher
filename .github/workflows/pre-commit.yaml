@@ -28,5 +28,4 @@ jobs:
 
       - name: Check pre-commit hooks
         run: |
-          pre-commit autoupdate
           pre-commit run --all-files --show-diff-on-failure
