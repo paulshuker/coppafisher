@@ -1,6 +1,6 @@
 2025/MM/DD Version 2 (v2.0.0):
  * General: 2d data is now supported.
- * Viewer: Z thickness slider breaks when there is one z plane fix.
+ * Viewer: Z thickness slider breaks when there is only one z plane fix.
 
 
 2025/11/28 Version 1.10 Patch (v1.10.2):

@@ -143,7 +143,6 @@ class Config:
             "anchor_channel": ("maybe_int", "not-negative"),
             "dapi_channel": ("maybe_int", "not-negative"),
             "dye_names": ("tuple_str", "tuple-not-empty"),
-            "is_3d": ("bool", ""),
             "bad_trc": ("maybe_tuple_int", "tuple-len-multiple-3"),
             "reverse_tile_positions_x": ("bool", ""),
             "reverse_tile_positions_y": ("bool", ""),

@@ -1,10 +1,10 @@
 ## __Coppafisher__
 
 Coppafisher is an open source data analysis Python package for COmbinatorial Padlock-Probe-Amplified Fluorescence In
-Situ Hybridization (coppafish) datasets. A series of 3D microscope images are arranged into tiles, rounds and channels.
-For each sequencing round, every wanted gene spot is fluoresced by a dye. By the end of all rounds, each gene has a
-unique, barcode-like sequence of dyes called the gene code. Coppafisher is a data analysis pipeline to assign genes to
-spots by their gene codes in 3D.
+Situ Hybridization (coppafish) datasets. A series of 2D or 3D microscope images are arranged into tiles, rounds and
+channels. For each sequencing round, every wanted gene spot is fluoresced by a dye. By the end of all rounds, each gene
+has a unique, barcode-like sequence of dyes called the gene code. Coppafisher is a data analysis pipeline to assign
+genes to spots based on their gene codes.
 
 <div class="grid cards no-format" markdown>
 
@@ -28,7 +28,7 @@ vocabulary might be unfamiliar, please see the [glossary](glossary.md) for refer
 
 ### Prerequisites
 
-* Windows or Linux. MacOS is not tested.
+* Windows or Linux (Linux is recommended). MacOS is not tested.
 * Python 3.11 or 3.12.
 * [Git](https://git-scm.com/).
 * 64GB of memory for tile sizes ~`64x2048x2048` pixels (recommended).

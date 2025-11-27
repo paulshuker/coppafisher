@@ -580,7 +580,6 @@ class Robominnie:
         psf = {self.psf_filepath}
 
         [basic_info]
-        is_3d = true
         bad_trc = {", ".join([f"{bad_trc[0]}, {bad_trc[1]}, {bad_trc[2]}" for bad_trc in bad_trcs])}
         dye_names = {", ".join(self.dye_names)}
         use_rounds = {", ".join([str(i) for i in range(self.n_rounds)])}
