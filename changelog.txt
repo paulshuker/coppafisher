@@ -1,5 +1,7 @@
 2025/MM/DD Version 2 (v2.0.0):
  * General: 2d data is now supported.
+ * General: Removed redundant is_3d config parameter in basic_info.
+ * General: Removed redundant use_anchor config parameter in basic_info.
  * Viewer: Z thickness slider breaks when there is only one z plane fix.
 
 

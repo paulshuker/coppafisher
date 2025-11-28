@@ -138,7 +138,6 @@ class Config:
             "use_channels": ("maybe_tuple_int", "tuple-not-empty"),
             "use_z": ("maybe_tuple_int", "tuple-not-empty"),
             "use_dyes": ("maybe_tuple_int", "tuple-not-empty"),
-            "use_anchor": ("bool", ""),
             "anchor_round": ("maybe_int", "not-negative"),
             "anchor_channel": ("maybe_int", "not-negative"),
             "dapi_channel": ("maybe_int", "not-negative"),

@@ -192,7 +192,7 @@ class NotebookPage:
             ],
             "use_anchor": [
                 "bool",
-                "whether or not to use anchor",
+                "Whether or not to use anchor. This variable is legacy",
             ],
             "bad_trc": [
                 "tuple[tuple[int]] or none",

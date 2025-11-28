@@ -69,7 +69,7 @@ def find_spots(
 
     # Define use_indices as a [n_tiles x n_rounds x n_channels] boolean array where use_indices[t, r, c] is True if
     # we want to find spots on said tile `t`, round `r`, channel `c`.
-    use_indices = np.zeros((nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.use_anchor, nbp_basic.n_channels), bool)
+    use_indices = np.zeros((nbp_basic.n_tiles, nbp_basic.n_rounds + 1, nbp_basic.n_channels), bool)
     n_skipped_images = 0
     for t, r, c in indexing.create(
         nbp_basic,

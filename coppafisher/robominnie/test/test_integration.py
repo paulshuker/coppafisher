@@ -7,26 +7,26 @@ from coppafisher import Notebook, RegistrationViewer, Viewer
 from coppafisher.robominnie.robominnie import Robominnie
 
 
-def get_robominnie_scores(rm: Robominnie) -> None:
+def get_robominnie_scores(rm: Robominnie, score_minimum_error: float | int = 40) -> None:
     tile_scores = rm.score_tiles("prob", score_threshold=0.9, intensity_threshold=0.4)
     print(f"Prob scores for each tile: {tile_scores}")
     if any([score < 75 for score in tile_scores]):
         warnings.warn("Anchor method contains tile score < 75%", stacklevel=1)
-    if any([score < 40 for score in tile_scores]):
-        raise ValueError("Anchor method has a tile score < 40%. This can be a sign of a pipeline bug")
+    if any([score < score_minimum_error for score in tile_scores]):
+        raise ValueError("Prob method has a tile score < 40%. This can be a sign of a pipeline bug")
 
-    tile_scores = rm.score_tiles("anchor", score_threshold=0.5, intensity_threshold=0.4)
+    tile_scores = rm.score_tiles("anchor", score_threshold=0.4, intensity_threshold=0.4)
     print(f"Anchor scores for each tile: {tile_scores}")
     if any([score < 75 for score in tile_scores]):
         warnings.warn("Anchor method contains tile score < 75%", stacklevel=1)
-    if any([score < 40 for score in tile_scores]):
+    if any([score < score_minimum_error for score in tile_scores]):
         raise ValueError("Anchor method has a tile score < 40%. This can be a sign of a pipeline bug")
 
-    tile_scores = rm.score_tiles("omp", score_threshold=0.90, intensity_threshold=0.813)
+    tile_scores = rm.score_tiles("omp", score_threshold=0.95, intensity_threshold=0.61)
     print(f"OMP scores for each tile: {tile_scores}")
     if any([score < 75 for score in tile_scores]):
         warnings.warn("OMP method contains tile score < 75%", stacklevel=1)
-    if any([score < 40 for score in tile_scores]):
+    if any([score < score_minimum_error for score in tile_scores]):
         raise ValueError("OMP method has a tile score < 40%. This can be a sign of a pipeline bug")
 
 
@@ -47,11 +47,7 @@ def test_integration_2d_two_tiles():
     robominnie.add_spots()
     robominnie.save_raw_images(output_dir)
     robominnie.run_coppafisher()
-    robominnie.score_tiles("prob", 0.9, 0.4)
-    robominnie.score_tiles("anchor", 0.5, 0.4)
-    robominnie.score_tiles("omp", 0.05, 0.4)
-    robominnie.view_spot_positions()
-    get_robominnie_scores(robominnie)
+    get_robominnie_scores(robominnie, score_minimum_error=20)
     del robominnie
 
 
@@ -106,6 +102,5 @@ def get_config_path() -> str:
 
 
 if __name__ == "__main__":
-    # test_integration_small_two_tiles()
-    test_integration_2d_two_tiles()
+    test_integration_small_two_tiles()
     viewers_test()

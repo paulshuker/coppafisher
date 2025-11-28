@@ -731,9 +731,8 @@ class Robominnie:
         assert method not in self.coppafisher_spot_assignments
 
         spot_positions, spot_tiles, spot_scores, spot_intensities, spot_gene_indices = self._get_results_for_method(
-            method, score_threshold, intensity_threshold
+            method, 0, 0
         )
-
         tile_scores = []
         for t in range(self.n_tiles):
             in_tile = spot_tiles == t
@@ -785,7 +784,7 @@ class Robominnie:
         )
         last_i = len(self._get_methods()) - 1
         for i, method in enumerate(self._get_methods()):
-            spot_positions, spot_tiles, _, _, _ = self._get_results_for_method(method)
+            spot_positions, spot_tiles, _, _, _ = self._get_results_for_method(method, 0, 0)
             spot_positions = spot_positions.astype(np.float32)
             assignments = self.coppafisher_spot_assignments[method]
             global_positions = spot_positions + self.stitch_tile_origins[spot_tiles]

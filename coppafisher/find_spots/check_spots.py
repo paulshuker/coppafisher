@@ -107,24 +107,23 @@ def check_n_spots(nb: Notebook) -> None:
             f"{n_images_error}.\nConsider removing these from use_rounds."
         )
 
-    # Consider anchor
-    if nb.basic_info.use_anchor:
-        spot_no = nb.find_spots.spot_no[use_tiles, nb.basic_info.anchor_round, nb.basic_info.anchor_channel]
-        n_images = len(use_tiles)
-        n_images_error = int(np.floor(n_images * config["n_spots_error_fraction"]))
-        bad_images = np.where(spot_no < n_spots_warn)[0]
-        n_bad_images = len(bad_images)
-        if n_bad_images > 0:
-            bad_images = use_tiles[bad_images]
-            log.warn(f"\nAnchor - {n_bad_images} tiles with n_spots < {n_spots_warn}:\n" f"{bad_images}")
+    # Consider anchor.
+    spot_no = nb.find_spots.spot_no[use_tiles, nb.basic_info.anchor_round, nb.basic_info.anchor_channel]
+    n_images = len(use_tiles)
+    n_images_error = int(np.floor(n_images * config["n_spots_error_fraction"]))
+    bad_images = np.where(spot_no < n_spots_warn)[0]
+    n_bad_images = len(bad_images)
+    if n_bad_images > 0:
+        bad_images = use_tiles[bad_images]
+        log.warn(f"\nAnchor - {n_bad_images} tiles with n_spots < {n_spots_warn}:\n" f"{bad_images}")
 
-        if n_bad_images > n_images_error:
-            error_message = (
-                error_message + f"\nAnchor - tiles {bad_images} all had n_spots < {n_spots_warn}. "
-                f"{n_bad_images}/{n_images} tiles failed which is more than the "
-                f"error threshold of {n_images_error}.\n"
-                f"Consider removing these tiles from use_tiles."
-            )
+    if n_bad_images > n_images_error:
+        error_message = (
+            error_message + f"\nAnchor - tiles {bad_images} all had n_spots < {n_spots_warn}. "
+            f"{n_bad_images}/{n_images} tiles failed which is more than the "
+            f"error threshold of {n_images_error}.\n"
+            f"Consider removing these tiles from use_tiles."
+        )
 
     if len(error_message) == 0:
         return

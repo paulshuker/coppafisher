@@ -48,11 +48,7 @@ def create(
     seq_rounds = list(nbp_basic.use_rounds)
     seq_channels = list(nbp_basic.use_channels)
     all_tiles = sorted([t for t in nbp_basic.use_tiles])
-    all_rounds = [
-        r
-        for r in include_seq_rounds * seq_rounds
-        + nbp_basic.use_anchor * include_anchor_round * [nbp_basic.anchor_round]
-    ]
+    all_rounds = [r for r in include_seq_rounds * seq_rounds + include_anchor_round * [nbp_basic.anchor_round]]
     all_rounds = sorted(all_rounds)
     all_channels = [c for c in seq_channels]
     if (include_dapi_anchor or include_dapi_seq) and nbp_basic.dapi_channel is not None:
