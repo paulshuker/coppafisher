@@ -1,3 +1,10 @@
+2025/MM/DD Version 2 (v2.0.0):
+ * General: 2d data is now supported.
+ * General: Removed redundant is_3d config parameter in basic_info.
+ * General: Removed redundant use_anchor config parameter in basic_info.
+ * Viewer: Z thickness slider breaks when there is only one z plane fix.
+
+
 2025/11/28 Version 1.10 Patch (v1.10.2):
  * General: Excluded round(s) in config causes crashes fix.
  * Export: Fused custom or dapi images could contain infinite/nan values during custom alignment fix.

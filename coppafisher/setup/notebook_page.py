@@ -124,10 +124,6 @@ class NotebookPage:
                 + "gene appears with `dye_names[3]` in round $0$, `dye_names[6]` in round $1$, `dye_names[0]`"
                 + " in round $2$ etc. `none` if each channel corresponds to a different dye.",
             ],
-            "is_3d": [
-                "bool",
-                "`True` if *3D* pipeline used, `False` if *2D*",
-            ],
             "channel_camera": [
                 "ndarray[int]",
                 "`channel_camera[i]` is the wavelength in *nm* of the camera on channel $i$."
@@ -196,7 +192,7 @@ class NotebookPage:
             ],
             "use_anchor": [
                 "bool",
-                "whether or not to use anchor",
+                "Whether or not to use anchor. This variable is legacy",
             ],
             "bad_trc": [
                 "tuple[tuple[int]] or none",

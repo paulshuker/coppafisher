@@ -1068,7 +1068,7 @@ class Viewer:
 
     def _build_UI(self) -> None:
         min_yxz = np.array([0, 0, 0], np.float32)
-        max_yxz = np.array([self.nbp_basic.tile_sz, self.nbp_basic.tile_sz, max(self.nbp_basic.use_z)], np.float32)
+        max_yxz = np.array([self.nbp_basic.tile_sz, self.nbp_basic.tile_sz, max(self.nbp_basic.use_z) + 1], np.float32)
         max_score = 1.0
         max_intensity = 1.0
         for method in self.spot_data.keys():
@@ -1079,7 +1079,7 @@ class Viewer:
             if method_max_intensity > max_intensity:
                 max_intensity = method_max_intensity
             method_min_yxz = self.spot_data[method].yxz.min(0)
-            method_max_yxz = self.spot_data[method].yxz.max(0)
+            method_max_yxz = self.spot_data[method].yxz.max(0) + 1
             min_yxz = min_yxz.clip(max=method_min_yxz)
             max_yxz = max_yxz.clip(min=method_max_yxz)
 

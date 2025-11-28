@@ -18,6 +18,7 @@ from typing_extensions import Self
 from .. import log
 from ..omp import base as omp_base
 from ..pipeline import run
+from ..results.base import MethodData
 from ..setup.notebook import Notebook
 from ..utils import base as utils_base
 from ..utils import errors as utils_errors
@@ -71,24 +72,24 @@ class Robominnie:
         Create an empty Robominnie instance to begin generating synthetic data for coppafisher.
 
         Args:
-            n_channels (int): the number of sequencing channels. Default: 5.
-            n_rounds (int): the number of sequencing rounds. Default: 7.
-            n_planes (int): the number of z planes. Default: 4.
-            tile_sz (int): the number of pixels along x/y directions for a single tile. Default: 128.
-            n_tiles_x (int): the number of tiles along the x direction. Default: 1.
-            n_tiles_y (int): the number of tiles along the y direction. Default: 2.
-            include_anchor (bool): include the anchor round and channel. Default: true.
-            include_dapi (bool): include the dapi channel. Default: true.
-            tile_overlap (float): the proportion of tile overlap in the x/y directions relative to the tile sizes.
-                Default: 1/8 == 0.125.
-            seed (int or none): the random generation seed. None to use a random seed every time. Default: 1.
+            n_channels (int, optional): the number of sequencing channels. Default: 5.
+            n_rounds (int, optional): the number of sequencing rounds. Default: 7.
+            n_planes (int, optional): the number of z planes. Default: 4.
+            tile_sz (int, optional): the number of pixels along x/y directions for a single tile. Default: 128.
+            n_tiles_x (int, optional): the number of tiles along the x direction. Default: 1.
+            n_tiles_y (int, optional): the number of tiles along the y direction. Default: 2.
+            include_anchor (bool, optional): include the anchor round and channel. Default: true.
+            include_dapi (bool, optional): include the dapi channel. Default: true.
+            tile_overlap (float, optional): the proportion of tile overlap in the x/y directions relative to the tile
+                sizes. Default: 1/8 == 0.125.
+            seed (int or none, optional): the random generation seed. None to use a random seed every time. Default: 1.
         """
         assert type(n_channels) is int
         assert n_channels > 1
         assert type(n_rounds) is int
         assert n_rounds > 1
         assert type(n_planes) is int
-        assert n_planes >= 4
+        assert n_planes >= 1
         assert type(tile_sz) is int
         assert tile_sz > 0
         assert type(n_tiles_x) is int
@@ -548,7 +549,10 @@ class Robominnie:
         mid_y: int = self.psf.shape[1] // 2
         mid_x: int = self.psf.shape[2] // 2
         if self.psf.shape[0] > self.n_planes:
-            self.psf = self.psf[mid_z - self.n_planes // 2 : mid_z + self.n_planes // 2]
+            if self.n_planes > 1:
+                self.psf = self.psf[mid_z - self.n_planes // 2 : mid_z + self.n_planes // 2]
+            else:
+                self.psf = self.psf[[mid_z]]
         if self.psf.shape[1] > self.tile_sz:
             self.psf = self.psf[:, mid_y - self.tile_sz // 2 : mid_y + self.tile_sz // 2]
         if self.psf.shape[2] > self.tile_sz:
@@ -576,7 +580,6 @@ class Robominnie:
         psf = {self.psf_filepath}
 
         [basic_info]
-        is_3d = true
         bad_trc = {", ".join([f"{bad_trc[0]}, {bad_trc[1]}, {bad_trc[2]}" for bad_trc in bad_trcs])}
         dye_names = {", ".join(self.dye_names)}
         use_rounds = {", ".join([str(i) for i in range(self.n_rounds)])}
@@ -704,6 +707,7 @@ class Robominnie:
         if self.omp_spot_count == 0:
             raise ValueError("Coppafisher OMP found zero spots")
 
+        self._nb = nb
         return nb
 
     def score_tiles(self, method: str, score_threshold: float = 0.0, intensity_threshold: float = 0.0) -> Tuple[float]:
@@ -714,8 +718,9 @@ class Robominnie:
         issue. See `coppafisher/utils/errors.py` `compare_spots` function for details on how the scoring is computed.
 
         Args:
-            - method (str): the method to compute for the score for. Can be 'OMP', 'anchor', or 'prob'.
-            - score_threshold (float, optional): score threshold for spots being selected. Default: 0.
+            method (str): the method to compute for the score for. Can be 'OMP', 'anchor', or 'prob'.
+            score_threshold (float, optional): score threshold for spots being selected. Default: 0.
+            intensity_threshold (float, optional): intensity threshold for spots being selected. Default: 0.
 
         Returns:
             (tuple of length `n_tiles`) overall_scores: each tile's overall score. The scores range from 0 to 100.
@@ -726,16 +731,15 @@ class Robominnie:
         assert method not in self.coppafisher_spot_assignments
 
         spot_positions, spot_tiles, spot_scores, spot_intensities, spot_gene_indices = self._get_results_for_method(
-            method
+            method, 0, 0
         )
-
         tile_scores = []
         for t in range(self.n_tiles):
             in_tile = spot_tiles == t
             within_score_threshold = spot_scores >= score_threshold
             within_intensity_threshold = spot_intensities >= intensity_threshold
             keep = in_tile & within_score_threshold & within_intensity_threshold
-            t_spot_positions = spot_positions[keep]
+            t_spot_positions = spot_positions[keep].astype(np.float32)
             t_spot_gene_indices = spot_gene_indices[keep]
             # Cut out spot positions near the edge where there could be tile overlap.
             in_bound = self._is_not_overlapping(t_spot_positions)
@@ -774,12 +778,14 @@ class Robominnie:
         true_spot_colour = "green"
         size = 4
         viewer = napari.Viewer()
+        viewer.add_image(np.zeros((1, 1, max(self._nb.basic_info.use_z) + 1), np.float16))
         viewer.add_points(
             self._get_all_non_overlapping_true_results()[0], name="True", face_color=true_spot_colour, size=size
         )
         last_i = len(self._get_methods()) - 1
         for i, method in enumerate(self._get_methods()):
-            spot_positions, spot_tiles, _, _, _ = self._get_results_for_method(method)
+            spot_positions, spot_tiles, _, _, _ = self._get_results_for_method(method, 0, 0)
+            spot_positions = spot_positions.astype(np.float32)
             assignments = self.coppafisher_spot_assignments[method]
             global_positions = spot_positions + self.stitch_tile_origins[spot_tiles]
             global_positions += np.array(self.image_padding, np.float32)[np.newaxis]
@@ -803,6 +809,7 @@ class Robominnie:
             viewer.add_points(
                 global_positions[is_false_positive],
                 name=method.capitalize() + " False Positives",
+                ndim=3,
                 face_color=colours[2],
                 visible=i == last_i,
                 size=size,
@@ -906,7 +913,7 @@ class Robominnie:
 
         return not_overlapping
 
-    def _get_all_non_overlapping_true_results(self) -> Tuple[np.ndarray]:
+    def _get_all_non_overlapping_true_results(self) -> Tuple[np.ndarray, np.ndarray]:
         true_positions = np.zeros((0, 3), np.float32)
         true_gene_numbers = np.zeros(0, np.int16)
         for t in range(self.n_tiles):
@@ -929,27 +936,16 @@ class Robominnie:
 
         return t_truth_positions, t_truth_gene_indices
 
-    def _get_results_for_method(self, method: str) -> Tuple[np.ndarray]:
-        if method == "prob":
-            spot_positions = self.prob_spots_positions
-            spot_tiles = self.prob_spots_tile
-            spot_scores = self.prob_spots_scores
-            spot_intensities = self.prob_spots_intensities
-            spot_gene_indices = self.prob_spots_gene_indices
-        elif method == "anchor":
-            spot_positions = self.ref_spots_local_positions_yxz
-            spot_tiles = self.ref_spots_tile
-            spot_scores = self.ref_spots_scores
-            spot_intensities = self.ref_spots_intensities
-            spot_gene_indices = self.ref_spots_gene_indices
-        elif method == "omp":
-            spot_positions = self.omp_spot_local_positions
-            spot_tiles = self.omp_tile_number
-            spot_scores = self.omp_spot_scores
-            spot_intensities = self.omp_spot_intensities
-            spot_gene_indices = self.omp_gene_numbers
+    def _get_results_for_method(
+        self, method: str, score_threshold: float, intensity_threshold: float
+    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        data = MethodData(
+            method, self._nb.basic_info, self._nb.stitch, self._nb.ref_spots, self._nb.call_spots, self._nb.omp
+        )
+        data.remove_data_at(data.score < score_threshold)
+        data.remove_data_at(data.intensity < intensity_threshold)
 
-        return spot_positions, spot_tiles, spot_scores, spot_intensities, spot_gene_indices
+        return data.local_yxz, data.tile, data.score, data.intensity, data.gene_no
 
-    def _get_methods(self) -> Tuple[str]:
+    def _get_methods(self) -> Tuple[str, ...]:
         return ("prob", "anchor", "omp")

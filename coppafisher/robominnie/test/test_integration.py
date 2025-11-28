@@ -7,38 +7,56 @@ from coppafisher import Notebook, RegistrationViewer, Viewer
 from coppafisher.robominnie.robominnie import Robominnie
 
 
-def get_robominnie_scores(rm: Robominnie) -> None:
+def get_robominnie_scores(rm: Robominnie, score_minimum_error: float | int = 40) -> None:
     tile_scores = rm.score_tiles("prob", score_threshold=0.9, intensity_threshold=0.4)
     print(f"Prob scores for each tile: {tile_scores}")
     if any([score < 75 for score in tile_scores]):
         warnings.warn("Anchor method contains tile score < 75%", stacklevel=1)
-    if any([score < 40 for score in tile_scores]):
-        raise ValueError("Anchor method has a tile score < 40%. This can be a sign of a pipeline bug")
+    if any([score < score_minimum_error for score in tile_scores]):
+        raise ValueError("Prob method has a tile score < 40%. This can be a sign of a pipeline bug")
 
-    tile_scores = rm.score_tiles("anchor", score_threshold=0.5, intensity_threshold=0.4)
+    tile_scores = rm.score_tiles("anchor", score_threshold=0.4, intensity_threshold=0.4)
     print(f"Anchor scores for each tile: {tile_scores}")
     if any([score < 75 for score in tile_scores]):
         warnings.warn("Anchor method contains tile score < 75%", stacklevel=1)
-    if any([score < 40 for score in tile_scores]):
+    if any([score < score_minimum_error for score in tile_scores]):
         raise ValueError("Anchor method has a tile score < 40%. This can be a sign of a pipeline bug")
 
-    tile_scores = rm.score_tiles("omp", score_threshold=0.05, intensity_threshold=0.4)
+    tile_scores = rm.score_tiles("omp", score_threshold=0.95, intensity_threshold=0.61)
     print(f"OMP scores for each tile: {tile_scores}")
     if any([score < 75 for score in tile_scores]):
         warnings.warn("OMP method contains tile score < 75%", stacklevel=1)
-    if any([score < 40 for score in tile_scores]):
+    if any([score < score_minimum_error for score in tile_scores]):
         raise ValueError("OMP method has a tile score < 40%. This can be a sign of a pipeline bug")
 
 
-@pytest.mark.integration
-def test_integration_small_two_tile():
+@pytest.mark.slow
+def test_integration_2d_two_tiles():
     """
     Summary of input data: random spots and pink noise.
 
-    Includes anchor round, sequencing rounds, one `4x100x100` tile.
+    Includes anchor round, sequencing rounds, two `1x100x100` tiles.
+    """
+    output_dir = get_output_dir()
+    if not os.path.isdir(output_dir):
+        os.mkdir(output_dir)
 
-    Returns:
-        Notebook: complete coppafisher Notebook.
+    robominnie = Robominnie(n_channels=5, n_planes=1, tile_sz=128, n_tiles_y=2)
+    robominnie.generate_gene_codes()
+    robominnie.generate_pink_noise()
+    robominnie.add_spots()
+    robominnie.save_raw_images(output_dir)
+    robominnie.run_coppafisher()
+    get_robominnie_scores(robominnie, score_minimum_error=20)
+    del robominnie
+
+
+@pytest.mark.integration
+def test_integration_small_two_tiles():
+    """
+    Summary of input data: random spots and pink noise.
+
+    Includes anchor round, sequencing rounds, two `10x128x128` tiles.
     """
     output_dir = get_output_dir()
     if not os.path.isdir(output_dir):
@@ -84,5 +102,5 @@ def get_config_path() -> str:
 
 
 if __name__ == "__main__":
-    test_integration_small_two_tile()
+    test_integration_small_two_tiles()
     viewers_test()

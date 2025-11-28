@@ -30,7 +30,6 @@ def test_raw_numpy() -> None:
         dask.array.to_npy_stack(r_dir, image_dask)
 
     nbp_basic = NotebookPage("basic_info")
-    nbp_basic.use_anchor = True
     nbp_basic.tilepos_yx = np.array([[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]], int)
     nbp_basic.tilepos_yx_nd2 = np.array([[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2]], int)
 
@@ -40,7 +39,6 @@ def test_raw_numpy() -> None:
     nbp_file.anchor = "anchor"
     nbp_file.raw_extension = ".npy"
 
-    # This refers to tile index 2 in the raw file tile ordering.
     tile = 1
     round = 2
     channels = [0, 1]
@@ -54,7 +52,7 @@ def test_raw_numpy() -> None:
     assert image.shape == (len(channels), im_y, im_x, im_z)
     for c_i, c in enumerate(channels):
         for z in range(5):
-            assert (image[c_i, :, :, z] == all_data[2, round, c, :, :, z]).all()
+            assert (image[c_i, :, :, z] == all_data[tile, round, c, :, :, z]).all()
 
     channels = [1, 0, 4]
     reader = raw_numpy.NumpyReader()
@@ -65,6 +63,6 @@ def test_raw_numpy() -> None:
     assert image.shape == (len(channels), im_y, im_x, im_z)
     for c_i, c in enumerate(channels):
         for z in range(5):
-            assert (image[c_i, :, :, z] == all_data[2, round, c, :, :, z]).all()
+            assert (image[c_i, :, :, z] == all_data[tile, round, c, :, :, z]).all()
 
     npy_dir.cleanup()

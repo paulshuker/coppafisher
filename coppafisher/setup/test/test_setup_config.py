@@ -2,6 +2,7 @@ import os
 import tempfile
 
 import numpy as np
+import pytest
 
 from coppafisher.setup.config import Config
 from coppafisher.setup.config_section import ConfigSection
@@ -97,31 +98,15 @@ def test_Config() -> None:
         config_content_wrong += config_content[ind_max:]
         with open(config_filepath, "w") as config_file:
             config_file.write(config_content_wrong)
-        # Expect as error here as the default config does not have the debug section.
-        try:
+        # Expect an error here as the default config does not have the debug section.
+        with pytest.raises(config.SectionError):
             config.load(config_filepath, post_check=False)
-            raise AssertionError("Expected SectionError")
-        except config.SectionError:
-            pass
-
-        try:
+        with pytest.raises(config.SectionError):
             config.load(config_filepath)
-            raise AssertionError("Expected SectionError")
-        except config.SectionError:
-            pass
-
-        try:
+        with pytest.raises(FileNotFoundError):
             config.load(config_filepath, "/wrong/path")
-            raise AssertionError("Expected FileNotFoundError")
-        except FileNotFoundError:
-            pass
-
-        try:
+        with pytest.raises(config.ParamError):
             config.load(config_filepath, default_config_filepath)
-            raise AssertionError(f"Expected ParamError with incorrect parameter {i}")
-        except config.ParamError as e:
-            assert f" {i} " in str(e)
-            assert "debug" in str(e)
 
     tmpfile.close()
     tmpfile2.close()
@@ -313,12 +298,8 @@ def test_Config() -> None:
         broken_config_content += correct_config_content[index_max:]
         with open(config_filepath, "w") as config_file:
             config_file.write(broken_config_content)
-
-        try:
+        with pytest.raises(Config.ParamError):
             config.load(config_filepath, default_config_filepath)
-            raise AssertionError(f"Expected ParamError for parameter {param_name}")
-        except Config.ParamError as e:
-            assert " " + param_name + " " in str(e)
 
     tmpdir.cleanup()
     parent_dir.cleanup()

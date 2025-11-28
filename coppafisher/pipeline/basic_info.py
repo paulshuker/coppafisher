@@ -16,17 +16,16 @@ def set_basic_info(config: Config) -> NotebookPage:
     """
     Adds info from `'basic_info'` section of config file to notebook page.
 
-    To `basic_info` page, the following is also added:
-    `anchor_round`, `n_rounds`, `n_extra_rounds`, `n_tiles`, `n_channels`, `nz`, `tile_sz`, `tilepos_yx`,
-    `tilepos_yx_nd2`, `pixel_size_xy`, `pixel_size_z`, `tile_centre`, `use_anchor`.
+    To `basic_info` page, the following is also added: `anchor_round`, `n_rounds`, `n_extra_rounds`, `n_tiles`,
+    `n_channels`, `nz`, `tile_sz`, `tilepos_yx`, `tilepos_yx_nd2`, `pixel_size_xy`, `pixel_size_z`, `tile_centre`.
 
-    See `'basic_info'` sections of `notebook_comments.json` file
-    for description of the variables.
+    See `'basic_info'` sections of `notebook_comments.json` file for description of the variables.
 
     Args:
-        - `config` : `dict` - Config dictionary.
+        config (dict): the config class.
+
     Returns:
-        - `NotebookPage[basic_info]` - Page contains information that is used at all stages of the pipeline.
+        (NotebookPage): nbp_basic_info. Notebook page containing shared information used at all stages of the pipeline.
     """
     # Break the page contents up into 2 types, contents that must be read in from the config and those that can
     # be computed from the metadata.
@@ -70,7 +69,7 @@ def set_basic_info(config: Config) -> NotebookPage:
 
     # Stage 2: Read in page contents from config that cannot be computed from metadata.
     # the metadata. First few keys in the basic info page are only variables that the user can influence
-    for key, value in list(config_basic.items())[:12]:
+    for key, value in list(config_basic.items())[:10]:
         if key == "bad_trc" and value is not None:
             nbp.__setattr__(
                 key, tuple([(value[3 * i], value[3 * i + 1], value[3 * i + 2]) for i in range(len(value) // 3)])
@@ -94,18 +93,18 @@ def set_basic_info(config: Config) -> NotebookPage:
     # Unfortunately, this is just many if statements as all blank entries need to be handled differently.
     # Notebook doesn't allow us to reset a value once it has been set so must delete and reset.
 
+    # NOTE: use_anchor is a redundant variable, but removing it from the notebook will ruin backwards compatibility.
+    nbp.use_anchor = True
+
     # Next condition just says that if we are using the anchor and we don't specify the anchor round we will default it
-    # to the final round. Add an extra round for the anchor and reduce the number of non anchor rounds by 1.
-    if nbp.use_anchor:
-        # Tell software that extra round is just an extra round and reduce the number of rounds
-        nbp.n_extra_rounds = 1
-        if nbp.anchor_round is None:
-            del nbp.anchor_round
-            nbp.anchor_round = metadata["n_rounds"]
-        if nbp.anchor_channel is None:
-            raise ValueError("Need to provide an anchor channel if using anchor!")
-    else:
-        nbp.n_extra_rounds = 0
+    # to the final round. Add an extra round for the anchor and reduce the number of non anchor rounds by 1. Tell
+    # software that extra round is just an extra round and reduce the number of rounds
+    nbp.n_extra_rounds = 1
+    if nbp.anchor_round is None:
+        del nbp.anchor_round
+        nbp.anchor_round = metadata["n_rounds"]
+    if nbp.anchor_channel is None:
+        raise ValueError("Need to provide an anchor channel if using anchor!")
 
     # If no use_tiles given, default to all
     if nbp.use_tiles is None:

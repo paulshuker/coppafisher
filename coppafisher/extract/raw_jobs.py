@@ -47,11 +47,8 @@ class JobsReader(RawReader):
 
         # TODO: Combine all metadata from the jobs nd2 files.
         # Now deal with the case where files are split by laser.
-        if nbp_basic.use_anchor:
-            # Always have anchor after imaging rounds.
-            round_files = nbp_file.round + [nbp_file.anchor]
-        else:
-            round_files = nbp_file.round
+        # Always have anchor after imaging rounds.
+        round_files = nbp_file.round + [nbp_file.anchor]
 
         round_laser_dask_array = []
         # TODO: These big branches are awfully hard to read and bug prone.

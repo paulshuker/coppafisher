@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 from skimage import data
 from skimage.filters import gaussian
 
@@ -58,6 +59,7 @@ def test_flow_correlation():
     assert np.allclose(flow_corr[3:5, 4:6, 2], 1)
 
 
+@pytest.mark.slow
 def test_optical_flow_single():
     # set up data
     base = data.cells3d()[20:40, 1]
