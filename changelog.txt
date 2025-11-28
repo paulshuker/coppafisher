@@ -1,3 +1,8 @@
+2025/11/28 Version 1.10 Patch (v1.10.2):
+ * General: Excluded round(s) in config causes crashes fix.
+ * Export: Fused custom or dapi images could contain infinite/nan values during custom alignment fix.
+
+
 2025/11/10 Version 1.10 Patch (v1.10.1):
  * Viewer: Crash when placing dapi or anchor background image fix.
 
