@@ -191,10 +191,12 @@ def run_filter(
 
         deconvolution_method = skimage.restoration.wiener
         if not config["use_wiener_deconvolution"]:
-            deconvolution_method = lambda im, *_: im
+            deconvolution_method = lambda im, **_: im
 
         filtered_images = joblib.Parallel(n_jobs=len(batch_images), return_as="list", timeout=60 * 20)(
-            joblib.delayed(deconvolution_method)(batch_images.pop(0), psf, config["wiener_constant"], clip=False)
+            joblib.delayed(deconvolution_method)(
+                batch_images.pop(0), psf=psf, balance=config["wiener_constant"], clip=False
+            )
             for _ in range(len(batch_images))
         )
 
