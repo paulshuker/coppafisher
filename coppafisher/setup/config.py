@@ -185,6 +185,7 @@ class Config:
             "max_cores": ("maybe_int", "positive"),
             "channel_radius_normalisation_filepath": ("maybe_file", "str-not-empty"),
             "dapi_radius_normalisation_filepath": ("maybe_file", "str-not-empty"),
+            "use_wiener_deconvolution": ("bool", ""),
             "wiener_constant": ("number", "not-negative"),
         },
         "find_spots": {

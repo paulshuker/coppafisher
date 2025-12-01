@@ -3,6 +3,7 @@
  * General: Removed redundant is_3d config parameter in basic_info.
  * General: Removed redundant use_anchor config parameter in basic_info.
  * Viewer: Z thickness slider breaks when there is only one z plane fix.
+ * Filter: Deconvolution is now optional (default: turned on).
 
 
 2025/11/28 Version 1.10 Patch (v1.10.2):
