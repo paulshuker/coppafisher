@@ -40,6 +40,9 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
 
     log.debug("Extraction started")
 
+    if config["max_intensity_project"] and nbp_basic.use_z != [0]:
+        raise ValueError("Can only use `max_intensity_project = true` when `use_z = 0` in [basic_info]")
+
     raw_extension_readers: dict[str, RawReader] = {
         ".nd2": Nd2Reader(),
         ".npy": NumpyReader(),
@@ -102,6 +105,8 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
 
                 # Has shape (n_channels, im_y, im_x, im_z).
                 channel_images = reader.read(nbp_basic, nbp_file, t, r, raw_channel_inds)
+                if config["max_intensity_project"]:
+                    channel_images = channel_images.max(3, keepdims=True)
                 channel_images = channel_images[:, :, :, nbp_basic.use_z]
 
                 for im, c, file_path, file_exists in zip(

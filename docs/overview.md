@@ -8,10 +8,11 @@ full detail on each pipeline section, click on a stage on the left panel.
 
 All raw data is re-saved at the `tile_dir` in the `file_names` config section. Coppafisher does this to:
 
-* Compress data.
-* Remove unused tiles, rounds, and channels that may be in the given raw files.
-* Save the raw data in a consistent format.
-* Allow for faster data reading by using [zarr](https://zarr.readthedocs.io/) arrays.
+ * Compress data.
+ * Remove unused tiles, rounds, and channels that may be in the given raw files.
+ * Save the raw data in a consistent format.
+ * Allow for faster data reading by using [zarr](https://zarr.readthedocs.io/) arrays.
+ * Max intensity project images along z planes by setting `max_intensity_project` to `true` (default: false).
 
 Extract also saves metadata inside of the `tile_dir` directory if the raw files are ND2 format.
 

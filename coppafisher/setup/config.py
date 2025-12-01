@@ -177,6 +177,7 @@ class Config:
             "email_me": ("maybe_str", "str-not-empty_email-address"),
         },
         "extract": {
+            "max_intensity_project": ("bool", ""),
             "num_rotations": ("int", "not-negative"),
             "z_plane_mean_warning": ("number", "not-negative"),
         },
