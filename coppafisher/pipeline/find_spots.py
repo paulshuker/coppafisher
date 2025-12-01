@@ -67,7 +67,7 @@ def find_spots(
         dtype=np.float32,
     )
     completed_indices_path = os.path.join(nbp_file.output_dir, "find_spots_completed_indices.pkl")
-    if not config_unchanged:
+    if not config_unchanged and os.path.isfile(completed_indices_path):
         os.remove(completed_indices_path)
     completed_indices: dict[str, list[tuple[int, int, int]]] = dict_io.try_load_dict(completed_indices_path, {"a": []})
     group_path = os.path.join(nbp_file.output_dir, "spot_yxz.zgroup")
@@ -79,7 +79,7 @@ def find_spots(
 
     # Define use_indices as a [n_tiles x n_rounds x n_channels] boolean array where use_indices[t, r, c] is True if
     # we want to find spots on said tile `t`, round `r`, channel `c`.
-    use_indices = np.zeros((nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.use_anchor, nbp_basic.n_channels), bool)
+    use_indices = np.zeros((nbp_basic.n_tiles, nbp_basic.n_rounds + 1, nbp_basic.n_channels), bool)
     n_skipped_images = 0
     for t, r, c in indexing.create(
         nbp_basic,

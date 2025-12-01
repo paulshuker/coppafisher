@@ -186,17 +186,25 @@ def run_filter(
         if len(batch_images) == 0:
             continue
 
+        kwargs = {"psf": psf, "balance": config["wiener_constant"], "clip": False}
+        deconvolution_method = skimage.restoration.wiener
+        if not config["use_wiener_deconvolution"]:
+
+            def do_nothing(im: np.ndarray, **_) -> np.ndarray:
+                f_info = np.finfo(FILTER_DTYPE)
+                abs_max = np.abs(im).max()
+                result = im.copy()
+                if abs_max >= f_info.max:
+                    result /= abs_max * (f_info.max - 1)
+                return result
+
+            deconvolution_method = do_nothing
         if batch_size > 1:
             filtered_images = joblib.Parallel(n_jobs=len(batch_images), return_as="list", timeout=60 * 20)(
-                joblib.delayed(skimage.restoration.wiener)(
-                    batch_images.pop(0), psf, config["wiener_constant"], clip=False
-                )
-                for _ in range(len(batch_images))
+                joblib.delayed(deconvolution_method)(batch_images.pop(0), **kwargs) for _ in range(len(batch_images))
             )
         else:
-            filtered_images = [
-                skimage.restoration.wiener(im, psf, config["wiener_constant"], clip=False) for im in batch_images
-            ]
+            filtered_images = [deconvolution_method(im, **kwargs) for im in batch_images]
 
         for filtered_image, (t, r, c) in zip(filtered_images, batch_trcs, strict=True):
             # All images are deconvolved, including the DAPI.

@@ -126,7 +126,7 @@ class NotebookPage:
             ],
             "is_3d": [
                 "bool",
-                "`True` if *3D* pipeline used, `False` if *2D*",
+                "This is a legacy variable, please do not use.",
             ],
             "channel_camera": [
                 "ndarray[int]",
@@ -196,7 +196,7 @@ class NotebookPage:
             ],
             "use_anchor": [
                 "bool",
-                "whether or not to use anchor",
+                "This is a legacy variable, please do not use.",
             ],
             "bad_trc": [
                 "tuple[tuple[int]] or none",
@@ -292,7 +292,7 @@ class NotebookPage:
         "find_spots": {
             "auto_thresh": [
                 "ndarray[float32]",
-                "`(n_tiles x (n_rounds + n_extra_rounds) x n_channels) ndarray`"
+                "`(n_tiles x (n_rounds + 1) x n_channels) ndarray`"
                 + "`auto_thresh[t, r, c]` is the intensity threshold for tile $t$, round $r$, channel $c$ "
                 + "used for spot detection.",
             ],
