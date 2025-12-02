@@ -72,7 +72,7 @@ def call_reference_spots(
     # load in frequently used variables
     spot_colours = nbp_ref_spots.colours[:].astype(np.float32)
     spot_tile = nbp_ref_spots.tile[:]
-    n_tiles_use = len(nbp_basic.use_tiles)
+    n_tiles = max(nbp_basic.use_tiles) + 1
     n_rounds_use = len(nbp_basic.use_rounds)
     n_channels_use = len(nbp_basic.use_channels)
     n_dyes, n_spots, n_genes = len(nbp_basic.dye_names), len(spot_colours), len(gene_names)
@@ -87,13 +87,13 @@ def call_reference_spots(
     raw_bleed_matrix = raw_bleed_matrix / np.linalg.norm(raw_bleed_matrix, axis=1)[:, None]
 
     # 1. Normalise spot colours and remove background as constant offset across different rounds of the same channel
-    colour_norm_factor_initial = np.zeros((n_tiles_use, n_rounds_use, n_channels_use), np.float32)
+    colour_norm_factor_initial = np.zeros((n_tiles, n_rounds_use, n_channels_use), np.float32)
     for t_index, t in enumerate(use_tiles):
         # Dividing by zero can happen when bad_trc is set. This warning is ignored. Infinities are set to ones.
         with np.errstate(divide="ignore", invalid="ignore"):
             colour_norm_factor_initial[t_index] = 1 / (np.percentile(spot_colours[spot_tile == t], 95, axis=0))
         colour_norm_factor_initial[colour_norm_factor_initial == np.inf] = 1
-        spot_colours[spot_tile == t] *= colour_norm_factor_initial[t]
+        spot_colours[spot_tile == t] *= colour_norm_factor_initial[t_index]
 
     if config["background_subtract"]:
         # Remove background as constant offset across different rounds of the same channel
@@ -126,7 +126,7 @@ def call_reference_spots(
 
     # 4. Compute the free_bled_codes
     free_bled_codes_tile_indep = np.zeros((n_genes, n_rounds_use, n_channels_use), np.float32)
-    free_bled_codes = np.zeros((n_genes, n_tiles_use, n_rounds_use, n_channels_use), np.float32)
+    free_bled_codes = np.zeros((n_genes, n_tiles, n_rounds_use, n_channels_use), np.float32)
 
     for g in range(n_genes):
         good_g = (prob_mode_initial == g) & good
@@ -168,7 +168,7 @@ def call_reference_spots(
 
     # 6. Compute the scale factor Q_trc maximising the similarity between the tile independent codes and the
     # constrained bled codes.
-    tile_scale = np.ones((n_tiles_use, n_rounds_use, n_channels_use), np.float32)
+    tile_scale = np.ones((n_tiles, n_rounds_use, n_channels_use), np.float32)
     for t, r, c in itertools.product(use_tiles, range(n_rounds_use), range(n_channels_use)):
         relevant_genes = np.where(gene_codes[:, r] == config["d_max"][c])[0]
         n_spots_per_gene = np.array(
