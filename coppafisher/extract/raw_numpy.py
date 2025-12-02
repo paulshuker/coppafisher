@@ -1,3 +1,5 @@
+from typing import Literal
+
 import dask.array
 import numpy as np
 
@@ -14,7 +16,13 @@ class NumpyReader(RawReader):
     """
 
     def read(
-        self, nbp_basic: NotebookPage, nbp_file: NotebookPage, tile: int, round: int, channels: list[int]
+        self,
+        nbp_basic: NotebookPage,
+        nbp_file: NotebookPage,
+        tile: int,
+        round: int,
+        channels: list[int],
+        z_planes: list[int] | Literal["all"] | None = None,
     ) -> np.ndarray:
         """
         Similar to ND2, expect a separate directory for each round.
@@ -29,5 +37,10 @@ class NumpyReader(RawReader):
         tile_round_images: np.ndarray = dask.array.from_npy_stack(file_path)[tile].compute()
 
         tile_round_images = tile_round_images[channels]
+
+        if z_planes is None:
+            tile_round_images = tile_round_images[..., nbp_basic.use_z]
+        elif z_planes != "all":
+            tile_round_images = tile_round_images[..., z_planes]
 
         return tile_round_images

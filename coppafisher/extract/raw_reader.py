@@ -1,4 +1,5 @@
 import os
+from typing import Literal
 
 import numpy as np
 
@@ -14,7 +15,13 @@ class RawReader:
     """
 
     def read(
-        self, nbp_basic: NotebookPage, nbp_file: NotebookPage, tile: int, round: int, channels: list[int]
+        self,
+        nbp_basic: NotebookPage,
+        nbp_file: NotebookPage,
+        tile: int,
+        round: int,
+        channels: list[int],
+        z_planes: list[int] | Literal["all"] | None = None,
     ) -> np.ndarray:
         """
         Base function to read raw files for the given tile, round for the specific channels.
@@ -25,6 +32,8 @@ class RawReader:
             tile (int): tile index.
             round (int): round index.
             channels (list of int): the channels to gather.
+            z_planes (list of int or str or none): z planes to gather. If "all", gathers all z planes. If none, gathers
+                nbp_basic.use_z z planes. Default: none.
 
         Returns:
             (`(len(channels) x im_y x im_x x im_z) ndarray[uint16]`): images. The tile/round images.

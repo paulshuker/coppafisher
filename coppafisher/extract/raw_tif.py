@@ -1,3 +1,5 @@
+from typing import Literal
+
 import numpy as np
 import tifffile
 
@@ -11,7 +13,13 @@ class TifReader(RawReader):
     """
 
     def read(
-        self, nbp_basic: NotebookPage, nbp_file: NotebookPage, tile: int, round: int, channels: list[int]
+        self,
+        nbp_basic: NotebookPage,
+        nbp_file: NotebookPage,
+        tile: int,
+        round: int,
+        channels: list[int],
+        z_planes: list[int] | Literal["all"] | None = None,
     ) -> np.ndarray:
         """
         Similar to ND2, expect a separate directory for each round.
@@ -44,7 +52,10 @@ class TifReader(RawReader):
             start_index = c + tile * n_channels * n_total_z
             combined_slice = slice(start_index, start_index + n_channels * n_total_z, n_channels)
             c_image = all_images[combined_slice]
-            c_image = c_image[nbp_basic.use_z]
+            if z_planes is None:
+                c_image = c_image[nbp_basic.use_z]
+            elif z_planes != "all":
+                c_image = c_image[z_planes]
             # ZYX -> YXZ.
             c_image = c_image.swapaxes(0, 1).swapaxes(1, 2)
 

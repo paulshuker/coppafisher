@@ -104,7 +104,14 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
                     raw_channel_inds[channels.index(nbp_basic.dapi_channel)] = nbp_file.raw_anchor_channel_indices[1]
 
                 # Has shape (n_channels, im_y, im_x, im_z).
-                channel_images = reader.read(nbp_basic, nbp_file, t, r, raw_channel_inds)
+                channel_images = reader.read(
+                    nbp_basic,
+                    nbp_file,
+                    t,
+                    r,
+                    raw_channel_inds,
+                    z_planes="all" if config["max_intensity_project"] else None,
+                )
                 if config["max_intensity_project"]:
                     channel_images = channel_images.max(3, keepdims=True)
                 channel_images = channel_images[:, :, :, nbp_basic.use_z]

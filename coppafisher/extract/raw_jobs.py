@@ -1,5 +1,6 @@
 import numbers
 import os
+from typing import Literal
 
 import dask.array
 import dask.config
@@ -11,14 +12,20 @@ from ..setup.notebook_page import NotebookPage
 from .raw_reader import RawReader
 
 
+# TODO: Unit test the JOBS reader.
 class JobsReader(RawReader):
     """
     Reader for raw JOBS file format.
     """
 
-    # TODO: Unit test the JOBS reader.
     def read(
-        self, nbp_basic: NotebookPage, nbp_file: NotebookPage, tile: int, round: int, channels: list[int]
+        self,
+        nbp_basic: NotebookPage,
+        nbp_file: NotebookPage,
+        tile: int,
+        round: int,
+        channels: list[int],
+        z_planes: list[int] | Literal["all"] | None = None,
     ) -> np.ndarray:
         super().read(nbp_basic, nbp_file, tile, round, channels)
 
@@ -29,8 +36,13 @@ class JobsReader(RawReader):
         # Need the dask config to silence warning.
         with dask.config.set(**{"array.slicing.split_large_chunks": False}):
             for channel in channels:
-                result += (np.asarray(round_dask_array[tile_raw, channel, :, :, nbp_basic.use_z]),)
+                result += (np.asarray(round_dask_array[tile_raw, channel]),)
         result = np.array(result)
+
+        if z_planes is None:
+            result = result[..., nbp_basic.use_z]
+        elif z_planes != "all":
+            result = result[..., z_planes]
 
         return result
 
@@ -105,4 +117,4 @@ class JobsReader(RawReader):
         # Now concatenate dask arrays.
         round_dask_array = dask.array.stack(round_laser_dask_array, axis=0)
 
-        return round_dask_array, None
+        return round_dask_array

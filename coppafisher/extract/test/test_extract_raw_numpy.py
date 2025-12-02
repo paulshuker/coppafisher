@@ -45,7 +45,7 @@ def test_raw_numpy() -> None:
 
     reader = raw_numpy.NumpyReader()
     assert isinstance(reader, raw_reader.RawReader)
-    image = reader.read(nbp_basic, nbp_file, tile, round, channels)
+    image = reader.read(nbp_basic, nbp_file, tile, round, channels, z_planes="all")
 
     assert type(image) is np.ndarray
     assert image.ndim == 4
@@ -56,7 +56,7 @@ def test_raw_numpy() -> None:
 
     channels = [1, 0, 4]
     reader = raw_numpy.NumpyReader()
-    image = reader.read(nbp_basic, nbp_file, tile, round, channels)
+    image = reader.read(nbp_basic, nbp_file, tile, round, channels, z_planes="all")
 
     assert type(image) is np.ndarray
     assert image.ndim == 4

@@ -21,6 +21,7 @@ def test_raw_nd2() -> None:
         all_data = file.asarray()
 
     nbp_basic = NotebookPage("basic_info")
+    nbp_basic.use_z = (0, 1, 2, 3, 4)
     nbp_basic.tilepos_yx = np.array([[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]], int)
     nbp_basic.tilepos_yx_nd2 = np.array([[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2]], int)
 

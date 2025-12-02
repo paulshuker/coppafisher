@@ -1,4 +1,5 @@
 import warnings
+from typing import Literal
 
 import nd2
 import numpy as np
@@ -13,7 +14,13 @@ class Nd2Reader(RawReader):
     """
 
     def read(
-        self, nbp_basic: NotebookPage, nbp_file: NotebookPage, tile: int, round: int, channels: list[int]
+        self,
+        nbp_basic: NotebookPage,
+        nbp_file: NotebookPage,
+        tile: int,
+        round: int,
+        channels: list[int],
+        z_planes: list[int] | Literal["all"] | None = None,
     ) -> np.ndarray:
         """
         Read ND2 files for the given channels.
@@ -39,6 +46,11 @@ class Nd2Reader(RawReader):
         images = images.compute()
 
         images = images[:, channels]
+
+        if z_planes is None:
+            images = images[nbp_basic.use_z]
+        elif z_planes != "all":
+            images = images[z_planes]
 
         # Put the z index to the end.
         # zcyx -> czyx -> cyzx -> cyxz where c is the channels index.
