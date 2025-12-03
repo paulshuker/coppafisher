@@ -1,8 +1,9 @@
 import os
-from typing import List
+from typing import List, Literal
 
 import numpy as np
 import pandas as pd
+import scipy
 
 from ..omp import base as omp_base
 from ..setup.notebook_page import NotebookPage
@@ -42,6 +43,7 @@ class MethodData:
         nbp_call_spots: NotebookPage,
         nbp_omp: NotebookPage | None,
         show_tiles: List[int] | None = None,
+        spot_scoring: Literal["discriminality"] | None = None,
     ) -> None:
         """
         Gather all spot data for a particular gene calling method that is stored in self.
@@ -54,12 +56,21 @@ class MethodData:
             nbp_call_spots (NotebookPage): `call_spots` notebook page.
             nbp_omp (NotebookPage or none): `omp` notebook page.
             show_tiles (list of int, optional): tile indices to gather. Default: all tiles.
+            spot_scoring (str or none, optional): what scoring method to display. If none, then the default scoring from
+                the notebook is used. If set to "discriminality", then the spots are scored based on the formula
+                `c / stdev(v)` where `c` is the spearman correlation of the spot's colour versus the assigned bled code,
+                `stdev` is the standard deviation of values, and `v` is the spearman correlation of the spot's colour
+                against every other gene bled code. Default: none.
         """
         assert type(method) is str
-        assert method in ("prob_init", "prob", "anchor", "omp"), f"Unknown method {method}"
+        assert method in ["prob_init", "prob", "anchor", "omp"], f"Unknown method {method}"
         assert type(nbp_ref_spots) is NotebookPage
         assert type(nbp_call_spots) is NotebookPage
         assert type(nbp_omp) is NotebookPage or nbp_omp is None
+        assert type(show_tiles) is list or show_tiles is None
+        assert type(spot_scoring) is str or spot_scoring is None
+        if spot_scoring is not None:
+            assert spot_scoring in ["discriminality"], f"Unknown spot scoring {spot_scoring}"
 
         self.method = method
 
@@ -92,6 +103,38 @@ class MethodData:
 
         self.yxz -= np.floor(nbp_stitch.tile_origin[nbp_basic.use_tiles].min(0))[np.newaxis]
         self.indices = np.linspace(0, self.score.size - 1, self.score.size, dtype=np.uint32)
+
+        if spot_scoring == "discriminality":
+            n_spots = self.gene_no.size
+            n_genes = nbp_call_spots.bled_codes.shape[0]
+            n_rounds_channels_use = np.prod(nbp_call_spots.bled_codes.shape[1:])
+
+            print(f"{n_spots=}")
+            print(f"{n_genes=}")
+            print(f"{n_rounds_channels_use=}")
+
+            self.score = scipy.stats.spearmanr(
+                self.colours.reshape((n_spots, -1)),
+                nbp_call_spots.bled_codes[self.gene_no].reshape((n_spots, -1)),
+                axis=1,
+                nan_policy="raise",
+            ).statistic
+            # Each score is divided by the standard deviation of all other gene bled code spearman correlations.
+            keep_bled_codes = [[i for i in range(n_genes) if i != self.gene_no[s]] for s in range(n_spots)]
+            # Has shape (n_spots * (n_genes - 1), n_rounds_use * n_channels_use).
+            other_bled_codes = nbp_call_spots.bled_codes[keep_bled_codes].reshape((n_spots * (n_genes - 1), -1))
+            colours = self.colours.copy().reshape((n_spots, -1))[:, np.newaxis]
+            colours = np.repeat(colours, n_genes - 1, 1)
+            colours = colours.reshape((n_spots * (n_genes - 1), -1))
+
+            print(f"{colours.shape=}")
+            print(f"{other_bled_codes.shape=}")
+            print(f"{scipy.stats.spearmanr(other_bled_codes, colours, axis=1, nan_policy='raise').statistic.shape=}")
+
+            self.score /= np.std(
+                scipy.stats.spearmanr(colours, other_bled_codes, axis=1).statistic.reshape((n_spots, n_genes - 1)),
+                axis=1,
+            )
 
         # Sanity check spot data.
         self._check_variables()

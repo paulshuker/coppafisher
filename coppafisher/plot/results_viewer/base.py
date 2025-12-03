@@ -122,6 +122,7 @@ class Viewer:
         background_images: Iterable[str] = ("dapi",),
         background_image_colours: Iterable[str] = ("gray",),
         show_tiles: Optional[List[int]] = None,
+        spot_scoring: Optional[Literal["discriminality"]] = None,
         nbp_basic: Optional[NotebookPage] = None,
         nbp_filter: Optional[NotebookPage] = None,
         nbp_register: Optional[NotebookPage] = None,
@@ -152,6 +153,11 @@ class Viewer:
             background_image_colours (iterable[str], optional): the napari colour mapping(s) used for the background
                 image(s). Set to `[]` when using no background images. Default: ("gray",).
             show_tiles (list of int, optional): list of tile indices to display. Default: all tiles in the notebook.
+            spot_scoring (str or none, optional): what scoring method to display. If none, then the default scoring from
+                the notebook is used. If set to "discriminality", then the spots are scored based on the formula
+                `c / stdev(v)` where `c` is the spearman correlation of the spot's colour versus the assigned bled code,
+                `stdev` is the standard deviation of values, and `v` is the spearman correlation of the spot's colour
+                against every other gene bled code. Default: none.
             nbp_basic (NotebookPage, optional): `basic_info` notebook page. Default: not given.
             nbp_filter (NotebookPage, optional): `filter` notebook page. Default: not given.
             nbp_register (NotebookPage, optional): `register` notebook page. Default: not given.
@@ -193,6 +199,8 @@ class Viewer:
             )
         if show_tiles is not None and type(show_tiles) is not list:
             raise TypeError(f"show_tiles must be a list, got {type(show_tiles)} instead")
+        if spot_scoring is not None and type(spot_scoring) is not str:
+            raise TypeError(f"spot_scoring must be a str, got {type(spot_scoring)} instead")
 
         assert type(nbp_basic) is NotebookPage or nbp_basic is None
         assert type(nbp_filter) is NotebookPage or nbp_filter is None
@@ -260,6 +268,7 @@ class Viewer:
             self.nbp_call_spots,
             self.nbp_omp,
             self.show_tiles,
+            spot_scoring,
         )
         self.spot_data["prob"] = MethodData(
             "prob",
@@ -269,6 +278,7 @@ class Viewer:
             self.nbp_call_spots,
             self.nbp_omp,
             self.show_tiles,
+            spot_scoring,
         )
         self.spot_data["anchor"] = MethodData(
             "anchor",
@@ -278,6 +288,7 @@ class Viewer:
             self.nbp_call_spots,
             self.nbp_omp,
             self.show_tiles,
+            spot_scoring,
         )
         self.selected_method = "anchor"
         self.selected_spot = None
@@ -290,6 +301,7 @@ class Viewer:
                 self.nbp_call_spots,
                 self.nbp_omp,
                 self.show_tiles,
+                spot_scoring,
             )
             self.selected_method = "omp"
 

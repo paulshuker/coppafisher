@@ -149,6 +149,7 @@ def test_Viewer() -> None:
         background_image_colours=("Reds", "Greens"),
         gene_marker_filepath=gene_marker_filepath,
         gene_legend_order_by="colour",
+        spot_scoring="discriminality",
         nbp_basic=nbp_basic,
         nbp_filter=nbp_filter,
         nbp_register=nbp_register,
