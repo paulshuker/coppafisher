@@ -93,8 +93,9 @@ def set_basic_info(config: Config) -> NotebookPage:
     # Unfortunately, this is just many if statements as all blank entries need to be handled differently.
     # Notebook doesn't allow us to reset a value once it has been set so must delete and reset.
 
-    # NOTE: use_anchor is a redundant variable, but removing it from the notebook will ruin backwards compatibility.
+    # NOTE: These are redundant variables, but removing them from the notebook will ruin backwards compatibility.
     nbp.use_anchor = True
+    nbp.is_3d = True
 
     # Next condition just says that if we are using the anchor and we don't specify the anchor round we will default it
     # to the final round. Add an extra round for the anchor and reduce the number of non anchor rounds by 1. Tell
