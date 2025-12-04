@@ -1,4 +1,5 @@
 import os
+import warnings
 from typing import List, Literal
 
 import numpy as np
@@ -71,6 +72,7 @@ class MethodData:
         assert type(spot_scoring) is str or spot_scoring is None
         if spot_scoring is not None:
             assert spot_scoring in ["discriminality"], f"Unknown spot scoring {spot_scoring}"
+        self.spot_scoring = spot_scoring
 
         self.method = method
 
@@ -104,37 +106,46 @@ class MethodData:
         self.yxz -= np.floor(nbp_stitch.tile_origin[nbp_basic.use_tiles].min(0))[np.newaxis]
         self.indices = np.linspace(0, self.score.size - 1, self.score.size, dtype=np.uint32)
 
-        if spot_scoring == "discriminality":
+        if self.spot_scoring == "discriminality":
             n_spots = self.gene_no.size
             n_genes = nbp_call_spots.bled_codes.shape[0]
-            n_rounds_channels_use = np.prod(nbp_call_spots.bled_codes.shape[1:])
 
-            print(f"{n_spots=}")
-            print(f"{n_genes=}")
-            print(f"{n_rounds_channels_use=}")
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", category=scipy.stats.ConstantInputWarning)
+                self.score = [
+                    scipy.stats.spearmanr(
+                        self.colours.reshape((n_spots, -1))[s],
+                        nbp_call_spots.bled_codes[self.gene_no].reshape((n_spots, -1))[s],
+                        axis=1,
+                        nan_policy="raise",
+                    ).statistic
+                    for s in range(self.colours.shape[0])
+                ]
+            self.score = np.array(self.score, np.float32)
+            self.score[np.isnan(self.score)] = 0
 
-            self.score = scipy.stats.spearmanr(
-                self.colours.reshape((n_spots, -1)),
-                nbp_call_spots.bled_codes[self.gene_no].reshape((n_spots, -1)),
-                axis=1,
-                nan_policy="raise",
-            ).statistic
             # Each score is divided by the standard deviation of all other gene bled code spearman correlations.
             keep_bled_codes = [[i for i in range(n_genes) if i != self.gene_no[s]] for s in range(n_spots)]
             # Has shape (n_spots * (n_genes - 1), n_rounds_use * n_channels_use).
-            other_bled_codes = nbp_call_spots.bled_codes[keep_bled_codes].reshape((n_spots * (n_genes - 1), -1))
-            colours = self.colours.copy().reshape((n_spots, -1))[:, np.newaxis]
-            colours = np.repeat(colours, n_genes - 1, 1)
-            colours = colours.reshape((n_spots * (n_genes - 1), -1))
+            other_bled_codes = nbp_call_spots.bled_codes[keep_bled_codes].reshape((n_spots, (n_genes - 1), -1))
+            colours = self.colours.copy().reshape((n_spots, 1, -1))
+            colours = np.repeat(colours, n_genes - 1, axis=1)
+            correlations = []
+            for s in range(n_spots):
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=scipy.stats.ConstantInputWarning)
+                    correlations.append(
+                        [
+                            scipy.stats.spearmanr(colours[s, g], other_bled_codes[s, g], nan_policy="raise").statistic
+                            for g in range(n_genes - 1)
+                        ]
+                    )
+            correlations = np.array(correlations, np.float32)
 
-            print(f"{colours.shape=}")
-            print(f"{other_bled_codes.shape=}")
-            print(f"{scipy.stats.spearmanr(other_bled_codes, colours, axis=1, nan_policy='raise').statistic.shape=}")
-
-            self.score /= np.std(
-                scipy.stats.spearmanr(colours, other_bled_codes, axis=1).statistic.reshape((n_spots, n_genes - 1)),
-                axis=1,
+            self.score[(~np.isnan(correlations)).all(1)] /= np.std(
+                correlations[(~np.isnan(correlations)).all(1)], axis=1
             )
+            self.score[np.isnan(correlations).any(1)] = 0
 
         # Sanity check spot data.
         self._check_variables()
@@ -237,6 +248,7 @@ class MethodData:
         # Check values on a subset.
         assert (self.tile[: self.MAX_CHECK_COUNT] >= 0).all()
         assert (self.gene_no[: self.MAX_CHECK_COUNT] >= 0).all()
-        assert (self.score[: self.MAX_CHECK_COUNT] >= 0).all()
+        if self.spot_scoring != "discriminality":
+            assert (self.score[: self.MAX_CHECK_COUNT] >= 0).all()
         assert (self.intensity[: self.MAX_CHECK_COUNT] >= 0).all()
         assert (self.indices[: self.MAX_CHECK_COUNT] >= 0).all()
