@@ -45,7 +45,7 @@ class ViewSpotColourAndCode(Subplot):
             colour_norm_factor (`(n_tiles x n_rounds x n_channels_use) ndarray[float32]`): normalisation factor for
                 each tile, round, and channel that is applied to colours.
             use_channels (list of int): sequencing channels used.
-            method (str): the spot's gene calling method. Can be 'anchor', 'omp' or 'prob'.
+            method (str): the spot's gene calling method. Can be 'anchor', 'omp', 'prob', or 'prob_init'.
             show (bool, optional): show the plot after creating. Turn off for unit testing. Default: true.
 
         Notes:
@@ -53,9 +53,14 @@ class ViewSpotColourAndCode(Subplot):
                 continue to allow interaction.
         """
         method = method.lower()
-        assert method in ["anchor", "omp", "prob"], "method must be 'anchor', 'omp' or 'prob'"
+        assert method in [
+            "anchor",
+            "omp",
+            "prob",
+            "prob_init",
+        ], "method must be 'anchor', 'omp', 'prob', or 'prob_init'"
 
-        self.use_colour_norm_factor = method != "prob"
+        self.use_colour_norm_factor = method not in ("prob", "prob_init")
         self.remove_background = False
         self.l2_round_normalise = True
 
@@ -206,7 +211,7 @@ class ViewSpotColourRegion(Subplot):
                 each tile, round, and channel that is applied to colours.
             use_rounds (list of int): sequencing rounds.
             use_channels (list of int): sequencing channels.
-            method (str): spot's method. Can be 'anchor', 'omp' or 'prob'.
+            method (str): spot's method. Can be 'anchor', 'omp', 'prob', or 'prob_init'.
             show (bool, optional): show the plot after creating. Turn off for unit testing. Default: true.
         """
         assert method.lower() in ["anchor", "omp", "prob"], "method must be 'anchor', 'omp' or 'prob'"

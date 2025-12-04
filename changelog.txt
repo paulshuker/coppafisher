@@ -3,6 +3,7 @@
  * General: Removed redundant is_3d config parameter in basic_info.
  * General: Removed redundant use_anchor config parameter in basic_info.
  * Viewer: Z thickness slider breaks when there is only one z plane fix.
+ * Viewer: Can view the spot colour and code subplot when displaying prob_init gene calling method.
  * Extract: Max intensity project images option added (default: turned off).
  * Filter: Deconvolution is now optional (default: turned on).
 
