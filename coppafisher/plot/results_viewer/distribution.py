@@ -29,7 +29,6 @@ class ViewScoreIntensityDistributions(Subplot):
         assert method in ("prob", "anchor", "omp")
         assert scores.ndim == 1
         assert scores.size > 0
-        assert (scores >= 0).all()
         assert intensities.ndim == 1
         assert intensities.size > 0
         assert scores.size == intensities.size
@@ -37,7 +36,7 @@ class ViewScoreIntensityDistributions(Subplot):
         self.log_counts = True
         self.fig, self.axes = plt.subplots(1, 2, gridspec_kw={"width_ratios": [5, 1]})
         self.fig.suptitle(f"{method.capitalize()} Score/Intensity Distributions")
-        self.score_range = [0.0, max(scores.max().item(), 1.0)]
+        self.score_range = [min(scores.min().item(), 0.0), max(scores.max().item(), 1.0)]
         score_bins = maths.ceil((self.score_range[1] - self.score_range[0]) * self._bin_density)
         self.intensity_range = [0.0, max(intensities.max().item(), 1.0)]
         intensity_bins = maths.ceil((self.intensity_range[1] - self.intensity_range[0]) * self._bin_density)
