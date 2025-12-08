@@ -5,7 +5,7 @@ import time
 import warnings
 from collections.abc import Iterable
 from os import path
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -85,7 +85,7 @@ class Viewer:
     background_image_layers: list[napari.layers.Image]
     max_intensity_project: bool
     spot_data: dict[str, MethodData]
-    genes: tuple["Viewer.Gene"]
+    genes: tuple["Viewer.Gene", ...]
     selected_method: str
     selected_spot: int | None
     keep_zs: np.ndarray[bool]
@@ -117,7 +117,7 @@ class Viewer:
         self,
         nb: Optional[Notebook] = None,
         gene_marker_filepath: Optional[str] = None,
-        gene_legend_order_by: str = "cell_type",
+        gene_legend_order_by: Literal["row"] | Literal["colour"] | Literal["cell_type"] = "cell_type",
         background_images: Iterable[str] = ("dapi",),
         background_image_colours: Iterable[str] = ("gray",),
         show_tiles: Optional[List[int]] = None,
