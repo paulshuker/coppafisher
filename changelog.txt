@@ -1,6 +1,6 @@
 2025/12/16 Version 1.11 (v1.11.0):
  * Viewer: Open the gene legend in a separate window option added.
- * Viewer: Improved gene legend scaling.
+ * Viewer: Gene legend layout improvements.
 
 
 2025/12/09 Version 1.10 Patch (v1.10.3):
