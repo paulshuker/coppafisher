@@ -273,7 +273,7 @@ import numpy as np
 import tifffile
 
 fused_custom_dapi_image_transformed = round_transform.transform_image(
-    fused_custom_dapi_image, relative=fused_anchor_dapi_image.shape, force_size=True, labels=True
+    fused_custom_dapi_image, output_size=fused_anchor_dapi_image.shape, force_size=True, labels=True
 )
 tifffile.imwrite("/path/to/saved/custom_dapi_image_transformed.tif", fused_custom_dapi_image_transformed)
 del fused_custom_dapi_image_transformed
@@ -303,7 +303,7 @@ Now save the fully registered channel image
 import tifffile
 
 fused_custom_channel_image_transformed = (channel_transform + round_transform).transform_image(
-    fused_custom_channel_image, relative=fused_custom_channel_image.shape, force_size=True, labels=True
+    fused_custom_channel_image, output_size=fused_custom_channel_image.shape, force_size=True, labels=True
 )
 tifffile.imwrite(f"/path/to/saved/custom_channel_{c}_image_transformed.tif", fused_custom_channel_image_transformed)
 del fused_custom_channel_image_transformed
