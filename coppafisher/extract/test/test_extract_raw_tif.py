@@ -39,7 +39,6 @@ def test_raw_tif() -> None:
     nbp_file.anchor = "anchor"
     nbp_file.raw_extension = ".tif"
 
-    # This refers to tile index 2 in the raw file tile ordering.
     tile = 1
     round = 1
     channels = [1, 0, 3]
@@ -56,10 +55,9 @@ def test_raw_tif() -> None:
     for c_index, c in enumerate(channels):
         for z_index, z in enumerate(nbp_basic.use_z):
             assert np.allclose(
-                result[c_index, :, :, z_index], all_data[round, c + n_channels * z + 2 * n_channels * im_z]
+                result[c_index, :, :, z_index], all_data[round, c + n_channels * z + tile * n_channels * im_z]
             )
 
-    # This refers to tile index 2 in the raw file tile ordering.
     tile = 1
     round = 0
     channels = [0, 1, 3, 4]
@@ -76,7 +74,7 @@ def test_raw_tif() -> None:
     for c_index, c in enumerate(channels):
         for z_index, z in enumerate(nbp_basic.use_z):
             assert np.allclose(
-                result[c_index, :, :, z_index], all_data[round, c + n_channels * z + 2 * n_channels * im_z]
+                result[c_index, :, :, z_index], all_data[round, c + n_channels * z + tile * n_channels * im_z]
             )
 
     tif_dir.cleanup()
