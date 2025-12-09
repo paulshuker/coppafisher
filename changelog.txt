@@ -1,5 +1,7 @@
 2025/MM/DD Version 1.10 Patch (v1.10.3):
  * General: Docs for image transforming with LineStuffUp package fix.
+ * Extract: Giving tile positions for numpy raw files is now easier.
+ * Extract: Tif files input support.
 
 
 2025/11/28 Version 1.10 Patch (v1.10.2):

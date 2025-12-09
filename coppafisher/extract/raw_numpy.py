@@ -23,11 +23,10 @@ class NumpyReader(RawReader):
         """
         super().read(nbp_basic, nbp_file, tile, round, channels)
 
-        tile_raw = super().get_tile_raw_index(tile, nbp_basic.tilepos_yx_nd2, nbp_basic.tilepos_yx)
         file_path = super().get_round_file_path(nbp_file, round)
 
         # Has shape (n_channels, im_y, im_x, im_z).
-        tile_round_images: np.ndarray = dask.array.from_npy_stack(file_path)[tile_raw].compute()
+        tile_round_images: np.ndarray = dask.array.from_npy_stack(file_path)[tile].compute()
 
         tile_round_images = tile_round_images[channels]
 
