@@ -536,7 +536,7 @@ class Viewer:
     def legend_clicked(self, event: mpl.backend_bases.MouseEvent) -> None:
         if self.ignore_events:
             return
-        if event.inaxes != self.legend_.canvas.axes:
+        if event.inaxes != self.legend_.canvas.ax:
             # Click event did not occur within the legend axes.
             return
         closest_gene_index = self.legend_.get_closest_gene_index_to(event.xdata, event.ydata)

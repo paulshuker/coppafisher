@@ -1,7 +1,8 @@
 2025/MM/DD Version 1.11 (v1.11.0):
  * General: Docs for image transforming with LineStuffUp package fix.
+ * Viewer: Gene legend adaptive figure spacing added.
  * Viewer: Open the gene legend in a separate window option added.
- * Viewer: Gene legend layout improvements.
+ * Viewer: Cannot click on the first group in the gene legend fix.
 
 
 2025/11/28 Version 1.10 Patch (v1.10.2):
