@@ -12,6 +12,7 @@ from matplotlib.figure import Figure
 from matplotlib.font_manager import FontProperties
 
 from ...utils import markers
+from .gene import Gene
 
 
 # A headless (Agg) backend version of MplCanvas, this is required for unit testing the gene legend.
@@ -74,7 +75,9 @@ class Legend:
     def __init__(self) -> None:
         pass
 
-    def create_gene_legend(self, genes: tuple, order_by: Literal["row"] | Literal["colour"] | Literal["cell_type"]):
+    def create_gene_legend(
+        self, genes: tuple[Gene, ...], order_by: Literal["row"] | Literal["colour"] | Literal["cell_type"]
+    ):
         assert order_by in self._order_by_options
 
         self.categorised_genes: OrderedDict[str, list[Any]] = OrderedDict()

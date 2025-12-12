@@ -34,6 +34,7 @@ from ..omp.colours import ViewOMPColourSum
 from ..omp.pixel_scores import ViewOMPPixelScoreImage
 from ..omp.scores import ViewOMPGeneScores
 from . import background, distribution, exporter, legend
+from .gene import Gene
 from .hotkeys import Hotkey
 from .subplot import Subplot
 from .threshold import ManualThreshold
@@ -85,7 +86,7 @@ class Viewer:
     background_image_layers: list[napari.layers.Image]
     max_intensity_project: bool
     spot_data: dict[str, MethodData]
-    genes: tuple["Viewer.Gene", ...]
+    genes: tuple[Gene, ...]
     selected_method: str
     selected_spot: int | None
     keep_zs: np.ndarray[bool]
@@ -1324,32 +1325,3 @@ class Viewer:
     def _set_status_to(self, message: str) -> None:
         # Sets the status bar of the viewer to a new message.
         self.viewer.status = message
-
-    class Gene:
-        def __init__(
-            self,
-            name: str,
-            notebook_index: int,
-            colour: np.ndarray,
-            symbol_napari: str,
-            cell_type: str,
-            active: bool = True,
-        ):
-            """
-            Instantiate data for a single gene.
-
-            Args:
-                name: (str) gene name.
-                notebook_index: (int) index of the gene within the notebook.
-                colour: (np.ndarray) of shape (3,) with the RGB colour of the gene.
-                symbol_napari: (str) symbol used to plot in napari.
-                cell_type: (str) name of the cell class most associated with the gene.
-                active: (bool, optional) whether the gene is currently visible in the Viewer. Used for toggling gene
-                    visibility.
-            """
-            self.name = name
-            self.notebook_index = notebook_index
-            self.colour = colour
-            self.symbol_napari = symbol_napari
-            self.cell_type = cell_type
-            self.active = active
