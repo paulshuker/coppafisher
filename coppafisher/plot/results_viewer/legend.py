@@ -22,6 +22,7 @@ class MplCanvasHeadless(FigureCanvasHeadless):
     def __init__(self, _=None):
         fig = Figure()
         fig.set_size_inches(5, 4)
+        fig.subplots_adjust(0, 0, 1, 1)
         self.ax = fig.subplots(1, 1)
         super(MplCanvasHeadless, self).__init__(fig)
 
@@ -32,6 +33,7 @@ class MplCanvas(FigureCanvas):
     def __init__(self, _=None):
         fig = Figure()
         fig.set_size_inches(5, 4)
+        fig.subplots_adjust(0, 0, 1, 1)
         self.ax = fig.subplots(1, 1)
         super(MplCanvas, self).__init__(fig)
 
@@ -41,7 +43,7 @@ class Legend:
 
     # Minimum width / height for a grid cell for a single gene in the gene legend.
     # Increasing this trades a smaller grid height for a wider cell for the text.
-    _minimum_cell_aspect_ratio: float = 1.0
+    _minimum_cell_aspect_ratio: float
     # As a fraction of the cell width from the left edge.
     _marker_padding: float = 0.1
     # As a fraction of the cell width from the right edge.
@@ -96,7 +98,10 @@ class Legend:
                 ]
             case _:
                 raise ValueError(f"Unknown order_by: {order_by}")
+        self.categorised_genes = OrderedDict(reversed(self.categorised_genes.items()))
         self.category_count = len(self.categorised_genes)
+
+        self._minimum_cell_aspect_ratio = max(2, 1.85 * max(len(gene.name) for gene in genes) / 3)
 
         self._plot_index_to_gene_index: list[int] = []
         for category in self.categorised_genes.keys():
@@ -122,14 +127,15 @@ class Legend:
             axes[1].set_font(
                 FontProperties(weight=self._selected_text_weight if is_active else self._unselected_text_weight)
             )
+        self.current_active_genes = active_genes.copy()
         self.canvas.draw_idle()
 
     def get_closest_toggleable_button(
         self, x: float, y: float
     ) -> Tuple[int, Literal["gene"]] | Tuple[str, Literal["group"]] | Tuple[None, None]:
-        if x < 0 or x > self.canvas.figure.get_size_inches()[0]:
+        if x < 0 or x > self.canvas.ax.get_xlim()[1]:
             return (None, None)
-        if y < 0 or y > self.canvas.figure.get_size_inches()[1]:
+        if y < 0 or y > self.canvas.ax.get_ylim()[1]:
             return (None, None)
 
         for gene_index, bounds in enumerate(self.gene_button_bounds):
@@ -174,7 +180,7 @@ class Legend:
         # Calculate the highest cells per row possible.
         cells_per_row = 1
         row_count = self._calculate_row_count(cells_per_row)
-        cell_width = fig_width
+        cell_width = fig_width / cells_per_row
         cell_height = fig_width / row_count
         while True:
             next_cell_width = fig_width / (cells_per_row + 1)
@@ -186,7 +192,7 @@ class Legend:
             cells_per_row += 1
             row_count = self._calculate_row_count(cells_per_row)
 
-        marker_size = max(40, 40 * min(cell_width, cell_height) / 0.15)
+        marker_size = max(40, 4_000.0 * min(cell_width * cell_width, cell_height * cell_height))
 
         # Draw the gene legend inside a rectangle of size figure width by figure height.
         self.scatter_axes = []
@@ -197,14 +203,6 @@ class Legend:
         row = -1
         for category_name, genes in self.categorised_genes.items():
             row += 1
-            if self._include_category_names():
-                position: Tuple[float, float] = (fig_width / 2, row * cell_height + 0.5 * cell_height)
-                self.group_button_bounds.append(
-                    (0, fig_width, position[1] - 0.5 * cell_height, position[1] + 0.5 * cell_height)
-                )
-                self.canvas.ax.annotate(category_name, position, ha="center", va="center")
-                row += 1
-
             col = 0
             for gene in genes:
                 x = col * cell_width
@@ -228,12 +226,24 @@ class Legend:
                 self.gene_button_bounds.append((x, x + cell_width, y - 0.5 * cell_height, y + 0.5 * cell_height))
 
                 col += 1
-                if col >= cells_per_row:
+                if col == cells_per_row:
                     col = 0
                     row += 1
 
+            if self._include_category_names():
+                if col:
+                    row += 1
+                position: Tuple[float, float] = (fig_width / 2, row * cell_height + 0.5 * cell_height)
+                self.group_button_bounds.append(
+                    (0, fig_width, position[1] - 0.5 * cell_height, position[1] + 0.5 * cell_height)
+                )
+                self.canvas.ax.annotate(category_name, position, ha="center", va="center")
+                row += 1
+
         self.canvas.ax.set_xlim(0, fig_width)
-        self.canvas.ax.set_ylim(0, fig_height)
+        self.canvas.ax.set_ylim(0, max(fig_height, (row + 1) * cell_height))
+        self.canvas.ax.set_xmargin(0)
+        self.canvas.ax.set_ymargin(0)
         self.canvas.draw_idle()
 
     def _on_resize_event(self, _=None) -> None:
