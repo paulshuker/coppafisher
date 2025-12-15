@@ -1,9 +1,9 @@
 import colorsys
 import math as maths
 from collections import OrderedDict
-from typing import Any, Literal, Tuple
+from typing import Any, List, Literal, Tuple
 
-import matplotlib
+import matplotlib as mpl
 import numpy as np
 from matplotlib.axes import Axes
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvasHeadless
@@ -55,6 +55,8 @@ class Legend:
     order_by_options: tuple[str, ...] = property(get_order_by_options)
     _selected_opacity: float = 1.0
     _unselected_opacity: float = 0.25
+    _selected_text_weight: str = "normal"
+    _unselected_text_weight: str = "light"
     _napari_to_mpl_marker: dict[str, str] = {
         "cross": "+",
         "disc": "o",
@@ -100,7 +102,7 @@ class Legend:
         for category in self.categorised_genes.keys():
             self._plot_index_to_gene_index += [genes.index(gene) for gene in self.categorised_genes[category]]
 
-        self.canvas = MplCanvasHeadless() if matplotlib.get_backend() == "Agg" else MplCanvas()
+        self.canvas = MplCanvasHeadless() if mpl.get_backend() == "Agg" else MplCanvas()
         self._draw()
         self.canvas.ax.spines["top"].set_visible(False)
         self.canvas.ax.spines["right"].set_visible(False)
@@ -117,8 +119,50 @@ class Legend:
         active_genes_sorted = [active_genes[i] for i in self._plot_index_to_gene_index]
         for axes, is_active in zip(self.scatter_axes, active_genes_sorted, strict=True):
             axes[0].set_alpha(self._selected_opacity if is_active else self._unselected_opacity)
-            axes[1].set_font(FontProperties(weight="medium" if is_active else "normal"))
+            axes[1].set_font(
+                FontProperties(weight=self._selected_text_weight if is_active else self._unselected_text_weight)
+            )
         self.canvas.draw_idle()
+
+    def get_closest_toggleable_button(
+        self, x: float, y: float
+    ) -> Tuple[int, Literal["gene"]] | Tuple[str, Literal["group"]] | Tuple[None, None]:
+        if x < 0 or x > self.canvas.figure.get_size_inches()[0]:
+            return (None, None)
+        if y < 0 or y > self.canvas.figure.get_size_inches()[1]:
+            return (None, None)
+
+        for gene_index, bounds in enumerate(self.gene_button_bounds):
+            if x < bounds[0] or x > bounds[1]:
+                continue
+            if y < bounds[2] or y > bounds[3]:
+                continue
+
+            return (self._plot_index_to_gene_index[gene_index], "gene")
+
+        for group_index, bounds in enumerate(self.group_button_bounds):
+            if x < bounds[0] or x > bounds[1]:
+                continue
+            if y < bounds[2] or y > bounds[3]:
+                continue
+
+            return (list(self.categorised_genes.keys())[group_index], "group")
+
+        return (None, None)
+
+    def get_help(self) -> tuple[str, ...]:
+        """
+        Get lines of help for interacting with the legend.
+
+        Returns:
+            (tuple of str): help_lines. Each line of help.
+        """
+        return (
+            "(Left mouse click gene symbol) toggle the gene on/off",
+            "(Right mouse click gene symbol) toggle showing the gene alone",
+            "(Middle mouse click gene symbol) toggle the genes with the same colour on/off",
+            "(Left mouse click cell type title) toggle the cell type on/off",
+        )
 
     def _draw(self) -> None:
         self.canvas.ax.clear()
@@ -142,15 +186,22 @@ class Legend:
             cells_per_row += 1
             row_count = self._calculate_row_count(cells_per_row)
 
-        s = 10
+        marker_size = max(40, 40 * min(cell_width, cell_height) / 0.15)
 
         # Draw the gene legend inside a rectangle of size figure width by figure height.
         self.scatter_axes = []
+        # Every item is a gene. The item contains the x minimum, x maximum, y minimum, and y maximum that bounds its
+        # button.
+        self.gene_button_bounds: List[Tuple[float, float, float, float]] = []
+        self.group_button_bounds: List[Tuple[float, float, float, float]] = []
         row = -1
         for category_name, genes in self.categorised_genes.items():
             row += 1
             if self._include_category_names():
                 position: Tuple[float, float] = (fig_width / 2, row * cell_height + 0.5 * cell_height)
+                self.group_button_bounds.append(
+                    (0, fig_width, position[1] - 0.5 * cell_height, position[1] + 0.5 * cell_height)
+                )
                 self.canvas.ax.annotate(category_name, position, ha="center", va="center")
                 row += 1
 
@@ -158,7 +209,7 @@ class Legend:
             for gene in genes:
                 x = col * cell_width
                 y = row * cell_height + 0.5 * cell_height
-                scatter_kwargs = {"s": s, "color": gene.colour}
+                scatter_kwargs = {"s": marker_size, "color": gene.colour}
                 scatter_kwargs["marker"] = markers.align_marker(
                     self._napari_to_mpl_marker[gene.symbol_napari], halign="left"
                 )
@@ -174,6 +225,7 @@ class Legend:
                     weight="medium",
                 )
                 self.scatter_axes.append((scatter_ax, text_ax))
+                self.gene_button_bounds.append((x, x + cell_width, y - 0.5 * cell_height, y + 0.5 * cell_height))
 
                 col += 1
                 if col >= cells_per_row:

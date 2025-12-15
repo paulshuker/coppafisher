@@ -7,7 +7,6 @@ from collections.abc import Iterable
 from os import path
 from typing import List, Literal, Optional
 
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import napari
 import napari.layers
@@ -16,6 +15,7 @@ import pandas as pd
 import tabulate
 import tifffile
 import torch
+from matplotlib.backend_bases import MouseEvent
 from matplotlib.figure import Figure
 from matplotlib.path import Path
 from napari.layers import Points
@@ -105,7 +105,7 @@ class Viewer:
     ignore_events: bool
 
     # UI variables:
-    legend_: legend.Legend
+    legend: legend.Legend
     point_layers: dict[str, Points]
     method_combo_box: QComboBox
     z_thick_slider: QDoubleSlider
@@ -165,9 +165,9 @@ class Viewer:
         assert type(gene_marker_filepath) is str or gene_marker_filepath is None
         if gene_marker_filepath is not None and not path.isfile(gene_marker_filepath):
             raise FileNotFoundError(f"Could not find gene marker filepath at {gene_marker_filepath}")
-        self.legend_ = legend.Legend()
-        if gene_legend_order_by not in self.legend_.order_by_options:
-            raise ValueError(f"gene_legend_order_by must be one of {self.legend_.order_by_options}")
+        self.legend = legend.Legend()
+        if gene_legend_order_by not in self.legend.order_by_options:
+            raise ValueError(f"gene_legend_order_by must be one of {self.legend.order_by_options}")
         if type(background_images) is str:
             raise TypeError("background_images must be an iterable, not a string")
         if not hasattr(background_images, "__iter__"):
@@ -312,10 +312,10 @@ class Viewer:
             self.viewer = napari.Viewer(**viewer_kwargs)
 
         print("Building gene legend")
-        self.legend_.create_gene_legend(self.genes, gene_legend_order_by)
-        self.legend_.canvas.mpl_connect("button_press_event", self.legend_clicked)
+        self.legend.create_gene_legend(self.genes, gene_legend_order_by)
+        self.legend.canvas.mpl_connect("button_press_event", self.legend_clicked)
         if self.show:
-            self.viewer.window.add_dock_widget(self.legend_.canvas, name="Gene Legend", area="left")
+            self.viewer.window.add_dock_widget(self.legend.canvas, name="Gene Legend", area="left")
         self._update_gene_legend()
 
         print("Loading background image")
@@ -534,18 +534,22 @@ class Viewer:
         print(message)
         self._set_status_to(message)
 
-    def legend_clicked(self, event: mpl.backend_bases.MouseEvent) -> None:
+    def legend_clicked(self, event: MouseEvent) -> None:
         if self.ignore_events:
             return
-        if event.inaxes != self.legend_.canvas.ax:
+        if event.inaxes != self.legend.canvas.ax:
             # Click event did not occur within the legend axes.
             return
-        closest_gene_index = self.legend_.get_closest_gene_index_to(event.xdata, event.ydata)
-        if closest_gene_index is None:
-            self._consider_cell_type_click(event)
-            return
-        closest_gene = self.genes[closest_gene_index]
 
+        value, button_type = self.legend.get_closest_toggleable_button(event.xdata, event.ydata)
+        if value is None:
+            return
+        if button_type == "group":
+            self._consider_cell_type_click(value)
+            return
+
+        assert type(value) is int
+        closest_gene = self.genes[value]
         if event.button.name == "LEFT":
             # Toggle the gene on and off that was clicked on.
             closest_gene.active = not closest_gene.active
@@ -703,7 +707,7 @@ class Viewer:
         ax.set_title(r"$\mathbf{Hotkeys}$", fontdict={"size": 20, "va": "center"})
         ax.set_axis_off()
         text = r"$\mathbf{Legend}$" + "\n"
-        for help_line in self.legend_.get_help():
+        for help_line in self.legend.get_help():
             text += help_line + "\n"
         unique_sections = []
         for hotkey in self.hotkeys:
@@ -1162,16 +1166,13 @@ class Viewer:
             # Connect to z slider changing event.
             self.viewer.dims.events.current_step.connect(self.z_slider_changed)
 
-    def _consider_cell_type_click(self, event: mpl.backend_bases.MouseEvent) -> None:
-        closest_cell_type = self.legend_.get_closest_cell_type(event.xdata, event.ydata)
-        if closest_cell_type is None:
-            return
+    def _consider_cell_type_click(self, cell_type: str) -> None:
+        assert type(cell_type) is str
 
-        genes_in_cell_type = [gene for gene in self.genes if gene.cell_type == closest_cell_type]
+        genes_in_cell_type = [gene for gene in self.genes if gene.cell_type == cell_type]
         any_gene_is_active = any([gene.active for gene in genes_in_cell_type])
         for gene in genes_in_cell_type:
             gene.active = not any_gene_is_active
-
         self._update_gene_keep()
         self.update_viewer_data()
         self._update_gene_legend()
@@ -1198,11 +1199,11 @@ class Viewer:
 
         return index, yxz, local_yxz, tile, gene_no, score, colour, intensity
 
-    def _create_gene_list(self, gene_marker_filepath: Optional[str] = None) -> tuple["Viewer.Gene"]:
+    def _create_gene_list(self, gene_marker_filepath: Optional[str] = None) -> tuple[Gene, ...]:
         """
         Create a tuple of genes from the notebook to store information about each gene. This will be saved at
-        `self.genes`. Each element of the tuple will be a Viewer.Gene class object. So it will contain the name, colour
-        and symbols for each gene.
+        `self.genes`. Each element of the tuple will be a Gene class object. So it will contain the name, colour and
+        symbols for each gene.
 
         Args:
             - gene_marker_file (str, optional), path to csv file containing marker and color for each gene. There must
@@ -1218,7 +1219,7 @@ class Viewer:
                 default gene marker file found at coppafisher/plot/results_viewer/gene_colour.csv.
 
         Returns:
-            (tuple of Viewer.Gene) genes: every genes Gene object.
+            (tuple of Gene) genes: every genes Gene object.
         """
         if gene_marker_filepath is None:
             gene_marker_filepath = importlib_resources.files("coppafisher.plot.results_viewer")
@@ -1227,7 +1228,7 @@ class Viewer:
             raise FileNotFoundError(f"Could not find gene marker file at {gene_marker_filepath}")
         gene_legend_info = pd.read_csv(gene_marker_filepath)
         legend_gene_names = gene_legend_info["GeneNames"].values
-        genes: list[Viewer.Gene] = []
+        genes: list[Gene] = []
         invisible_gene_names = []
 
         # Create a list of genes with the relevant information. If the gene is not in the gene marker file, it will not
@@ -1243,7 +1244,7 @@ class Viewer:
                 if "cell_type" in gene_legend_info.columns
                 else ""
             )
-            new_gene: Viewer.Gene = self.Gene(
+            new_gene: Gene = Gene(
                 name=g,
                 notebook_index=i,
                 colour=colour,
@@ -1320,7 +1321,7 @@ class Viewer:
 
     def _update_gene_legend(self) -> None:
         # Called when the gene selection has changed by user input
-        self.legend_.update_selected_legend_genes([g.active for g in self.genes])
+        self.legend.update_selected_legend_genes([g.active for g in self.genes])
 
     def _set_status_to(self, message: str) -> None:
         # Sets the status bar of the viewer to a new message.

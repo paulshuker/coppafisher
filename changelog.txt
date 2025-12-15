@@ -1,5 +1,5 @@
 2025/12/16 Version 1.11 (v1.11.0):
- * Viewer: Gene legend adaptive figure spacing added.
+ * Viewer: The gene legend better scales with size.
  * Viewer: Open the gene legend in a separate window option added.
  * Viewer: Cannot click on the first group in the gene legend fix.
 
