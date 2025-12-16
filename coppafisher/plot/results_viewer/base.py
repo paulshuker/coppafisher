@@ -934,7 +934,10 @@ class Viewer:
                 break
         return file_path
 
-    def open_gene_legend_window(self) -> Subplot:
+    def open_gene_legend_window(self, _=None) -> Subplot | None:
+        if not self.show:
+            # TODO: Allow this code to be tested.
+            return
         # Close any existing gene legend windows.
         for subplot in self.open_subplots:
             if isinstance(subplot, Legend):
@@ -943,11 +946,10 @@ class Viewer:
         legend.create_gene_legend(self.genes, self._gene_legend_order_by, is_standalone_plot=True)
         legend.update_selected_legend_genes([g.active for g in self.genes])
         legend.legend_clicked = self.legend_clicked
-        if self.show:
-            legend.canvas.show()
+        legend.canvas.show()
         return legend
 
-    def view_manual_threshold(self) -> Subplot:
+    def view_manual_threshold(self, _=None) -> Subplot:
         def on_score_threshold_changed(new_value: tuple[float, float]) -> None:
             self.score_slider.setValue(new_value)
             self.score_thresholds_changed()
