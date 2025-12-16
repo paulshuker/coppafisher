@@ -1187,9 +1187,6 @@ class Viewer:
     def _consider_cell_type_click(self, cell_type: str, event: MouseEvent) -> None:
         assert type(cell_type) is str
 
-        if event.button.name != "LEFT":
-            return
-
         genes_in_cell_type = [gene for gene in self.genes if gene.cell_type == cell_type]
         genes_not_in_cell_type = [gene for gene in self.genes if gene.cell_type != cell_type]
         any_gene_is_active = any(gene.active for gene in genes_in_cell_type)
