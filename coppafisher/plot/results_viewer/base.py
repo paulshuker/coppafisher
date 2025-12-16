@@ -33,9 +33,10 @@ from ..call_spots import bleed_matrix, spot_colours
 from ..omp.colours import ViewOMPColourSum
 from ..omp.pixel_scores import ViewOMPPixelScoreImage
 from ..omp.scores import ViewOMPGeneScores
-from . import background, distribution, exporter, legend
+from . import background, distribution, exporter
 from .gene import Gene
 from .hotkeys import Hotkey
+from .legend import Legend
 from .subplot import Subplot
 from .threshold import ManualThreshold
 
@@ -49,7 +50,6 @@ class Viewer:
         "anchor": "Anchor",
         "omp": "OMP",
     }
-    _gene_legend_order_by_options: tuple[str, ...] = ("row", "colour", "cell_type")
     _starting_score_thresholds: dict[str, tuple[float, float | None]] = {
         "prob_init": (0.9, None),
         "prob": (0.9, None),
@@ -105,7 +105,7 @@ class Viewer:
     ignore_events: bool
 
     # UI variables:
-    legend: legend.Legend
+    legend: Legend
     point_layers: dict[str, Points]
     method_combo_box: QComboBox
     z_thick_slider: QDoubleSlider
@@ -165,7 +165,7 @@ class Viewer:
         assert type(gene_marker_filepath) is str or gene_marker_filepath is None
         if gene_marker_filepath is not None and not path.isfile(gene_marker_filepath):
             raise FileNotFoundError(f"Could not find gene marker filepath at {gene_marker_filepath}")
-        self.legend = legend.Legend()
+        self.legend = Legend()
         if gene_legend_order_by not in self.legend.order_by_options:
             raise ValueError(f"gene_legend_order_by must be one of {self.legend.order_by_options}")
         if type(background_images) is str:
@@ -311,12 +311,17 @@ class Viewer:
             viewer_kwargs = dict(title=f"Coppafisher {utils_system.get_software_version()} Viewer", show=False)
             self.viewer = napari.Viewer(**viewer_kwargs)
 
+        # When subplots open, some of them need to be kept within the Viewer class to avoid garbage collection.
+        # The garbage collection breaks the UI elements like buttons and sliders.
+        self.open_subplots = list()
+
         print("Building gene legend")
-        self.legend.create_gene_legend(self.genes, gene_legend_order_by)
-        self.legend.canvas.mpl_connect("button_press_event", self.legend_clicked)
+        self._gene_legend_order_by = gene_legend_order_by
+        self.legend.create_gene_legend(self.genes, self._gene_legend_order_by)
+        self.legend.legend_clicked = self.legend_clicked
         if self.show:
             self.viewer.window.add_dock_widget(self.legend.canvas, name="Gene Legend", area="left")
-        self._update_gene_legend()
+        self._update_gene_legends()
 
         print("Loading background image")
         tile_z_positions = self.nbp_stitch.tile_origin[self.nbp_basic.use_tiles, 2]
@@ -385,6 +390,14 @@ class Viewer:
                 "Open tool for instructions",
                 lambda _: self._add_subplot(self.view_2d_export_tool()),
                 "Export",
+                requires_selection=False,
+            ),
+            Hotkey(
+                "Open Gene Legend Window",
+                "[",
+                "Open the gene legend in a separate window",
+                lambda _: self._add_subplot(self.open_gene_legend_window()),
+                "Visual",
                 requires_selection=False,
             ),
             Hotkey(
@@ -500,10 +513,6 @@ class Viewer:
             self.viewer.window.resize(1400, 900)
             self.viewer.window.activate()
 
-        # When subplots open, some of them need to be kept within the Viewer class to avoid garbage collection.
-        # The garbage collection breaks the UI elements like buttons and sliders.
-        self.open_subplots = list()
-
         end_time = time.time()
         print(f"Viewer built in {'{:.1f}'.format(end_time - start_time)}s")
 
@@ -534,18 +543,12 @@ class Viewer:
         print(message)
         self._set_status_to(message)
 
-    def legend_clicked(self, event: MouseEvent) -> None:
-        if self.ignore_events:
-            return
-        if event.inaxes != self.legend.canvas.ax:
-            # Click event did not occur within the legend axes.
-            return
-
-        value, button_type = self.legend.get_closest_toggleable_button(event.xdata, event.ydata)
+    def legend_clicked(self, legend: Legend, event: MouseEvent) -> None:
+        value, button_type = legend.get_closest_toggleable_button(event.xdata, event.ydata)
         if value is None:
             return
         if button_type == "group":
-            self._consider_cell_type_click(value)
+            self._consider_cell_type_click(value, event)
             return
 
         assert type(value) is int
@@ -569,7 +572,7 @@ class Viewer:
 
         self._update_gene_keep()
         self.update_viewer_data()
-        self._update_gene_legend()
+        self._update_gene_legends()
 
     def z_slider_changed(self, _) -> None:
         # Called when the user changes the z slider in the napari viewer.
@@ -931,7 +934,20 @@ class Viewer:
                 break
         return file_path
 
-    def view_manual_threshold(self, _=None) -> Subplot:
+    def open_gene_legend_window(self) -> Subplot:
+        # Close any existing gene legend windows.
+        for subplot in self.open_subplots:
+            if isinstance(subplot, Legend):
+                subplot.close()
+        legend = Legend()
+        legend.create_gene_legend(self.genes, self._gene_legend_order_by, is_standalone_plot=True)
+        legend.update_selected_legend_genes([g.active for g in self.genes])
+        legend.legend_clicked = self.legend_clicked
+        if self.show:
+            legend.canvas.show()
+        return legend
+
+    def view_manual_threshold(self) -> Subplot:
         def on_score_threshold_changed(new_value: tuple[float, float]) -> None:
             self.score_slider.setValue(new_value)
             self.score_thresholds_changed()
@@ -1166,16 +1182,27 @@ class Viewer:
             # Connect to z slider changing event.
             self.viewer.dims.events.current_step.connect(self.z_slider_changed)
 
-    def _consider_cell_type_click(self, cell_type: str) -> None:
+    def _consider_cell_type_click(self, cell_type: str, event: MouseEvent) -> None:
         assert type(cell_type) is str
 
+        if event.button.name != "LEFT":
+            return
+
         genes_in_cell_type = [gene for gene in self.genes if gene.cell_type == cell_type]
-        any_gene_is_active = any([gene.active for gene in genes_in_cell_type])
-        for gene in genes_in_cell_type:
-            gene.active = not any_gene_is_active
+        genes_not_in_cell_type = [gene for gene in self.genes if gene.cell_type != cell_type]
+        any_gene_is_active = any(gene.active for gene in genes_in_cell_type)
+        all_other_genes_inactive = all(not gene.active for gene in genes_not_in_cell_type)
+        if event.button.name == "LEFT":
+            for gene in genes_in_cell_type:
+                gene.active = not any_gene_is_active
+        elif event.button.name == "MIDDLE":
+            for gene in genes_not_in_cell_type:
+                gene.active = all_other_genes_inactive
+        else:
+            return
         self._update_gene_keep()
         self.update_viewer_data()
-        self._update_gene_legend()
+        self._update_gene_legends()
 
     def _add_subplot(self, subplot: Figure | Subplot | None) -> None:
         if subplot is None:
@@ -1319,9 +1346,14 @@ class Viewer:
         else:
             raise TypeError(f"Unkown subplot type: {type(subplot)}")
 
-    def _update_gene_legend(self) -> None:
+    def _update_gene_legends(self) -> None:
         # Called when the gene selection has changed by user input
-        self.legend.update_selected_legend_genes([g.active for g in self.genes])
+        active_genes = [g.active for g in self.genes]
+        self.legend.update_selected_legend_genes(active_genes)
+        for subplot in self.open_subplots:
+            if not isinstance(subplot, Legend):
+                continue
+            subplot.update_selected_legend_genes(active_genes)
 
     def _set_status_to(self, message: str) -> None:
         # Sets the status bar of the viewer to a new message.

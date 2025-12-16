@@ -232,7 +232,7 @@ def test_Viewer() -> None:
             button = type("Button", (object,), {})()
             button.name = "LEFT" if rng.randint(2) == 0 else "RIGHT"
             event.button = button
-            viewer.legend_clicked(event)
+            viewer.legend_clicked(viewer.legend, event)
         viewer.close_all_subplots()
         # Test every hotkey.
         for hotkey in viewer.hotkeys:

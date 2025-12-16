@@ -1,11 +1,13 @@
 import colorsys
 import math as maths
 from collections import OrderedDict
-from typing import Any, List, Literal, Tuple
+from typing import Any, Callable, List, Literal, Tuple
 
 import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
+from matplotlib.backend_bases import MouseEvent
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvasHeadless
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -13,6 +15,9 @@ from matplotlib.font_manager import FontProperties
 
 from ...utils import markers
 from .gene import Gene
+from .subplot import Subplot
+
+DEFAULT_FIGSIZE = (5, 4)
 
 
 # A headless (Agg) backend version of MplCanvas, this is required for unit testing the gene legend.
@@ -21,7 +26,7 @@ class MplCanvasHeadless(FigureCanvasHeadless):
 
     def __init__(self, _=None):
         fig = Figure()
-        fig.set_size_inches(5, 4)
+        fig.set_size_inches(DEFAULT_FIGSIZE)
         fig.subplots_adjust(0, 0, 1, 1)
         self.ax = fig.subplots(1, 1)
         super(MplCanvasHeadless, self).__init__(fig)
@@ -31,15 +36,53 @@ class MplCanvas(FigureCanvas):
     ax: Axes
 
     def __init__(self, _=None):
-        fig = Figure()
-        fig.set_size_inches(5, 4)
-        fig.subplots_adjust(0, 0, 1, 1)
+        fig = Figure(DEFAULT_FIGSIZE)
         self.ax = fig.subplots(1, 1)
+        fig.set_size_inches(DEFAULT_FIGSIZE)
+        fig.subplots_adjust(0, 0, 1, 1)
         super(MplCanvas, self).__init__(fig)
 
 
-class Legend:
-    canvas: MplCanvas | MplCanvasHeadless | None
+class DefaultCanvas(FigureCanvas):
+    figure: Figure
+    ax: Axes
+
+    def __init__(self) -> None:
+        self.figure = plt.figure(figsize=DEFAULT_FIGSIZE)
+        self.ax = self.figure.subplots(1, 1)
+
+        super(DefaultCanvas, self).__init__(self.figure)
+
+    def show(self) -> None:
+        plt.show()
+
+
+class Legend(Subplot):
+    """
+    A legend matplotlib.pyplot to represent a series of genes.
+
+    The genes can be ordered in different ways. Genes can be switched on and off by calling the function
+    `update_selected_legend_genes`. The legend will automatically separate the genes across the figure's size in a grid
+    pattern when the figure is resized.
+
+    Attributes:
+        legend_clicked (callable or none): if not none, then the function is called when the figure is mouse
+            single-clicked on by the left, right, or middle mouse button.
+        canvas (MplCanvas or MplCanvasHeadless or none): the canvas for the plot. It is none until `create_gene_legend`
+            is called. Default: none.
+        order_by_options (tuple of str): the different ways the genes can be ordered when plotted in the legend.
+    """
+
+    legend_clicked: Callable[["Legend", MouseEvent], None] | None
+
+    canvas: MplCanvas | MplCanvasHeadless | DefaultCanvas | None
+
+    def _get_fig(self) -> Figure:
+        return self.canvas.figure
+
+    fig: Figure = property(_get_fig)
+
+    _legend_created: bool = False
 
     # Minimum width / height for a grid cell for a single gene in the gene legend.
     # Increasing this trades a smaller grid height for a wider cell for the text.
@@ -77,11 +120,27 @@ class Legend:
     }
 
     def __init__(self) -> None:
-        pass
+        self.legend_clicked = None
+        self.canvas = None
 
     def create_gene_legend(
-        self, genes: tuple[Gene, ...], order_by: Literal["row"] | Literal["colour"] | Literal["cell_type"]
+        self,
+        genes: tuple[Gene, ...],
+        order_by: Literal["row"] | Literal["colour"] | Literal["cell_type"],
+        is_standalone_plot: bool = False,
     ):
+        """
+        Build the gene legend.
+
+        Args:
+            genes (tuple of Genes): the genes to include in the gene legend.
+            order_by (str): how to order the genes. "row" orders the genes in the order given, "colour" orders the genes
+                such that similar hues are close together, and "cell_type" orders the genes by cell types given inside
+                each Gene class.
+            is_standalone_plot (bool, optional): whether the plot is in its own pyplot window. Default: false.
+        """
+        if self._legend_created:
+            raise ValueError("create_gene_legend cannot be called more than once")
         assert order_by in self._order_by_options
 
         self.categorised_genes: OrderedDict[str, list[Any]] = OrderedDict()
@@ -107,7 +166,10 @@ class Legend:
         for category in self.categorised_genes.keys():
             self._plot_index_to_gene_index += [genes.index(gene) for gene in self.categorised_genes[category]]
 
-        self.canvas = MplCanvasHeadless() if mpl.get_backend() == "Agg" else MplCanvas()
+        if is_standalone_plot:
+            self.canvas = DefaultCanvas()
+        else:
+            self.canvas = MplCanvasHeadless() if mpl.get_backend() == "Agg" else MplCanvas()
         self._draw()
         self.canvas.ax.spines["top"].set_visible(False)
         self.canvas.ax.spines["right"].set_visible(False)
@@ -115,12 +177,20 @@ class Legend:
         self.canvas.ax.spines["left"].set_visible(False)
         self.current_active_genes = [True for _ in genes]
         self.update_selected_legend_genes(self.current_active_genes)
+        self.canvas.mpl_connect("button_press_event", self._on_mouse_button_press_event)
         self.canvas.mpl_connect("resize_event", self._on_resize_event)
+        self._legend_created = True
 
     def update_selected_legend_genes(self, active_genes: list[bool]) -> None:
         """
         Update which genes are currently selected in the viewer. A selected gene is given a high opacity.
+
+        Args:
+            active_genes (list of bool): true for active genes.
         """
+        if len(active_genes) != len(self.scatter_axes):
+            raise ValueError("active_genes must be the same length as the number of genes in the legend")
+
         active_genes_sorted = [active_genes[i] for i in self._plot_index_to_gene_index]
         for axes, is_active in zip(self.scatter_axes, active_genes_sorted, strict=True):
             axes[0].set_alpha(self._selected_opacity if is_active else self._unselected_opacity)
@@ -128,7 +198,14 @@ class Legend:
                 FontProperties(weight=self._selected_text_weight if is_active else self._unselected_text_weight)
             )
         self.current_active_genes = active_genes.copy()
-        self.canvas.draw_idle()
+        if type(self.canvas) is DefaultCanvas:
+            plt.draw()
+            try:
+                plt.pause(0.001)
+            except RuntimeError:
+                pass
+        else:
+            self.canvas.draw_idle()
 
     def get_closest_toggleable_button(
         self, x: float, y: float
@@ -165,9 +242,10 @@ class Legend:
         """
         return (
             "(Left mouse click gene symbol) toggle the gene on/off",
-            "(Right mouse click gene symbol) toggle showing the gene alone",
+            "(Right mouse click gene symbol) toggle showing the clicked gene on its own",
             "(Middle mouse click gene symbol) toggle the genes with the same colour on/off",
-            "(Left mouse click cell type title) toggle the cell type on/off",
+            "(Left mouse click cell type title) toggle the entire cell type on/off",
+            "(Middle mouse click cell type title) toggle all other cell types on/off",
         )
 
     def _draw(self) -> None:
@@ -245,6 +323,18 @@ class Legend:
         self.canvas.ax.set_xmargin(0)
         self.canvas.ax.set_ymargin(0)
         self.canvas.draw_idle()
+
+    def _on_mouse_button_press_event(self, event: MouseEvent) -> None:
+        if self.legend_clicked is None:
+            return
+        if event.inaxes != self.canvas.ax:
+            return
+        if event.key is not None:
+            return
+        if event.dblclick:
+            return
+
+        self.legend_clicked(self, event)
 
     def _on_resize_event(self, _=None) -> None:
         self._draw()
