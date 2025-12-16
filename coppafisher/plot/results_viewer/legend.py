@@ -1,44 +1,108 @@
 import colorsys
 import math as maths
+from collections import OrderedDict
+from typing import Any, Callable, List, Literal, Tuple
 
-import matplotlib
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.axes import Axes
+from matplotlib.backend_bases import MouseEvent
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvasHeadless
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
+from matplotlib.font_manager import FontProperties
+
+from ...utils import markers
+from .gene import Gene
+from .subplot import Subplot
+
+DEFAULT_FIGSIZE = (5, 4)
 
 
 # A headless (Agg) backend version of MplCanvas, this is required for unit testing the gene legend.
 class MplCanvasHeadless(FigureCanvasHeadless):
+    ax: Axes
+
     def __init__(self, _=None):
         fig = Figure()
-        fig.set_size_inches(5, 4)
-        self.axes = fig.subplots(1, 1)
+        fig.set_size_inches(DEFAULT_FIGSIZE)
+        fig.subplots_adjust(0, 0, 1, 1)
+        self.ax = fig.subplots(1, 1)
         super(MplCanvasHeadless, self).__init__(fig)
 
 
 class MplCanvas(FigureCanvas):
+    ax: Axes
+
     def __init__(self, _=None):
-        fig = Figure()
-        fig.set_size_inches(5, 4)
-        self.axes = fig.subplots(1, 1)
+        fig = Figure(DEFAULT_FIGSIZE)
+        self.ax = fig.subplots(1, 1)
+        fig.set_size_inches(DEFAULT_FIGSIZE)
+        fig.subplots_adjust(0, 0, 1, 1)
         super(MplCanvas, self).__init__(fig)
 
 
-class Legend:
-    _max_columns: int = 4
-    _x_separation: float = 0.25
-    _text_scatter_separation: float = 0.02
-    _unselected_opacity: float = 0.25
+class DefaultCanvas(FigureCanvas):
+    figure: Figure
+    ax: Axes
+
+    def __init__(self) -> None:
+        self.figure = plt.figure(figsize=DEFAULT_FIGSIZE)
+        self.figure.subplots_adjust(0, 0, 1, 1)
+        self.ax = self.figure.subplots(1, 1)
+
+        super(DefaultCanvas, self).__init__(self.figure)
+
+    def show(self) -> None:
+        plt.show()
+
+
+class Legend(Subplot):
+    """
+    A legend matplotlib.pyplot to represent a series of genes.
+
+    The genes can be ordered in different ways. Genes can be switched on and off by calling the function
+    `update_selected_legend_genes`. The legend will automatically separate the genes across the figure's size in a grid
+    pattern when the figure is resized.
+
+    Attributes:
+        legend_clicked (callable or none): if not none, then the function is called when the figure is mouse
+            single-clicked on by the left, right, or middle mouse button.
+        canvas (MplCanvas or MplCanvasHeadless or none): the canvas for the plot. It is none until `create_gene_legend`
+            is called. Default: none.
+        order_by_options (tuple of str): the different ways the genes can be ordered when plotted in the legend.
+    """
+
+    legend_clicked: Callable[["Legend", MouseEvent], None] | None
+
+    canvas: MplCanvas | MplCanvasHeadless | DefaultCanvas | None
+
+    def _get_fig(self) -> Figure:
+        return self.canvas.figure
+
+    fig: Figure = property(_get_fig)
+
+    _legend_created: bool = False
+
+    # Minimum width / height for a grid cell for a single gene in the gene legend.
+    # Increasing this trades a smaller grid height for a wider cell for the text.
+    _minimum_cell_aspect_ratio: float
+    # As a fraction of the cell width from the left edge.
+    _marker_padding: float = 0.1
+    # As a fraction of the cell width from the right edge.
+    _marker_text_padding: float = 0.05
+
+    _order_by_options: tuple[str, ...] = ("row", "colour", "cell_type")
+
+    def get_order_by_options(self) -> tuple[str, ...]:
+        return self._order_by_options
+
+    order_by_options: tuple[str, ...] = property(get_order_by_options)
     _selected_opacity: float = 1.0
-    _selection_radius: float = 0.25
-    _cell_type_selection_size: tuple[float, float] = (3, 0.9)
-    _order_by_options: tuple[str] = ("row", "colour", "cell_type")
-    _ordered_by: str
-    # The x and y position of each cell type heading. The dictionary is empty if not ordered by cell type.
-    _cell_type_positions: dict[str, tuple[float, float]]
-    _plot_index_to_gene_index: np.ndarray[int]
-    # A conversion from a napari marker to a matplotlib marker equivalent.
+    _unselected_opacity: float = 0.25
+    _selected_text_weight: str = "normal"
+    _unselected_text_weight: str = "light"
     _napari_to_mpl_marker: dict[str, str] = {
         "cross": "+",
         "disc": "o",
@@ -57,144 +121,118 @@ class Legend:
     }
 
     def __init__(self) -> None:
-        self._selection_radius_squared = self._selection_radius**2
+        self.legend_clicked = None
+        self.canvas = None
 
-    def get_order_by_options(self) -> tuple[str]:
-        return self._order_by_options
-
-    order_by_options: tuple[str] = property(get_order_by_options)
-
-    def create_gene_legend(self, genes: tuple, order_by: str):
+    def create_gene_legend(
+        self,
+        genes: tuple[Gene, ...],
+        order_by: Literal["row"] | Literal["colour"] | Literal["cell_type"],
+        is_standalone_plot: bool = False,
+    ):
         """
-        Create a new gene legend.
+        Build the gene legend.
+
+        Args:
+            genes (tuple of Genes): the genes to include in the gene legend.
+            order_by (str): how to order the genes. "row" orders the genes in the order given, "colour" orders the genes
+                such that similar hues are close together, and "cell_type" orders the genes by cell types given inside
+                each Gene class.
+            is_standalone_plot (bool, optional): whether the plot is in its own pyplot window. Default: false.
         """
+        if self._legend_created:
+            raise ValueError("create_gene_legend cannot be called more than once")
         assert order_by in self._order_by_options
 
-        if matplotlib.get_backend() == "Agg":
-            self.canvas = MplCanvasHeadless()
-        else:
-            self.canvas = MplCanvas()
-        self.scatter_axes = []
-        self._cell_type_positions = {}
-        # Gene scatter points are populated within a bounding box of -1 to 1 in both x and y directions.
-        X, Y = [], []
-        active_genes = [gene for gene in genes if gene.active]
-        active_count = len(active_genes)
-        self._plot_index_to_gene_index = np.linspace(0, active_count - 1, active_count, dtype=int)
-        if order_by in ["colour", "cell_type"]:
-            index_min = 0
-            if order_by == "colour":
-                active_categories = np.array([gene.colour for gene in genes if gene.active])
-                sorted_categories = self._hue_sort(np.unique(active_categories, axis=0))
-            else:
-                active_categories = np.array([gene.cell_type for gene in genes if gene.active])
-                sorted_categories = np.sort(np.unique(active_categories))
+        self.categorised_genes: OrderedDict[str, list[Any]] = OrderedDict()
+        match order_by:
+            case "row":
+                self.categorised_genes[""] = list(genes)
+            case "cell_type":
+                cell_types = np.sort(np.unique([gene.cell_type for gene in genes])).tolist()
+                for category in cell_types:
+                    self.categorised_genes[category] = [gene for gene in genes if gene.cell_type == category]
+            case "colour":
+                self.categorised_genes[""] = [
+                    genes[ind] for ind in self._hue_argsort(np.unique([gene.colour for gene in genes], axis=0))
+                ]
+            case _:
+                raise ValueError(f"Unknown order_by: {order_by}")
+        self.categorised_genes = OrderedDict(reversed(self.categorised_genes.items()))
+        self.category_count = len(self.categorised_genes)
 
-            for unique_category in sorted_categories:
-                unique_category_indices = np.atleast_2d((active_categories == unique_category).T).T.all(1).nonzero()[0]
-                unique_category_names = [active_genes[i].name.lower() for i in unique_category_indices]
-                names_sorted_indices = np.argsort(unique_category_names)
-                # The unique colour genes are then sorted by their names alphabetically.
-                unique_category_indices = unique_category_indices[names_sorted_indices]
-                index_max = index_min + len(unique_category_names)
-                self._plot_index_to_gene_index[index_min:index_max] = unique_category_indices
-                index_min = index_max
-        text_kwargs = dict(fontsize=5 + 20 / maths.sqrt(active_count), ha="left", va="center", c="grey")
-        assert np.unique(self._plot_index_to_gene_index).size == self._plot_index_to_gene_index.size
-        active_genes = [active_genes[i] for i in self._plot_index_to_gene_index]
-        row = 1
-        col = 0
-        prev_cat = None
-        for gene in active_genes:
-            if order_by == "cell_type" and prev_cat != gene.cell_type:
-                prev_cat = gene.cell_type
-                if col != 0:
-                    row += 1
-                # FIXME: For whatever reason the first cell type category cannot be toggled by clicking on it.
-                # The others work fine...
-                self.canvas.axes.text(-0.2, row, prev_cat, fontweight="bold", **text_kwargs)
-                self._cell_type_positions[prev_cat] = (-0.2, float(row))
-                row += 1
-                col = 0
-            x = col * self._x_separation
-            y = row
-            col += 1
-            if col == self._max_columns:
-                col = 0
-                row += 1
-            self.canvas.axes.text(x + self._text_scatter_separation, y, gene.name, **text_kwargs)
-            marker = self._napari_to_mpl_marker[gene.symbol_napari]
-            scatter_kwargs = dict()
-            scatter_kwargs["s"] = 20 + 10 / maths.sqrt(active_count)
-            if gene.symbol_napari == "ring":
-                scatter_kwargs["facecolor"] = "none"
-                scatter_kwargs["edgecolor"] = gene.colour
-            self.scatter_axes.append(self.canvas.axes.scatter(x, y, marker=marker, color=gene.colour, **scatter_kwargs))
-            X.append(x)
-            Y.append(y)
-        self.canvas.axes.set_xlim(min(X) - 0.21, max(X) + 0.15 + self._text_scatter_separation)
-        self.canvas.axes.set_ylim(max(Y) + 0.15, min(Y) - 0.15)
-        self.canvas.axes.set_xticks([])
-        self.canvas.axes.set_yticks([])
-        self.canvas.axes.spines.clear()
-        self.X = np.array(X, np.float32)
-        self.Y = np.array(Y, np.float32)
-        self._ordered_by = order_by
+        self._minimum_cell_aspect_ratio = max(2, 1.85 * max(len(gene.name) for gene in genes) / 3)
+
+        self._plot_index_to_gene_index: list[int] = []
+        for category in self.categorised_genes.keys():
+            self._plot_index_to_gene_index += [genes.index(gene) for gene in self.categorised_genes[category]]
+
+        if is_standalone_plot:
+            self.canvas = DefaultCanvas()
+        else:
+            self.canvas = MplCanvasHeadless() if mpl.get_backend() == "Agg" else MplCanvas()
+        self._draw()
+        self.canvas.ax.spines["top"].set_visible(False)
+        self.canvas.ax.spines["right"].set_visible(False)
+        self.canvas.ax.spines["bottom"].set_visible(False)
+        self.canvas.ax.spines["left"].set_visible(False)
+        self.current_active_genes = [True for _ in genes]
+        self.update_selected_legend_genes(self.current_active_genes)
+        self.canvas.mpl_connect("button_press_event", self._on_mouse_button_press_event)
+        self.canvas.mpl_connect("resize_event", self._on_resize_event)
+        self._legend_created = True
 
     def update_selected_legend_genes(self, active_genes: list[bool]) -> None:
         """
         Update which genes are currently selected in the viewer. A selected gene is given a high opacity.
+
+        Args:
+            active_genes (list of bool): true for active genes.
         """
+        if len(active_genes) != len(self.scatter_axes):
+            raise ValueError("active_genes must be the same length as the number of genes in the legend")
+
         active_genes_sorted = [active_genes[i] for i in self._plot_index_to_gene_index]
-        for scatter_ax, active in zip(self.scatter_axes, active_genes_sorted, strict=True):
-            if active:
-                scatter_ax.set_alpha(self._selected_opacity)
-            else:
-                scatter_ax.set_alpha(self._unselected_opacity)
-        self.canvas.draw_idle()
+        for axes, is_active in zip(self.scatter_axes, active_genes_sorted, strict=True):
+            axes[0].set_alpha(self._selected_opacity if is_active else self._unselected_opacity)
+            axes[1].set_font(
+                FontProperties(weight=self._selected_text_weight if is_active else self._unselected_text_weight)
+            )
+        self.current_active_genes = active_genes.copy()
+        if type(self.canvas) is DefaultCanvas:
+            plt.draw()
+            try:
+                plt.pause(0.001)
+            except RuntimeError:
+                pass
+        else:
+            self.canvas.draw_idle()
 
-    def get_closest_gene_index_to(self, x: float, y: float) -> int | None:
-        """
-        Find the gene index of the closest gene to the given 2d position.
+    def get_closest_toggleable_button(
+        self, x: float, y: float
+    ) -> Tuple[int, Literal["gene"]] | Tuple[str, Literal["group"]] | Tuple[None, None]:
+        if x < 0 or x > self.canvas.ax.get_xlim()[1]:
+            return (None, None)
+        if y < 0 or y > self.canvas.ax.get_ylim()[1]:
+            return (None, None)
 
-        Args:
-            x (float-like): x position.
-            y (float-like): y position.
-
-        Returns:
-            (int or none): gene_index. The closest gene index. None if no gene is nearby.
-        """
-        radii = (self.X - x) ** 2 + (self.Y - y) ** 2
-        min_radius = np.min(radii)
-        if min_radius <= self._selection_radius_squared:
-            plot_index = np.argmin(radii).item()
-            return self._plot_index_to_gene_index.tolist()[plot_index]
-        return None
-
-    def get_closest_cell_type(self, x: float, y: float) -> str | None:
-        """
-        Find the closest cell type to the given 2d position.
-
-        Args:
-            x (float-like): x position.
-            y (float-like): y position.
-
-        Returns:
-            (str or none): cell_type_index. The closest cell type. None if no cell type is nearby or the genes are not
-                ordered by cell type.
-        """
-        if self._ordered_by != "cell_type":
-            return None
-
-        for cell_type, cell_type_position in self._cell_type_positions.items():
-            if abs(x - cell_type_position[0]) >= self._cell_type_selection_size[0]:
+        for gene_index, bounds in enumerate(self.gene_button_bounds):
+            if x < bounds[0] or x > bounds[1]:
                 continue
-            if abs(y - cell_type_position[1]) >= self._cell_type_selection_size[1]:
+            if y < bounds[2] or y > bounds[3]:
                 continue
 
-            return cell_type
+            return (self._plot_index_to_gene_index[gene_index], "gene")
 
-        return None
+        for group_index, bounds in enumerate(self.group_button_bounds):
+            if x < bounds[0] or x > bounds[1]:
+                continue
+            if y < bounds[2] or y > bounds[3]:
+                continue
+
+            return (list(self.categorised_genes.keys())[group_index], "group")
+
+        return (None, None)
 
     def get_help(self) -> tuple[str, ...]:
         """
@@ -205,12 +243,115 @@ class Legend:
         """
         return (
             "(Left mouse click gene symbol) toggle the gene on/off",
-            "(Right mouse click gene symbol) toggle showing the gene alone",
+            "(Right mouse click gene symbol) toggle showing the clicked gene on its own",
             "(Middle mouse click gene symbol) toggle the genes with the same colour on/off",
-            "(Left mouse click cell type title) toggle the cell type on/off",
+            "(Left mouse click cell type title) toggle the entire cell type on/off",
+            "(Middle mouse click cell type title) toggle all other cell types on/off",
         )
 
-    def _hue_sort(self, colours: np.ndarray[float]) -> np.ndarray[float]:
+    def _draw(self) -> None:
+        self.canvas.ax.clear()
+        self.canvas.ax.set_xticks([], [])
+        self.canvas.ax.set_yticks([], [])
+
+        fig_width, fig_height = self.canvas.figure.get_size_inches().tolist()
+
+        # Calculate the highest cells per row possible.
+        cells_per_row = 1
+        row_count = self._calculate_row_count(cells_per_row)
+        cell_width = fig_width / cells_per_row
+        cell_height = fig_width / row_count
+        while True:
+            next_cell_width = fig_width / (cells_per_row + 1)
+            next_cell_height = fig_height / self._calculate_row_count(cells_per_row + 1)
+            if (next_cell_width / next_cell_height) < self._minimum_cell_aspect_ratio:
+                break
+            cell_width = next_cell_width
+            cell_height = next_cell_height
+            cells_per_row += 1
+            row_count = self._calculate_row_count(cells_per_row)
+
+        marker_size = max(40, 4_000.0 * min(cell_width * cell_width, cell_height * cell_height))
+
+        # Draw the gene legend inside a rectangle of size figure width by figure height.
+        self.scatter_axes = []
+        # Every item is a gene. The item contains the x minimum, x maximum, y minimum, and y maximum that bounds its
+        # button.
+        self.gene_button_bounds: List[Tuple[float, float, float, float]] = []
+        self.group_button_bounds: List[Tuple[float, float, float, float]] = []
+        row = -1
+        for category_name, genes in self.categorised_genes.items():
+            row += 1
+            col = 0
+            for gene in genes:
+                x = col * cell_width
+                y = row * cell_height + 0.5 * cell_height
+                scatter_kwargs = {"s": marker_size, "color": gene.colour}
+                scatter_kwargs["marker"] = markers.align_marker(
+                    self._napari_to_mpl_marker[gene.symbol_napari], halign="left"
+                )
+                if gene.symbol_napari == "ring":
+                    scatter_kwargs["facecolor"] = "none"
+                    scatter_kwargs["edgecolor"] = gene.colour
+                scatter_ax = self.canvas.ax.scatter(x + self._marker_padding * cell_width, y, **scatter_kwargs)
+                text_ax = self.canvas.ax.annotate(
+                    gene.name,
+                    (x + (1 - self._marker_text_padding) * cell_width, y),
+                    ha="right",
+                    va="center",
+                    weight="medium",
+                )
+                self.scatter_axes.append((scatter_ax, text_ax))
+                self.gene_button_bounds.append((x, x + cell_width, y - 0.5 * cell_height, y + 0.5 * cell_height))
+
+                col += 1
+                if col == cells_per_row:
+                    col = 0
+                    row += 1
+
+            if self._include_category_names():
+                if col:
+                    row += 1
+                position: Tuple[float, float] = (fig_width / 2, row * cell_height + 0.5 * cell_height)
+                self.group_button_bounds.append(
+                    (0, fig_width, position[1] - 0.5 * cell_height, position[1] + 0.5 * cell_height)
+                )
+                self.canvas.ax.annotate(category_name, position, ha="center", va="center")
+                row += 1
+
+        self.canvas.ax.set_xlim(0, fig_width)
+        self.canvas.ax.set_ylim(0, max(fig_height, (row + 1) * cell_height))
+        self.canvas.ax.set_xmargin(0)
+        self.canvas.ax.set_ymargin(0)
+        self.canvas.draw_idle()
+
+    def _on_mouse_button_press_event(self, event: MouseEvent) -> None:
+        if self.legend_clicked is None:
+            return
+        if event.inaxes != self.canvas.ax:
+            return
+        if event.key is not None:
+            return
+        if event.dblclick:
+            return
+
+        self.legend_clicked(self, event)
+
+    def _on_resize_event(self, _=None) -> None:
+        self._draw()
+        self.update_selected_legend_genes(self.current_active_genes)
+
+    def _calculate_row_count(self, cells_per_row: int) -> int:
+        row_count = self.category_count if self._include_category_names() else 0
+        for genes in self.categorised_genes.values():
+            row_count += maths.ceil(len(genes) / cells_per_row)
+
+        return row_count
+
+    def _include_category_names(self) -> bool:
+        return not (self.category_count == 1 and "" in self.categorised_genes)
+
+    def _hue_argsort(self, colours: np.ndarray[float]) -> np.ndarray[int]:
         """
         The given colours are sorted based on their hues.
 
@@ -218,7 +359,7 @@ class Legend:
             colours (`(n_colours x 3) ndarray[float]`): each colours RGB value, ranging from 0 to 1.
 
         Returns:
-            (`(n_colours x 3) ndarray[float]`): Each colour, now sorted by hue from lowest to highest.
+            (`(n_colours) ndarray[int]`): Indices to sort the colours by hue from lowest to highest.
         """
         assert type(colours) is np.ndarray
         assert colours.ndim == 2
@@ -229,4 +370,4 @@ class Legend:
         for colour in colours:
             assert colour.shape == (3,)
             hues.append(colorsys.rgb_to_hsv(colour[0].item(), colour[1].item(), colour[2].item())[0])
-        return colours[np.argsort(hues)]
+        return np.argsort(hues)

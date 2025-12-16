@@ -226,13 +226,13 @@ def test_Viewer() -> None:
         # Check clicking the gene legend.
         for _ in range(10):
             event = type("Event", (object,), {})()
-            event.inaxes = viewer.legend_.canvas.axes
+            event.inaxes = viewer.legend.canvas.ax
             event.xdata = rng.rand()
             event.ydata = rng.rand()
             button = type("Button", (object,), {})()
             button.name = "LEFT" if rng.randint(2) == 0 else "RIGHT"
             event.button = button
-            viewer.legend_clicked(event)
+            viewer.legend_clicked(viewer.legend, event)
         viewer.close_all_subplots()
         # Test every hotkey.
         for hotkey in viewer.hotkeys:
