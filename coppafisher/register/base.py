@@ -310,11 +310,13 @@ def interpolate_flow(
         sigma = [10, 10, 5]
 
     time_start = time.time()
-    # smooth the correlation
+    # Smooth the correlation.
     correlation_smooth = gaussian_filter(correlation, sigma, truncate=6)
-    flow_smooth = np.zeros_like(flow)
+    # Avoid dividing by zeros.
+    correlation_smooth = correlation_smooth.clip(0.01, None)
 
-    # smooth the correlation weighted flow in yx
+    # Smooth the correlation weighted flow in yx.
+    flow_smooth = np.zeros_like(flow)
     for i in range(3):
         flow_smooth[i] = gaussian_filter(flow[i] * correlation, sigma, truncate=6) / correlation_smooth
 
