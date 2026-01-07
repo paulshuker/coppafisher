@@ -14,9 +14,10 @@ $$
 $$
 
 where $|...|$ is the absolute value of each element separately. The median is computed over all x and y values to give a
-scalar that is a good lower bound estimate for the random noise amplitude. $n$ is the `auto_thresh_percentile`
-(typically $5$). $a$ is the `auto_thresh_multiplier` (typically $160$). Higher `auto_thresh_multiplier` makes spot
-detection stricter.
+scalar that is a good lower bound estimate for the random noise amplitude. $n$ is the `auto_thresh_percentiles`
+(typically $5$). $a$ is the `auto_thresh_multipliers` (typically $180$). Higher `auto_thresh_multipliers` makes spot
+detection stricter. The multipliers and percentiles can be given as a list for every channel or a single value for all
+channels.
 
 ## 1: Spot Detection
 

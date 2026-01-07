@@ -41,8 +41,8 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
 
     config = nb.find_spots.associated_configs["find_spots"]
     auto_thresholds = nb.find_spots.auto_thresh
-    default_auto_thresh_multiplier = float(config["auto_thresh_multiplier"])
-    default_auto_thresh_percentile = float(config["auto_thresh_percentile"])
+    default_auto_thresh_multiplier = float(config["auto_thresh_multipliers"][0])
+    default_auto_thresh_percentile = float(config["auto_thresh_percentiles"][0])
     prev_auto_thresh_percentiles = np.full_like(auto_thresholds, default_auto_thresh_percentile, np.float32)
     max_auto_thresh_multiplier = default_auto_thresh_multiplier * 5
     default_radius_xy = int(config["radius_xy"])

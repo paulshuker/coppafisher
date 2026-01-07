@@ -190,8 +190,8 @@ class Config:
             "wiener_constant": ("number", "not-negative"),
         },
         "find_spots": {
-            "auto_thresh_multiplier": ("number", "not-negative"),
-            "auto_thresh_percentile": ("number", "not-negative_lteq100"),
+            "auto_thresh_multipliers": ("tuple_number", "tuple-not-empty"),
+            "auto_thresh_percentiles": ("tuple_number", "tuple-not-empty"),
             "auto_thresh_clip": ("bool", ""),
             "radius_xy": ("int", "not-negative"),
             "radius_z": ("int", "not-negative"),
