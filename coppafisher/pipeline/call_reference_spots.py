@@ -82,6 +82,13 @@ def call_reference_spots(
         raw_bleed_path = importlib_resources.files("coppafisher.setup").joinpath("dye_info_raw.npy")
         raw_bleed_matrix = np.load(raw_bleed_path)[:, use_channels].astype(float)
     raw_bleed_matrix = raw_bleed_matrix.astype(np.float32)
+    if raw_bleed_matrix.ndim != 2:
+        raise ValueError("The given raw_bleed_matrix must be two dimensional")
+    raw_bleed_matrix_expected_shape = (max(nbp_basic.use_channels) + 1, len(nbp_basic.use_dyes))
+    if raw_bleed_matrix.shape != raw_bleed_matrix_expected_shape:
+        raise ValueError(
+            f"raw_bleed_matrix has shape {raw_bleed_matrix.shape}, expected {raw_bleed_matrix_expected_shape}"
+        )
     raw_bleed_matrix = raw_bleed_matrix / np.linalg.norm(raw_bleed_matrix, axis=1)[:, None]
 
     # 1. Normalise spot colours and remove background as constant offset across different rounds of the same channel

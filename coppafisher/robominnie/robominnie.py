@@ -4,6 +4,7 @@ import json
 import math as maths
 import os
 import shutil
+import sys
 import time
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -586,6 +587,7 @@ class Robominnie:
         use_channels = {", ".join([str(i) for i in np.arange((self.dapi_channel + 1), (self.n_channels + 1))])}
         anchor_channel = {self.anchor_channel if self.include_anchor else ""}
         dapi_channel = {self.dapi_channel if self.include_dapi else ""}
+        use_joblib = {sys.platform != "win32"}
 
         [extract]
         num_rotations = 0
