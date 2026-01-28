@@ -1,4 +1,4 @@
-2026/01/28 Version 1.11 Patch (v1.11.1):
+2026/01/29 Version 1.11 Patch (v1.11.1):
  * Filter: Joblib is not used when num_cores is 1.
  * Register: Joblib is not used when flow_cores is 1.
  * Call spots: New config variable safety checks for the raw_bleed_matrix.
