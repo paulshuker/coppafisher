@@ -151,7 +151,6 @@ class Config:
             # Only leaving them here to have backwards compatibility as Max thinks the user should influence these
             "channel_camera": ("maybe_tuple_int", ""),
             "channel_laser": ("maybe_tuple_int", ""),
-            "use_joblib": ("bool", ""),
         },
         "file_names": {
             "notebook_name": ("str", "str-not-empty"),

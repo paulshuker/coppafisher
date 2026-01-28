@@ -158,7 +158,7 @@ def register(
                 window_radius=config["window_radius"],
                 smooth_sigma=config["smooth_sigma"],
                 clip_val=config["flow_clip"],
-                n_cores=config["flow_cores"] if nbp_basic.use_joblib else 1,
+                n_cores=config["flow_cores"],
             )
     del anchor_image, round_image
 
@@ -169,7 +169,7 @@ def register(
     raw = zarr.open_array(raw_store)
     flow = zarr.open_array(smooth_store)
 
-    if nbp_basic.use_joblib:
+    if config["flow_cores"] is None or config["flow_cores"] > 1:
         # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, any remaining process after
         # the use of joblib are explicitly killed.
         subproc_after = set([p.pid for p in current_process.children(recursive=True)])

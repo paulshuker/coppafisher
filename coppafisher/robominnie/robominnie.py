@@ -270,12 +270,14 @@ class Robominnie:
             return target
 
         if bleed_matrix is None:
-            bleed_matrix = np.diag(np.ones(self.n_channels))
+            bleed_matrix = np.zeros((self.n_channels, max(self.use_channels) + 1), np.float32)
+            for c_i, c in enumerate(self.use_channels):
+                bleed_matrix[c_i, c] = 1
         if spot_size_pixels is None:
             spot_size_pixels = np.asarray([1.5, 1.5, 1.5])
         assert (
-            bleed_matrix.shape[1] == self.n_channels
-        ), f"Bleed matrix does not have n_channels={self.n_channels} as expected"
+            bleed_matrix.shape[1] == max(self.use_channels) + 1
+        ), f"Bleed matrix does not have n_channels={max(self.use_channels) + 1} as expected"
         assert spot_size_pixels.shape[0] == 3, "`spot_size_pixels` must be in three dimensions"
         if bleed_matrix.shape[0] != bleed_matrix.shape[1]:
             log.warn("Given bleed matrix does not have equal channel and dye counts like usual")
@@ -587,13 +589,13 @@ class Robominnie:
         use_channels = {", ".join([str(i) for i in np.arange((self.dapi_channel + 1), (self.n_channels + 1))])}
         anchor_channel = {self.anchor_channel if self.include_anchor else ""}
         dapi_channel = {self.dapi_channel if self.include_dapi else ""}
-        use_joblib = {sys.platform != "win32"}
 
         [extract]
         num_rotations = 0
 
         [filter]
         channel_radius_normalisation_filepath = {self.radius_normalisations_path}
+        num_cores = {"1" if sys.platform == "win32" else ""}
 
         [find_spots]
         auto_thresh_multiplier = 4
@@ -607,6 +609,7 @@ class Robominnie:
 
         [register]
         icp_min_spots = 10
+        flow_cores = {"1" if sys.platform == "win32" else ""}
 
         [call_spots]
         target_values = {", ".join(["1" for _ in range(self.n_channels)])}

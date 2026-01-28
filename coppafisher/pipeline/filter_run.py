@@ -186,7 +186,7 @@ def run_filter(
         if len(batch_images) == 0:
             continue
 
-        if nbp_basic.use_joblib:
+        if batch_size > 1:
             filtered_images = joblib.Parallel(n_jobs=len(batch_images), return_as="list", timeout=60 * 20)(
                 joblib.delayed(skimage.restoration.wiener)(
                     batch_images.pop(0), psf, config["wiener_constant"], clip=False
@@ -210,7 +210,7 @@ def run_filter(
     os.remove(completed_indices_path)
     images_store.close()
 
-    if nbp_basic.use_joblib:
+    if batch_size > 1:
         # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, any remaining process after
         # the use of joblib are explicitly killed.
         subproc_after = set([p.pid for p in current_process.children(recursive=True)])
