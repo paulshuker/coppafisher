@@ -270,14 +270,14 @@ class Robominnie:
             return target
 
         if bleed_matrix is None:
-            bleed_matrix = np.zeros((self.n_channels, max(self.use_channels) + 1), np.float32)
-            for c_i, c in enumerate(self.use_channels):
-                bleed_matrix[c_i, c] = 1
+            bleed_matrix = np.zeros((self.n_channels, self.n_channels), np.float32)
+            for i in range(self.n_channels):
+                bleed_matrix[i, i] = 1
         if spot_size_pixels is None:
             spot_size_pixels = np.asarray([1.5, 1.5, 1.5])
         assert (
-            bleed_matrix.shape[1] == max(self.use_channels) + 1
-        ), f"Bleed matrix does not have n_channels={max(self.use_channels) + 1} as expected"
+            bleed_matrix.shape[1] == self.n_channels
+        ), f"Bleed matrix does not have n_channels={self.n_channels} as expected"
         assert spot_size_pixels.shape[0] == 3, "`spot_size_pixels` must be in three dimensions"
         if bleed_matrix.shape[0] != bleed_matrix.shape[1]:
             log.warn("Given bleed matrix does not have equal channel and dye counts like usual")
