@@ -186,10 +186,17 @@ def run_filter(
         if len(batch_images) == 0:
             continue
 
-        filtered_images = joblib.Parallel(n_jobs=len(batch_images), return_as="list", timeout=60 * 20)(
-            joblib.delayed(skimage.restoration.wiener)(batch_images.pop(0), psf, config["wiener_constant"], clip=False)
-            for _ in range(len(batch_images))
-        )
+        if batch_size > 1:
+            filtered_images = joblib.Parallel(n_jobs=len(batch_images), return_as="list", timeout=60 * 20)(
+                joblib.delayed(skimage.restoration.wiener)(
+                    batch_images.pop(0), psf, config["wiener_constant"], clip=False
+                )
+                for _ in range(len(batch_images))
+            )
+        else:
+            filtered_images = [
+                skimage.restoration.wiener(im, psf, config["wiener_constant"], clip=False) for im in batch_images
+            ]
 
         for filtered_image, (t, r, c) in zip(filtered_images, batch_trcs, strict=True):
             # All images are deconvolved, including the DAPI.
@@ -203,15 +210,16 @@ def run_filter(
     os.remove(completed_indices_path)
     images_store.close()
 
-    # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, any remaining process after the
-    # use of joblib are explicitly killed.
-    subproc_after = set([p.pid for p in current_process.children(recursive=True)])
-    for subproc in subproc_after - subproc_before:
-        try:
-            log.debug("Trying to kill process with pid {}".format(subproc))
-            psutil.Process(subproc).terminate()
-        except psutil.NoSuchProcess:
-            continue
+    if batch_size > 1:
+        # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, any remaining process after
+        # the use of joblib are explicitly killed.
+        subproc_after = set([p.pid for p in current_process.children(recursive=True)])
+        for subproc in subproc_after - subproc_before:
+            try:
+                log.debug("Trying to kill process with pid {}".format(subproc))
+                psutil.Process(subproc).terminate()
+            except psutil.NoSuchProcess:
+                continue
 
     nbp.images = images
     log.debug("Filter complete")

@@ -4,6 +4,7 @@ import json
 import math as maths
 import os
 import shutil
+import sys
 import time
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -269,7 +270,9 @@ class Robominnie:
             return target
 
         if bleed_matrix is None:
-            bleed_matrix = np.diag(np.ones(self.n_channels))
+            bleed_matrix = np.zeros((self.n_channels, self.n_channels), np.float32)
+            for i in range(self.n_channels):
+                bleed_matrix[i, i] = 1
         if spot_size_pixels is None:
             spot_size_pixels = np.asarray([1.5, 1.5, 1.5])
         assert (
@@ -592,6 +595,7 @@ class Robominnie:
 
         [filter]
         channel_radius_normalisation_filepath = {self.radius_normalisations_path}
+        num_cores = {"1" if sys.platform == "win32" else ""}
 
         [find_spots]
         auto_thresh_multiplier = 4
@@ -605,6 +609,7 @@ class Robominnie:
 
         [register]
         icp_min_spots = 10
+        flow_cores = {"1" if sys.platform == "win32" else ""}
 
         [call_spots]
         target_values = {", ".join(["1" for _ in range(self.n_channels)])}
