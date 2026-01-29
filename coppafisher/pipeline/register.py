@@ -169,15 +169,16 @@ def register(
     raw = zarr.open_array(raw_store)
     flow = zarr.open_array(smooth_store)
 
-    # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, any remaining process after the
-    # use of joblib are explicitly killed.
-    subproc_after = set([p.pid for p in current_process.children(recursive=True)])
-    for subproc in subproc_after - subproc_before:
-        try:
-            log.debug("Trying to kill process with pid {}".format(subproc))
-            psutil.Process(subproc).terminate()
-        except psutil.NoSuchProcess:
-            continue
+    if config["flow_cores"] is None or config["flow_cores"] > 1:
+        # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, any remaining process after
+        # the use of joblib are explicitly killed.
+        subproc_after = set([p.pid for p in current_process.children(recursive=True)])
+        for subproc in subproc_after - subproc_before:
+            try:
+                log.debug("Trying to kill process with pid {}".format(subproc))
+                psutil.Process(subproc).terminate()
+            except psutil.NoSuchProcess:
+                continue
 
     # Part 3: ICP
     log.info("Running Iterative Closest Point (ICP)")

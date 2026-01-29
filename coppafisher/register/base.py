@@ -59,8 +59,8 @@ def optical_flow_register(
             for smoothing the flow
         clip_val (np.ndarray size [3], optional): the clip value for the optical flow in y, x and z. Default: ndarray
             containing values [40, 40, 15].
-        n_cores (int, optional): maximum cpu cores to use in parallel when computing optical flow. Default: all found
-            cpu cores.
+        n_cores (int, optional): the maximum CPU cores to use in parallel when computing optical flow. If 1, then no
+            multiprocessing is used. Default: all found CPU cores.
 
     Returns:
         Tuple containing path to optical flow, correlation, and smoothed flow zarr arrays respectively.
@@ -174,16 +174,22 @@ def optical_flow_single(
     target_sub = target_sub / np.mean(target_sub, axis=(1, 2, 3))[:, None, None, None]
     base_sub = base_sub / np.mean(base_sub, axis=(1, 2, 3))[:, None, None, None]
 
-    # compute the optical flow (in parallel)
     if n_cores is None:
         n_cores = utils_system.get_core_count()
-    log.debug(f"Computing optical flow using {n_cores} cores")
-    flow_sub = joblib.Parallel(n_jobs=n_cores, timeout=45 * 60)(
-        joblib.delayed(skimage.registration.optical_flow_ilk)(
-            target_sub[n], base_sub[n], radius=window_radius, prefilter=True
+    log.debug(f"Computing optical flow using {n_cores} core(s)")
+    if n_cores > 1:
+        # Compute the optical flow (in parallel).
+        flow_sub = joblib.Parallel(n_jobs=n_cores, timeout=45 * 60)(
+            joblib.delayed(skimage.registration.optical_flow_ilk)(
+                target_sub[n], base_sub[n], radius=window_radius, prefilter=True
+            )
+            for n in range(pos.shape[0])
         )
-        for n in range(pos.shape[0])
-    )
+    else:
+        flow_sub = [
+            skimage.registration.optical_flow_ilk(target_sub[n], base_sub[n], radius=window_radius, prefilter=True)
+            for n in range(pos.shape[0])
+        ]
     # Convert list to numpy array with shape (n_subvols, 3, n_y, n_x, n_z).
     flow_sub = np.array(flow_sub)
 

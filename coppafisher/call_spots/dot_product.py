@@ -80,6 +80,10 @@ def gene_prob_score(spot_colours: np.ndarray, bled_codes: np.ndarray, kappa: flo
     Returns:
         (`(n_spots x n_genes) ndarray[float]`): gene probabilities.
     """
+    assert spot_colours.ndim == 3
+    assert bled_codes.ndim == 3
+    assert spot_colours.shape[1:] == bled_codes.shape[1:]
+
     n_genes = bled_codes.shape[0]
     n_spots, _, _ = spot_colours.shape
     # Normalise spot_colours so that norm(spot_colours[s, r, :]) = 1
