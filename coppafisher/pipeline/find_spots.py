@@ -99,20 +99,19 @@ def find_spots(
     pbar = tqdm.tqdm(total=use_indices.sum(), desc="Finding spots", unit="image")
     for t, r, c in np.argwhere(use_indices).tolist():
         pbar.set_postfix_str(f"{t=}, {r=}, {c=}")
-        c_index = c_indices[c]
+        auto_thresh_multiplier = auto_thresh_multipliers[c_indices[c]]
+        auto_thresh_percentile = auto_thresh_percentiles[c_indices[c]]
         image_trc = nbp_filter.images[t, r, c].astype(np.float32)
 
         # Compute the image's auto threshold to detect spots.
         mid_z = image_trc.shape[2] // 2
-        auto_thresh[t, r, c] = np.percentile(np.abs(image_trc[..., mid_z]), auto_thresh_percentiles[c_index])
-        auto_thresh[t, r, c] *= auto_thresh_multipliers[c_index]
+        auto_thresh[t, r, c] = np.percentile(np.abs(image_trc[..., mid_z]), auto_thresh_percentile)
+        auto_thresh[t, r, c] *= auto_thresh_multiplier
         if config["auto_thresh_clip"]:
-            auto_thresh[t, r, c] = np.max([auto_thresh[t, r, c], auto_thresh_multipliers[c_index]])
+            auto_thresh[t, r, c] = np.max([auto_thresh[t, r, c], auto_thresh_multiplier])
 
         if np.isclose(auto_thresh[t, r, c], 0):
-            raise ValueError(
-                f"Find spots auto threshold is zero. Percentile {auto_thresh_percentiles[c_index]} might be too low"
-            )
+            raise ValueError(f"Find spots auto threshold is zero. Percentile {auto_thresh_percentile} might be too low")
 
         local_yxz, spot_intensity = detect.detect_spots(
             image_trc,
