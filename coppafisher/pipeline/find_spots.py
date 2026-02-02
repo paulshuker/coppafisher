@@ -46,10 +46,20 @@ def find_spots(
     del find_spots_config, last_find_spots_config
 
     # Phase 0: Initialisation.
-    auto_thresh_multiplier = config["auto_thresh_multiplier"]
-    auto_thresh_percentile = config["auto_thresh_percentile"]
-    if auto_thresh_multiplier <= 0:
-        raise ValueError("The auto_thresh_multiplier in 'find_spots' config must be positive")
+    auto_thresh_multipliers = config["auto_thresh_multipliers"]
+    auto_thresh_percentiles = config["auto_thresh_percentiles"]
+    if any(auto_thresh_multiplier <= 0 for auto_thresh_multiplier in auto_thresh_multipliers):
+        raise ValueError("The auto_thresh_multipliers in 'find_spots' config must be positive")
+    if len(auto_thresh_multipliers) == 1:
+        auto_thresh_multipliers *= len(nbp_basic.use_channels)
+    if len(auto_thresh_percentiles) == 1:
+        auto_thresh_percentiles *= len(nbp_basic.use_channels)
+    if len(auto_thresh_multipliers) != len(nbp_basic.use_channels):
+        raise ValueError(f"auto_thresh_multipliers must be length 1 or {len(nbp_basic.use_channels)}")
+    if len(auto_thresh_percentiles) != len(nbp_basic.use_channels):
+        raise ValueError(f"auto_thresh_percentiles must be length 1 or {len(nbp_basic.use_channels)}")
+
+    c_indices: dict[int, int] = {c: c_ind for c_ind, c in enumerate(nbp_basic.use_channels)}
     INVALID_AUTO_THRESH = -1
     auto_thresh = np.full(
         (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.n_extra_rounds, nbp_basic.n_channels),
@@ -89,6 +99,8 @@ def find_spots(
     pbar = tqdm.tqdm(total=use_indices.sum(), desc="Finding spots", unit="image")
     for t, r, c in np.argwhere(use_indices).tolist():
         pbar.set_postfix_str(f"{t=}, {r=}, {c=}")
+        auto_thresh_multiplier = auto_thresh_multipliers[c_indices[c]]
+        auto_thresh_percentile = auto_thresh_percentiles[c_indices[c]]
         image_trc = nbp_filter.images[t, r, c].astype(np.float32)
 
         # Compute the image's auto threshold to detect spots.

@@ -598,8 +598,8 @@ class Robominnie:
         num_cores = {"1" if sys.platform == "win32" else ""}
 
         [find_spots]
-        auto_thresh_multiplier = 4
-        auto_thresh_percentile = 50
+        auto_thresh_multipliers = 4
+        auto_thresh_percentiles = 50
         auto_thresh_clip = true
         n_spots_warn_fraction = 0
         n_spots_error_fraction = 1
