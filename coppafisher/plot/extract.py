@@ -45,7 +45,8 @@ def view_extracted_images(
         if not zarray.image_exists(file_path):
             log.warn(f"Image at {file_path} not found, skipping")
             continue
-        image_trc = zarr.open_array(file_path, mode="r")[:]
+        with zarr.ZipStore(file_path, mode="r") as store:
+            image_trc = zarr.open_array(store)[:]
         viewer.add_image(image_trc, name=f"{t=}, {r=}, {c=}")
 
     napari.run()
