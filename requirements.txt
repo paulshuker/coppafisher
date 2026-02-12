@@ -120,6 +120,7 @@ scipy==1.14.1
 shellingham==1.5.4
 six==1.16.0
 snowballstemmer==2.2.0
+spatiotemporal==1.0.1
 Sphinx==8.0.2
 sphinxcontrib-applehelp==2.0.0
 sphinxcontrib-devhelp==2.0.0

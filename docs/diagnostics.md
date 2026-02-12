@@ -6,7 +6,7 @@ The Viewer is the flagship diagnostic for viewing results. It is a fast, three-d
 during [call spots](overview.md#call-spots) and [OMP](overview.md#orthogonal-matching-pursuit). The application is
 powered by [napari](https://github.com/napari/napari).
 
-### Opening
+### Opening and customisation
 
 A Viewer can be displayed once coppafisher has run through at least [call spots](overview.md#call-spots). From the python
 terminal:
@@ -70,6 +70,18 @@ be a .npy file, a compressed .npz file with image at key `"arr_0"`, or a .tif fi
     Viewer(nb, show_tiles=[0, 1])
     ```
 
+??? info "Change displayed spot scoring"
+
+    By default, the spots are scored as explained in the [method](overview.md) section. You can also set
+
+    ```python
+    Viewer(nb, spot_scoring="discriminality")
+    ```
+
+    which will use a discriminality scoring method using Spearman correlation of the colours with all the gene bled
+    codes. See [MethodData](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/results/base.py) for the
+    discriminality scoring code.
+
 Close the Viewer and all subplots by pressing Ctrl + C in the terminal.
 
 ### Description
@@ -77,7 +89,7 @@ Close the Viewer and all subplots by pressing Ctrl + C in the terminal.
 By default, the greyscale signal in the background is the DAPI, where whiter regions indicate cells. Each gene is given
 a shape and colour, shown in the gene legend.
 
-For help with Viewer hotkeys and gene selection, press h. This includes further diagnostic subplots in the Viewer. Some
+**For help with Viewer hotkeys and gene selection, press h.** This includes further diagnostic subplots in the Viewer. Some
 require a selected spot. Select a spot by pressing 3 and clicking on a spot. Then press 4 to continue panning.
 
 The "Background Contrast" slider will affect the colour scale of the background image. "Marker Size" will change the

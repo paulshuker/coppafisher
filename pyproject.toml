@@ -29,6 +29,7 @@ dependencies = [
     "psutil",
     "plotly",
     "PyQt5",
+    "spatiotemporal",
     "scikit-image",
     "scikit-learn",
     "scipy",

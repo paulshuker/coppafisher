@@ -1,10 +1,9 @@
 import os
-import warnings
 from typing import List, Literal
 
 import numpy as np
 import pandas as pd
-import scipy
+import spatiotemporal
 
 from ..omp import base as omp_base
 from ..setup.notebook_page import NotebookPage
@@ -20,7 +19,7 @@ class MethodData:
     like export_to_pciseq and the Viewer.
     """
 
-    MAX_CHECK_COUNT = 10_000
+    MAX_CHECK_COUNT = 30_000
     _ATTRIBUTE_NAMES = ("tile", "local_yxz", "yxz", "gene_no", "score", "colours", "intensity", "indices")
 
     method: str
@@ -107,45 +106,18 @@ class MethodData:
         self.indices = np.linspace(0, self.score.size - 1, self.score.size, dtype=np.uint32)
 
         if self.spot_scoring == "discriminality":
-            n_spots = self.gene_no.size
-            n_genes = nbp_call_spots.bled_codes.shape[0]
-
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", category=scipy.stats.ConstantInputWarning)
-                self.score = [
-                    scipy.stats.spearmanr(
-                        self.colours.reshape((n_spots, -1))[s],
-                        nbp_call_spots.bled_codes[self.gene_no].reshape((n_spots, -1))[s],
-                        axis=1,
-                        nan_policy="raise",
-                    ).statistic
-                    for s in range(self.colours.shape[0])
-                ]
-            self.score = np.array(self.score, np.float32)
-            self.score[np.isnan(self.score)] = 0
-
-            # Each score is divided by the standard deviation of all other gene bled code spearman correlations.
-            keep_bled_codes = [[i for i in range(n_genes) if i != self.gene_no[s]] for s in range(n_spots)]
-            # Has shape (n_spots * (n_genes - 1), n_rounds_use * n_channels_use).
-            other_bled_codes = nbp_call_spots.bled_codes[keep_bled_codes].reshape((n_spots, (n_genes - 1), -1))
-            colours = self.colours.copy().reshape((n_spots, 1, -1))
-            colours = np.repeat(colours, n_genes - 1, axis=1)
-            correlations = []
-            for s in range(n_spots):
-                with warnings.catch_warnings():
-                    warnings.filterwarnings("ignore", category=scipy.stats.ConstantInputWarning)
-                    correlations.append(
-                        [
-                            scipy.stats.spearmanr(colours[s, g], other_bled_codes[s, g], nan_policy="raise").statistic
-                            for g in range(n_genes - 1)
-                        ]
-                    )
-            correlations = np.array(correlations, np.float32)
-
-            self.score[(~np.isnan(correlations)).all(1)] /= np.std(
-                correlations[(~np.isnan(correlations)).all(1)], axis=1
+            bled_codes = nbp_call_spots.bled_codes
+            spears = spatiotemporal.spearman(
+                self.colours.reshape(self.colours.shape[0], -1), bled_codes.reshape(bled_codes.shape[0], -1)
             )
-            self.score[np.isnan(correlations).any(1)] = 0
+            spears = np.array(spears, np.float32)
+            spears_nobest = spears.copy()
+            spears_nobest[np.arange(0, spears.shape[0]), self.gene_no] = np.nan
+            # Each score is divided by the standard deviation of all other gene bled code spearman correlations.
+            self.score = (
+                spears[np.arange(0, spears.shape[0]), self.gene_no] - np.nanmean(spears_nobest, axis=1)
+            ) / np.nanstd(spears_nobest, axis=1)
+            self.score[np.isnan(self.score)] = 0
 
         # Sanity check spot data.
         self._check_variables()
@@ -248,6 +220,7 @@ class MethodData:
         # Check values on a subset.
         assert (self.tile[: self.MAX_CHECK_COUNT] >= 0).all()
         assert (self.gene_no[: self.MAX_CHECK_COUNT] >= 0).all()
+        assert not np.isnan(self.score[: self.MAX_CHECK_COUNT]).any()
         if self.spot_scoring != "discriminality":
             assert (self.score[: self.MAX_CHECK_COUNT] >= 0).all()
         assert (self.intensity[: self.MAX_CHECK_COUNT] >= 0).all()
