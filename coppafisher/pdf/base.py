@@ -79,7 +79,7 @@ class BuildPDF:
             self.use_channels_all += [nb.basic_info.anchor_channel]
         self.use_channels_all = list(set(self.use_channels_all))
         self.use_channels_all.sort()
-        self.use_rounds_all = list(nb.basic_info.use_rounds) + nb.basic_info.use_anchor * [nb.basic_info.anchor_round]
+        self.use_rounds_all = list(nb.basic_info.use_rounds) + [nb.basic_info.anchor_round]
         self.use_rounds_all.sort()
 
         if not os.path.isfile(os.path.join(output_dir, "_basic_info.pdf") and nb.has_page("basic_info")):
@@ -178,7 +178,7 @@ class BuildPDF:
                     ticks_rounds = np.arange(X.shape[0])
                     ticks_rounds_labels = ["" for _ in range(ticks_rounds.size)]
                     for r in self.use_rounds_all:
-                        if nb.basic_info.use_anchor and r == nb.basic_info.anchor_round:
+                        if r == nb.basic_info.anchor_round:
                             use_channels = [
                                 c for c in [nb.basic_info.dapi_channel, nb.basic_info.anchor_channel] if c is not None
                             ]
@@ -498,10 +498,7 @@ class BuildPDF:
             + "\n"
         )
         output += f"sequencing rounds: {basic_info_page.use_rounds}\n"
-        if basic_info_page.use_anchor:
-            output += (
-                f"anchor round: {basic_info_page.anchor_round}\nanchor channel: {basic_info_page.anchor_channel}\n"
-            )
+        output += f"anchor round: {basic_info_page.anchor_round}\nanchor channel: {basic_info_page.anchor_channel}\n"
         output += f"channels used: {basic_info_page.use_channels}\n"
         if basic_info_page.dapi_channel is not None:
             output += f"dapi channel: {basic_info_page.dapi_channel}\n"
@@ -556,8 +553,7 @@ class BuildPDF:
         use_channels_all.sort()
         first_channel = use_channels[0]
         use_rounds_all = list(nb.basic_info.use_rounds)
-        if nb.basic_info.use_anchor:
-            use_rounds_all += [nb.basic_info.anchor_round]
+        use_rounds_all += [nb.basic_info.anchor_round]
         use_rounds_all = list(set(use_rounds_all))
         use_rounds_all.sort()
         final_round = use_rounds_all[-1]
@@ -627,7 +623,7 @@ class BuildPDF:
                     # Axis labelling and ticks
                     if c == first_channel:
                         round_label = str(r)
-                        if nb.basic_info.use_anchor and r == nb.basic_info.anchor_round:
+                        if r == nb.basic_info.anchor_round:
                             round_label = "anchor"
                         round_label += "\n" + r"$\log_2$ count" if log_count else "count"
                         ax.set_ylabel(

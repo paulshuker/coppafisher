@@ -1,5 +1,11 @@
 2026/MM/DD Version 1.12 (v1.12.0):
+ * General: Removed redundant is_3d config parameter in basic_info.
+ * General: Removed redundant use_anchor config parameter in basic_info.
+ * Viewer: Z thickness slider breaks when there is only one z plane fix.
+ * Diagnostics: Find spots viewer now works without find_spots notebook page.
+ * Filter: Deconvolution is now optional (default: turned on).
  * Find spots: Auto threshold multiplier and percentile can now be set for each sequence channel separately.
+ * Find spots: Cannot find "completed_indices" file crash fix.
 
 
 2026/01/29 Version 1.11 Patch (v1.11.1):
