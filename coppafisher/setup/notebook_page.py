@@ -701,7 +701,7 @@ class NotebookPage:
         Load all variables from inside the given directory.
 
         All variables already set inside of the page are overwritten. If the notebook page contains unzipped variables,
-        then a message is given.
+        then a deprecation message is given.
         """
         if not os.path.isdir(page_directory):
             raise FileNotFoundError(f"Could not find page directory at {page_directory} to load from")
@@ -711,8 +711,23 @@ class NotebookPage:
         for name in self._get_variables().keys():
             self.__setattr__(name, self._load_variable(name, page_directory))
 
+        # Check for any unexpected files/directories inside page_directory.
+        valid_variable_paths: list[str] = [metadata_path]
+        for name in self._get_variables().keys():
+            types_as_str = self._get_variables()[name][0].split(self._datatype_separator)
+            suffix = self._type_str_to_suffix(types_as_str[0])
+            valid_variable_paths.append(self._get_variable_path(page_directory, name, suffix))
+            old_suffix = self._get_deprecated_suffix(suffix)
+            if old_suffix is not None:
+                valid_variable_paths.append(self._get_variable_path(page_directory, name, old_suffix))
+        for i in range(len(valid_variable_paths)):
+            valid_variable_paths[i] = os.path.abspath(valid_variable_paths[i])
+        for entry in os.listdir(page_directory):
+            if os.path.abspath(os.path.join(page_directory, entry)) not in valid_variable_paths:
+                raise SystemError(f"Unexpected file {entry} found inside {self.name} page directory {page_directory}")
+
         if self.get_unzipped_variables():
-            print(f"The notebook page {self.name} contains unzipped variables. You can now zip them by nb.zip()")
+            print(f"The notebook page {self.name} contains unzipped variables. You can zip them by running nb.zip()")
 
     def zip(self, page_directory: str, temp_directory: str, /) -> None:
         """
