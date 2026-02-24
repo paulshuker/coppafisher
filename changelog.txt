@@ -2,6 +2,7 @@
  * General: Removed redundant is_3d config parameter in basic_info.
  * General: Removed redundant use_anchor config parameter in basic_info.
  * General: An unknown file/directory inside of a notebook page now raises an error.
+ * General: Security updates for filelock, Werkzeug, fonttools, pillow, dash, and urllib3.
  * Viewer: Z thickness slider breaks when there is only one z plane fix.
  * Diagnostics: Find spots viewer now works without find_spots notebook page.
  * Filter: Deconvolution is now optional (default: turned on).
