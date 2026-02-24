@@ -49,7 +49,7 @@ def find_spots(
     auto_thresh_multipliers = config["auto_thresh_multipliers"]
     auto_thresh_percentiles = config["auto_thresh_percentiles"]
     if any(auto_thresh_multiplier <= 0 for auto_thresh_multiplier in auto_thresh_multipliers):
-        raise ValueError("The auto_thresh_multipliers in 'find_spots' config must be positive")
+        raise ValueError("The auto_thresh_multipliers in [find_spots] config must be positive")
     if len(auto_thresh_multipliers) == 1:
         auto_thresh_multipliers *= len(nbp_basic.use_channels)
     if len(auto_thresh_percentiles) == 1:
