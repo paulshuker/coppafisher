@@ -7,6 +7,7 @@
  * Diagnostics: Find spots viewer now works without find_spots notebook page.
  * Filter: Deconvolution is now optional (default: turned on).
  * Find spots: Auto threshold multiplier and percentile can now be set for each sequence channel separately.
+ * Find spots: Fails to correctly resume from a checkpoint fix.
  * Find spots: Cannot find "completed_indices" file crash fix.
 
 

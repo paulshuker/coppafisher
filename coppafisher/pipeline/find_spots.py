@@ -67,12 +67,14 @@ def find_spots(
         dtype=np.float32,
     )
     completed_indices_path = os.path.join(nbp_file.output_dir, "find_spots_completed_indices.pkl")
+    group_path = os.path.join(nbp_file.output_dir, "spot_yxz.zgroup")
     if not config_unchanged and os.path.isfile(completed_indices_path):
         os.remove(completed_indices_path)
+    if not config_unchanged and os.path.isfile(group_path):
+        os.remove(group_path)
     completed_indices: dict[str, list[tuple[int, int, int]]] = dict_io.try_load_dict(completed_indices_path, {"a": []})
-    group_path = os.path.join(nbp_file.output_dir, "spot_yxz.zgroup")
-    group_store = zarr.ZipStore(group_path)
-    spot_yxz = zarr.group(group_store, overwrite=not config_unchanged, zarr_version=2)
+    group_store = zarr.ZipStore(group_path, mode="a")
+    spot_yxz = zarr.group(group_store, zarr_version=2)
     spot_no = np.zeros(
         (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.n_extra_rounds, nbp_basic.n_channels), dtype=np.int32
     )
