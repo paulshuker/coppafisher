@@ -56,11 +56,11 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
     if os.path.isfile(version_path) and extract_dir_contains_images:
         with open(version_path, "r") as file:
             extract_version = file.readline()
-        if extract_version != system.get_software_version():
+        if extract_version != system.get_software_version(False):
             log.info(f"Using pre-existing extract results from version {extract_version}")
     else:
         with open(version_path, "w") as file:
-            file.write(system.get_software_version())
+            file.write(system.get_software_version(False))
 
     zarray_kwargs = {
         "shape": (nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z)),

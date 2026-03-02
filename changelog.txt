@@ -9,6 +9,8 @@
  * Find spots: Auto threshold multiplier and percentile can now be set for each sequence channel separately.
  * Find spots: Fails to correctly resume from a checkpoint fix.
  * Find spots: Cannot find "completed_indices" file crash fix.
+ * OMP: Chance of finished tile not being considered complete fix.
+ * OMP: Chance of unfinished tile being thought to be complete fix.
 
 
 2026/01/29 Version 1.11 Patch (v1.11.1):
