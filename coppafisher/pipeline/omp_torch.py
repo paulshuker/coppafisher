@@ -143,6 +143,8 @@ def run_omp(
         and system.get_software_version(False) == results[f"tile_{t}"].attrs["software_version"]
         for t in nbp_basic.use_tiles
     ]
+    results_store.close()
+    del results_store, results
 
     for t_index, t in enumerate(nbp_basic.use_tiles):
         postfix = {"tile": t, "device": str(device).upper()}
@@ -173,8 +175,6 @@ def run_omp(
             output_dtype=np.float32,
             out_of_bounds_value=0,
         )
-        if filter_images_store is not None:
-            filter_images_store.close()
 
         # STEP 1: Compute an intensity threshold for the tile based on the median intensity of the middle z plane.
         log.debug(f"Computing intensity threshold for tile {t}")
@@ -309,6 +309,8 @@ def run_omp(
             )
 
         # Results are added to the OMP "results" zarr.Group.
+        results_store = zarr.ZipStore(results_path, mode="a")
+        results = zarr.group(store=results_store, zarr_version=2)
         tile_results = results.create_group(f"tile_{t}", overwrite=True)
         tile_results.array("local_yxz", t_spots_local_yxz, overwrite=True, chunks=(n_chunk_max, 3), dtype=np.int16)
         tile_results.array("tile", t_spots_tile, overwrite=True, shape=0, chunks=(n_chunk_max,), dtype=np.int16)
@@ -338,13 +340,20 @@ def run_omp(
         )
 
         temp_dir.cleanup()
-        del t_spots_local_yxz, t_spots_tile, t_spots_colours, t_local_yxzs, tile_results
+        results_store.close()
+        if filter_images_store is not None:
+            filter_images_store.close()
+        del t_spots_local_yxz, t_spots_tile, t_spots_colours, t_local_yxzs, tile_results, results_store, results
 
     os.remove(config_path)
 
-    results_store.close()
+    results_store = zarr.ZipStore(results_path, mode="r")
+    results = zarr.group(store=results_store, zarr_version=2)
 
     nbp.results = results
+
+    results_store.close()
+
     log.info("OMP complete")
 
     return nbp
