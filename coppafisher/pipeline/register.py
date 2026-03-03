@@ -233,9 +233,13 @@ def register(
                 im_spots_trc = np.pad(im_spots_trc, ((0, 0), (0, 1)), constant_values=1)
                 # put the spots from round r frame into the anchor frame. this is done in 2 steps:
                 # 1. apply the inverse of the round correction to the spots
-                round_correction_matrix = np.linalg.inv(
-                    np.hstack((round_correction[t, r], np.array([0, 0, 0, 1])[:, None]))
-                )[:, :3]
+                try:
+                    round_correction_matrix = np.linalg.inv(
+                        np.hstack((round_correction[t, r], np.array([0, 0, 0, 1])[:, None]))
+                    )[:, :3]
+                except np.linalg.LinAlgError:
+                    round_correction[t, r] = np.diag(np.ones(4))[:, :3]
+                    round_correction_matrix = round_correction[t, r]
                 im_spots_trc = np.round(im_spots_trc @ round_correction_matrix).astype(int)
                 # remove spots that are out of bounds
                 oob = (

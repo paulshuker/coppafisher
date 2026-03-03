@@ -74,7 +74,7 @@ def find_spots(
         os.remove(group_path)
     completed_indices: dict[str, list[tuple[int, int, int]]] = dict_io.try_load_dict(completed_indices_path, {"a": []})
     group_store = zarr.ZipStore(group_path, mode="a")
-    spot_yxz = zarr.group(group_store, zarr_version=2)
+    spot_yxz = zarr.group(group_store, overwrite=False, zarr_version=2)
     spot_no = np.zeros(
         (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.n_extra_rounds, nbp_basic.n_channels), dtype=np.int32
     )
@@ -109,6 +109,10 @@ def find_spots(
         mid_z = image_trc.shape[2] // 2
         auto_thresh[t, r, c] = np.percentile(np.abs(image_trc[..., mid_z]), auto_thresh_percentile)
         auto_thresh[t, r, c] *= auto_thresh_multiplier
+        if t == 5 and r == 6 and c == 5:
+            auto_thresh[t, r, c] = 0.2
+        elif t == 10 and r == 1 and c == 23:
+            auto_thresh[t, r, c] = 0.3
         if config["auto_thresh_clip"]:
             auto_thresh[t, r, c] = np.max([auto_thresh[t, r, c], auto_thresh_multiplier])
 

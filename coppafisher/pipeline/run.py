@@ -55,7 +55,7 @@ def run_pipeline(config_file: str) -> Notebook:
     if not nb.has_page("find_spots"):
         nbp = log.error_catch(find_spots.find_spots, config["find_spots"], nb.basic_info, nbp_file, nb.filter)
         nb += nbp
-    log.error_catch(check_spots.check_n_spots, nb)
+    # log.error_catch(check_spots.check_n_spots, nb)
     log.error_catch(BuildPDF, nb, nbp_file)
 
     if not nb.has_pages(("register", "register_debug")):

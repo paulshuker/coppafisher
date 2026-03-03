@@ -10,7 +10,7 @@ from ..setup.config import Config
 from ..setup.notebook import Notebook
 
 MAX_XY_PIXELS = 400
-MAX_Z_PLANE = 15
+MAX_Z_PLANE = 29
 
 
 def view_find_spots(nb: Notebook, debug: bool = False) -> None:
@@ -18,8 +18,8 @@ def view_find_spots(nb: Notebook, debug: bool = False) -> None:
     View the detected spots from the find spots stage on top of the filtered image.
 
     Args:
-        - nb (Notebook): notebook containing `find_spots` page.
-        - debug (bool, optional): run the app continuously after it is built. Default: true.
+        nb (Notebook): notebook containing `find_spots` page.
+        debug (bool, optional): run the app continuously after it is built. Default: true.
     """
     page_names_required = ("basic_info", "filter")
     if not nb.has_pages(page_names_required):

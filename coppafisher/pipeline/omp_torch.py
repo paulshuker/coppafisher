@@ -182,9 +182,16 @@ def run_omp(
         yxz = [np.linspace(0, z_plane_shape[i] - 1, z_plane_shape[i]) for i in range(3)]
         yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
         yxz[:, 2] = nbp_basic.use_z[len(nbp_basic.use_z) // 2]
+        yxz = torch.from_numpy(yxz)
+        log.debug(f"{yxz.dtype=}")
+        log.debug(f"{yxz.shape=}")
         mid_z_colours = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz, **spot_colour_kwargs)
         mid_z_colours *= colour_norm_factor[[t]]
+        log.debug(f"{mid_z_colours.dtype=}")
+        log.debug(f"{mid_z_colours.shape=}")
         intensities = intensity.compute_intensity(mid_z_colours)
+        log.debug(f"{intensities.dtype=}")
+        log.debug(f"{intensities.shape=}")
         solver_kwargs["minimum_intensity"] = (
             intensities.quantile(config["minimum_intensity_percentile"] / 100).item()
             * config["minimum_intensity_multiplier"]
