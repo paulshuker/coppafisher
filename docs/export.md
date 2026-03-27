@@ -206,22 +206,22 @@ fused_custom_dapi_image, fused_anchor_dapi_image = fuse_custom_and_dapi(nb, outp
 
 ### Dapi Register
 
-Alignment is done using the package [`LineStuffUp`](https://pypi.org/project/LineStuffUp/) maintained by Max Shinn
-(m.shinn@ucl.ac.uk). This allows control over the type of transformation to apply based on their custom images. Install
-via pip
+Alignment is done using the package
+[`CASTalign`](https://pypi.org/project/castalign/). This allows control over the
+type of transformation to apply based on their custom images. Install via pip
 
 ```terminal
-python -m pip install LineStuffUp
+python -m pip install castalign
 ```
 
 Then start the interactive alignment process
 
 ```py
-import linestuffup.gui
-from linestuffup.base import TranslateRotate
+import castalign.gui
+from castalign.base import TranslateRotate
 
-round_transform = linestuffup.gui.alignment_gui(
-    fused_custom_dapi_image, fused_anchor_dapi_image, transform_type=TranslateRotate
+round_transform = castalign.gui.alignment_gui(
+    fused_custom_dapi_image, fused_anchor_dapi_image, transform=TranslateRotate
 )
 ```
 
@@ -231,11 +231,12 @@ napari window.
 
 ??? info "Type of Transform"
 
-    You can change the type of transform you wish to find, please see the transfrom
-    [readme](https://github.com/mwshinn/LineStuffUp/blob/master/README.md) for details.
+    You can change the type of transform you wish to find, including non-linear transforms.  See the
+    [CASTalign documentation](https://castalign.readthedocs.io/en/latest/tutorial/) for more details.
 
-    For example, you could use the more robust transform type of `#!python TranslateRotateRescale`. It requires four
-    points in every corner of the image on both edges of the z stack for best results.
+    For example, you could use the more flexible transform type `#!python TranslateRotateRescale`. It requires four
+    points in every corner of the image on both edges of the z stack for best results.  To compose multiple transforms,
+    use the function `#!python castalign.gui.align_interactive()` instead of `#! castalign.gui.alignment_gui()`.
 
 ??? tip "Save and Load Transforms"
 
@@ -249,22 +250,16 @@ napari window.
     You can save it using Python
 
     ```py
-    with open("/path/to/saved/transform.txt", "w") as file:
-        file.write(str(round_transform))
+    round_transform.save("path/to/transform.txt")
     ```
 
     It can be reloaded by
 
     ```py
-    from linestuffup.base import *
-
-    with open("/path/to/saved/transform.txt", "r") as file:
-        exec("round_transform = " + "\n".join(file.readlines()))
+    castalign.load("/path/to/transform.txt")
     ```
 
     You can rename the variable from `round_transform` to anything.
-
-    Do not run `#!python exec` on stranger's code (it could be malicious)!
 
 You can now apply the resulting transform to the custom dapi image and save the result as a `.tif` file
 
@@ -273,7 +268,7 @@ import numpy as np
 import tifffile
 
 fused_custom_dapi_image_transformed = round_transform.transform_image(
-    fused_custom_dapi_image, output_size=fused_anchor_dapi_image.shape, force_size=True, labels=True
+    fused_custom_dapi_image, output_size=fused_anchor_dapi_image.shape
 )
 tifffile.imwrite("/path/to/saved/custom_dapi_image_transformed.tif", fused_custom_dapi_image_transformed)
 del fused_custom_dapi_image_transformed
@@ -287,13 +282,13 @@ best registration. To do this, first find a transform to move into the dapi cust
 
 ```py
 from coppafisher.custom_alignment import fuse_custom_and_dapi
-import linestuffup.gui
-from linestuffup.base import TranslateRotate
+import castalign.gui
+from castalign.base import TranslateRotate
 
 fused_custom_channel_image, _ = fuse_custom_and_dapi(nb, output_dir, channel=c)
 
-channel_transform = linestuffup.gui.alignment_gui(
-    fused_custom_channel_image, fused_custom_dapi_image, transform_type=TranslateRotate
+channel_transform = castalign.gui.alignment_gui(
+    fused_custom_channel_image, fused_custom_dapi_image, transform=TranslateRotate
 )
 ```
 
@@ -303,7 +298,7 @@ Now save the fully registered channel image
 import tifffile
 
 fused_custom_channel_image_transformed = (channel_transform + round_transform).transform_image(
-    fused_custom_channel_image, output_size=fused_custom_channel_image.shape, force_size=True, labels=True
+    fused_custom_channel_image, output_size=fused_custom_channel_image.shape
 )
 tifffile.imwrite(f"/path/to/saved/custom_channel_{c}_image_transformed.tif", fused_custom_channel_image_transformed)
 del fused_custom_channel_image_transformed

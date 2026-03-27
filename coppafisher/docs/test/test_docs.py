@@ -163,7 +163,7 @@ def test_doc_imports() -> None:
                 continue
 
             if within_code_snippet and " import " in doc_line:
-                if doc_line.split()[1].startswith("linestuffup"):
+                if doc_line.split()[1].startswith("castalign"):
                     continue
                 exec(doc_line.strip())
 
