@@ -1,3 +1,7 @@
+2026/MM/DD Version 1.12 Patch (v1.12.1):
+ * General: LineStuffUp changed to up-to-date CASTalign.
+
+
 2026/04/09 Version 1.12 (v1.12.0):
  * General: Removed redundant is_3d config parameter in basic_info.
  * General: Removed redundant use_anchor config parameter in basic_info.
