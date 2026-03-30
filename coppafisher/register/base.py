@@ -380,7 +380,8 @@ def interpolate_flow(
         # save in yxz format
         store = zarr.ZipStore(loc, mode="a")
         zarray = zarr.open_array(store)
-        zarray[tile, round] = flow_smooth
+        # zarray[tile, round] = flow_smooth
+        zarray[tile, round] = np.zeros_like(flow_smooth)
         store.close()
     time_end = time.time()
     log.debug("Interpolating flow took " + str(time_end - time_start) + " seconds")
@@ -614,6 +615,7 @@ def get_transform(
 def icp(yxz_base, yxz_target, dist_thresh_yx, dist_thresh_z, start_transform, n_iters, robust=False):
     """
     Applies n_iters rounds of the above least squares regression
+
     Args:
         yxz_base: ```float [n_base_spots x 3]```.
             Coordinates of spots you want to transform.

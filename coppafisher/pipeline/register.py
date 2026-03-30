@@ -98,70 +98,70 @@ def register(
     corr_loc = os.path.join(nbp_file.output_dir, "corr.zarr")
     raw_loc = os.path.join(nbp_file.output_dir, "raw.zarr")
     smooth_loc = os.path.join(nbp_file.output_dir, "smooth.zarr")
-    corr_store = zarr.ZipStore(corr_loc, mode="w")
-    raw_store = zarr.ZipStore(raw_loc, mode="w")
-    smooth_store = zarr.ZipStore(smooth_loc, mode="w")
-    raw_smooth_shape = (
-        max(nbp_basic.use_tiles) + 1,
-        max(use_rounds) + 1,
-        3,
-        nbp_basic.tile_sz,
-        nbp_basic.tile_sz,
-        len(nbp_basic.use_z),
-    )
-    zarr.open_array(
-        store=corr_store,
-        mode="w",
-        shape=raw_smooth_shape[:2] + raw_smooth_shape[3:],
-        dtype=np.float16,
-        chunks=(1, 1, nbp_basic.tile_sz, nbp_basic.tile_sz, 2),
-        zarr_version=2,
-    )
-    zarr.open_array(
-        store=raw_store,
-        mode="w",
-        shape=raw_smooth_shape,
-        dtype=np.float16,
-        chunks=(1, 1, None, None, None, 2),
-        zarr_version=2,
-    )
-    # Chunks are made into thin rods along the y axis as this is how flow will be gathered in OMP.
-    smooth_chunks = (1, 1, None, None, min(288, nbp_basic.tile_sz), 1)
-    zarr.open_array(
-        store=smooth_store,
-        shape=raw_smooth_shape,
-        mode="w",
-        dtype=np.float16,
-        chunks=smooth_chunks,
-        zarr_version=2,
-    )
-    corr_store.close()
-    raw_store.close()
-    smooth_store.close()
-    for t in tqdm(use_tiles, desc="Optical Flow on uncompleted tiles", total=len(use_tiles)):
-        # Load in the anchor image and the round images. Note that here anchor means anchor round, not necessarily
-        # anchor channel
-        anchor_image = nbp_filter.images[t, nbp_basic.anchor_round, nbp_basic.dapi_channel]
-        for r in use_rounds:
-            round_image = nbp_filter.images[t, r, nbp_basic.dapi_channel]
-            # Now run the registration algorithm on this tile and round
-            register_base.optical_flow_register(
-                target=round_image,
-                base=anchor_image,
-                tile=t,
-                round=r,
-                raw_loc=raw_loc,
-                corr_loc=corr_loc,
-                smooth_loc=smooth_loc,
-                chunks_yx=config["chunks_yx"],
-                overlap=config["overlap_yx"],
-                sample_factor_yx=config["sample_factor_yx"],
-                window_radius=config["window_radius"],
-                smooth_sigma=config["smooth_sigma"],
-                clip_val=config["flow_clip"],
-                n_cores=config["flow_cores"],
-            )
-    del anchor_image, round_image
+    # corr_store = zarr.ZipStore(corr_loc, mode="w")
+    # raw_store = zarr.ZipStore(raw_loc, mode="w")
+    # smooth_store = zarr.ZipStore(smooth_loc, mode="w")
+    # raw_smooth_shape = (
+    #     max(nbp_basic.use_tiles) + 1,
+    #     max(use_rounds) + 1,
+    #     3,
+    #     nbp_basic.tile_sz,
+    #     nbp_basic.tile_sz,
+    #     len(nbp_basic.use_z),
+    # )
+    # zarr.open_array(
+    #     store=corr_store,
+    #     mode="w",
+    #     shape=raw_smooth_shape[:2] + raw_smooth_shape[3:],
+    #     dtype=np.float16,
+    #     chunks=(1, 1, nbp_basic.tile_sz, nbp_basic.tile_sz, 2),
+    #     zarr_version=2,
+    # )
+    # zarr.open_array(
+    #     store=raw_store,
+    #     mode="w",
+    #     shape=raw_smooth_shape,
+    #     dtype=np.float16,
+    #     chunks=(1, 1, None, None, None, 2),
+    #     zarr_version=2,
+    # )
+    # # Chunks are made into thin rods along the y axis as this is how flow will be gathered in OMP.
+    # smooth_chunks = (1, 1, None, None, min(288, nbp_basic.tile_sz), 1)
+    # zarr.open_array(
+    #     store=smooth_store,
+    #     shape=raw_smooth_shape,
+    #     mode="w",
+    #     dtype=np.float16,
+    #     chunks=smooth_chunks,
+    #     zarr_version=2,
+    # )
+    # corr_store.close()
+    # raw_store.close()
+    # smooth_store.close()
+    # for t in tqdm(use_tiles, desc="Optical Flow on uncompleted tiles", total=len(use_tiles)):
+    #     # Load in the anchor image and the round images. Note that here anchor means anchor round, not necessarily
+    #     # anchor channel
+    #     anchor_image = nbp_filter.images[t, nbp_basic.anchor_round, nbp_basic.dapi_channel]
+    #     for r in use_rounds:
+    #         round_image = nbp_filter.images[t, r, nbp_basic.dapi_channel]
+    #         # Now run the registration algorithm on this tile and round
+    #         register_base.optical_flow_register(
+    #             target=round_image,
+    #             base=anchor_image,
+    #             tile=t,
+    #             round=r,
+    #             raw_loc=raw_loc,
+    #             corr_loc=corr_loc,
+    #             smooth_loc=smooth_loc,
+    #             chunks_yx=config["chunks_yx"],
+    #             overlap=config["overlap_yx"],
+    #             sample_factor_yx=config["sample_factor_yx"],
+    #             window_radius=config["window_radius"],
+    #             smooth_sigma=config["smooth_sigma"],
+    #             clip_val=config["flow_clip"],
+    #             n_cores=config["flow_cores"],
+    #         )
+    # del anchor_image, round_image
 
     corr_store = zarr.ZipStore(corr_loc, mode="r")
     raw_store = zarr.ZipStore(raw_loc, mode="r")
@@ -209,16 +209,24 @@ def register(
                 continue
             # load in reference spots
             ref_spots_tr_ref = nbp_find_spots.spot_yxz[f"t{t}r{nbp_basic.anchor_round}c{nbp_basic.anchor_channel}"][:]
+
             # apply the flow to the reference spots to put anchor spots in the target frame
-            ref_spots_tr_ref = spot_colours_base.apply_flow_new(ref_spots_tr_ref, flow, t, r)
+            # ref_spots_tr_ref = spot_colours_base.apply_flow_new(ref_spots_tr_ref, flow, t, r)
+
             # load in target spots
             ref_spots_tr = nbp_find_spots.spot_yxz[f"t{t}r{r}c{c_ref}"][:]
+            MAX_SHIFT = np.array([-103, -98, -6], np.float32)
+            start_transform = np.zeros((4, 3), np.float32)
+            start_transform[0, 0] = 1
+            start_transform[1, 1] = 1
+            start_transform[2, 2] = 1
+            start_transform[-1, :] = MAX_SHIFT * (6 - r) / 6
             round_correction[t, r], n_matches_round[t, r], mse_round[t, r], converged_round[t, r] = register_base.icp(
                 yxz_base=ref_spots_tr_ref,
                 yxz_target=ref_spots_tr,
-                dist_thresh_yx=neighb_dist_thresh_yx,
-                dist_thresh_z=neighb_dist_thresh_z,
-                start_transform=np.eye(4, 3),
+                dist_thresh_yx=25,
+                dist_thresh_z=4,
+                start_transform=start_transform,
                 n_iters=config["icp_max_iter"],
                 robust=False,
             )
@@ -251,8 +259,10 @@ def register(
                     | (im_spots_trc[:, 2] >= nz)
                 )
                 im_spots_trc = im_spots_trc[~oob]
+
                 # 2. apply the inverse of the flow to the spots
-                im_spots_trc = spot_colours_base.apply_flow_new(im_spots_trc, flow, t, r, flow_multiplier=-1.0)
+                # im_spots_trc = spot_colours_base.apply_flow_new(im_spots_trc, flow, t, r, flow_multiplier=-1.0)
+
                 im_spots_tc = np.vstack((im_spots_tc, im_spots_trc))
             # check if there are enough spots to run ICP
             if im_spots_tc.shape[0] < config["icp_min_spots"]:

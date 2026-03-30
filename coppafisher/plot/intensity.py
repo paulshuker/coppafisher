@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import napari
 import numpy as np
+import torch
 import tqdm
 
 from coppafisher.setup.config import Config
@@ -136,6 +137,7 @@ def view_intensity_images(
     yxz = [np.linspace(0, tile_shape[i] - 1, tile_shape[i]) for i in range(2)]
     yxz.append(np.linspace(z_plane_start_from, z_plane_start_from + z_planes - 1, z_planes))
     yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
+    yxz = torch.from_numpy(yxz)
 
     factor = nb.call_spots.colour_norm_factor.astype(np.float32)
 

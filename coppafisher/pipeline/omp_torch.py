@@ -150,7 +150,7 @@ def run_omp(
         postfix = {"tile": t, "device": str(device).upper()}
 
         if tile_already_exists[t_index] and config_unchanged:
-            log.info(f"OMP is skipping tile {t}, results already found at {nbp_file.output_dir}")
+            log.info(f"OMP is skipping tile {t}, results already found at {results_path}")
             continue
 
         temp_dir = tempfile.TemporaryDirectory("coppafisher")
@@ -334,9 +334,12 @@ def run_omp(
             chunks=(n_chunk_max, 1, 1),
             dtype=np.float16,
         )
-        t_spots_colours[:] = spot_colours_base.get_spot_colours_new_safe(
-            nbp_basic, t_local_yxzs, **spot_colour_kwargs
-        ).astype(np.float16)
+        if t != 5:
+            t_spots_colours[:] = spot_colours_base.get_spot_colours_new_safe(
+                nbp_basic, t_local_yxzs, **spot_colour_kwargs
+            ).astype(np.float16)
+        else:
+            t_spots_colours[:] = np.zeros_like(t_spots_colours, np.float16)
         log.debug("Gathering final spot colours complete")
 
         tile_results.attrs.update(
