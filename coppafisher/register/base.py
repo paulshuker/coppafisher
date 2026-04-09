@@ -387,26 +387,31 @@ def interpolate_flow(
     return flow_smooth
 
 
-def upsample_yx(im: np.ndarray, factor: float = 4, order: int = 1) -> np.ndarray:
+def upsample_yx(im: np.ndarray, factor: float, order: int) -> np.ndarray:
     """
     Upsamples the given 3D image for each z plane.
 
     Args:
         im ((n_y, n_x, n_z) ndarray): the 3D image to upsample.
         factor (float): the upsample factor for the y and x axes.
-        order (int): the interpolation order. E.g. 1 is linear interpolation. Must be between 0 and 2.
+        order (int): the interpolation order. 1 is bilinear interpolation and 2 is bi-cubic interpolation.
 
     Returns:
         ((n_y * factor, n_x * factor, n_z) ndarray[im.dtype]) im_up: of the upsampled image.
     """
-    MODES = ("nearest", "bilinear", "bicubic")
-    mode = MODES[order]
+    assert order > 0
+    assert order < 3
+
+    MODES = ("bilinear", "bicubic")
+    mode = MODES[order - 1]
 
     # Has shape im_z x 1 x im_y x im_x.
     input_image = torch.from_numpy(im.transpose((2, 0, 1))).to(torch.float32)
     input_image = input_image[:, np.newaxis]
 
-    upscaled_image: np.ndarray = torch.nn.functional.interpolate(input_image, scale_factor=factor, mode=mode).numpy()
+    upscaled_image: np.ndarray = torch.nn.functional.interpolate(
+        input_image, scale_factor=factor, mode=mode, align_corners=True
+    ).numpy()
     # Convert back to shape im_y x im_x x im_z.
     upscaled_image = upscaled_image[:, 0].transpose((1, 2, 0))
 
