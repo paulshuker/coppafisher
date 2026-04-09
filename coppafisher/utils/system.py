@@ -11,11 +11,9 @@ import torch
 
 from . import web
 
-
-class SystemConstants:
-    VERSION_CONTAINS = "version"
-    # The character(s) that encapsulate the software version tag in _version.py, in this case it is quotation marks.
-    VERSION_ENCAPSULATE = '"'
+VERSION_CONTAINS = "version"
+# The character(s) that encapsulate the software version tag in _version.py, in this case it is quotation marks.
+VERSION_ENCAPSULATE = '"'
 
 
 def get_version_url() -> str:
@@ -35,20 +33,24 @@ def get_version_url() -> str:
 
 def get_version_from_file(file_lines: list[str]) -> str:
     for file_line in file_lines:
-        if not SystemConstants.VERSION_CONTAINS in file_line:
+        if VERSION_CONTAINS not in file_line:
             continue
 
-        return file_line.split(SystemConstants.VERSION_ENCAPSULATE)[1]
+        return file_line.split(VERSION_ENCAPSULATE)[1]
 
     raise ValueError(f"No version found inside file:\n{file_lines}")
 
 
-def get_software_version() -> str:
+def get_software_version(include_version_hash: bool = True) -> str:
     """
     Get coppafisher's version tag as written in _version.py.
 
-    If git CLI is installed, the short form commit hash is appended. This is found by the command `git describe
-    --always`. If this fails, then nothing is appended.
+    If include_version_hash is true and git CLI is installed, the short form commit hash is appended. This is found by
+    the command `git describe --always`. If this fails, then nothing is appended.
+
+    Args:
+        include_version_hash (bool, optional): include the short-form git commit hash at the end of the version string.
+            Default: true.
 
     Returns:
         (str): version. The local software version.
@@ -64,9 +66,8 @@ def get_software_version() -> str:
     except subprocess.CalledProcessError:
         short_form_commit_hash = ""
 
-    if short_form_commit_hash:
-        version_tag += "-"
-        version_tag += short_form_commit_hash
+    if include_version_hash and short_form_commit_hash:
+        version_tag += "-" + short_form_commit_hash
 
     return version_tag
 

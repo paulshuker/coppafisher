@@ -7,15 +7,22 @@ from coppafisher.register import preprocessing as reg_pre
 
 
 def test_upsample_yx():
-    # set up data
     im = np.eye(2, 2)[:, :, None]
-    # upsample
-    im_up = reg_base.upsample_yx(im, factor=2, order=0)
-    # check that the shape is correct
+    im_up = reg_base.upsample_yx(im, factor=2, order=1)
     assert im_up.shape == (4, 4, 1)
-    # check that the values are correct
-    assert np.sum(im_up) == 8
-    assert np.allclose(im_up[:, :, 0], np.array([[1, 1, 0, 0], [1, 1, 0, 0], [0, 0, 1, 1], [0, 0, 1, 1]]))
+    assert np.isclose(np.sum(im_up), 8, atol=0.01)
+    assert np.isclose(im_up[0, 0, 0], 1)
+    assert np.isclose(im_up[-1, -1, 0], 1)
+    assert np.isclose(im_up[-1, 0, 0], 0)
+    assert np.isclose(im_up[0, -1, 0], 0)
+
+    im = np.eye(2, 2)[:, :, None]
+    im_up = reg_base.upsample_yx(im, factor=2, order=2)
+    assert im_up.shape == (4, 4, 1)
+    assert np.isclose(im_up[0, 0, 0], 1)
+    assert np.isclose(im_up[-1, -1, 0], 1)
+    assert np.isclose(im_up[-1, 0, 0], 0)
+    assert np.isclose(im_up[0, -1, 0], 0)
 
 
 def test_interpolate_flow():

@@ -38,8 +38,9 @@ def register(
         config (ConfigSection): Register part of the config.
 
     Returns:
-        - nbp (NotebookPage): register notebook page.
-        - nbp_debug (NotebookPage): register_debug notebook page.
+        Tuple containing:
+            - nbp (NotebookPage): register notebook page.
+            - nbp_debug (NotebookPage): register_debug notebook page.
     """
 
     # Break algorithm up into initialisation and then 3 parts.

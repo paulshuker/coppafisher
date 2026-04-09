@@ -1,3 +1,23 @@
+2026/04/09 Version 1.12 (v1.12.0):
+ * General: Removed redundant is_3d config parameter in basic_info.
+ * General: Removed redundant use_anchor config parameter in basic_info.
+ * General: An unknown file/directory inside of a notebook page now raises an error.
+ * General: Security updates for filelock, Werkzeug, fonttools, pillow, dash, requests, tornado, Pygments, and urllib3.
+ * Viewer: Z thickness slider breaks when there is only one z plane fix.
+ * Diagnostics: Find spots viewer now works without find_spots notebook page.
+ * Filter: Deconvolution is now optional (default: turned on).
+ * Find spots: Config auto_thresh_multiplier now called auto_thresh_multipliers.
+ * Find spots: Config auto_thresh_percentile now called auto_thresh_percentiles.
+ * Find spots: Auto threshold multiplier and percentile can now be set for each sequence channel separately.
+ * Find spots: Fails to correctly resume from a checkpoint fix.
+ * Find spots: Cannot find "completed_indices" file crash fix.
+ * Register: Better upscaling of optical flow results on the edge of tiles.
+ * Register: Faster compute times when upsampling using pytorch.
+ * OMP: Completed tile results are corrupted if stopped midway through fix.
+ * OMP: Chance for finished tile not being considered complete fix.
+ * OMP: Chance for unfinished tile being thought to be complete fix.
+
+
 2026/01/29 Version 1.11 Patch (v1.11.1):
  * Filter: Joblib is not used when num_cores is 1.
  * Register: Joblib is not used when flow_cores is 1.

@@ -28,7 +28,6 @@ def test_raw_tif() -> None:
     nbp_basic = NotebookPage("basic_info")
     nbp_basic.n_tiles = n_tiles
     nbp_basic.n_channels = n_channels
-    nbp_basic.use_anchor = True
     nbp_basic.use_z = (2, 3, 4, 5, 6)
     nbp_basic.tilepos_yx = np.array([[0, 0], [1, 0], [0, 1], [1, 1], [0, 2], [1, 2]], int)
     nbp_basic.tilepos_yx_nd2 = np.array([[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2]], int)

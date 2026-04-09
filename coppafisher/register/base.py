@@ -6,6 +6,7 @@ import nd2
 import numpy as np
 import scipy
 import skimage
+import torch
 import zarr
 from scipy.ndimage import gaussian_filter
 from tqdm import tqdm
@@ -386,21 +387,35 @@ def interpolate_flow(
     return flow_smooth
 
 
-def upsample_yx(im: np.ndarray, factor: float = 4, order: int = 1) -> np.ndarray:
+def upsample_yx(im: np.ndarray, factor: float, order: int) -> np.ndarray:
     """
-    Function to upsample an 3D image in yx.
+    Upsamples the given 3D image for each z plane.
+
     Args:
-        im: np.ndarray size [n_y, n_x, n_z] of the image to upsample
-        factor: float specifying the factor to upsample by in y and x
-        order: int specifying the order of the interpolation
+        im ((n_y, n_x, n_z) ndarray): the 3D image to upsample.
+        factor (float): the upsample factor for the y and x axes.
+        order (int): the interpolation order. 1 is bilinear interpolation and 2 is bi-cubic interpolation.
+
     Returns:
-        im_up: np.ndarray size [n_y * factor, n_x * factor, n_z] of the upsampled image
+        ((n_y * factor, n_x * factor, n_z) ndarray[im.dtype]) im_up: of the upsampled image.
     """
-    # upsampling is quicker when we do it in 2D
-    im_up = np.zeros((im.shape[0] * factor, im.shape[1] * factor, im.shape[2]), dtype=im.dtype)
-    for z in range(im.shape[2]):
-        im_up[:, :, z] = scipy.ndimage.zoom(im[:, :, z], factor, order=order)
-    return im_up
+    assert order > 0
+    assert order < 3
+
+    MODES = ("bilinear", "bicubic")
+    mode = MODES[order - 1]
+
+    # Has shape im_z x 1 x im_y x im_x.
+    input_image = torch.from_numpy(im.transpose((2, 0, 1))).to(torch.float32)
+    input_image = input_image[:, np.newaxis]
+
+    upscaled_image: np.ndarray = torch.nn.functional.interpolate(
+        input_image, scale_factor=factor, mode=mode, align_corners=True
+    ).numpy()
+    # Convert back to shape im_y x im_x x im_z.
+    upscaled_image = upscaled_image[:, 0].transpose((1, 2, 0))
+
+    return upscaled_image.astype(im.dtype)
 
 
 def channel_registration(

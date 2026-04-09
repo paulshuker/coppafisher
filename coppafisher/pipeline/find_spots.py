@@ -46,10 +46,20 @@ def find_spots(
     del find_spots_config, last_find_spots_config
 
     # Phase 0: Initialisation.
-    auto_thresh_multiplier = config["auto_thresh_multiplier"]
-    auto_thresh_percentile = config["auto_thresh_percentile"]
-    if auto_thresh_multiplier <= 0:
-        raise ValueError("The auto_thresh_multiplier in 'find_spots' config must be positive")
+    auto_thresh_multipliers = config["auto_thresh_multipliers"]
+    auto_thresh_percentiles = config["auto_thresh_percentiles"]
+    if any(auto_thresh_multiplier <= 0 for auto_thresh_multiplier in auto_thresh_multipliers):
+        raise ValueError("The auto_thresh_multipliers in [find_spots] config must be positive")
+    if len(auto_thresh_multipliers) == 1:
+        auto_thresh_multipliers *= len(nbp_basic.use_channels)
+    if len(auto_thresh_percentiles) == 1:
+        auto_thresh_percentiles *= len(nbp_basic.use_channels)
+    if len(auto_thresh_multipliers) != len(nbp_basic.use_channels):
+        raise ValueError(f"auto_thresh_multipliers must be length 1 or {len(nbp_basic.use_channels)}")
+    if len(auto_thresh_percentiles) != len(nbp_basic.use_channels):
+        raise ValueError(f"auto_thresh_percentiles must be length 1 or {len(nbp_basic.use_channels)}")
+
+    c_indices: dict[int, int] = {c: c_ind for c_ind, c in enumerate(nbp_basic.use_channels)}
     INVALID_AUTO_THRESH = -1
     auto_thresh = np.full(
         (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.n_extra_rounds, nbp_basic.n_channels),
@@ -57,19 +67,21 @@ def find_spots(
         dtype=np.float32,
     )
     completed_indices_path = os.path.join(nbp_file.output_dir, "find_spots_completed_indices.pkl")
-    if not config_unchanged:
-        os.remove(completed_indices_path)
-    completed_indices: dict[str, list[tuple[int, int, int]]] = dict_io.try_load_dict(completed_indices_path, {"a": []})
     group_path = os.path.join(nbp_file.output_dir, "spot_yxz.zgroup")
-    group_store = zarr.ZipStore(group_path)
-    spot_yxz = zarr.group(group_store, overwrite=not config_unchanged, zarr_version=2)
+    if not config_unchanged and os.path.isfile(completed_indices_path):
+        os.remove(completed_indices_path)
+    if not config_unchanged and os.path.isfile(group_path):
+        os.remove(group_path)
+    completed_indices: dict[str, list[tuple[int, int, int]]] = dict_io.try_load_dict(completed_indices_path, {"a": []})
+    group_store = zarr.ZipStore(group_path, mode="a")
+    spot_yxz = zarr.group(group_store, zarr_version=2)
     spot_no = np.zeros(
         (nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.n_extra_rounds, nbp_basic.n_channels), dtype=np.int32
     )
 
     # Define use_indices as a [n_tiles x n_rounds x n_channels] boolean array where use_indices[t, r, c] is True if
     # we want to find spots on said tile `t`, round `r`, channel `c`.
-    use_indices = np.zeros((nbp_basic.n_tiles, nbp_basic.n_rounds + nbp_basic.use_anchor, nbp_basic.n_channels), bool)
+    use_indices = np.zeros((nbp_basic.n_tiles, nbp_basic.n_rounds + 1, nbp_basic.n_channels), bool)
     n_skipped_images = 0
     for t, r, c in indexing.create(
         nbp_basic,
@@ -89,6 +101,8 @@ def find_spots(
     pbar = tqdm.tqdm(total=use_indices.sum(), desc="Finding spots", unit="image")
     for t, r, c in np.argwhere(use_indices).tolist():
         pbar.set_postfix_str(f"{t=}, {r=}, {c=}")
+        auto_thresh_multiplier = auto_thresh_multipliers[c_indices[c]]
+        auto_thresh_percentile = auto_thresh_percentiles[c_indices[c]]
         image_trc = nbp_filter.images[t, r, c].astype(np.float32)
 
         # Compute the image's auto threshold to detect spots.

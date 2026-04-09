@@ -24,8 +24,24 @@ class Config:
     use_tiles = config["basic_info"]["use_tiles"]
     ```
 
-    (This allows for legacy code support as the config used to be a plain python dictionary object).
+    (This allows for legacy code support as the config used to be a dictionary object).
     """
+
+    @staticmethod
+    def get_default_for_section(section_name: str) -> dict[str, FORMATTED_PARAM_TYPE]:
+        assert type(section_name) is str
+
+        config = Config()
+        parser = config.create_parser()
+        config._parse_config(parser, config._get_default_file_path())
+        if section_name not in parser.keys():
+            raise ValueError(f"No config section called {section_name}")
+
+        result = {}
+        for parameter_name in config._options[section_name]:
+            result[parameter_name] = Config.get_default_for(section_name, parameter_name)
+
+        return result
 
     @staticmethod
     def get_default_for(section_name: str, parameter_name: str) -> FORMATTED_PARAM_TYPE:
@@ -138,12 +154,10 @@ class Config:
             "use_channels": ("maybe_tuple_int", "tuple-not-empty"),
             "use_z": ("maybe_tuple_int", "tuple-not-empty"),
             "use_dyes": ("maybe_tuple_int", "tuple-not-empty"),
-            "use_anchor": ("bool", ""),
             "anchor_round": ("maybe_int", "not-negative"),
             "anchor_channel": ("maybe_int", "not-negative"),
             "dapi_channel": ("maybe_int", "not-negative"),
             "dye_names": ("tuple_str", "tuple-not-empty"),
-            "is_3d": ("bool", ""),
             "bad_trc": ("maybe_tuple_int", "tuple-len-multiple-3"),
             "reverse_tile_positions_x": ("bool", ""),
             "reverse_tile_positions_y": ("bool", ""),
@@ -187,11 +201,12 @@ class Config:
             "max_cores": ("maybe_int", "positive"),
             "channel_radius_normalisation_filepath": ("maybe_file", "str-not-empty"),
             "dapi_radius_normalisation_filepath": ("maybe_file", "str-not-empty"),
+            "use_wiener_deconvolution": ("bool", ""),
             "wiener_constant": ("number", "not-negative"),
         },
         "find_spots": {
-            "auto_thresh_multiplier": ("number", "not-negative"),
-            "auto_thresh_percentile": ("number", "not-negative_lteq100"),
+            "auto_thresh_multipliers": ("tuple_number", "tuple-not-empty"),
+            "auto_thresh_percentiles": ("tuple_number", "tuple-not-empty"),
             "auto_thresh_clip": ("bool", ""),
             "radius_xy": ("int", "not-negative"),
             "radius_z": ("int", "not-negative"),
