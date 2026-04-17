@@ -1,3 +1,3 @@
-from .base import estimate_runtime, reed_solomon_codes
+from .base import reed_solomon_codes
 
-__all__ = ["estimate_runtime", "reed_solomon_codes"]
+__all__ = ["reed_solomon_codes"]
