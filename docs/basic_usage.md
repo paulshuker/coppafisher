@@ -171,18 +171,3 @@ which can then be run from the command line
 ```bash
 python3 coppafisher_script_name.py
 ```
-
-## Runtime
-
-For an estimate of your pipeline runtime[^1], in the Python terminal:
-
-```python
---8<-- "estimate_runtime.py"
-```
-
-then type in the relevant information when prompted.
-
-
-[^1]:
-    All time estimations are made using an Intel i9-13900K @ 5.500GHz, NVIDIA RTX 4070Ti Super (optional), and NVMe
-    local SSD. Raw, ND2 input files were saved on a server with read speed of ~200 MB/s.
