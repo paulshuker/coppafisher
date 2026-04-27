@@ -191,7 +191,7 @@ def test_get_next_gene_assignments() -> None:
     assert torch.allclose(fail_gene_indices_previous, fail_gene_indices)
 
 
-def test_get_next_residual_colours() -> None:
+def test_get_next_gene_weights() -> None:
     import torch
 
     n_pixels = 1
@@ -287,10 +287,9 @@ def test_get_gene_pixel_scores() -> None:
     bled_codes_copy = bled_codes.detach().clone()
 
     solver = PixelScoreSolver()
-    pixel_scores = solver.get_gene_pixel_scores(pixel_colours, bled_codes, weights, 0.0, 2.0)
-    assert type(pixel_scores) is tuple
-    assert len(pixel_scores) == 1
-    pixel_scores = pixel_scores[0]
+    residual_colours = solver.get_residual_colours(pixel_colours, bled_codes, weights, 0.0, 2.0)
+    pixel_scores = solver.get_gene_pixel_scores(residual_colours, bled_codes, weights)
+    assert type(pixel_scores) is torch.Tensor
     assert pixel_scores.ndim == 2
     assert pixel_scores.shape == (n_pixels, n_genes_assigned)
     assert torch.allclose(pixel_colours, pixel_colours_copy)

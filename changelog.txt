@@ -1,10 +1,13 @@
 2026/MM/DD Version 1.13 (v1.13.0):
+ * General: Scipy update.
+ * General: Removed runtime estimator.
+ * Export: Dapi image exports can contain nan or large values fix.
  * Viewer: View spot colour region subplot colour bar fix.
  * Viewer: View spot colour region subplot check buttons added.
  * Viewer: View spot colour region subplot z slider added.
- * Export: Dapi image exports can contain nan or large values fix.
  * Register: Optical flow now processes on one tile at a time.
  * Register: No longer uses multiprocessing.
+ * OMP: Pixel scoring now uses Spearman correlation.
  * OMP: Crash when trying to overwrite existing tile results fix.
  * OMP: Slightly faster pixel score computation.
  * OMP: n_subset_pixels does not work when set to a low value fix.

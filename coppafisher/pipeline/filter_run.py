@@ -36,9 +36,10 @@ def run_filter(
         nbp_file (NotebookPage): 'file_names' notebook page.
         nbp_basic (NotebookPage): 'basic_info' notebook page.
 
-    Returns tuple containing:
-        - NotebookPage: 'filter' notebook page.
-        - NotebookPage: 'filter_debug' notebook page.
+    Returns
+        Tuple containing:
+            - NotebookPage: 'filter' notebook page.
+            - NotebookPage: 'filter_debug' notebook page.
 
     Notes:
         - See `'filter'` and `'filter_debug'` sections of `notebook_page.py` file for description of variables.

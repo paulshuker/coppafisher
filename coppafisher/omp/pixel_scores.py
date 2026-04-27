@@ -205,22 +205,26 @@ class PixelScoreSolver:
             residual_colours *= epsilon_squared
             del epsilon_squared
 
-            # Using the new gene weights, update the OMP pixel scores.
-            pixel_score_result = self.get_gene_pixel_scores(
+            # Using the new gene weights, find the colour residuals.
+            new_residuals = self.get_residual_colours(
                 colours[pixels_to_continue],
                 bled_codes_to_continue,
                 iteration_weights,
                 alpha,
                 beta,
-                return_all_residuals,
             )
-            new_pixel_scores = pixel_score_result[0]
             if return_all_residuals:
-                new_residuals = pixel_score_result[1]
                 for j in range(iteration + 1):
-                    all_residuals[pixels_to_continue, latest_gene_selections[:, j]] = new_residuals[:, j]
-                del new_residuals
-            del bled_codes_to_continue, iteration_weights, pixel_score_result
+                    all_residuals[pixels_to_continue, latest_gene_selections[:, j]] = new_residuals[j]
+
+            # Update the gene pixel scores.
+            new_pixel_scores = self.get_gene_pixel_scores(
+                new_residuals,
+                bled_codes_to_continue,
+                iteration_weights,
+            )
+            del new_residuals, bled_codes_to_continue, iteration_weights
+
             for j in range(iteration + 1):
                 pixel_scores[pixels_to_continue, latest_gene_selections[:, j]] = new_pixel_scores[:, j]
             del latest_gene_selections, new_pixel_scores
@@ -401,19 +405,17 @@ class PixelScoreSolver:
 
         return (pixel_residuals, epsilon_squared, weights)
 
-    def get_gene_pixel_scores(
+    def get_residual_colours(
         self,
         pixel_colours: torch.Tensor,
         bled_codes: torch.Tensor,
         weights: torch.Tensor,
         alpha: float,
         beta: float,
-        return_residuals: bool = False,
-    ) -> Tuple[torch.Tensor] | Tuple[torch.Tensor, torch.Tensor]:
+    ) -> torch.Tensor:
         """
-        For each gene assignment in a pixel, compute its pixel score. For each gene, a residual colour is computed by
-        subtracting all other assigned genes. Then, the pixel score for said gene is the dot product with this residual
-        and the genes bled code.
+        For each gene assignment in a pixel, compute the residual colour when all other gene expressions are subtracted.
+        The residual colour is computed by subtracting all other assigned genes.
 
         Args:
             pixel_colours (`(n_pixels x n_rounds_use x n_channels_use) tensor[float32]`): the pixel colours.
@@ -423,13 +425,9 @@ class PixelScoreSolver:
                 best match the pixel colour.
             alpha (float): the alpha parameter.
             beta (float): the beta parameter.
-            return_residuals (bool, optional): return the residuals used to compute the pixel scores for each gene.
-                Default: false.
 
-        Returns tuple containing:
-            - (`(n_pixels x n_genes_assigned) tensor[float32]`): gene_pixel_scores. The gene pixel scores for every
-                given pixel.
-            - (`(n_pixels x n_genes_assigned x n_rounds_use x n_channels_use) tensor[float32]`): residuals. The
+        Returns:
+            (`(n_genes_assigned x n_pixels x n_rounds_use x n_channels_use) tensor[float32]`): residuals. The
                 residuals used to compute the pixel scores. Denoted by epsilon ^ 2 * tilde{R} in the OMP method
                 documentation. Only given if return_residuals is true.
         """
@@ -440,7 +438,6 @@ class PixelScoreSolver:
         assert type(weights) is torch.Tensor
         assert type(alpha) is float
         assert type(beta) is float
-        assert type(return_residuals) is bool
         assert pixel_colours.ndim == 3
         assert bled_codes.ndim == 4
         assert weights.ndim == 2
@@ -499,6 +496,39 @@ class PixelScoreSolver:
         colour_residuals *= epsilon_squared
         del epsilon_squared
 
+        return colour_residuals
+
+    def get_gene_pixel_scores(
+        self, colour_residuals: torch.Tensor, bled_codes: torch.Tensor, weights: torch.Tensor
+    ) -> torch.Tensor:
+        """
+        The pixel score for a gene is the dot product with the colour residual and the genes bled code.
+
+        Args:
+            colour_residuals (`(n_genes_assigned x n_pixels x n_rounds_use x n_channels_use) tensor[float32]`):
+                colour_residuals[i] is the colour residuals of a pixel when all genes are subtracted except the ith
+                gene.
+            bled_codes (`(n_pixels x n_genes_assigned x n_rounds_use x n_channels_use) tensor[float32]`): the bled codes
+                for every assigned gene. Their L2 norm over rounds and channels is always one.
+            weights (`(n_pixels x n_genes_assigned) tensor[float32]`): the computed weight given to each bled code to
+                best match the pixel colour.
+
+        Returns:
+            (`(n_pixels x n_genes_assigned) tensor[float32]`): gene_pixel_scores. The gene pixel scores for every given
+                pixel.
+        """
+        assert type(colour_residuals) is torch.Tensor
+        assert type(bled_codes) is torch.Tensor
+        assert type(weights) is torch.Tensor
+        assert colour_residuals.ndim == 4
+        assert bled_codes.ndim == 4
+        assert weights.ndim == 2
+        assert colour_residuals.shape[0] == bled_codes.shape[1]
+        assert colour_residuals.shape[1] == bled_codes.shape[0]
+        assert colour_residuals.shape[0] == weights.shape[1]
+
+        # colour_residuals has shape (n_genes_assigned, n_pixels, n_rounds_use, n_channels_use).
+        # bled_codes has shape (n_pixels x n_genes_assigned x n_rounds_use x n_channels_use).
         pixel_scores = dot_product.dot_product_score(colour_residuals, bled_codes.swapaxes(0, 1)[:, :, np.newaxis])[
             :, :, 0
         ]
@@ -509,13 +539,7 @@ class PixelScoreSolver:
         # Set pixel scores to be negative if their gene's weight is negative.
         pixel_scores *= torch.sign(weights)
 
-        result = (pixel_scores,)
-
-        if return_residuals:
-            colour_residuals = colour_residuals.swapaxes(0, 1)
-            result += (colour_residuals,)
-
-        return result
+        return pixel_scores
 
     def get_uncertainty_weights(
         self, gene_weights: torch.Tensor, bled_codes: torch.Tensor, alpha: float, beta: float

@@ -164,7 +164,13 @@ $$
 
 A pixel score is made negative if the gene's weight is negative.
 
-[Step 2](#2-next-gene-assignment) is now repeated on the remaining pixels.
+[Step 2](#2-next-gene-assignment) is now repeated on the remaining pixels. The iterative process is shown as a flow
+diagram below
+
+<figure markdown="span">
+  ![Image title](images/algorithm/omp/pixel_score_flow_diagram.png){ width="500", align=center }
+  <figcaption></figcaption>
+</figure>
 
 ??? question "Why not use the scores from step 2 as the pixel scores?"
 

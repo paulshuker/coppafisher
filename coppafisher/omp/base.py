@@ -16,9 +16,10 @@ def get_all_scores(
         nbp_basic (notebook page): `basic_info` notebook page.
         nbp_omp (notebook page): `omp` notebook page.
 
-    Returns tuple containing:
-        (`(n_spots) ndarray[float16]`): all_scores. All gene scores.
-        (`(n_spots) ndarray[int16]`): all_tiles. The tile for each spot.
+    Returns:
+        Tuple containing:
+            - (`(n_spots) ndarray[float16]`): all_scores. All gene scores.
+            - (`(n_spots) ndarray[int16]`): all_tiles. The tile for each spot.
     """
     assert type(nbp_basic) is NotebookPage
     assert type(nbp_omp) is NotebookPage
@@ -65,9 +66,10 @@ def get_all_gene_no(
         nbp_basic (notebook page): `basic_info` notebook page.
         nbp_omp (notebook page): `omp` notebook page.
 
-    Returns tuple containing:
-            (`(n_spots) ndarray[int16]`): all_gene_no. All gene numbers.
-            (`(n_spots) ndarray[int16]`): all_tiles. The tile for each spot.
+    Returns:
+        Tuple containing:
+            - (`(n_spots) ndarray[int16]`): all_gene_no. All gene numbers.
+            - (`(n_spots) ndarray[int16]`): all_tiles. The tile for each spot.
     """
     assert type(nbp_basic) is NotebookPage
     assert type(nbp_omp) is NotebookPage
@@ -92,8 +94,9 @@ def get_all_local_yxz(
         nbp_omp (notebook page): `omp` notebook page.
 
     Returns:
-        (`(n_spots) ndarray[int16]`): all_local_yxz. All gene local positions.
-        (`(n_spots) ndarray[int16]`): all_tiles. The tile for each spot.
+        Tuple containing:
+            - (`(n_spots x 3) ndarray[int16]`): all_local_yxz. All gene local positions.
+            - (`(n_spots) ndarray[int16]`): all_tiles. The tile for each spot.
     """
     assert type(nbp_basic) is NotebookPage
     assert type(nbp_omp) is NotebookPage
@@ -120,8 +123,9 @@ def get_all_colours(
         - nbp_omp (notebook page): `omp` notebook page.
 
     Returns:
-        (`(n_spots) ndarray[int16]`): all_colours. All spot colours.
-        (`(n_spots) ndarray[int16]`): all_tiles. The tile for each spot.
+        Tuple containing:
+            - (`(n_spots x n_rounds_use x n_channels_use) ndarray[int16]`): all_colours. All spot colours.
+            - (`(n_spots) ndarray[int16]`): all_tiles. The tile for each spot.
     """
     assert type(nbp_basic) is NotebookPage
     assert type(nbp_omp) is NotebookPage
