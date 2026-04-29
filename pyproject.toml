@@ -32,7 +32,6 @@ dependencies = [
     "scikit-image",
     "scikit-learn",
     "scipy>=1.17",
-    "spatiotemporal",
     "tabulate",
     "torch>=2",
     "tqdm",
