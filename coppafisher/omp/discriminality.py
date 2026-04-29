@@ -19,11 +19,11 @@ def score(
         assigned_bled_codes (`(n_spots x n_genes_assigned x n_rounds_use x n_channels_use) tensor[float]`): normalised
             bled codes assigned to each spot. Each batch of bled_codes is scored on the spot colours. n_spots > 1 if the
             bled codes are different for each spot colour.
-        bled_codes (`n_genes x n_rounds_use x n_channels_use) tensor[float]`): every gene bled code.
-        gene_indices (`(n_spots x n_genes_assigned) tensor[float]`): gene indices for every spot.
+        bled_codes (`(n_genes x n_rounds_use x n_channels_use) tensor[float]`): every gene bled code.
+        gene_indices (`(n_spots x n_genes_assigned) tensor[int]`): gene indices for every spot.
 
     Returns:
-        (`(n_spots x n_genes_assigned) tensor[float]`): score. score such that `score[d, c]` gives a "round dot product"
+        (`(n_spots x n_genes_assigned) tensor[float]`): score. Score such that `score[d, c]` gives a "round dot product"
             between `spot_colours` vector `d` with `bled_codes` vector `c`.
 
     Notes:
@@ -31,12 +31,15 @@ def score(
     """
     assert type(residual_spot_colours) is torch.Tensor
     assert type(assigned_bled_codes) is torch.Tensor
-    assert residual_spot_colours.ndim == 3
+    assert type(bled_codes) is torch.Tensor
+    assert type(gene_indices) is torch.Tensor
+    assert residual_spot_colours.ndim == 4
     assert assigned_bled_codes.ndim == 4
-    assert assigned_bled_codes.shape[0] == 1 or assigned_bled_codes.shape[0] == residual_spot_colours.shape[0]
-
     if assigned_bled_codes.shape[0] == 1:
         assigned_bled_codes = torch.repeat_interleave(assigned_bled_codes, residual_spot_colours.shape[0], 0)
+    assert residual_spot_colours.shape == assigned_bled_codes.shape
+    assert residual_spot_colours.shape[2:] == bled_codes.shape[1:]
+    assert residual_spot_colours.shape[0] == gene_indices.shape[0]
 
     n_spots = residual_spot_colours.shape[0]
     n_genes_assigned = residual_spot_colours.shape[1]
@@ -61,16 +64,21 @@ def score(
     bled_codes = bled_codes.repeat_interleave(n_spots * n_genes_assigned, dim=0)
     # Produces a discriminality score for every spot colour on every bled code gene
     # Has shape (n_spots * n_genes_assigned x 1 x n_genes).
-    spears_nobest = spearman_score(residual_spot_colours, bled_codes)
+    spears_without_best = spearman_score(residual_spot_colours, bled_codes)
     # Change to shape (n_spots x n_genes_assigned x n_genes).
-    spears_nobest = spears_nobest.reshape((n_spots, n_genes_assigned, bled_codes.shape[1]))
+    spears_without_best = spears_without_best.reshape((n_spots, n_genes_assigned, bled_codes.shape[1]))
+
+    gene_indices = gene_indices.numpy()
+    spears = spears.numpy()
+    spears_without_best = spears_without_best.numpy()
 
     # Exclude the assigned gene from spears_nobest and compute discriminality.
     discriminality = torch.full((n_spots, n_genes_assigned), torch.nan, dtype=residual_spot_colours.dtype)
     for i in range(n_genes_assigned):
-        spears_nobest[np.arange(0, spears_nobest.shape[0]), i, gene_indices[:, i]] = np.nan
-        discriminality[:, i] = (spears[:, i] - np.nanmean(spears_nobest[:, i], axis=1)) / np.nanstd(
-            spears_nobest[:, i], axis=1
+        spears_without_best[np.arange(0, spears_without_best.shape[0]), i, gene_indices[:, i]] = np.nan
+        discriminality[:, i] = torch.from_numpy(
+            (spears[:, i] - np.nanmean(spears_without_best[:, i], axis=1))
+            / np.nanstd(spears_without_best[:, i], axis=1)
         )
 
     return discriminality

@@ -243,66 +243,6 @@ def test_get_next_gene_weights() -> None:
     assert torch.allclose(epsilon_squared[0], expected_epsilon_squared)
 
 
-def test_get_gene_pixel_scores() -> None:
-    import torch
-
-    n_pixels = 2
-    n_rounds_use = 3
-    n_channels_use = 4
-    n_genes_assigned = 2
-    pixel_colours = np.zeros((n_pixels, n_rounds_use, n_channels_use), np.float32)
-    pixel_colours[0, 0] = [1, 2, 0, 2]
-    pixel_colours[0, 1] = [2, 0, 0, 0]
-    pixel_colours[0, 2] = [2, 1, 2, 0]
-    pixel_colours[1, 0] = [2, 2, 1, 0]
-    pixel_colours[1, 1] = [2, 2, 0, 1]
-    pixel_colours[1, 2] = [1, 0, 0, 1]
-
-    weighted_bled_codes = np.zeros((n_pixels, n_genes_assigned, n_rounds_use, n_channels_use), np.float32)
-    weighted_bled_codes[0, 0, 0] = [0, 1, 0, 0]
-    weighted_bled_codes[0, 0, 1] = [1, 0, 0, 0]
-    weighted_bled_codes[0, 0, 2] = [2, 2, 1, 0]
-    weighted_bled_codes[0, 1, 0] = [2, 1, 0, 2]
-    weighted_bled_codes[0, 1, 1] = [0.2, 0.2, 0, 0.1]
-    weighted_bled_codes[0, 1, 2] = [0, 0, 0, 0.1]
-
-    weighted_bled_codes[1, 0, 0] = [0, 2, 0, 0]
-    weighted_bled_codes[1, 0, 1] = [2, 1, 0, 0]
-    weighted_bled_codes[1, 0, 2] = [1, 0, 0, 0]
-    weighted_bled_codes[1, 1, 0] = [2, 0, 0.5, 0]
-    weighted_bled_codes[1, 1, 1] = [0, 1, 0, 0.5]
-    weighted_bled_codes[1, 1, 2] = [0, 0, 1, 1]
-
-    weights = np.zeros((n_pixels, n_genes_assigned), np.float32)
-    weights = np.linalg.norm(weighted_bled_codes, axis=(-1, -2))
-
-    bled_codes = np.zeros_like(weighted_bled_codes, np.float32)
-    bled_codes = weighted_bled_codes.copy() / weights[:, :, np.newaxis, np.newaxis]
-
-    pixel_colours = torch.from_numpy(pixel_colours)
-    weights = torch.from_numpy(weights)
-    bled_codes = torch.from_numpy(bled_codes)
-    pixel_colours_copy = pixel_colours.detach().clone()
-    weights_copy = weights.detach().clone()
-    bled_codes_copy = bled_codes.detach().clone()
-
-    solver = PixelScoreSolver()
-    residual_colours = solver.get_residual_colours(pixel_colours, bled_codes, weights, 0.0, 2.0)
-    pixel_scores = solver.get_gene_pixel_scores(residual_colours, bled_codes, weights)
-    assert type(pixel_scores) is torch.Tensor
-    assert pixel_scores.ndim == 2
-    assert pixel_scores.shape == (n_pixels, n_genes_assigned)
-    assert torch.allclose(pixel_colours, pixel_colours_copy)
-    assert torch.allclose(bled_codes, bled_codes_copy)
-    assert torch.allclose(weights, weights_copy)
-    assert (pixel_scores >= 0).all()
-
-    # Check against calculations done by hand.
-    assert torch.isclose(pixel_scores[0, 0], torch.tensor(0.8626247925).float())
-
-    # TODO: Check when alpha and beta are both non-zero.
-
-
 def test_get_uncertainty_weights() -> None:
     import torch
 
