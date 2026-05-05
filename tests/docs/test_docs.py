@@ -54,13 +54,16 @@ REPLACEMENTS = OrderedDict(
 def test_all_docs() -> None:
     # Snippets of code used in the docs are integration tested to ensure that they do not crash when run. All code is
     # run with a timeout so code that hangs waiting for an input (or takes a long compute time) is not stuck forever.
-    docs_dir = os.path.dirname(os.path.dirname(__file__))
-
-    config_path = os.path.join(os.path.dirname(docs_dir), "robominnie", "test", ".integration_dir", "robominnie.ini")
-    gene_marker_path = os.path.join(
-        os.path.dirname(docs_dir), "robominnie", "test", ".integration_dir", "gene_colours.csv"
+    docs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "coppafisher", "docs")
+    config_path = os.path.join(
+        os.path.dirname(os.path.dirname(docs_dir)), "tests", "robominnie", ".integration_dir", "robominnie.ini"
     )
+    gene_marker_path = os.path.join(os.path.dirname(config_path), "gene_colours.csv")
     nb_path = os.path.join(os.path.dirname(config_path), "output_coppafisher", "notebook")
+
+    assert os.path.isfile(config_path)
+    assert os.path.isdir(docs_dir)
+    assert os.path.isdir(nb_path), f"Notebook at {nb_path} not found"
 
     pool = multiprocessing.Pool(1)
 
@@ -127,7 +130,9 @@ def test_doc_imports() -> None:
     #
     # `#!python code here`
 
-    docs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "docs")
+    docs_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "coppafisher", "docs"
+    )
 
     assert os.path.isdir(docs_dir)
 
