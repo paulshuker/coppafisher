@@ -311,6 +311,7 @@ def run_omp(
                 f"No OMP spots found on tile {t}. Please check that registration and call spots is working. "
                 + "If so, consider adjusting OMP config parameters."
             )
+        pixel_scores.clear()
 
         # Results are added to the OMP "results" zarr.Group.
         results_store = zarr.ZipStore(results_path, mode="a")
