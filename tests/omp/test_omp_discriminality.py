@@ -27,6 +27,30 @@ def test_score() -> None:
     assert score.ndim == 2
     assert score.shape == (n_spots, n_genes_assigned)
 
+    temp = residual_spot_colours[0].copy()
+    residual_spot_colours[0] = residual_spot_colours[1]
+    residual_spot_colours[1] = temp
+    temp = assigned_bled_codes[0].copy()
+    assigned_bled_codes[0] = assigned_bled_codes[1]
+    assigned_bled_codes[1] = temp
+    temp = gene_indices[0].copy()
+    gene_indices[0] = gene_indices[1]
+    gene_indices[1] = temp
+
+    score_2 = discriminality.score(
+        torch.from_numpy(residual_spot_colours),
+        torch.from_numpy(assigned_bled_codes),
+        torch.from_numpy(bled_codes),
+        torch.from_numpy(gene_indices),
+    )
+    assert type(score_2) is torch.Tensor
+    assert score_2.ndim == 2
+    assert score_2.shape == (n_spots, n_genes_assigned)
+    # Ensure that the order of spots does not change results.
+    assert torch.allclose(score[0], score_2[1])
+    assert torch.allclose(score[1], score_2[0])
+    assert torch.allclose(score[2:], score_2[2:])
+
 
 def test_spearman_score() -> None:
     rng = np.random.RandomState(0)
