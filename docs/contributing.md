@@ -55,11 +55,9 @@ If a commit is pushed that fails a pre-commit hook, then the GitHub integration 
 
 ## Tests
 
-Tests are run via [pytest](https://github.com/pytest-dev/pytest/). Scripts are unit tested by placing the test scripts
-inside a directory called `test` within the script's directory. All test script file names should start with `test_`.
-The scripts must end with their relative directory (directories) and their script file name, separated by underscores.
-For example, the test script for `coppafisher/omp/coefs.py` is named `test_omp_coefs.py`. Check existing tests for
-examples.
+Tests are run via [pytest](https://github.com/pytest-dev/pytest/). Scripts are unit tested and placed into the
+`./tests/` directory. All test script file names should start with `test_`. For example, the test script for
+`coppafisher/omp/coefs.py` is at `./tests/omp/test_coefs.py`.
 
 ## Run Tests
 

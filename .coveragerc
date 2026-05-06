@@ -1,2 +1,7 @@
 [run]
-omit = */test/*, */__init__.py
+include = */coppafisher/*
+omit = *tests*
+patch =
+    subprocess
+concurrency =
+    multiprocessing

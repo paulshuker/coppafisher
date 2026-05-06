@@ -3,11 +3,13 @@ import os
 
 def test_versions_match() -> None:
     # Check that the pyproject version is the same as the version at _version.py.
-    version_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "_version.py")
+    version_file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "coppafisher", "_version.py")
 
     assert os.path.isfile(version_file_path)
 
-    pyproject_file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "pyproject.toml")
+    pyproject_file_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "coppafisher", "pyproject.toml"
+    )
 
     assert os.path.isfile(pyproject_file_path)
 
