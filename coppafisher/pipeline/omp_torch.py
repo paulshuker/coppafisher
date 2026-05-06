@@ -194,12 +194,13 @@ def run_omp(
 
         # STEP 2: Gather spot colours and compute OMP pixel scores on the entire tile, one subset at a time.
         log.debug(f"Compute pixel scores, tile {t} started")
-        # The tile's pixel score results are stored as a list of scipy sparse matrices. Each item is a specific subset
+        # The tile's pixel score results are stored as series of scipy sparse matrices. Each value is a specific subset
         # that was run. Appending them all together is done on demand later as it is computationally expensive to do
         # this while as a sparse matrix. Most pixel scores in each row are zeroes (this is because rows go over all
         # genes in the panel, most pixels only assign one or two genes), so a csr matrix is appropriate.
-        pixel_scores: list[scipy.sparse.csr_matrix] = []
-        index_subset, index_min, index_max = 0, 0, 0
+        # Each key is the index of the subset, so they can be retrieved in order.
+        pixel_scores: dict[int, scipy.sparse.csr_matrix] = {}
+        subset_index, index_min, index_max = 0, 0, 0
         log.debug(f"OMP {max_genes=}")
         log.debug(f"OMP {n_subset_pixels=}")
         log.debug(f"OMP {n_register_chunk_size=}")
@@ -229,11 +230,12 @@ def run_omp(
                 del colour_subset, is_intense
 
                 pixel_scores_subset = scipy.sparse.csr_matrix(pixel_scores_subset)
-                pixel_scores.append(pixel_scores_subset.copy())
+                pixel_scores[subset_index] = pixel_scores_subset.copy()
                 del pixel_scores_subset
                 pbar.update(index_max - index_min)
                 index_min = index_max
-                index_subset += 1
+                subset_index += 1
+        subset_count = subset_index
         log.debug(f"Compute pixel scores, tile {t} complete")
 
         t_spots_local_yxz = np.zeros(shape=(0, 3), dtype=np.int16)
@@ -253,7 +255,9 @@ def run_omp(
             g_pixel_image = torch.full((len(gene_batch),) + tile_shape, torch.nan, dtype=torch.float32)
             for g_i, g in enumerate(gene_batch):
                 g_pixel_image[g_i] = torch.from_numpy(
-                    np.vstack([subset[:, [g]].toarray() for subset in pixel_scores]).reshape(tile_shape, order="F")
+                    np.vstack([pixel_scores[i][:, [g]].toarray() for i in range(subset_count)]).reshape(
+                        tile_shape, order="F"
+                    )
                 )
             g_score_image = scores.score_pixel_score_image(g_pixel_image, mean_spot, config["force_cpu"])
             g_score_image = scores.boost_z_edge_spot_scores(g_score_image, mean_spot)
