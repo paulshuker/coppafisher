@@ -135,6 +135,9 @@ def run_omp(
     # Every tile's results are appended to a zarr.Group. The zarr group is kept in the output directory until OMP is
     # complete, then it is moved into the 'omp' notebook page.
     results_path = os.path.join(nbp_file.output_dir, "results.zgroup")
+    if not config_unchanged and os.path.isfile(results_path):
+        # Delete the results zgroup because overwriting the data is not possible for a ZipStore.
+        os.remove(results_path)
     results_store = zarr.ZipStore(results_path, mode="a" if os.path.exists(results_path) else "x")
     results = zarr.group(store=results_store, zarr_version=2)
     tile_already_exists = [
