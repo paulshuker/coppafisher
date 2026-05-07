@@ -1,7 +1,6 @@
 import os
 
 import numpy as np
-import torch
 import zarr
 
 from .. import log
@@ -33,6 +32,8 @@ def get_reference_spots(
     Returns:
         `NotebookPage[ref_spots]` - Page containing intensity of each reference spot on each imaging round/channel.
     """
+    import torch
+
     log.info("Get ref spots started")
     # Create a notebook page for ref_spots which stores information like local coords, tile_no of each spot and more.
     nbp = NotebookPage("ref_spots")

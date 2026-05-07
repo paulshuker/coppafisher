@@ -1,9 +1,10 @@
+from typing import Any
+
 import numpy as np
 import scipy
-import torch
 
 
-def get_tile_centres(tile_sz: int, n_z_planes: int, tile_origins: np.ndarray[float]) -> torch.Tensor:
+def get_tile_centres(tile_sz: int, n_z_planes: int, tile_origins: np.ndarray[float]) -> Any:
     """
     Find all tile centres based on the tile origins and their size.
 
@@ -17,6 +18,8 @@ def get_tile_centres(tile_sz: int, n_z_planes: int, tile_origins: np.ndarray[flo
         `(n_tiles x 3) tensor[float32]`: tile_centres. Every tile's centre in global coordinates. Tile centres are sent
             to near infinity for nan tile origins.
     """
+    import torch
+
     assert type(tile_sz) is int
     assert type(n_z_planes) is int
     assert type(tile_origins) is np.ndarray
@@ -37,7 +40,7 @@ def get_tile_centres(tile_sz: int, n_z_planes: int, tile_origins: np.ndarray[flo
     return tile_centres
 
 
-def is_duplicate_spot(yxz_global_positions: torch.Tensor, tile_number: int, tile_centres: torch.Tensor) -> torch.Tensor:
+def is_duplicate_spot(yxz_global_positions: Any, tile_number: int, tile_centres: Any) -> Any:
     """
     Checks what spot positions are duplicates. A duplicate is defined as any spot that is closer to a different tile
     origin than the one it is assigned to.
@@ -50,6 +53,8 @@ def is_duplicate_spot(yxz_global_positions: torch.Tensor, tile_number: int, tile
     Returns:
         (`(n_points) tensor[bool]`): is_duplicate. True for each duplicate spot.
     """
+    import torch
+
     assert type(yxz_global_positions) is torch.Tensor
     n_points = yxz_global_positions.shape[0]
     assert n_points > 0, "Require at least one spot"

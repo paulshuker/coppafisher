@@ -1,14 +1,15 @@
+from typing import Any
+
 import numpy as np
-import torch
 
 from ..utils import system
 
 
 def score_pixel_score_image(
-    pixel_score_image: torch.Tensor,
-    mean_spot: torch.Tensor,
+    pixel_score_image: Any,
+    mean_spot: Any,
     force_cpu: bool = True,
-) -> torch.Tensor:
+) -> Any:
     """
     Computes the OMP spot score image from the pixel score image(s). The final spot score image is the pixel score image
     convolved with the mean spot divided by the mean spot's sum. The outside edges are considered zeros.
@@ -23,6 +24,8 @@ def score_pixel_score_image(
         (`(n_batches x im_y x im_x x im_z) tensor[float32]`): spot_score_image. OMP spot score for every image pixel, on
             every given batch.
     """
+    import torch
+
     assert type(pixel_score_image) is torch.Tensor
     assert type(mean_spot) is torch.Tensor
     assert pixel_score_image.dim() == 4
@@ -43,7 +46,7 @@ def score_pixel_score_image(
     return scores
 
 
-def boost_z_edge_spot_scores(spot_score_image: torch.Tensor, mean_spot: torch.Tensor) -> torch.Tensor:
+def boost_z_edge_spot_scores(spot_score_image: Any, mean_spot: Any) -> Any:
     """
     Along the z axis, the kernel is cut off if a pixel is too close the edge of the z stack. So, these pixel scores are
     boosted. This boosting is not applied along the x or y axes because there are many more x and y pixels and there is
@@ -58,6 +61,8 @@ def boost_z_edge_spot_scores(spot_score_image: torch.Tensor, mean_spot: torch.Te
         (`(n_batches x im_y x im_x x im_z) tensor[float32]`): spot_score_image_boosted. The boosted OMP spot score
             image.
     """
+    import torch
+
     assert type(spot_score_image) is torch.Tensor
     assert type(mean_spot) is torch.Tensor
     assert spot_score_image.dim() == 4

@@ -1,12 +1,11 @@
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import numpy as np
 import scipy
-import torch
 
 
 def detect_spots(
-    image: Union[np.ndarray, torch.Tensor],
+    image: Union[np.ndarray, Any],
     intensity_thresh: float,
     remove_duplicates: bool = False,
     radius_xy: Optional[int] = None,
@@ -28,8 +27,11 @@ def detect_spots(
     Returns:
         Tuple containing:
             - (`(n_spots x 3) ndarray[int16]`): maxima_yxz. The y, x, and z coordinate positions of local maxima.
-            - (`(n_spots) ndarray[image.dtype]`): maxima_intensity. maxima_intensity[i] is the image intensity at maxima_yxz[i].
+            - (`(n_spots) ndarray[image.dtype]`): maxima_intensity. maxima_intensity[i] is the image intensity at
+                maxima_yxz[i].
     """
+    import torch
+
     assert type(image) is np.ndarray or type(image) is torch.Tensor
     assert type(intensity_thresh) is float
     assert type(remove_duplicates) is bool

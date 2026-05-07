@@ -1,5 +1,7 @@
 # Code formatter
 black<27
+flake8-tidy-imports<5
+flake8-type-checking<4
 # Import formatter
 isort<9
 # Documentation

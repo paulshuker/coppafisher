@@ -1,10 +1,11 @@
 import numpy as np
-import torch
 
 from coppafisher.find_spots import detect
 
 
 def test_detect_spots() -> None:
+    import torch
+
     image_shape = 3, 4, 5
     image = np.zeros(image_shape, dtype=np.int16)
     image[0, 0, 0] = 1

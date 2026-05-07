@@ -127,8 +127,8 @@ def merge_cell_masks(
     Args:
         cell_mask_file_paths (iterable of str): every cell mask's file path. The cell mask must be saved as .npy files
             with (im_z x im_y x im_x) shape and np.uint16 dtype.
-        cell_mask_origin_yxzs (iterable of iterables of three floats): cell_mask_origin_yxzs[i] is an iterable containing
-            three floats for the ith cell mask's bottom-leftmost position relative to the other cell masks.
+        cell_mask_origin_yxzs (iterable of iterables of three floats): cell_mask_origin_yxzs[i] is an iterable
+            containing three floats for the ith cell mask's bottom-leftmost position relative to the other cell masks.
         expected_tile_overlap (float): the approximate tile overlap expected as a fraction of the tile's length in the
             x/y direction.
         merge_cells_method (str, optional): the method used for dealing with tile overlaps. If set to "", then the pixel

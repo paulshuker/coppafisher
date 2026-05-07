@@ -54,7 +54,8 @@ def stitch(
     # pairwise_shiftss, this is an n_all_tiles x 3 array of every tile's shift from its nominal origin.
     nominal_origin_deviations = minimise_shift_loss(shift=pairwise_shifts, score=pairwise_shift_scores)
 
-    # Expand the pairwise shifts and pairwise shift scores from n_tiles_use x n_tiles_use x 3 to n_all_tiles x n_all_tiles x 3.
+    # Expand the pairwise shifts and pairwise shift scores from
+    # n_tiles_use x n_tiles_use x 3 to n_all_tiles x n_all_tiles x 3.
     pairwise_shifts_full, pairwise_shift_scores_full, tile_origins_full = (
         np.zeros((n_all_tiles, n_all_tiles, 3)) * np.nan,
         np.zeros((n_all_tiles, n_all_tiles)) * np.nan,

@@ -43,8 +43,8 @@ class BuildPDF:
         auto_open: bool = False,
     ) -> None:
         """
-        Build a diagnostic PDF of coppafisher results for each relevant section. A section pdf is not re-generated if the
-        file was found inside output_dir.
+        Build a diagnostic PDF of coppafisher results for each relevant section. A section pdf is not re-generated if
+        the file was found inside output_dir.
 
         Args:
             - nb (Notebook or str): notebook or file path to notebook.

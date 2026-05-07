@@ -9,9 +9,7 @@ import time
 from typing import Dict, List, Optional, Tuple, Union
 
 import dask
-import napari
 import numpy as np
-import pandas
 import scipy
 import tqdm
 from typing_extensions import Self
@@ -397,6 +395,8 @@ class Robominnie:
             overwrite (bool, optional): overwrite any saved coppafisher data inside the directory, delete old `notebook`
                 file if there is one and ignore any other files inside the directory. Default: true.
         """
+        import pandas
+
         assert type(bad_trcs) is list or bad_trcs is None
         if bad_trcs is None:
             bad_trcs = []
@@ -774,6 +774,8 @@ class Robominnie:
         a napari viewer. No visual distinction is made between genes. Requires coppafisher to be run through and
         score_tiles to be run for each coppafisher method.
         """
+        import napari
+
         colours = ("blue", "orange", "red")
         true_spot_colour = "green"
         size = 4

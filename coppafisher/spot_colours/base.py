@@ -1,11 +1,10 @@
 from typing import Any, Optional, Union
 
 import numpy as np
-import torch
 import zarr
 
 
-def convert_coords_to_torch_grid(yxz_coords: torch.Tensor, image_shape: tuple[int, int, int]) -> torch.Tensor:
+def convert_coords_to_torch_grid(yxz_coords: Any, image_shape: tuple[int, int, int]) -> Any:
     """
     Convert typically used y, x, z pixel coordinates into pytorch grid coordinates as defined in pytorch's grid_sample
     function (https://pytorch.org/docs/stable/generated/torch.nn.functional.grid_sample.html) with align_corners set to
@@ -20,6 +19,8 @@ def convert_coords_to_torch_grid(yxz_coords: torch.Tensor, image_shape: tuple[in
         `yxz_coords.shape tensor[float32]` yxz_grid_coords: yxz_coords converted to pytorch grid space, ready to use in
             grid_sample.
     """
+    import torch
+
     assert type(yxz_coords) is torch.Tensor
     assert yxz_coords.numel() > 0
     assert yxz_coords.shape[-1] == 3
@@ -50,12 +51,12 @@ def convert_coords_to_torch_grid(yxz_coords: torch.Tensor, image_shape: tuple[in
 
 
 def apply_flow_new(
-    yxz: np.ndarray | torch.Tensor,
+    yxz: np.ndarray | Any,
     flow: zarr.Array | np.ndarray,
     tile: int,
     r: int,
     flow_multiplier: float = 1.0,
-) -> np.ndarray | torch.Tensor:
+) -> np.ndarray | Any:
     """
     Apply the pixel shifts from flow to each yxz positions given. If the yxz positions are not exact integers within
     the flow image, then bilinear interpolation is done. On out-of-bound regions, the flow shift is taken to be the
@@ -75,6 +76,8 @@ def apply_flow_new(
         (`(n_points x 3) ndarray[float32] or tensor[float32]`): yxz_flow. yxz coordinates optical flow shifted. Returns
             a tensor if yxz is a tensor.
     """
+    import torch
+
     assert type(yxz) is np.ndarray or type(yxz) is torch.Tensor
     assert type(flow) is zarr.Array or type(flow) is np.ndarray
     assert type(tile) is int
@@ -121,7 +124,7 @@ def apply_flow_new(
     return yxz_torch
 
 
-def apply_affine(yxz: torch.Tensor, affine: torch.Tensor) -> torch.Tensor:
+def apply_affine(yxz: Any, affine: Any) -> Any:
     """
     Transform the coordinates yxz based on the affine transform alone. E.g. to find coordinates of spots on the same
     tile but on a different round and channel.
@@ -133,6 +136,8 @@ def apply_affine(yxz: torch.Tensor, affine: torch.Tensor) -> torch.Tensor:
     Returns:
         `(n_points x 3) tensor[float32]` yxz_affine: the yxz coordinates affine transformed.
     """
+    import torch
+
     assert type(yxz) is torch.Tensor
     assert yxz.ndim == 2
     assert yxz.shape[1] == 3
@@ -145,7 +150,7 @@ def apply_affine(yxz: torch.Tensor, affine: torch.Tensor) -> torch.Tensor:
 
 
 def get_spot_colours_new_safe(
-    nbp_basic_info, yxz: Optional[Union[np.ndarray, torch.Tensor]] = None, *args, **kwargs
+    nbp_basic_info, yxz: Optional[Union[np.ndarray, Any]] = None, *args, **kwargs
 ) -> np.ndarray:
     """
     A wrapper function for get_spot_colours_new below. See that function for the arguments/details. This function runs
@@ -160,6 +165,8 @@ def get_spot_colours_new_safe(
     Returns:
         `(n_points x n_rounds x n_channels_use) ndarray` colours: gathered image colours.
     """
+    import torch
+
     assert type(yxz) is np.ndarray or type(yxz) is torch.Tensor or yxz is None
     tile_shape = (nbp_basic_info.tile_sz, nbp_basic_info.tile_sz, len(nbp_basic_info.use_z))
     if yxz is None:
@@ -189,10 +196,10 @@ def get_spot_colours_new_safe(
 
 
 def get_spot_colours_new(
-    yxz: Union[np.ndarray, torch.Tensor],
-    image: Union[np.ndarray, zarr.Array],
-    flow: Union[np.ndarray, zarr.Array],
-    affine: Union[np.ndarray, torch.Tensor],
+    yxz: np.ndarray | Any,
+    image: np.ndarray | zarr.Array,
+    flow: np.ndarray | zarr.Array,
+    affine: np.ndarray | Any,
     tile: int,
     use_rounds: list[int],
     use_channels: list[int],
@@ -220,6 +227,8 @@ def get_spot_colours_new(
     Returns:
         `(n_points x n_rounds x n_channels_use) ndarray[output_dtype]`: colours. Gathered image colours.
     """
+    import torch
+
     # Default value.
     if use_channels is None:
         use_channels = list(range(image.shape[2]))

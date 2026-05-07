@@ -1,10 +1,11 @@
 import numpy as np
-import torch
 
 from coppafisher.utils import intensity
 
 
 def test_compute_intensity() -> None:
+    import torch
+
     rng = np.random.RandomState(0)
 
     n_pixels = 4

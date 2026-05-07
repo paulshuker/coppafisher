@@ -6,7 +6,6 @@ import nd2
 import numpy as np
 import scipy
 import skimage
-import torch
 import zarr
 from scipy.ndimage import gaussian_filter
 from tqdm import tqdm
@@ -49,13 +48,14 @@ def optical_flow_register(
         raw_loc (str): specifying the location to save/ load the optical flow
         corr_loc (str): specifying the location to save/ load the correlation
         smooth_loc (str): specifying the location to save/ load the smoothed flow
-        sample_factor_yx (int, optional): specifying how much to downsample the images in y and x before computing the optical flow
+        sample_factor_yx (int, optional): specifying how much to downsample the images in y and x before computing the
+            optical flow
         chunks_yx (int, optional): specifying the number of subvolumes to split the downsampled images into in y and x.
             Default: 4
         overlap (float, optional): specifying the overlap between subvolumes. Default: 1 / 3.
-        window_radius (int, optional): specifying the window radius for the optical flow algorithm and correlation calculation
-            (Note that this is the radius on the downsampled image, so a radius of 5 with a downsample factor of 4 will
-             correspond to a radius of 20 on the original image). Default: 5
+        window_radius (int, optional): specifying the window radius for the optical flow algorithm and correlation
+            calculation (Note that this is the radius on the downsampled image, so a radius of 5 with a downsample
+            factor of 4 will correspond to a radius of 20 on the original image). Default: 5
         smooth_sigma (list of numbers, optional): specifying the standard deviation of the Gaussian filter to be used
             for smoothing the flow
         clip_val (np.ndarray size [3], optional): the clip value for the optical flow in y, x and z. Default: ndarray
@@ -399,6 +399,8 @@ def upsample_yx(im: np.ndarray, factor: float, order: int) -> np.ndarray:
     Returns:
         ((n_y * factor, n_x * factor, n_z) ndarray[im.dtype]) im_up: of the upsampled image.
     """
+    import torch
+
     assert order > 0
     assert order < 3
 

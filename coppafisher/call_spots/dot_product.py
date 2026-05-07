@@ -1,11 +1,12 @@
+from typing import Any
+
 import numpy as np
-import torch
 
 
 def dot_product_score(
-    spot_colours: np.ndarray | torch.Tensor,
-    bled_codes: np.ndarray | torch.Tensor,
-) -> np.ndarray | torch.Tensor:
+    spot_colours: np.ndarray | Any,
+    bled_codes: np.ndarray | Any,
+) -> np.ndarray | Any:
     """
     Score each spot to each gene. The score is a dot product of each round separately, giving each round a similar
     contribution. The maximum score is the assigned gene for said spot. A score is reduced by 1 / n_rounds when the
@@ -27,6 +28,8 @@ def dot_product_score(
         - If n_batches is 1 for a tensor, then that tensor will be broadcasted for all batches.
         - If n_spots is 1 for bled_codes, then the bled codes will be repeated for all spots in spot_colours.
     """
+    import torch
+
     assert type(spot_colours) in (np.ndarray, torch.Tensor)
     assert type(bled_codes) in (np.ndarray, torch.Tensor)
 

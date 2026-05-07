@@ -1,4 +1,5 @@
 import os
+from typing import TYPE_CHECKING
 
 import numpy as np
 import zarr
@@ -8,11 +9,14 @@ from .. import log
 from ..extract.raw_jobs import JobsReader
 from ..extract.raw_nd2 import Nd2Reader
 from ..extract.raw_numpy import NumpyReader
-from ..extract.raw_reader import RawReader
 from ..extract.raw_tif import TifReader
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..utils import indexing, system, zarray
+
+if TYPE_CHECKING:
+    from ..extract.raw_reader import RawReader
+
 
 EXTRACT_DTYPE = np.uint16
 VERSION_FILE_NAME = ".version"
@@ -33,7 +37,8 @@ def run_extract(config: ConfigSection, nbp_file: NotebookPage, nbp_basic: Notebo
         (NotebookPage) nbp_extract: `extract` notebook page.
 
     Notes:
-        - See `'extract'` sections in `coppafisher/setup/notebook_page.py` file for description of the variables in each page.
+        - See `'extract'` sections in `coppafisher/setup/notebook_page.py` file for description of the variables in each
+            page.
     """
     nbp = NotebookPage("extract", {config.name: config.to_dict()})
     nbp.num_rotations = config["num_rotations"]

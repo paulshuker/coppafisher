@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 
 from coppafisher.omp.pixel_scores import PixelScoreSolver
 from coppafisher.utils import base
@@ -124,6 +123,8 @@ def test_solve() -> None:
 
 
 def test_get_next_gene_assignments() -> None:
+    import torch
+
     n_pixels = 6
     n_rounds = 1
     n_channels = 5
@@ -191,6 +192,8 @@ def test_get_next_gene_assignments() -> None:
 
 
 def test_get_next_residual_colours() -> None:
+    import torch
+
     n_pixels = 1
     n_genes_added = 2
     n_rounds_channels_use = 3
@@ -241,6 +244,8 @@ def test_get_next_residual_colours() -> None:
 
 
 def test_get_gene_pixel_scores() -> None:
+    import torch
+
     n_pixels = 2
     n_rounds_use = 3
     n_channels_use = 4
@@ -300,6 +305,8 @@ def test_get_gene_pixel_scores() -> None:
 
 
 def test_get_uncertainty_weights() -> None:
+    import torch
+
     n_batches = 2
     n_pixels = 3
     n_genes_assigned = 4

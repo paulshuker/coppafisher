@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import napari
 import numpy as np
 import tqdm
 
@@ -121,6 +120,8 @@ def view_intensity_images(
         z_planes (int, optional): the number of z planes to view, starting from `z_plane_start_from`. Default: 20.
         z_plane_start_from (int, optional): the lowest z plane to view. Default: 0.
     """
+    import napari
+
     if not nb.has_page("register"):
         raise ValueError("Register must be complete")
     if not nb.has_page("call_spots"):

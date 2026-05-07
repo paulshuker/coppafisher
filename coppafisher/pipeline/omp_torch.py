@@ -8,7 +8,6 @@ from typing import Tuple
 
 import numpy as np
 import scipy
-import torch
 import tqdm
 import zarr
 
@@ -54,6 +53,8 @@ def run_omp(
     Returns:
         `NotebookPage[omp]`: nbp_omp. Page containing gene assignments and info for OMP spots.
     """
+    import torch
+
     assert type(config) is ConfigSection
     assert type(nbp_file) is NotebookPage
     assert type(nbp_basic) is NotebookPage
