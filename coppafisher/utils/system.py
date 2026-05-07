@@ -3,11 +3,10 @@ import shutil
 import subprocess
 import sys
 from pathlib import PurePath
-from typing import Tuple
+from typing import Any, Tuple
 
 import numpy as np
 import psutil
-import torch
 
 from . import web
 
@@ -103,7 +102,7 @@ def get_remote_software_version() -> str | None:
         return get_version_from_file(result.decode().split("\n"))
 
 
-def get_available_memory(device: torch.device = None) -> float:
+def get_available_memory(device: Any = None) -> float:
     """
     Get device's available memory at the time of calling this function.
 
@@ -113,6 +112,8 @@ def get_available_memory(device: torch.device = None) -> float:
     Returns:
         (float): available_memory. Available memory in GB.
     """
+    import torch
+
     if device is None:
         device = torch.device("cpu")
     assert type(device) is torch.device
@@ -126,7 +127,7 @@ def get_available_memory(device: torch.device = None) -> float:
         raise ValueError(f"Unknown device {device}")
 
 
-def get_device(force_cpu: bool) -> torch.device:
+def get_device(force_cpu: bool) -> Any:
     """
     Get the best device available for pytorch. If not forced to use the CPU and CUDA is available, then the GPU device
     is returned. Otherwise, the CPU is returned.
@@ -137,6 +138,8 @@ def get_device(force_cpu: bool) -> torch.device:
     Returns:
         (`torch.device`): device. Is either torch.device("cpu") or torch.device("cuda").
     """
+    import torch
+
     if not force_cpu and torch.cuda.is_available():
         return torch.device("cuda")
 

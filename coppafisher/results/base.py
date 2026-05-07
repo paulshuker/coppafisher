@@ -2,7 +2,6 @@ import os
 from typing import List
 
 import numpy as np
-import pandas as pd
 
 from ..omp import base as omp_base
 from ..setup.notebook_page import NotebookPage
@@ -137,6 +136,8 @@ class MethodData:
         Raises:
             (SystemError): if csv file already exists.
         """
+        import pandas as pd
+
         if os.path.isfile(file_path):
             raise SystemError(f"File at {file_path} already exists")
 

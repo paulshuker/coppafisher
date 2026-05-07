@@ -1,10 +1,11 @@
 import numpy as np
-import torch
 
 from coppafisher.omp import scores
 
 
 def test_score_pixel_score_image() -> None:
+    import torch
+
     im_y, im_x, im_z = 4, 5, 6
     spot_shape = 1, 3, 5
 
@@ -24,6 +25,8 @@ def test_score_pixel_score_image() -> None:
 
 
 def test_boost_z_edge_spot_scores() -> None:
+    import torch
+
     im_y, im_x, im_z = 9, 10, 11
     rng = np.random.RandomState(0)
     spot_score_image = torch.from_numpy(rng.rand(2, im_y, im_x, im_z)).float()

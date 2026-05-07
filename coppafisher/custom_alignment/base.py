@@ -99,7 +99,7 @@ def extract_raw(
 
     nbp_file_names = file_names.get_file_names(nb.basic_info, config_file_path)
 
-    if type(use_channels) == int:
+    if type(use_channels) is int:
         use_channels = [use_channels]
 
     # Check if directories exist.

@@ -1,13 +1,14 @@
 from typing import Tuple
 
 import numpy as np
-import torch
 
 from ..call_spots import dot_product
 from ..utils import intensity, system
 
 
 class PixelScoreSolver:
+    import torch
+
     DTYPE = np.float32
     DTYPE_T = torch.float32
     NO_GENE_ASSIGNMENT: int = -32_768
@@ -91,6 +92,8 @@ class PixelScoreSolver:
             - The boolean flags are only used in OMP subplots to gather additional insight, they do not affect the final
                   pixel score results.
         """
+        import torch
+
         n_pixels, n_rounds_use, n_channels_use = pixel_colours.shape
         n_rounds_channels_use = n_rounds_use * n_channels_use
         n_genes = bled_codes.shape[0]
@@ -293,6 +296,8 @@ class PixelScoreSolver:
                 - `(n_pixels x n_genes_all) tensor[float32]`: all_gene_scores. Every genes' round dot product score.
                     This includes genes that are in fail_gene_indices. Only returned if return_scores is set to true.
         """
+        import torch
+
         assert type(residual_colours) is torch.Tensor
         assert type(all_bled_codes) is torch.Tensor
         assert type(fail_gene_indices) is torch.Tensor
@@ -367,6 +372,8 @@ class PixelScoreSolver:
                 - (`(n_pixels x n_genes_added) tensor[float32]`): gene_weights. The weight given to every gene bled
                     code.
         """
+        import torch
+
         assert type(pixel_colours) is torch.Tensor
         assert type(bled_codes) is torch.Tensor
         n_rounds_channels_use = pixel_colours.shape[1]
@@ -426,6 +433,8 @@ class PixelScoreSolver:
                 residuals used to compute the pixel scores. Denoted by epsilon ^ 2 * tilde{R} in the OMP method
                 documentation. Only given if return_residuals is true.
         """
+        import torch
+
         assert type(pixel_colours) is torch.Tensor
         assert type(bled_codes) is torch.Tensor
         assert type(weights) is torch.Tensor
@@ -516,8 +525,10 @@ class PixelScoreSolver:
         bled code brightness in said round/channel and alpha is > 0.
 
         Args:
-            gene_weights (`(n_batches x n_pixels x n_genes_assigned) tensor[float32]`): the weight found for each bled code.
-            bled_codes (`(n_batches x n_pixels x n_rounds_channels_use x n_genes_assigned) tensor[float32]`): the assigned bled codes.
+            gene_weights (`(n_batches x n_pixels x n_genes_assigned) tensor[float32]`): the weight found for each bled
+                code.
+            bled_codes (`(n_batches x n_pixels x n_rounds_channels_use x n_genes_assigned) tensor[float32]`): the
+                assigned bled codes.
             alpha (float): how much the error scales based on the weighted bled code brightness in the round/channel
                 pair.
             beta (float): the square root of the constant error uncertainty that is there even if the brightness is
@@ -532,6 +543,8 @@ class PixelScoreSolver:
             - If n_batches is 1 for one of the tensors, then it is repeated for the maximum batch count.
             - See the OMP method documentation for more detail on the uncertainty calculation.
         """
+        import torch
+
         assert type(gene_weights) is torch.Tensor
         assert type(bled_codes) is torch.Tensor
         assert gene_weights.ndim == 3

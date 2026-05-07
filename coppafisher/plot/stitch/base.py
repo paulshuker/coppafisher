@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-import napari
 import numpy as np
 from tqdm import tqdm
 
@@ -12,6 +11,8 @@ def view_stitch_checkerboard(nb: Notebook):
     Args:
         nb: Notebook (must have page stitch)
     """
+    import napari
+
     # load in frequently used variables
     use_tiles = list(nb.basic_info.use_tiles)
 

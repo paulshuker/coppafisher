@@ -65,7 +65,8 @@ def set_basic_info(config: Config) -> NotebookPage:
         metadata = nd2.get_jobs_metadata(all_files, config_file["input_dir"], config=config)
     else:
         raise ValueError(
-            f"config_file['raw_extension'] should be either {','.join(RAW_EXTENSIONS)}, but it is {config_file['raw_extension']}."
+            f"config_file['raw_extension'] should be either {','.join(RAW_EXTENSIONS)}, "
+            + f"but it is {config_file['raw_extension']}."
         )
 
     # Stage 2: Read in page contents from config that cannot be computed from metadata.

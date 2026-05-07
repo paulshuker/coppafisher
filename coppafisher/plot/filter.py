@@ -1,7 +1,6 @@
 import itertools
 from typing import List, Optional
 
-import napari
 import numpy as np
 
 from ..setup.notebook import Notebook
@@ -28,6 +27,8 @@ def view_filtered_images(
         share_contrast_limits (bool, optional): use the same contrast limits for all filtered images shown. Default:
             false.
     """
+    import napari
+
     assert nb.has_page("filter"), "Filter must be run first"
 
     if tiles is None:
