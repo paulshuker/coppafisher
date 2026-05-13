@@ -23,6 +23,7 @@ from ...results.base import MethodData
 from ...setup.notebook import Notebook, NotebookPage
 from ...utils import polygon2d
 from ...utils import system as utils_system
+from .. import spot_colours as plot_spot_colours
 from ..call_spots import bleed_matrix, spot_colours
 from ..omp.colours import ViewOMPColourSum
 from ..omp.pixel_scores import ViewOMPPixelScoreImage
@@ -758,7 +759,7 @@ class Viewer:
             return
         self._free_subplot_spaces()
         index, _, local_yxz, tile, gene_no, score, _, _ = self._get_selection_data()
-        return spot_colours.ViewSpotColourRegion(
+        return plot_spot_colours.ViewSpotColourRegion(
             index,
             score,
             local_yxz,

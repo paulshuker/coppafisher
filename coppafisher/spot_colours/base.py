@@ -207,11 +207,14 @@ def get_spot_colours_new(
     out_of_bounds_value: Any = np.nan,
 ) -> np.ndarray:
     """
-    (Sub)pixel positions are gathered from the given image. First, the given yxz positions are optical flow shifted
-    (yxz + flow_shifts). Second, the positions are then affine transformed (yxz_flow @ affine) to get final, float32
-    positions for each round/channel combination. These positions are then gathered from image for the given channels
-    on all rounds. Subpixel resolution is supported as bilinear interpolation is used to gather the optical flow shifts
-    and the final image values.
+    (Sub)pixel positions are gathered from the given image.
+
+    First, the given yxz positions are optical flow shifted (yxz + flow_shifts). Second, the positions are then affine
+    transformed (yxz_flow @ affine) to get final, float32 positions for each round/channel combination. These positions
+    are then gathered from image for the given channels on all rounds. Subpixel resolution is supported as bilinear
+    interpolation is used to gather the optical flow shifts and the final image values.
+
+    All calculations are 32-bit floating point precision.
 
     Args:
         yxz (`(n_points x 3) ndarray or tensor`): positions to gather.
@@ -222,7 +225,7 @@ def get_spot_colours_new(
         use_rounds (list of ints): the round indices to use. These rounds must be sequencing rounds.
         use_channels (list of ints): channel indices to use.
         output_dtype (np.dtype, optional): the returned spot colour datatype. Default: float32.
-        out_of_bounds_value (any): what to value to set for out of bound spot colours. Default: np.nan.
+        out_of_bounds_value (any, optional): what to value to set for out of bound spot colours. Default: np.nan.
 
     Returns:
         `(n_points x n_rounds x n_channels_use) ndarray[output_dtype]`: colours. Gathered image colours.
