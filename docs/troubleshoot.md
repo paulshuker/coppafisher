@@ -8,22 +8,13 @@ on GitHub!
 
 ## Joblib related crashes
 
-If you find any mysterious crash during filter or registration with an error message that traces back to the `joblib`
-python package, disable joblib entirely by adding
+If you find any mysterious crash during filter with an error message that traces back to the `joblib` python package,
+you can disable joblib entirely by adding
 
 ```ini
 [filter]
 num_cores = 1
 ```
-
-for the filter stage and
-
-```ini
-[register]
-flow_cores = 1
-```
-
-for the registration stage.
 
 ## Find spots does not find enough spots
 

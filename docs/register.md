@@ -186,8 +186,6 @@ Speed is an issue with this algorithm, because it needs to be run independently 
 
 1. As mentioned above, we downsample the images in $y$ and $x$. The amount of donwsampling is controlled by the config parameter `sample_factor_yx` which has default value 4 in both directions, meaning that the algorithm runs 16 times faster than it would without downsampling.
 
-2. We split the downsampled images into 16 subvolumes (4 in $y$ and 4 in $x$), and run optical flow in parallel on all of these independent subvolumes. The number of cores used can be adjusted by changing the `flow_cores` parameter though if left blank this will be computed automatically.
-
 #### Interpolation
 As mentioned previously, the algorithm assumes that the images have the same intensities. This condition is certainly satisfied near cell nuclei, where similar features exist in both images. Far from nuclei though, where all we have is noise,
 the 2 images have completely independent intensities. The result of this is that our flow fields tend to only give reliable results near nuclei, as shown below.

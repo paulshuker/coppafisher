@@ -73,7 +73,7 @@ def test_optical_flow_single():
     base = base.astype(np.float32)
     target = reg_pre.custom_shift(base, np.array([3, 2, 0]))
     # calculate the flow
-    flow = reg_base.optical_flow_single(base, target, upsample_factor_yx=1, tile=0, round=0, chunks_yx=5, overlap=0.25)
+    flow = reg_base.optical_flow_single(base, target, upsample_factor_yx=1, tile=0, round=0)
     # check that the shape is correct
     ny, nx, nz = base.shape
     assert flow.shape == (3, ny, nx, nz)

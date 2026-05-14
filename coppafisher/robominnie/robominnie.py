@@ -608,7 +608,6 @@ class Robominnie:
 
         [register]
         icp_min_spots = 10
-        flow_cores = {"1" if sys.platform == "win32" else ""}
 
         [call_spots]
         target_values = {", ".join(["1" for _ in range(self.n_channels)])}
