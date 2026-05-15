@@ -37,18 +37,22 @@ reason, follow these steps:
 have a single multiplier and percentile shared for all images or you can choose different values for different channels.
 
 3. Once you are happy with the parameter tweaks, add the new values into the dataset's configuration file, e.g.
+
 ```ini
 [find_spots]
 auto_thresh_multipliers = 10
 auto_thresh_percentiles = 25
 ```
+
 for the same values for all channels, or something like
+
 ```ini
 [find_spots]
 auto_thresh_multipliers = 10, 35, 5, 40
 auto_thresh_percentiles = 25, 20, 25, 25
 ```
-for each sequence channel.
+
+for each sequence channel. By default, `auto_thresh_multipliers = 180` and `auto_thresh_percentiles = 5`.
 
 4. Delete the notebook page `find_spots`, explained [here](advanced_usage.md#delete-notebook-page).
 

@@ -1,11 +1,14 @@
-2026/04/21 Version 1.12 Patch (v1.12.1):
- * General: LineStuffUp changed to up-to-date CASTalign.
- * General: Removed runtime estimator.
+2026/MM/DD Version 1.12 Patch (v1.12.2):
  * Viewer: View spot colour region subplot colour bar fix.
  * Viewer: View spot colour region subplot check buttons added.
  * Viewer: View spot colour region subplot z slider added.
  * OMP: Crash when trying to overwrite existing tile results fix.
  * OMP: Slightly faster pixel score computation.
+
+
+2026/04/21 Version 1.12 Patch (v1.12.1):
+ * General: LineStuffUp changed to up-to-date CASTalign.
+ * General: Removed runtime estimator.
 
 
 2026/04/09 Version 1.12 (v1.12.0):
