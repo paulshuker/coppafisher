@@ -222,11 +222,8 @@ class Config:
             "bead_radii": ("maybe_tuple_number", ""),
             # these parameters are for round registration
             "sample_factor_yx": ("int", "positive"),
-            "chunks_yx": ("int", "positive"),
-            "overlap_yx": ("number", "not-negative"),
             "window_radius": ("int", "positive"),
             "smooth_sigma": ("tuple_number", "tuple-not-empty"),
-            "flow_cores": ("maybe_int", "positive"),
             "flow_clip": ("maybe_tuple_number", "tuple-not-empty"),
             # these parameters are for icp
             "neighb_dist_thresh_yx": ("number", "positive"),
