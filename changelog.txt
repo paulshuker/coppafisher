@@ -2,6 +2,7 @@
  * Viewer: View spot colour region subplot colour bar fix.
  * Viewer: View spot colour region subplot check buttons added.
  * Viewer: View spot colour region subplot z slider added.
+ * Export: Dapi image exports can contain nan or large values fix.
  * Register: Optical flow now processes on one tile at a time.
  * Register: No longer uses multiprocessing.
  * OMP: Crash when trying to overwrite existing tile results fix.
