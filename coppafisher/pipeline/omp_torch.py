@@ -216,10 +216,12 @@ def run_omp(
                     index_max += n_chunk_count * n_register_chunk_size
                 else:
                     index_max += n_subset_pixels
-                # The batch size is placed to an exact number of register data chunks for fastest read speeds.
-                index_max = index_max - (index_max % n_register_chunk_size)
-                index_max = max(index_max, index_min + n_register_chunk_size)
-                index_max = min(index_max, n_tile_pixels)
+
+                if (index_max - index_min) > n_register_chunk_size:
+                    # The batch size is placed to an exact number of register data chunks for fastest read speeds.
+                    index_max = index_max - (index_max % n_register_chunk_size)
+                    index_max = max(index_max, index_min + n_register_chunk_size)
+                    index_max = min(index_max, n_tile_pixels)
 
                 yxz_subset = yxz_all[index_min:index_max]
                 colour_subset = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)
