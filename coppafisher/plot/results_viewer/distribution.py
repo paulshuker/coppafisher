@@ -1,15 +1,17 @@
 import math as maths
-from typing import Tuple
+from typing import TYPE_CHECKING, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy
-from matplotlib.axes import Axes
 from matplotlib.colors import LogNorm
 from matplotlib.widgets import Button, RangeSlider
 
 from ...results.base import MethodData
 from .subplot import Subplot
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
 
 
 class ViewScoreIntensityDistributions(Subplot):
@@ -117,7 +119,8 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
             spot_data (MethodData): the spot data for the gene calling method.
             bled_codes (`(n_genes x n_rounds x n_channels_use) ndarray[float32]`): the final gene bled codes.
             starting_score_threshold (tuple of two floats): the starting spot score thresholds for spot selection.
-            starting_intensity_threshold (tuple of two floats): the starting spot intensity thresholds for spot selection.
+            starting_intensity_threshold (tuple of two floats): the starting spot intensity thresholds for spot
+                selection.
             show (bool, optional): show plot after building it. Default: true.
         """
         assert method in ("prob", "anchor", "omp")
@@ -214,8 +217,6 @@ class ViewSpotScoreAndSimilarityDensityPlots(Subplot):
         self.density_ax.legend()
 
         self.imshow_ax.set_title(f"{self.method.capitalize()} Spot Scores Versus Similarity Scores")
-        # _, _, _, im = self.imshow_ax.hist2d(spot_scores, similarity_scores, bins=100, color="#e34a33", linewidths=0, norm=LogNorm(0, 1000))
-        # self.scatter_ax.scatter(spot_scores, similarity_scores, s=0.5, c="#e34a33")
         H, xedges, yedges = np.histogram2d(spot_scores, similarity_scores, bins=100, range=[[0, 1], [0, 1]])
         H = H.T
         norm = LogNorm(1, H.max())

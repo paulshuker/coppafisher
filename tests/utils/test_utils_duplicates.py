@@ -1,9 +1,9 @@
-import torch
-
 from coppafisher.utils import duplicates
 
 
 def test_is_duplicate_spot() -> None:
+    import torch
+
     yxz_global_positions = torch.zeros((5, 3)).int()
     yxz_global_positions[0, 0] = 8
     yxz_global_positions[0, 1] = 2

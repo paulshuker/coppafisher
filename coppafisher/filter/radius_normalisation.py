@@ -32,8 +32,8 @@ def radius_normalise_image(
 
     Args:
         image (`(im_y x im_x x im_z) ndarray[float]`): the tile image. `im_y == im_x`.
-        radius_normalisation (`(max_tile_radius) ndarray[float]`): radius_normalisation[r] is the value to divide by for a pixel at radius `r` from the
-            centre of the tile image.
+        radius_normalisation (`(max_tile_radius) ndarray[float]`): radius_normalisation[r] is the value to divide by for
+            a pixel at radius `r` from the centre of the tile image.
 
     Returns:
         (`(im_y x im_x x im_z) ndarray[float]`): normalised_image. The radius-normalised image.

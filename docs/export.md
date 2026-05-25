@@ -21,6 +21,10 @@ import numpy as np
 dapi_image = np.load("/path/to/dapi_image.npz")["arr_0"]
 ```
 
+!!! note "Devignetting"
+
+    The filtered dapi image is devignetted if the notebook was run through the pipeline with devignetting enabled.
+
 #### Unfiltered DAPI
 
 To export the anchor's unfiltered DAPI stitched image
@@ -29,7 +33,8 @@ To export the anchor's unfiltered DAPI stitched image
 --8<-- "export_unfiltered_dapi_to_pciseq.py"
 ```
 
-You can set `radius_norm_file="default"` to use the default dapi radius normalisation when the dapi channel is 0.
+You can set `radius_norm_file="default"` to use the default dapi radius normalisation (devignetting) when the dapi
+channel is 0.
 
 The DAPI image can then be loaded into memory by
 

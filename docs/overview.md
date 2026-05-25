@@ -17,8 +17,10 @@ Extract also saves metadata inside of the `tile_dir` directory if the raw files 
 
 ## Filter
 
-First, each tile is optionally divided by a radius/channel-dependent normalisation. The normalisation is given by
-`channel_radius_normalisation_filepath` file path to a .npz file inside the `filter` config section.
+First, each tile is divided by a radius/channel-dependent normalisation. This is an optional "devignetting" step. The
+normalisation is given by `channel_radius_normalisation_filepath` file path to a .npz file inside the `filter` config
+section. This can also be done for the dapi channel by giving `dapi_radius_normalisation_filepath` inside the `filter`
+config.
 
 If `use_wiener_deconvolution` is true (default: true), then extract images are filtered to minimise scattering of
 light/de-blur (bright points will appear as cones initially, hence the name "Point Spread Function") and emphasise

@@ -76,6 +76,12 @@ def generate_global_image(
         (`(big_im_z x big_im_y x big_im_x) ndarray[output_dtype]`): fused_image. The large, global background image. The
             image's origin is relative to `nbp_stitch.tile_origin.min(0)`.
     """
+    # FIXME: The way that the compute_overlap currently works means that when output_dtype = int and unbound_value = 0
+    # and compute_overlap = None, the result can have regions with np.iinfo(int).max values. This is messing up the
+    # some images in pciseq export_pciseq_unfiltered_dapi_image function. It would be best to have compute_overlap be a
+    # protocol that can then be dependency injected to deal with overlap. The compute_overlap would need to know or give
+    # information on untouched regions of the global image that are not covered by tiles which can then be filled in
+    # with unbound_value consistently.
     assert type(images) is list
     assert all([type(image) is np.ndarray for image in images])
     assert type(tiles_given) is list

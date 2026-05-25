@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "coppafisher"
-version = "1.12.1"
+version = "1.13.0"
 description = "coppaFISH software for Python"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
@@ -89,14 +89,25 @@ indent-width = 4
 [tool.ruff.lint]
 exclude = [ "**/temp", "temp.py", "**/coppafisher/docs/*.py", "**/.integration_dir", "**/.notebook_test", "**/__pycache__", "**/build/lib" ]
 select = [
+    # pycodestyle
+    "E",
     # pyflakes
     "F",
     # flake8-bugbear
     "B",
     # isort
     "I",
+    # flake8-type-checking
+    "TC",
+    # flake8-tidy-imports
+    "TID",
 ]
-ignore = ["E741", "B028", "B007"]
+ignore = ["B028", "B007", "E741", "TC004", "TID252"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Ban certain modules from being imported at module level, instead requiring
+# that they're imported lazily (e.g., within a function definition).
+banned-module-level-imports = ["torch", "pandas", "napari"]
 
 [tool.pyright]
 exclude = [ "**/temp", "temp.py", "**/coppafisher/docs/*.py", "**/.integration_dir", "**/.notebook_test", "**/__pycache__", "**/build/lib" ]

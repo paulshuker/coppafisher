@@ -1,8 +1,9 @@
+from typing import Any
+
 import numpy as np
-import torch
 
 
-def compute_intensity(colours: np.ndarray[np.floating] | torch.Tensor) -> torch.Tensor:
+def compute_intensity(colours: np.ndarray[np.floating] | Any) -> Any:
     """
     Compute the intensity of each given pixel colour.
 
@@ -16,6 +17,8 @@ def compute_intensity(colours: np.ndarray[np.floating] | torch.Tensor) -> torch.
     Returns:
         (`(n_pixels) tensor[colours.dtype]`): intensities. The colour intensities.
     """
+    import torch
+
     assert type(colours) in (np.ndarray, torch.Tensor)
     assert colours.ndim == 3
 

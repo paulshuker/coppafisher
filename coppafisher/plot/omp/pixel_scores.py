@@ -6,7 +6,6 @@ from typing import Tuple
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
 from matplotlib.widgets import Button, Slider
 
 from coppafisher.omp import scores as omp_scores
@@ -61,6 +60,8 @@ class ViewOMPPixelScoreImage(Subplot):
             z_planes (tuple of int, optional): z planes to show. 0 is the central z plane. Default: (-2, -1, 0, 1, 2).
             show (bool, optional): display the plot once built. False is useful when unit testing. Default: true.
         """
+        import torch
+
         assert len(z_planes) > 3
         n_rounds_use, n_channels_use = len(nbp_basic.use_rounds), len(nbp_basic.use_channels)
         min_intensity = 0.0

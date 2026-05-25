@@ -2,11 +2,9 @@ import warnings
 from typing import Optional
 
 import matplotlib.pyplot as plt
-import napari
 import nd2
 import numpy as np
 import skimage
-import torch
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from PyQt5.QtWidgets import QLabel, QLineEdit, QMainWindow, QPushButton, QSlider
 from qtpy.QtCore import Qt
@@ -35,9 +33,12 @@ class RegistrationViewer:
 
         Args:
             - nb: Notebook object (should contain register and register_debug pages)
-            - config_path (str, optional): file path to the config file. Default: try get the file path from the notebook.
+            - config_path (str, optional): file path to the config file. Default: try get the file path from the
+                notebook.
             - t (int, optional): tile (if None, the first tile is selected)
         """
+        import napari
+
         self.nb = nb
         if t is None:
             t = nb.basic_info.use_tiles[0]
@@ -359,6 +360,8 @@ class ICPPointCloudViewer:
         NOTE! If r == None, then we are in channel mode. If c == None, then we are in round mode. Both are not allowed
         to be None.
         """
+        import napari
+
         assert r is not None or c is not None, "Either r or c should be provided."
         assert r is None or c is None, "Only one of r or c should be provided."
         self.nb = nb
@@ -390,6 +393,8 @@ class ICPPointCloudViewer:
         napari.run()
 
     def get_spot_data(self, dist_thresh: int = 5, down_sample_yx: int = 10):
+        import torch
+
         # remove points that exist already
         self.points = []
         # Step 1: Get the points
@@ -623,11 +628,14 @@ def generate_button_positions(
 def view_optical_flow(nb: Notebook, t: int, r: int):
     """
     Visualize the optical flow results using napari.
+
     Args:
         nb: Notebook (containing register and register_debug pages)
         t: tile number
         r: round number
     """
+    import napari
+
     # Load the data
     base = nb.filter.images[t, 7, 0].astype(np.float32)
     target = nb.filter.images[t, r, 0].astype(np.float32)
@@ -796,6 +804,8 @@ def view_camera_correction(nb: Notebook, config_path: Optional[str] = None):
         - nb: Notebook (must have register page and a path to fluorescent bead images)
         - config_path (str, optional): path to the config .ini file. Default: use the latest path from the notebook.
     """
+    import napari
+
     if config_path is None:
         config_path = nb.config_path
     # One transform for each camera
@@ -927,6 +937,8 @@ def view_overlay(nb: Notebook, t: int = None, rc: list = None):
         t: common tile
         rc: list of length n_images where rc[i] = (r, c) for the i-th image
     """
+    import napari
+
     assert len(rc) > 0, "At least one round and channel should be provided."
     n_im = len(rc)
     im = np.zeros((n_im, nb.basic_info.tile_sz, nb.basic_info.tile_sz, nb.basic_info.nz), dtype=np.float32)

@@ -1,14 +1,16 @@
 # Code formatter
-black
+black<27
+flake8-tidy-imports<5
+flake8-type-checking<4
 # Import formatter
-isort
+isort<9
 # Documentation
-mkdocs-material
+mkdocs-material<10
 # Pre-commit hooks
-pre-commit
+pre-commit<5
 # Testing
-pytest
+pytest<10
 # Code coverage
-pytest-cov
+pytest-cov<8
 # Linter
-ruff
+ruff<0.16

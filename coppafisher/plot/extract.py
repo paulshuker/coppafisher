@@ -1,7 +1,6 @@
 import itertools
 from typing import List, Optional
 
-import napari
 import zarr
 
 from .. import log
@@ -27,6 +26,8 @@ def view_extracted_images(
         rounds (List[int], optional): rounds to view. Default: all rounds.
         channels (List[int], optional): channels to view. Default: all channels.
     """
+    import napari
+
     assert nb.has_page("extract"), "Extract must be run first"
 
     if tiles is None:

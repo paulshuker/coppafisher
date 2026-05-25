@@ -5,21 +5,15 @@ import time
 import warnings
 from collections.abc import Iterable
 from os import path
-from typing import List, Literal, Optional
+from typing import TYPE_CHECKING, Any, List, Literal, Optional
 
 import matplotlib.pyplot as plt
-import napari
-import napari.layers
 import numpy as np
-import pandas as pd
 import tabulate
 import tifffile
-import torch
 from matplotlib.backend_bases import MouseEvent
 from matplotlib.figure import Figure
 from matplotlib.path import Path
-from napari.layers import Points
-from napari.utils.events import Selection
 from PyQt5.QtCore import QLoggingCategory
 from PyQt5.QtWidgets import QComboBox, QPushButton
 from qtpy.QtCore import Qt
@@ -29,6 +23,7 @@ from ...results.base import MethodData
 from ...setup.notebook import Notebook, NotebookPage
 from ...utils import polygon2d
 from ...utils import system as utils_system
+from .. import spot_colours as plot_spot_colours
 from ..call_spots import bleed_matrix, spot_colours
 from ..omp.colours import ViewOMPColourSum
 from ..omp.pixel_scores import ViewOMPPixelScoreImage
@@ -39,6 +34,9 @@ from .hotkeys import Hotkey
 from .legend import Legend
 from .subplot import Subplot
 from .threshold import ManualThreshold
+
+if TYPE_CHECKING:
+    from napari.utils.events import Selection
 
 
 class Viewer:
@@ -83,7 +81,7 @@ class Viewer:
     background_image_names: list[str]
     # A 2 dimensional ndarray of the Max Intensity Projected (MIP) background images.
     mip_background_images: list[np.ndarray]
-    background_image_layers: list[napari.layers.Image]
+    background_image_layers: list[Any]
     max_intensity_project: bool
     spot_data: dict[str, MethodData]
     genes: tuple[Gene, ...]
@@ -106,7 +104,7 @@ class Viewer:
 
     # UI variables:
     legend: Legend
-    point_layers: dict[str, Points]
+    point_layers: dict[str, Any]
     method_combo_box: QComboBox
     z_thick_slider: QDoubleSlider
     score_slider: QDoubleRangeSlider
@@ -161,6 +159,8 @@ class Viewer:
             nbp_omp (NotebookPage, optional): `omp` notebook page. OMP is not a required page. Default: not given.
             show (bool, optional): show the viewer once it is built. False for unit testing. Default: true.
         """
+        import napari
+
         assert type(nb) is Notebook or nb is None
         assert type(gene_marker_filepath) is str or gene_marker_filepath is None
         if gene_marker_filepath is not None and not path.isfile(gene_marker_filepath):
@@ -537,7 +537,8 @@ class Viewer:
             return
         index, _, local_yxz, tile, gene_no, score, _, intensity = self._get_selection_data()
         message = (
-            f"Selected {self.selected_method} spot: {index} at {tuple(local_yxz.tolist())}, tile {tile}, gene {gene_no}: "
+            f"Selected {self.selected_method} spot: {index} at "
+            + f"{tuple(local_yxz.tolist())}, tile {tile}, gene {gene_no}: "
             + f"{self.nbp_call_spots.gene_names[gene_no]}, score {score}, intensity {intensity}"
         )
         print(message)
@@ -758,7 +759,7 @@ class Viewer:
             return
         self._free_subplot_spaces()
         index, _, local_yxz, tile, gene_no, score, _, _ = self._get_selection_data()
-        return spot_colours.ViewSpotColourRegion(
+        return plot_spot_colours.ViewSpotColourRegion(
             index,
             score,
             local_yxz,
@@ -1049,6 +1050,8 @@ class Viewer:
         self.background_image_names.append(new_image_name)
 
     def _place_backgrounds(self, colour_maps: Iterable[str]) -> None:
+        import torch
+
         if not self.show:
             return
         image_count: int = len(self.background_images)
@@ -1247,6 +1250,8 @@ class Viewer:
         Returns:
             (tuple of Gene) genes: every genes Gene object.
         """
+        import pandas as pd
+
         if gene_marker_filepath is None:
             gene_marker_filepath = importlib_resources.files("coppafisher.plot.results_viewer")
             gene_marker_filepath = gene_marker_filepath.joinpath("gene_colour.csv")

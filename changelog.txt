@@ -1,3 +1,15 @@
+2026/05/25 Version 1.13 (v1.13.0):
+ * Viewer: View spot colour region subplot colour bar fix.
+ * Viewer: View spot colour region subplot check buttons added.
+ * Viewer: View spot colour region subplot z slider added.
+ * Export: Dapi image exports can contain nan or large values fix.
+ * Register: Optical flow now processes on one tile at a time.
+ * Register: No longer uses multiprocessing.
+ * OMP: Crash when trying to overwrite existing tile results fix.
+ * OMP: Slightly faster pixel score computation.
+ * OMP: n_subset_pixels does not work when set to a low value fix.
+
+
 2026/04/21 Version 1.12 Patch (v1.12.1):
  * General: LineStuffUp changed to up-to-date CASTalign.
  * General: Removed runtime estimator.

@@ -1,6 +1,5 @@
 from typing import Optional
 
-import napari
 import numpy as np
 
 from ... import spot_colours
@@ -26,6 +25,8 @@ def view_registered_images(
             Default: 400x400x5 subset with bottom-left corner at the origin.
         - show (bool, optional): show the viewer after creating, used for unit testing purposes only. Default: true.
     """
+    import napari
+
     if type(nb) is not Notebook:
         raise TypeError("nb must be a notebook")
     if type(tile) is not int and tile is not None:

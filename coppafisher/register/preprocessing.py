@@ -1,7 +1,6 @@
 import os
 import pickle
 from itertools import product
-from typing import Tuple, Union
 
 import numpy as np
 import skimage
@@ -44,106 +43,6 @@ def load_reg_data(nbp_file: NotebookPage, nbp_basic: NotebookPage):
             "channel_registration": channel_registration,
         }
     return registration_data
-
-
-def split_image(im: np.ndarray, n_subvols_yx: int, overlap: float = 0.25) -> Tuple[np.ndarray, np.ndarray]:
-    """
-    Function to split an image into yx subvolumes with overlap. If the image does not divide evenly into subvolumes with
-    the given overlap, the function will tell you to update the parameters.
-
-    The equation that has to be satisfied is:
-
-    (K * (1 - overlap) + overlap) * subvol_size = im_size,
-
-    where K is the number of subvolumes in yx, subvol_size is the size of the subvolume in yx, and im_size is the
-    size of the image in yx.
-
-    Args:
-        im: np.ndarray (n_y, n_x, n_z) image
-        n_subvols_yx: int number of subvolumes in y and x
-        overlap: float overlap fraction between subvolumes (0 <= overlap < 1)
-
-    Returns:
-        im_split: np.ndarray (subvols_yx**2, n_y, n_x, n_z) image
-        positions: np.ndarray (subvols_yx**2, 2) yx positions of bottom left of subvolumes
-        overlap_adjusted: float adjusted overlap fraction
-    """
-    # check that the image divides evenly into subvolumes with the given overlap
-    im_size_yx, im_size_z = im.shape[0], im.shape[2]
-    subvol_size_yx = im_size_yx / (n_subvols_yx * (1 - overlap) + overlap)
-    assert np.isclose(np.round(subvol_size_yx), subvol_size_yx), (
-        "Update the parameters so that the image divides " "evenly into subvolumes"
-    )
-    subvol_size_yx = np.round(subvol_size_yx).astype(int)
-
-    # define im_split and positions
-    im_split = np.zeros((n_subvols_yx, n_subvols_yx, subvol_size_yx, subvol_size_yx, im_size_z), dtype=im.dtype)
-    positions = np.zeros((n_subvols_yx, n_subvols_yx, 2), dtype=int)
-
-    # loop through subvolumes and populate im_split and positions
-    for i, j in product(range(n_subvols_yx), range(n_subvols_yx)):
-        y_start = int(i * (subvol_size_yx * (1 - overlap)))
-        x_start = int(j * (subvol_size_yx * (1 - overlap)))
-        y_end = y_start + subvol_size_yx
-        x_end = x_start + subvol_size_yx
-        im_split[i, j] = im[y_start:y_end, x_start:x_end]
-        positions[i, j] = np.array([y_start, x_start])
-
-    # flatten dims 0 and 1 of im_split and positions
-    im_split = im_split.reshape((n_subvols_yx**2, subvol_size_yx, subvol_size_yx, im_size_z))
-    positions = positions.reshape((n_subvols_yx**2, 2))
-
-    return im_split, positions
-
-
-def merge_subvols(
-    im_split: np.ndarray, positions: np.ndarray, overlap: float, output_shape: Union[list, tuple]
-) -> np.ndarray:
-    """
-    Function to merge subvolumes back into a single image. In cases of overlap, the subvolume with closest centre to the
-    pixel will be used.
-    Args:
-        im_split: np.ndarray (subvols_yx**2, n_y, n_x, n_z) image
-        positions: np.ndarray (subvols_yx**2, 2) yx positions of bottom left of subvolumes
-        overlap: float overlap fraction between subvolumes (0 <= overlap < 1)
-        output_shape: shape of the output image (n_y, n_x, n_z).
-
-    Returns:
-        im: np.ndarray (n_y, n_x, n_z) image
-    """
-    # initialise variables
-    subvol_size_yx = im_split.shape[1]
-    n_subvols_yx = int(np.sqrt(im_split.shape[0]))
-    im = np.zeros(output_shape, dtype=im_split.dtype)
-
-    # reshape im_split and positions
-    im_split = im_split.reshape((n_subvols_yx, n_subvols_yx, subvol_size_yx, subvol_size_yx, im_split.shape[3]))
-    positions = positions.reshape((n_subvols_yx, n_subvols_yx, 2))
-
-    # taper the subvolumes where there is overlap so that we can add them together without double counting
-    n_overlap = np.round(subvol_size_yx * overlap).astype(int)
-    taper_array_1d = np.linspace(0, 1, n_overlap)
-    for i, j in product(range(n_subvols_yx), range(n_subvols_yx)):
-        # does tile have northern neighbour?
-        if i > 0:
-            im_split[i, j, :n_overlap] *= taper_array_1d[:, None, None]
-        # does tile have southern neighbour?
-        if i < n_subvols_yx - 1:
-            im_split[i, j, -n_overlap:] *= taper_array_1d[::-1, None, None]
-        # does tile have western neighbour?
-        if j > 0:
-            im_split[i, j, :, :n_overlap] *= taper_array_1d[None, :, None]
-        # does tile have eastern neighbour?
-        if j < n_subvols_yx - 1:
-            im_split[i, j, :, -n_overlap:] *= taper_array_1d[None, ::-1, None]
-
-    # loop through subvolumes and populate im
-    for i, j in product(range(n_subvols_yx), range(n_subvols_yx)):
-        y_start, x_start = positions[i, j]
-        y_end, x_end = y_start + subvol_size_yx, x_start + subvol_size_yx
-        im[y_start:y_end, x_start:x_end] += im_split[i, j]
-
-    return im
 
 
 def custom_shift(array: np.ndarray, offset: np.ndarray, constant_values=0):

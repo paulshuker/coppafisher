@@ -3,7 +3,6 @@ import os
 from typing import Tuple
 
 import numpy as np
-import psutil
 import zarr
 from tqdm import tqdm
 
@@ -92,8 +91,6 @@ def register(
             registration_data["channel_registration"]["transform"][c] = cam_transform[cam_idx]
 
     # Part 2: Round registration
-    current_process = psutil.Process()
-    subproc_before = set([p.pid for p in current_process.children(recursive=True)])
     use_rounds = list(nbp_basic.use_rounds)
     corr_loc = os.path.join(nbp_file.output_dir, "corr.zarr")
     raw_loc = os.path.join(nbp_file.output_dir, "raw.zarr")
@@ -153,13 +150,10 @@ def register(
                 raw_loc=raw_loc,
                 corr_loc=corr_loc,
                 smooth_loc=smooth_loc,
-                chunks_yx=config["chunks_yx"],
-                overlap=config["overlap_yx"],
                 sample_factor_yx=config["sample_factor_yx"],
                 window_radius=config["window_radius"],
                 smooth_sigma=config["smooth_sigma"],
                 clip_val=config["flow_clip"],
-                n_cores=config["flow_cores"],
             )
     del anchor_image, round_image
 
@@ -169,17 +163,6 @@ def register(
     corr = zarr.open_array(corr_store)
     raw = zarr.open_array(raw_store)
     flow = zarr.open_array(smooth_store)
-
-    if config["flow_cores"] is None or config["flow_cores"] > 1:
-        # Following the joblib leak issue at https://github.com/joblib/joblib/issues/945, any remaining process after
-        # the use of joblib are explicitly killed.
-        subproc_after = set([p.pid for p in current_process.children(recursive=True)])
-        for subproc in subproc_after - subproc_before:
-            try:
-                log.debug("Trying to kill process with pid {}".format(subproc))
-                psutil.Process(subproc).terminate()
-            except psutil.NoSuchProcess:
-                continue
 
     # Part 3: ICP
     log.info("Running Iterative Closest Point (ICP)")

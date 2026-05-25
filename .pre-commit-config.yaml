@@ -15,7 +15,6 @@ repos:
     -   id: detect-private-key
     -   id: end-of-file-fixer
     -   id: mixed-line-ending
-    -   id: name-tests-test
     -   id: requirements-txt-fixer
     -   id: trailing-whitespace
 -   repo: https://github.com/pycqa/isort

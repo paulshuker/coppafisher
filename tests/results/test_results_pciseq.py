@@ -1,6 +1,5 @@
 from os import path
 
-import pandas as pd
 import pytest
 
 from coppafisher.omp import base
@@ -10,8 +9,10 @@ from coppafisher.setup.notebook import Notebook
 
 @pytest.mark.notebook
 def test_export_to_pciseq() -> None:
-    nb_path = path.dirname(path.dirname(path.dirname(__file__)))
-    nb_path = path.join(nb_path, "robominnie", "test", ".integration_dir", "output_coppafisher", "notebook")
+    import pandas as pd
+
+    nb_path = path.dirname(path.dirname(__file__))
+    nb_path = path.join(nb_path, "robominnie", ".integration_dir", "output_coppafisher", "notebook")
 
     nb = Notebook(nb_path)
 

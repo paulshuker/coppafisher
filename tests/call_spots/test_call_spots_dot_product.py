@@ -1,12 +1,13 @@
 import math as maths
 
 import numpy as np
-import torch
 
 from coppafisher.call_spots import dot_product
 
 
 def test_dot_product():
+    import torch
+
     n_spots, n_rounds, n_channels_use, n_genes = 1, 3, 3, 2
     n_batches = 1
     spot_colours = np.zeros((n_spots, n_rounds, n_channels_use), np.float32)

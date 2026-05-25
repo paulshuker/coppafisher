@@ -1,8 +1,8 @@
 from collections.abc import Callable
+from typing import Any
 
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, TextBox
-from napari.layers import Shapes
 
 from .subplot import Subplot
 
@@ -12,7 +12,7 @@ class ExportTool2D(Subplot):
  building a polygon shape, press Enter when finished. Build other shapes if needed. Press the
  Export button below to export the spots. Close this window when done."""
 
-    shapes_layer: Shapes
+    shapes_layer: Any
     on_export_clicked: Callable[["ExportTool2D"], None] | None = None
     on_dilate_clicked: Callable[["ExportTool2D"], None] | None = None
     on_closed: Callable[["ExportTool2D"], None] | None = None

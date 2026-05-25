@@ -2,7 +2,6 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import mplcursors
 import numpy as np
-import zarr
 from matplotlib import cm
 from matplotlib.patches import Rectangle
 from matplotlib.widgets import Button
@@ -10,7 +9,6 @@ from matplotlib.widgets import Button
 from ...call_spots.dot_product import gene_prob_score
 from ...omp import base as omp_base
 from ...setup.notebook import NotebookPage
-from ...spot_colours import base as spot_colours_base
 from ..results_viewer.subplot import Subplot
 
 
@@ -166,130 +164,6 @@ class ViewSpotColourAndCode(Subplot):
 
     def get_colour_of_button(self, enabled: bool) -> str:
         return self.button_colour_pressed if enabled else self.button_colour_not_pressed
-
-
-class ViewSpotColourRegion(Subplot):
-    def __init__(
-        self,
-        spot_no: int,
-        spot_score: float,
-        spot_local_yxz: np.ndarray,
-        spot_tile: int,
-        gene_index: int,
-        gene_name: str,
-        filter_images: zarr.Array,
-        flow: zarr.Array,
-        affine: zarr.Array,
-        colour_norm_factor: np.ndarray,
-        use_rounds: list[int],
-        use_channels: list[int],
-        method: str,
-        show: bool = True,
-    ):
-        """
-        Build a grid of pyplot imshows for each channel and round showing the registered, filtered image intensity in a
-        2D neighbourhood around the spot in Y and X. Out of bounds pixels are not plotted.
-
-        Args:
-            spot_no (int): index of spot in the notebook (number between 0 and n_spots - 1).
-            spot_score (float): score of spot gene assignment.
-            spot_local_yxz (`(3) ndarray[int]`): the spot's local y, x, and z position relative to the spot's tile's
-                bottom-left corner.
-            spot_tile (int): index of tile spot is on.
-            gene_index (int): the spot's gene's index.
-            gene_name (str): the spot's gene's name.
-            filter_images (`(n_tiles x n_rounds x n_channels) zarray[float16]`): the filtered images.
-            flow (`(n_tiles x n_rounds x 3 x tile_sz x tile_sz x len(use_z)) zarray[float16]`): the register optical
-                flow results.
-            affine (`(n_tiles x n_rounds x n_channels x 4 x 3) ndarray[float32]`): the register affine corrections.
-            colour_norm_factor (`(n_tiles x n_rounds x n_channels_use) ndarray[float32]`): normalisation factor for
-                each tile, round, and channel that is applied to colours.
-            use_rounds (list of int): sequencing rounds.
-            use_channels (list of int): sequencing channels.
-            method (str): spot's method. Can be 'anchor', 'omp' or 'prob'.
-            show (bool, optional): show the plot after creating. Turn off for unit testing. Default: true.
-        """
-        assert method.lower() in ["anchor", "omp", "prob"], "method must be 'anchor', 'omp' or 'prob'"
-        self.local_region_shape_yx = (27, 27)
-        assert all([shape % 2 == 1 for shape in self.local_region_shape_yx]), "Must be odd numbers only"
-        self.use_colour_norm_factor = True
-        self.remove_background = False
-        self.l2_normalise = False
-
-        self.n_rounds = len(use_rounds)
-        self.n_channels = len(use_channels)
-        Y = np.linspace(0, self.local_region_shape_yx[0] - 1, self.local_region_shape_yx[0])
-        Y -= self.local_region_shape_yx[0] // 2
-        Y += spot_local_yxz[0]
-        X = np.linspace(0, self.local_region_shape_yx[1] - 1, self.local_region_shape_yx[1])
-        X -= self.local_region_shape_yx[1] // 2
-        X += spot_local_yxz[1]
-        yxz_local_region = np.array(np.meshgrid(Y, X, [spot_local_yxz[2]], indexing="ij"), int)
-        # Becomes shape (n_pixels, 3).
-        yxz_local_region = yxz_local_region.reshape((3, -1), order="F").T
-        colours = spot_colours_base.get_spot_colours_new(
-            yxz_local_region, filter_images, flow, affine, int(spot_tile), use_rounds, use_channels
-        )
-        self.colours = colours.reshape(self.local_region_shape_yx + (self.n_rounds, self.n_channels), order="F")
-
-        self.spot_tile = spot_tile
-        self.colour_norm_factor = colour_norm_factor.astype(np.float32).copy()
-
-        self.fig, self.axes = plt.subplots(self.n_channels, self.n_rounds, squeeze=False, sharex=True, sharey=True)
-        self.fig.suptitle(
-            f"Spot Colour Region, z={spot_local_yxz[2].item()}\n{method.capitalize()} index {spot_no}, gene "
-            + f"{gene_index} {gene_name}, score: {'{:.2f}'.format(spot_score)}"
-        )
-        self.fig.supxlabel("Round")
-
-        # Spot colour images.
-        abs_max = 0
-        plot_colours = np.zeros(self.local_region_shape_yx + (self.n_rounds, self.n_channels), float)
-        for c in range(self.n_channels):
-            for r in range(self.n_rounds):
-                rc_colours = self.colours[:, :, r, c].copy()
-                if self.use_colour_norm_factor:
-                    rc_colours *= self.colour_norm_factor[self.spot_tile, r, c]
-                plot_colours[:, :, r, c] = rc_colours
-        if self.remove_background:
-            plot_colours -= np.percentile(plot_colours, 25, axis=3, keepdims=True)
-        if self.l2_normalise:
-            plot_colours /= np.linalg.norm(plot_colours, axis=(2, 3), keepdims=True)
-        self.fig.supxlabel("Round")
-        self.fig.supylabel("Channel")
-
-        abs_max = np.abs(plot_colours).max()
-        self.cmap = mpl.cm.seismic
-        self.norm = mpl.colors.Normalize(vmin=-abs_max, vmax=+abs_max)
-
-        for c in range(self.n_channels):
-            for r in range(self.n_rounds):
-                ax: plt.Axes = self.axes[c, r]
-                ax.set_xticks([])
-                ax.set_yticks([])
-                im = ax.imshow(plot_colours[:, :, r, c].T, cmap=self.cmap, norm=self.norm)
-                # Two perpendicular lines to help see where the central pixel is.
-                ax.hlines(
-                    self.local_region_shape_yx[0] / 2,
-                    -1,
-                    self.local_region_shape_yx[0] + 1,
-                    colors="green",
-                    linewidth=0.3,
-                )
-                ax.vlines(
-                    self.local_region_shape_yx[1] / 2,
-                    -1,
-                    self.local_region_shape_yx[1] + 1,
-                    colors="green",
-                    linewidth=0.3,
-                )
-        # Colour bar on right.
-        cbar_pos = [0.88, 0.075, 0.06, 0.85]  # left, bottom, width, height
-        self.cbar_ax = self.fig.add_axes(cbar_pos)
-        self.cbar = plt.colorbar(im, cax=self.cbar_ax, pad=0.1, orientation="vertical", label="Intensity")
-
-        if show:
-            self.fig.show()
 
 
 # We are now going to create a new class that will allow us to view the spots used to calculate the gene efficiency

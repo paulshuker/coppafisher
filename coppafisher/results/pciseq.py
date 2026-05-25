@@ -59,8 +59,16 @@ def export_pciseq_unfiltered_dapi_image(
             dapi_images[i] = dapi_images[i].astype(np.float16)
 
     fused_image = background.generate_global_image(
-        dapi_images, nb.basic_info.use_tiles, nb.basic_info, nb.stitch, dapi_images[0].dtype, silent=False
+        dapi_images,
+        nb.basic_info.use_tiles,
+        nb.basic_info,
+        nb.stitch,
+        dapi_images[0].dtype,
+        unbound_value=0,
+        silent=False,
     )
+    if radius_norm is None:
+        fused_image[fused_image == np.iinfo(fused_image.dtype).max] = 0
 
     file_path = os.path.join(os.path.dirname(nb.directory), "dapi_image_unfiltered.npz")
     if os.path.isfile(file_path):
@@ -84,7 +92,9 @@ def export_pciseq_dapi_image(nb: Notebook) -> None:
     dapi_images = [
         nb.filter.images[t, nb.basic_info.anchor_round, nb.basic_info.dapi_channel] for t in nb.basic_info.use_tiles
     ]
-    fused_image = background.generate_global_image(dapi_images, nb.basic_info.use_tiles, nb.basic_info, nb.stitch)
+    fused_image = background.generate_global_image(
+        dapi_images, nb.basic_info.use_tiles, nb.basic_info, nb.stitch, unbound_value=0
+    )
 
     file_path = os.path.join(os.path.dirname(nb.directory), "dapi_image.npz")
     if os.path.isfile(file_path):

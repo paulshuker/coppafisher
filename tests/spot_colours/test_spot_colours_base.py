@@ -1,11 +1,12 @@
 import numpy as np
-import torch
 
 from coppafisher import NotebookPage
 from coppafisher.spot_colours import base as spot_colours_base
 
 
 def test_convert_coords_to_torch_grid() -> None:
+    import torch
+
     # Test this function by grid sampling an image for all its pixel positions, so no interpolation should be done and
     # the same image should be given back.
     rng = np.random.RandomState(0)
@@ -35,6 +36,8 @@ def test_convert_coords_to_torch_grid() -> None:
 
 
 def test_apply_flow_new() -> None:
+    import torch
+
     # Check that a simple +1, +2, and -3 shift in each direction works.
     yxz = np.zeros((2, 3), dtype=np.int16)
     yxz[1] = [3, 5, 6]
