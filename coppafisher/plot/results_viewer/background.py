@@ -1,56 +1,90 @@
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 import numpy as np
 import numpy.typing as npt
 import tqdm
 
 from ...setup.notebook import NotebookPage
+from ...utils import bits
 
 
-def _default_compute_overlap(
-    tile_a: np.ndarray, current_overlap_region: np.ndarray, neighbour_on_left_or_bottom: bool
-) -> np.ndarray:
-    assert type(tile_a) is np.ndarray
-    assert type(current_overlap_region) is np.ndarray
-    assert type(neighbour_on_left_or_bottom) is bool
+class SolvesOverlap(Protocol):
+    def solve_overlap(self, images: np.ndarray, pixel_weights: np.ndarray[np.float32], **kwargs) -> np.ndarray:
+        """
+        Solve the overlap region between tile images.
 
-    overlap_size = tile_a.shape[0]
-    add_from_current_overlap = np.ones_like(tile_a, bool)
-    add_from_current_overlap[-1] = False
-    weight = np.linspace(0, 1, overlap_size, endpoint=True, dtype=np.float32)
-    if not neighbour_on_left_or_bottom:
-        weight = weight[::-1]
-        add_from_current_overlap = add_from_current_overlap[::-1]
-    tile_a = tile_a.astype(np.float32)
-    tile_a *= weight[:, np.newaxis, np.newaxis]
-    tile_a = tile_a.astype(current_overlap_region.dtype)
+        Args:
+            images (`(region_count x r_y x r_x x r_z) ndarray`): the region_count number of images that are shared in
+                region r.
+            pixel_weights (`(region_count x r_y x r_x x r_z) ndarray[float32]`): pixel_weights[i] is the linear
+                weightings for each pixel value for images[i] pixels. The weights range from 0 to 1. A 1 represents the
+                pixel at the centre of the images tile.
+            **kwargs (dict[str, any]): additional keyword arguments.
 
-    if current_overlap_region.dtype.kind == "f":
-        add_from_current_overlap &= ~np.isnan(current_overlap_region)
-    else:
-        add_from_current_overlap &= current_overlap_region != np.iinfo(current_overlap_region.dtype).max
-    tile_a[add_from_current_overlap] += current_overlap_region[add_from_current_overlap]
+        Returns:
+            (`(r_y x r_x x r_z) ndarray[images.dtype]`): solved_region. The resulting overlap region.
+        """
+        ...
 
-    return tile_a
+
+class _LinearInterpolator:
+    def solve_overlap(self, images: np.ndarray, pixel_weights: np.ndarray) -> np.ndarray:
+        result = (images * pixel_weights / pixel_weights.sum(0, keepdims=True)).sum(0)
+
+        if np.issubdtype(images.dtype, np.integer):
+            result = np.rint(result)
+        result = result.astype(images.dtype)
+
+        return result
+
+
+class _Region:
+    min_yxz: np.ndarray[int]
+    max_yxz: np.ndarray[int]
+    # The image indices that contribute to the region.
+    image_indices: List[int]
+
+    def get_shape(self) -> Tuple[int, int, int]:
+        return tuple([self.max_yxz[i] - self.min_yxz[i] for i in range(3)])
+
+    shape: Tuple[int, int, int] = property(get_shape)
+
+    def overlaps_with(self, min_yxz_1: np.ndarray[int], max_yxz_1: np.ndarray[int]) -> bool:
+        assert min_yxz_1.shape == (3,)
+        assert max_yxz_1.shape == (3,)
+
+        return all([self._dim_overlaps(min_yxz_1.item(i), max_yxz_1.item(i), i) for i in range(3)])
+
+    def _dim_overlaps(self, min_1: int, max_1: int, dim: int) -> bool:
+        res = False
+        # Min in region.
+        res = res or (min_1 >= self.min_yxz[dim] and min_1 < self.max_yxz[dim]).item()
+        # Max in region.
+        res = res or (max_1 > self.min_yxz[dim] and max_1 <= self.max_yxz[dim]).item()
+        # Region engulfed.
+        res = res or (min_1 <= self.min_yxz[dim] and max_1 >= self.max_yxz[dim]).item()
+        return res
 
 
 def generate_global_image(
-    images: list[np.ndarray],
-    tiles_given: list[int],
+    images: List[np.ndarray],
+    tiles_given: List[int],
     nbp_basic: NotebookPage,
     nbp_stitch: NotebookPage,
     output_dtype: npt.DTypeLike = np.float16,
     unbound_value: int | float | None = None,
-    compute_overlap: Optional[Callable[[np.ndarray, np.ndarray, bool], np.ndarray]] = None,
-    compute_overlap_kwargs: Dict[str, Any] | None = None,
+    overlap_solver: Optional[SolvesOverlap] = None,
+    overlap_solver_kwargs: Dict[str, Any] | None = None,
     silent: bool = True,
 ) -> np.ndarray[np.float16]:
     """
-    Produce a high-resolution, filtered global background image based on stitch results.
+    Stitch together given images.
+
+    The images are tiles and are stitched together based on the stitch results provided for positioning each tile. By
+    default, the tile overlap is resolved by using linear interpolation.
 
     Args:
         images (list of `(im_y x im_x x im_z) ndarray`): images[i] is the image representing tile index tiles_given[i].
-            The list of emptied by the end of the function.
         tiles_given (list of int): tiles_given[i] is the tile index for images[i]. If tiles_given does not contain a
             tile in the notebook and the tile falls into the global image's volume, then that tile's area is set to all
             nans for floating output_dtype or np.iinfo(output_dtype).max for integer output_dtype.
@@ -60,31 +94,25 @@ def generate_global_image(
             the final pixels are rounded to integer values.
         unbound_value (int or float, optional): pixels are set to unbound_value when the pixel is out of bounds from all
             tiles. Default: nan for floating point output_dtypes, np.iinfo(output_dtype).max otherwise.
-        compute_overlap: (callable, optional): the function that computes overlapping regions. The function input is a
-            tile's pixel values in the overlapping region (`(n_overlap_size x tile_sz x len(nbp_basic.use_z))
-            ndarray[images[0].dtype]`), the current overlapping region values (`(n_overlap_size x tile_sz x
-            len(nbp_basic.use_z)) ndarray[output_dtype]`) which is set to nan for floats or the maximum value for
-            integers when the current overlapping region is empty. The third argument is whether the tile currently
-            being considered is on the left/bottom (bool). The output is a `(n_overlap_size x tile_sz x
-            len(nbp_basic.use_z)) ndarray[output_dtype]`. Default: a linear taper from 0 to 1 from one overlap edge to
-            the other, giving maximum weighting for a tile when the pixel is closest to its centre.
-        compute_overlap_kwargs (dict, optional): additional keyword arguments passed to the compute_weight function.
+        overlap_solver: (SolvesOverlap, optional): solver for overlapping regions in the image. See SolvesOverlap
+            protocol above for implementation details. Default: take information from every overlapping tile linearly
+            weighted by the pixel's distance away from the tile's centre.
+        overlap_solver_kwargs (dict[str, any], optional): additional keyword arguments passed to the overlap solver.
             Default: none given.
         silent (bool, optional): do not display a progress bar. Default: true.
 
     Returns:
         (`(big_im_z x big_im_y x big_im_x) ndarray[output_dtype]`): fused_image. The large, global background image. The
             image's origin is relative to `nbp_stitch.tile_origin.min(0)`.
+
+    Raises:
+        NotImplementedError: if there are too many given tiles.
     """
-    # FIXME: The way that the compute_overlap currently works means that when output_dtype = int and unbound_value = 0
-    # and compute_overlap = None, the result can have regions with np.iinfo(int).max values. This is messing up the
-    # some images in pciseq export_pciseq_unfiltered_dapi_image function. It would be best to have compute_overlap be a
-    # protocol that can then be dependency injected to deal with overlap. The compute_overlap would need to know or give
-    # information on untouched regions of the global image that are not covered by tiles which can then be filled in
-    # with unbound_value consistently.
     assert type(images) is list
     assert all([type(image) is np.ndarray for image in images])
     assert type(tiles_given) is list
+    if len(tiles_given) > 256:
+        raise NotImplementedError()
     assert all([type(tile) is int for tile in tiles_given])
     assert len(set(tiles_given)) == len(tiles_given)
     assert len(tiles_given) == len(images)
@@ -95,110 +123,152 @@ def generate_global_image(
             unbound_value = np.nan
         else:
             unbound_value = np.iinfo(output_dtype).max
-    if compute_overlap is None:
-        compute_overlap = _default_compute_overlap
-    assert callable(compute_overlap)
-    if compute_overlap_kwargs is None:
-        compute_overlap_kwargs = {}
-    assert type(compute_overlap_kwargs) is dict
-    for key in compute_overlap_kwargs:
+    if overlap_solver is None:
+        overlap_solver = _LinearInterpolator()
+    assert callable(overlap_solver.solve_overlap)
+    if overlap_solver_kwargs is None:
+        overlap_solver_kwargs = {}
+    assert type(overlap_solver_kwargs) is dict
+    for key in overlap_solver_kwargs:
         assert type(key) is str
     assert type(silent) is bool
 
     tile_shape = (nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z))
-    tile_origins_yxz: np.ndarray = nbp_stitch.tile_origin[tiles_given]
+    tile_origins_yxz: np.ndarray = nbp_stitch.tile_origin[tiles_given].astype(np.float32)
 
-    # The lowest x/y/z tile origin values are floored down for consistency with the spot yxz positions.
+    # The tile origins are shifted so that min tile origin is 0 for consistency with spot yxz positions.
     minimum_tile_origin_indices = np.argmin(tile_origins_yxz, 0)
     for i in range(3):
-        tile_origins_yxz[minimum_tile_origin_indices[i]] = np.floor(tile_origins_yxz[minimum_tile_origin_indices[i]])
+        temp = tile_origins_yxz[minimum_tile_origin_indices[i], i]
+        tile_origins_yxz[:, i] -= temp - np.floor(temp)
+        del temp
 
+    tile_centres_yxz = np.rint(tile_origins_yxz + [s / 2 for s in tile_shape]).astype(int)
     tile_origins_yxz = np.rint(tile_origins_yxz).astype(int)
-    tile_centres_yxz = np.rint(tile_origins_yxz + [s // 2 for s in tile_shape]).astype(int)
     # Inclusive.
     min_yxz = tile_origins_yxz.min(0)
     # Exclusive.
     max_yxz = tile_origins_yxz.max(0) + tile_shape
-    expected_overlap = nbp_stitch.associated_configs["stitch"]["expected_overlap"]
 
     output_shape = (max_yxz - min_yxz).tolist()
+
+    # 1) Find all unique overlapping regions.
+    # Each tile's region adds a 1 bit to every pixel in occupancy_grid that it occupies.
+    # Then, each unique overlapping region is found.
+    occupancy_grid: np.ndarray = np.zeros(output_shape, _get_int_required(len(tiles_given)))
+    tile_ids = {t_i: i for i, t_i in enumerate(tiles_given)}
+    tile_ids_inv = {i: t_i for i, t_i in enumerate(tiles_given)}
+    for i, t_i in enumerate(tiles_given):
+        t_origin = tile_origins_yxz[i]
+        t_max_yxz = t_origin.copy() + tile_shape
+        occupancy_grid[
+            t_origin[0] : t_max_yxz[0],
+            t_origin[1] : t_max_yxz[1],
+            t_origin[2] : t_max_yxz[2],
+        ] |= (
+            1 << tile_ids[t_i]
+        )
+    non_overlaps: List[_Region] = []
+    overlaps: List[_Region] = []
+    for tile_bit_combination in np.unique(occupancy_grid):
+        if tile_bit_combination == 0:
+            continue
+
+        # Find lower and upper bounds of region.
+        # Has shape (3 x n_points).
+        yxzs = np.array((occupancy_grid == tile_bit_combination).nonzero(), np.int32)
+        assert yxzs.shape[0] == 3
+        new_region = _Region()
+        new_region.min_yxz = yxzs.min(1)
+        new_region.max_yxz = yxzs.max(1) + 1
+        del yxzs
+
+        bit_positions = bits.get_bit_positions(tile_bit_combination.item())
+        new_region.image_indices = [tile_ids_inv[tile_id] for tile_id in bit_positions]
+        if tile_bit_combination.item().bit_count() == 1:
+            non_overlaps.append(new_region)
+        else:
+            overlaps.append(new_region)
+    del tile_ids, tile_ids_inv
+
+    # 2) Populate the global image with tiles, including overlapping regions.
+    max_distance_from_centre = np.array([s / 2 for s in tile_shape], np.float32)
+    max_distance_from_centre = np.sqrt(np.square(max_distance_from_centre).sum())
     output = np.full(output_shape, unbound_value, output_dtype)
+    pbar = tqdm.tqdm(desc="Generating global image", disable=silent, total=len(non_overlaps) + len(overlaps))
+    for region in overlaps:
+        region_images = []
+        pixel_weights = []
 
-    for t_i, _ in enumerate(tqdm.tqdm(tiles_given, desc="Generating global image", unit="tile", disable=silent)):
-        t_image = images.pop(0)
-        t_origin = tile_origins_yxz[t_i]
-        t_centre = tile_centres_yxz[t_i]
-        tile_centres_except_t = np.concat((tile_centres_yxz[:t_i], tile_centres_yxz[t_i + 1 :]), axis=0)
-
-        # Taper along the x and y axes if there is an overlapping tile.
-        for dim in (0, 1):
-            for neighbour_on_left_or_bottom in (True, False):
-                # Positive for right-sided tiles, negative for left-sided tiles.
-                tile_distances: np.ndarray[int] = tile_centres_except_t.copy() - t_centre[np.newaxis]
-                tile_distances = -tile_distances[:, dim]
-                # Really close tile distances are probably aligned along that direction, so remove them.
-                # TODO: This can be done more robustly by using the tilepos_yx in nbp_basic.
-                tile_distances = tile_distances[np.abs(tile_distances) >= (nbp_basic.tile_sz * 0.5 * expected_overlap)]
-                if neighbour_on_left_or_bottom:
-                    tile_distances = tile_distances[tile_distances > 0]
-                else:
-                    tile_distances = -tile_distances[tile_distances < 0]
-                if tile_distances.size == 0:
-                    continue
-                # Take the closest tile distance to decide on the linear taper size.
-                closest_tile_distance: int = tile_distances.min().item()
-                overlap_size: int = nbp_basic.tile_sz - closest_tile_distance
-                if overlap_size < 2:
-                    # No taper required.
-                    continue
-
-                ind_min, ind_max = nbp_basic.tile_sz - overlap_size, nbp_basic.tile_sz
-                if neighbour_on_left_or_bottom:
-                    ind_min, ind_max = 0, overlap_size
-
-                t_image_at_overlap = t_image[:, ind_min:ind_max].swapaxes(0, 1) if dim else t_image[ind_min:ind_max]
-
-                global_ind_min: np.ndarray[int] = t_origin.copy() - min_yxz
-                global_ind_min += [0, ind_min, 0] if dim else [ind_min, 0, 0]
-                global_ind_max: np.ndarray[int] = global_ind_min.copy()
-                global_ind_max += (
-                    [nbp_basic.tile_sz, overlap_size, len(nbp_basic.use_z)]
-                    if dim
-                    else [overlap_size, nbp_basic.tile_sz, len(nbp_basic.use_z)]
-                )
-                current_overlap_region = output[
-                    global_ind_min[0] : global_ind_max[0],
-                    global_ind_min[1] : global_ind_max[1],
-                    global_ind_min[2] : global_ind_max[2],
+        for tile in region.image_indices:
+            tile_index = tiles_given.index(tile)
+            tile_min_yxz = region.min_yxz - tile_origins_yxz[tile_index]
+            tile_max_yxz = tile_min_yxz.copy() + region.max_yxz - region.min_yxz
+            region_images.append(
+                images[tile_index][
+                    tile_min_yxz[0] : tile_max_yxz[0],
+                    tile_min_yxz[1] : tile_max_yxz[1],
+                    tile_min_yxz[2] : tile_max_yxz[2],
                 ]
-                if dim:
-                    current_overlap_region = current_overlap_region.swapaxes(0, 1)
-                assert current_overlap_region.shape == t_image_at_overlap.shape
+            )
+            assert region_images[-1].shape == region.shape
+            pixel_weight = np.array(
+                np.meshgrid(
+                    np.linspace(0, region.shape[0] - 1, region.shape[0]),
+                    np.linspace(0, region.shape[1] - 1, region.shape[1]),
+                    np.linspace(0, region.shape[2] - 1, region.shape[2]),
+                    indexing="ij",
+                ),
+                np.float32,
+            )
+            pixel_weight += (region.min_yxz - tile_centres_yxz[tile_index])[:, np.newaxis, np.newaxis, np.newaxis]
+            # Finds distance from tile's centre.
+            pixel_weight = np.sqrt(np.square(pixel_weight).sum(0))
+            pixel_weight /= max_distance_from_centre
+            pixel_weight = 1 - pixel_weight
+            pixel_weights.append(pixel_weight)
 
-                new_overlap = compute_overlap(
-                    t_image_at_overlap, current_overlap_region, neighbour_on_left_or_bottom, **compute_overlap_kwargs
-                )
-                if type(new_overlap) is not np.ndarray:
-                    raise TypeError(f"compute_overlap must return a np.ndarray, got {type(new_overlap)} instead")
-                if new_overlap.shape != t_image_at_overlap.shape:
-                    raise ValueError(
-                        f"compute_overlap must return shape {t_image_at_overlap.shape}, got {new_overlap.shape}"
-                    )
-                elif new_overlap.dtype != output_dtype:
-                    raise ValueError(
-                        f"compute_overlap must return ndarray of dtype {output_dtype}, got {new_overlap.dtype}"
-                    )
+        region_images = np.array(region_images, output_dtype)
+        pixel_weights = np.array(pixel_weights, np.float32)
+        output[
+            region.min_yxz[0] : region.max_yxz[0],
+            region.min_yxz[1] : region.max_yxz[1],
+            region.min_yxz[2] : region.max_yxz[2],
+        ] = overlap_solver.solve_overlap(region_images, pixel_weights, **overlap_solver_kwargs)
+        del region_images, pixel_weights
+        pbar.update()
 
-                if dim:
-                    t_image[:, ind_min:ind_max] = new_overlap.swapaxes(0, 1)
-                else:
-                    t_image[ind_min:ind_max] = new_overlap
-
-        t_ind_start = t_origin - min_yxz
-        t_ind_end = t_ind_start + tile_shape
-        output[t_ind_start[0] : t_ind_end[0], t_ind_start[1] : t_ind_end[1], t_ind_start[2] : t_ind_end[2]] = t_image
+    for region in non_overlaps:
+        assert len(region.image_indices) == 1
+        tile_index = tiles_given.index(region.image_indices[0])
+        tile_min_yxz = region.min_yxz - tile_origins_yxz[tile_index]
+        tile_max_yxz = tile_min_yxz.copy() + region.max_yxz - region.min_yxz
+        output[
+            region.min_yxz[0] : region.max_yxz[0],
+            region.min_yxz[1] : region.max_yxz[1],
+            region.min_yxz[2] : region.max_yxz[2],
+        ] = images[tile_index][
+            tile_min_yxz[0] : tile_max_yxz[0],
+            tile_min_yxz[1] : tile_max_yxz[1],
+            tile_min_yxz[2] : tile_max_yxz[2],
+        ]
+        pbar.update()
+    pbar.close()
 
     # yxz -> zyx.
     output = output.swapaxes(0, 1).swapaxes(0, 2)
 
     return output
+
+
+def _get_int_required(bit_count: int) -> npt.DTypeLike:
+    if bit_count <= 32:
+        return np.int32
+    elif bit_count <= 64:
+        return np.int64
+    elif bit_count <= 128:
+        return np.int128
+    elif bit_count <= 256:
+        return np.int256
+    else:
+        raise ValueError()

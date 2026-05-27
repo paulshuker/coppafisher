@@ -18,7 +18,7 @@ def test_merge_cell_masks() -> None:
     np.save(tile_a_file_path, tile_a)
     np.save(tile_b_file_path, tile_b)
 
-    merged_cell_mask = cell_mask.merge_cell_masks([tile_a_file_path, tile_b_file_path], [[0, 0, 0], [4, 4, 1]], 0.3)
+    merged_cell_mask = cell_mask.merge_cell_masks([tile_a_file_path, tile_b_file_path], [[0, 0, 0], [4, 4, 1]])
     assert type(merged_cell_mask) is np.ndarray
     assert merged_cell_mask.dtype == np.uint16
     assert merged_cell_mask.shape == (tile_size_z + 1, tile_size_y + 4, tile_size_y + 4)
@@ -28,7 +28,7 @@ def test_merge_cell_masks() -> None:
     np.save(tile_a_file_path, tile_a)
     np.save(tile_b_file_path, tile_b)
 
-    merged_cell_mask = cell_mask.merge_cell_masks([tile_a_file_path, tile_b_file_path], [[0, 0, 0], [0, 2, 0]], 0.1)
+    merged_cell_mask = cell_mask.merge_cell_masks([tile_a_file_path, tile_b_file_path], [[0, 0, 0], [0, 2, 0]])
     assert type(merged_cell_mask) is np.ndarray
     assert merged_cell_mask.dtype == np.uint16
     assert merged_cell_mask.shape == (tile_size_z, tile_size_y, tile_size_y + 2)
@@ -39,7 +39,7 @@ def test_merge_cell_masks() -> None:
     assert not (merged_cell_mask > 2).any()
 
     merged_cell_mask = cell_mask.merge_cell_masks(
-        [tile_a_file_path, tile_b_file_path], np.array([[0, 0, 0], [0, 2, 0]], float), 0.1, merge_cells_method="merge 0"
+        [tile_a_file_path, tile_b_file_path], np.array([[0, 0, 0], [0, 2, 0]], float), merge_cells_method="merge 0"
     )
     assert type(merged_cell_mask) is np.ndarray
     assert merged_cell_mask.dtype == np.uint16
@@ -64,7 +64,7 @@ def test_merge_cell_masks() -> None:
     np.save(tile_b_file_path, tile_b)
 
     merged_cell_mask = cell_mask.merge_cell_masks(
-        [tile_a_file_path, tile_b_file_path], [[0, 0, 0], [0, 1, 0]], 0.01, merge_cells_method="merge 0"
+        [tile_a_file_path, tile_b_file_path], [[0, 0, 0], [0, 1, 0]], merge_cells_method="merge 0"
     )
     assert type(merged_cell_mask) is np.ndarray
     assert merged_cell_mask.dtype == np.uint16
@@ -72,6 +72,7 @@ def test_merge_cell_masks() -> None:
     assert (~np.isnan(merged_cell_mask)).all()
     assert (merged_cell_mask == 0).any()
     assert (merged_cell_mask == 1).any()
+
     # The cells should be merged together.
     tile_a = np.pad(tile_a, [[0, 0], [0, 0], [0, 1]])
     tile_b = np.pad(tile_b, [[0, 0], [0, 0], [1, 0]])
@@ -79,8 +80,9 @@ def test_merge_cell_masks() -> None:
     assert not (merged_cell_mask > 2).any()
 
     merged_cell_mask = cell_mask.merge_cell_masks(
-        [tile_a_file_path, tile_b_file_path], [[0, 0, 0], [0, 1, 0]], 0.01, merge_cells_method="merge 1"
+        [tile_a_file_path, tile_b_file_path], [[0, 0, 0], [0, 1, 0]], merge_cells_method="merge 1"
     )
+
     assert type(merged_cell_mask) is np.ndarray
     assert merged_cell_mask.dtype == np.uint16
     assert merged_cell_mask.shape == (tile_size_z, tile_size_y, tile_size_y + 1)
