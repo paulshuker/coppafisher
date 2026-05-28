@@ -35,26 +35,33 @@ class _LinearInterpolator:
         pixel_weight_max_indices = np.argmax(pixel_weights, axis=0)
         known_values = np.full_like(images, np.nan, np.float32)
 
-        Ys = list(range(images.shape[1]))
-        Xs = list(range(images.shape[2]))
-        Zs = list(range(images.shape[3]))
-        for y in Ys:
-            for x in Xs:
-                known_values[:, y, x, 0] = 0
-                known_values[:, y, x, -1] = 0
-                known_values[pixel_weight_max_indices[y, x, 0], y, x, 0] = 1
-                known_values[pixel_weight_max_indices[y, x, -1], y, x, -1] = 1
-            for z in Zs:
-                known_values[:, y, 0, z] = 0
-                known_values[:, y, -1, z] = 0
-                known_values[pixel_weight_max_indices[y, 0, z], y, 0, z] = 1
-                known_values[pixel_weight_max_indices[y, -1, z], y, -1, z] = 1
-        for x in Xs:
-            for z in Zs:
-                known_values[:, 0, x, z] = 0
-                known_values[:, -1, x, z] = 0
-                known_values[pixel_weight_max_indices[0, x, z], 0, x, z] = 1
-                known_values[pixel_weight_max_indices[-1, x, z], -1, x, z] = 1
+        # Set boundary indices
+        known_values[:, :, :, 0] = 0  # y, x, 0
+        known_values[:, :, :, -1] = 0  # y, x, -1
+
+        # Set the known values at max indices for y,x boundaries
+        y_indices, x_indices = np.indices((images.shape[1], images.shape[2]))
+        known_values[pixel_weight_max_indices[y_indices, x_indices, 0], y_indices, x_indices, 0] = 1
+        known_values[pixel_weight_max_indices[y_indices, x_indices, -1], y_indices, x_indices, -1] = 1
+
+        # Set boundaries for y,z (x=0 and x=-1)
+        known_values[:, :, 0, :] = 0  # x=0
+        known_values[:, :, -1, :] = 0  # x=-1
+
+        # Set known values for y,z boundaries
+        y_indices, z_indices = np.indices((images.shape[1], images.shape[3]))
+        known_values[pixel_weight_max_indices[y_indices, 0, z_indices], y_indices, 0, z_indices] = 1
+        known_values[pixel_weight_max_indices[y_indices, -1, z_indices], y_indices, -1, z_indices] = 1
+
+        # Set boundaries for x,z (y=0 and y=-1)
+        known_values[:, 0, :, :] = 0  # y=0
+        known_values[:, -1, :, :] = 0  # y=-1
+
+        # Set known values for x,z boundaries
+        x_indices, z_indices = np.indices((images.shape[2], images.shape[3]))
+        known_values[pixel_weight_max_indices[0, x_indices, z_indices], 0, x_indices, z_indices] = 1
+        known_values[pixel_weight_max_indices[-1, x_indices, z_indices], -1, x_indices, z_indices] = 1
+
         del pixel_weight_max_indices
 
         # C ordering of indices.
