@@ -1,4 +1,5 @@
 2026/05/25 Version 1.13 Patch (v1.13.1):
+ * Viewer: Improved positioning of tiles in dapi/anchor image backgrounds.
  * Viewer: Broken dapi/anchor image backgrounds at four tile overlap areas fix.
  * Export: Broken dapi image exports at four tile overlap areas fix.
 

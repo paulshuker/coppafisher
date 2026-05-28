@@ -56,9 +56,8 @@ class _Region:
         return all([self._dim_overlaps(min_yxz_1.item(i), max_yxz_1.item(i), i) for i in range(3)])
 
     def _dim_overlaps(self, min_1: int, max_1: int, dim: int) -> bool:
-        res = False
         # Min in region.
-        res = res or (min_1 >= self.min_yxz[dim] and min_1 < self.max_yxz[dim]).item()
+        res = (min_1 >= self.min_yxz[dim] and min_1 < self.max_yxz[dim]).item()
         # Max in region.
         res = res or (max_1 > self.min_yxz[dim] and max_1 <= self.max_yxz[dim]).item()
         # Region engulfed.
@@ -76,7 +75,7 @@ def generate_global_image(
     overlap_solver: Optional[SolvesOverlap] = None,
     overlap_solver_kwargs: Dict[str, Any] | None = None,
     silent: bool = True,
-) -> np.ndarray[np.float16]:
+) -> np.ndarray:
     """
     Stitch together given images.
 
@@ -86,14 +85,13 @@ def generate_global_image(
     Args:
         images (list of `(im_y x im_x x im_z) ndarray`): images[i] is the image representing tile index tiles_given[i].
         tiles_given (list of int): tiles_given[i] is the tile index for images[i]. If tiles_given does not contain a
-            tile in the notebook and the tile falls into the global image's volume, then that tile's area is set to all
-            nans for floating output_dtype or np.iinfo(output_dtype).max for integer output_dtype.
+            tile in the notebook and the tile falls into the global image's volume, then that area is set to
+            unbound_value.
         nbp_basic (NotebookPage): `basic_info` notebook page.
         nbp_stitch (NotebookPage): `stitch` notebook page.
-        output_dtype (dtype-like, optional): the fused_image datatype. Default: float16. If this is a integer type, then
-            the final pixels are rounded to integer values.
-        unbound_value (int or float, optional): pixels are set to unbound_value when the pixel is out of bounds from all
-            tiles. Default: nan for floating point output_dtypes, np.iinfo(output_dtype).max otherwise.
+        output_dtype (dtype-like, optional): the fused_image datatype. Default: float16.
+        unbound_value (number, optional): pixels are set to unbound_value when the pixel is out of bounds from all
+            tiles. Default: 0.
         overlap_solver: (SolvesOverlap, optional): solver for overlapping regions in the image. See SolvesOverlap
             protocol above for implementation details. Default: take information from every overlapping tile linearly
             weighted by the pixel's distance away from the tile's centre.
@@ -119,10 +117,7 @@ def generate_global_image(
     assert type(nbp_basic) is NotebookPage
     assert type(nbp_stitch) is NotebookPage
     if unbound_value is None:
-        if np.issubdtype(output_dtype, np.floating):
-            unbound_value = np.nan
-        else:
-            unbound_value = np.iinfo(output_dtype).max
+        unbound_value = 0
     if overlap_solver is None:
         overlap_solver = _LinearInterpolator()
     assert callable(overlap_solver.solve_overlap)
