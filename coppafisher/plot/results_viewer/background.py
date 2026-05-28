@@ -2,6 +2,7 @@ from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 import numpy as np
 import numpy.typing as npt
+import scipy
 import tqdm
 
 from ...setup.notebook import NotebookPage
@@ -29,7 +30,44 @@ class SolvesOverlap(Protocol):
 
 class _LinearInterpolator:
     def solve_overlap(self, images: np.ndarray, pixel_weights: np.ndarray) -> np.ndarray:
-        result = (images * pixel_weights / pixel_weights.sum(0, keepdims=True)).sum(0)
+        # At the boundary, the image with the most weighting entirely wins. Then a linear weighting is used on all other
+        # values within the cuboid region by grid linear interpolation.
+        pixel_weight_max_indices = np.argmax(pixel_weights, axis=0)
+        known_values = np.full_like(images, np.nan, np.float32)
+
+        Ys = list(range(images.shape[1]))
+        Xs = list(range(images.shape[2]))
+        Zs = list(range(images.shape[3]))
+        for y in Ys:
+            for x in Xs:
+                known_values[:, y, x, 0] = 0
+                known_values[:, y, x, -1] = 0
+                known_values[pixel_weight_max_indices[y, x, 0], y, x, 0] = 1
+                known_values[pixel_weight_max_indices[y, x, -1], y, x, -1] = 1
+            for z in Zs:
+                known_values[:, y, 0, z] = 0
+                known_values[:, y, -1, z] = 0
+                known_values[pixel_weight_max_indices[y, 0, z], y, 0, z] = 1
+                known_values[pixel_weight_max_indices[y, -1, z], y, -1, z] = 1
+        for x in Xs:
+            for z in Zs:
+                known_values[:, 0, x, z] = 0
+                known_values[:, -1, x, z] = 0
+                known_values[pixel_weight_max_indices[0, x, z], 0, x, z] = 1
+                known_values[pixel_weight_max_indices[-1, x, z], -1, x, z] = 1
+        del pixel_weight_max_indices
+
+        # C ordering of indices.
+        known_values_points = (~np.isnan(known_values)).nonzero()
+        known_values = known_values[known_values_points]
+
+        all_points = np.ones_like(images).nonzero()
+        result = scipy.interpolate.griddata(known_values_points, known_values, all_points)
+        assert result.size == all_points[0].size
+        result = result.reshape(images.shape, order="C")
+        result /= result.sum(0)
+        result *= images
+        result = result.sum(0)
 
         if np.issubdtype(images.dtype, np.integer):
             result = np.rint(result)
@@ -133,15 +171,17 @@ def generate_global_image(
 
     # The tile origins are shifted so that min tile origin is 0 for consistency with spot yxz positions.
     minimum_tile_origin_indices = np.argmin(tile_origins_yxz, 0)
+    temp = [tile_origins_yxz[minimum_tile_origin_indices[i], i].copy() for i in range(3)]
     for i in range(3):
-        temp = tile_origins_yxz[minimum_tile_origin_indices[i], i]
-        tile_origins_yxz[:, i] -= temp - np.floor(temp)
-        del temp
+        tile_origins_yxz[:, i] -= temp[i]
+    del temp
 
     tile_centres_yxz = np.rint(tile_origins_yxz + [s / 2 for s in tile_shape]).astype(int)
     tile_origins_yxz = np.rint(tile_origins_yxz).astype(int)
+
     # Inclusive.
     min_yxz = tile_origins_yxz.min(0)
+    assert np.isclose(min_yxz, 0).all()
     # Exclusive.
     max_yxz = tile_origins_yxz.max(0) + tile_shape
 
@@ -225,11 +265,13 @@ def generate_global_image(
 
         region_images = np.array(region_images, output_dtype)
         pixel_weights = np.array(pixel_weights, np.float32)
+        solved_overlap = overlap_solver.solve_overlap(region_images, pixel_weights, **overlap_solver_kwargs)
+        assert solved_overlap.shape == region_images.shape[1:]
         output[
             region.min_yxz[0] : region.max_yxz[0],
             region.min_yxz[1] : region.max_yxz[1],
             region.min_yxz[2] : region.max_yxz[2],
-        ] = overlap_solver.solve_overlap(region_images, pixel_weights, **overlap_solver_kwargs)
+        ] = solved_overlap
         del region_images, pixel_weights
         pbar.update()
 
