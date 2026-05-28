@@ -151,9 +151,9 @@ def generate_global_image(
     # Each tile's region adds a 1 bit to every pixel in occupancy_grid that it occupies.
     # Then, each unique overlapping region is found.
     occupancy_grid: np.ndarray = np.zeros(output_shape, _get_int_required(len(tiles_given)))
-    tile_ids = {t_i: i for i, t_i in enumerate(tiles_given)}
-    tile_ids_inv = {i: t_i for i, t_i in enumerate(tiles_given)}
-    for i, t_i in enumerate(tiles_given):
+    tile_ids = {tile: i for i, tile in enumerate(tiles_given)}
+    tile_ids_inv = {i: tile for i, tile in enumerate(tiles_given)}
+    for i, tile in enumerate(tiles_given):
         t_origin = tile_origins_yxz[i]
         t_max_yxz = t_origin.copy() + tile_shape
         occupancy_grid[
@@ -161,7 +161,7 @@ def generate_global_image(
             t_origin[1] : t_max_yxz[1],
             t_origin[2] : t_max_yxz[2],
         ] |= (
-            1 << tile_ids[t_i]
+            1 << tile_ids[tile]
         )
     non_overlaps: List[_Region] = []
     overlaps: List[_Region] = []
