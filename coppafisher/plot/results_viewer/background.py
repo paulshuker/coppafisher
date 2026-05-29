@@ -1,3 +1,4 @@
+import warnings
 from typing import Any, Dict, List, Optional, Protocol, Tuple
 
 import numpy as np
@@ -18,8 +19,8 @@ class SolvesOverlap(Protocol):
             images (`(region_count x r_y x r_x x r_z) ndarray`): the region_count number of images that are shared in
                 region r.
             pixel_weights (`(region_count x r_y x r_x x r_z) ndarray[float32]`): pixel_weights[i] is the linear
-                weightings for each pixel value for images[i] pixels. The weights range from 0 to 1. A 1 represents the
-                pixel at the centre of the images tile.
+                weightings for each pixel value for images[i] pixels. The weights range from 0 to 1. Ones are placed on
+                the edges closes to the tile's centre.
             **kwargs (dict[str, any]): additional keyword arguments.
 
         Returns:
@@ -30,51 +31,22 @@ class SolvesOverlap(Protocol):
 
 class _LinearInterpolator:
     def solve_overlap(self, images: np.ndarray, pixel_weights: np.ndarray) -> np.ndarray:
-        # At the boundary, the image with the most weighting entirely wins. Then a linear weighting is used on all other
-        # values within the cuboid region by grid linear interpolation.
-        pixel_weight_max_indices = np.argmax(pixel_weights, axis=0)
-        known_values = np.full_like(images, np.nan, np.float32)
+        result = pixel_weights.copy()
 
-        # Set boundary indices
-        known_values[:, :, :, 0] = 0  # y, x, 0
-        known_values[:, :, :, -1] = 0  # y, x, -1
+        if images.shape[0] == 4:
+            import napari
+            v = napari.Viewer()
+            v.add_image(pixel_weights.copy().transpose((0, 3, 1, 2)), name="Initial weights")
 
-        # Set the known values at max indices for y,x boundaries
-        y_indices, x_indices = np.indices((images.shape[1], images.shape[2]))
-        known_values[pixel_weight_max_indices[y_indices, x_indices, 0], y_indices, x_indices, 0] = 1
-        known_values[pixel_weight_max_indices[y_indices, x_indices, -1], y_indices, x_indices, -1] = 1
-
-        # Set boundaries for y,z (x=0 and x=-1)
-        known_values[:, :, 0, :] = 0  # x=0
-        known_values[:, :, -1, :] = 0  # x=-1
-
-        # Set known values for y,z boundaries
-        y_indices, z_indices = np.indices((images.shape[1], images.shape[3]))
-        known_values[pixel_weight_max_indices[y_indices, 0, z_indices], y_indices, 0, z_indices] = 1
-        known_values[pixel_weight_max_indices[y_indices, -1, z_indices], y_indices, -1, z_indices] = 1
-
-        # Set boundaries for x,z (y=0 and y=-1)
-        known_values[:, 0, :, :] = 0  # y=0
-        known_values[:, -1, :, :] = 0  # y=-1
-
-        # Set known values for x,z boundaries
-        x_indices, z_indices = np.indices((images.shape[2], images.shape[3]))
-        known_values[pixel_weight_max_indices[0, x_indices, z_indices], 0, x_indices, z_indices] = 1
-        known_values[pixel_weight_max_indices[-1, x_indices, z_indices], -1, x_indices, z_indices] = 1
-
-        del pixel_weight_max_indices
-
-        # C ordering of indices.
-        known_values_points = (~np.isnan(known_values)).nonzero()
-        known_values = known_values[known_values_points]
-
-        all_points = np.ones_like(images).nonzero()
-        result = scipy.interpolate.griddata(known_values_points, known_values, all_points)
-        assert result.size == all_points[0].size
-        result = result.reshape(images.shape, order="C")
-        result /= result.sum(0)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "invalid value encountered in divide", RuntimeWarning)
+            result /= result.sum(0, keepdims=True)
+        result[np.isnan(result)] = 0
         result *= images
         result = result.sum(0)
+
+        if images.shape[0] == 4:
+            v.add_image(result.copy().transpose((2, 0, 1)), name="Final")
 
         if np.issubdtype(images.dtype, np.integer):
             result = np.rint(result)
@@ -90,7 +62,7 @@ class _Region:
     image_indices: List[int]
 
     def get_shape(self) -> Tuple[int, int, int]:
-        return tuple([self.max_yxz[i] - self.min_yxz[i] for i in range(3)])
+        return tuple([self.max_yxz.item(i) - self.min_yxz.item(i) for i in range(3)])
 
     shape: Tuple[int, int, int] = property(get_shape)
 
@@ -183,7 +155,8 @@ def generate_global_image(
         tile_origins_yxz[:, i] -= temp[i]
     del temp
 
-    tile_centres_yxz = np.rint(tile_origins_yxz + [s / 2 for s in tile_shape]).astype(int)
+    tile_centres_yxz = tile_origins_yxz.copy().astype(np.float32)
+    tile_centres_yxz += np.array([s / 2 for s in tile_shape], np.float32)[np.newaxis]
     tile_origins_yxz = np.rint(tile_origins_yxz).astype(int)
 
     # Inclusive.
@@ -233,14 +206,39 @@ def generate_global_image(
             overlaps.append(new_region)
     del tile_ids, tile_ids_inv
 
+    # Sort regions such that the most overlapping regions are placed last.
+    if overlaps:
+        overlaps.sort(key=lambda region: len(region.image_indices))
+        assert len(overlaps[0].image_indices) <= len(overlaps[-1].image_indices)
+
     # 2) Populate the global image with tiles, including overlapping regions.
     max_distance_from_centre = np.array([s / 2 for s in tile_shape], np.float32)
     max_distance_from_centre = np.sqrt(np.square(max_distance_from_centre).sum())
     output = np.full(output_shape, unbound_value, output_dtype)
     pbar = tqdm.tqdm(desc="Generating global image", disable=silent, total=len(non_overlaps) + len(overlaps))
+
+    for region in non_overlaps:
+        assert len(region.image_indices) == 1
+        tile_index = tiles_given.index(region.image_indices[0])
+        tile_min_yxz = region.min_yxz - tile_origins_yxz[tile_index]
+        tile_max_yxz = tile_min_yxz.copy() + region.shape
+        output[
+            region.min_yxz[0] : region.max_yxz[0],
+            region.min_yxz[1] : region.max_yxz[1],
+            region.min_yxz[2] : region.max_yxz[2],
+        ] = images[tile_index][
+            tile_min_yxz[0] : tile_max_yxz[0],
+            tile_min_yxz[1] : tile_max_yxz[1],
+            tile_min_yxz[2] : tile_max_yxz[2],
+        ]
+        pbar.update()
+
     for region in overlaps:
         region_images = []
         pixel_weights = []
+
+        region_centre_yx = np.array([s / 2 for s in region.shape], np.float32)[:2]
+        region_centre_yx += region.min_yxz[:2].astype(np.float32)
 
         for tile in region.image_indices:
             tile_index = tiles_given.index(tile)
@@ -254,20 +252,70 @@ def generate_global_image(
                 ]
             )
             assert region_images[-1].shape == region.shape
-            pixel_weight = np.array(
-                np.meshgrid(
-                    np.linspace(0, region.shape[0] - 1, region.shape[0]),
-                    np.linspace(0, region.shape[1] - 1, region.shape[1]),
-                    np.linspace(0, region.shape[2] - 1, region.shape[2]),
-                    indexing="ij",
-                ),
-                np.float32,
-            )
-            pixel_weight += (region.min_yxz - tile_centres_yxz[tile_index])[:, np.newaxis, np.newaxis, np.newaxis]
-            # Finds distance from tile's centre.
-            pixel_weight = np.sqrt(np.square(pixel_weight).sum(0))
-            pixel_weight /= max_distance_from_centre
-            pixel_weight = 1 - pixel_weight
+
+            # Place zeros at the furthest away edge(s) to the tile's centre.
+            # Place ones at the closest edge(s) to the tile's centre.
+            # Then fill in the blanks using linear interpolation.
+            # Do this in 2d then repeat up in the z stack.
+            known_values = np.full(region.shape[:2], np.nan, np.float32)
+
+            tile_centre_to_region_yx = region_centre_yx.copy()
+            tile_centre_to_region_yx -= tile_centres_yxz[tile_index, :2].copy()
+            # Normalise vector.
+            tile_centre_to_region_yx /= np.sqrt(np.square(tile_centre_to_region_yx).sum())
+
+            if len(region.image_indices) == 4:
+                print("")
+                print(f"{tile=}")
+                print(f"{tile_centre_to_region_yx=}")
+
+            # TODO: This is working with big overlaps. But, sometimes there is a tiny slither (1 pixel width) overlap
+            # volume nearby to the big 4 tile overlap that looks ugly and broken. Maybe we should simply select a tile
+            # to take full control in very thin volume cases and try not to taper since it is not possible with a single
+            # pixel axis.
+
+            if np.abs(tile_centre_to_region_yx[0]) >= np.sqrt(2) / 3:
+                # y is closest to tile centre, while y_other is the furthest.
+                y = 0 if tile_centre_to_region_yx[0] > 0 else -1
+                y_other = -1 if tile_centre_to_region_yx[0] > 0 else 0
+                known_values[y] = 1
+                known_values[y_other] = 0
+                if len(region.image_indices) == 4:
+                    print("Y")
+            if np.abs(tile_centre_to_region_yx[1]) >= np.sqrt(2) / 3:
+                # x is closest to tile centre, while x_other is the furthest.
+                x = 0 if tile_centre_to_region_yx[1] > 0 else -1
+                x_other = -1 if tile_centre_to_region_yx[1] > 0 else 0
+                known_values[:, x] = 1
+                known_values[:, x_other] = 0
+                if len(region.image_indices) == 4:
+                    print("X")
+
+            if len(region.image_indices) == 4:
+                print("")
+
+            known_values_points = (~np.isnan(known_values)).nonzero()
+            known_values = known_values[known_values_points]
+            all_points = np.ones(region.shape[:2]).nonzero()
+
+            # Squeeze dimensions since griddata does not work when a dimension is a single value.
+            dim = -1
+            while dim < (len(known_values_points) - 1):
+                dim += 1
+                if (known_values_points[dim][0] != known_values_points[dim]).any():
+                    continue
+                # Squeeze dimension.
+                known_values_points = tuple([values for i, values in enumerate(known_values_points) if i != dim])
+                all_points = tuple([values for i, values in enumerate(all_points) if i != dim])
+                dim = -1
+
+            pixel_weight = scipy.interpolate.griddata(known_values_points, known_values, all_points, fill_value=0)
+            pixel_weight[np.isnan(pixel_weight)] = 0
+            pixel_weight = np.array(pixel_weight, np.float32)
+            pixel_weight = pixel_weight.reshape(region.shape[:2], order="C")
+            # Repeat along the z stack.
+            pixel_weight = np.repeat(pixel_weight[:, :, np.newaxis], region.shape[-1], 2)
+
             pixel_weights.append(pixel_weight)
 
         region_images = np.array(region_images, output_dtype)
@@ -282,21 +330,6 @@ def generate_global_image(
         del region_images, pixel_weights
         pbar.update()
 
-    for region in non_overlaps:
-        assert len(region.image_indices) == 1
-        tile_index = tiles_given.index(region.image_indices[0])
-        tile_min_yxz = region.min_yxz - tile_origins_yxz[tile_index]
-        tile_max_yxz = tile_min_yxz.copy() + region.max_yxz - region.min_yxz
-        output[
-            region.min_yxz[0] : region.max_yxz[0],
-            region.min_yxz[1] : region.max_yxz[1],
-            region.min_yxz[2] : region.max_yxz[2],
-        ] = images[tile_index][
-            tile_min_yxz[0] : tile_max_yxz[0],
-            tile_min_yxz[1] : tile_max_yxz[1],
-            tile_min_yxz[2] : tile_max_yxz[2],
-        ]
-        pbar.update()
     pbar.close()
 
     # yxz -> zyx.

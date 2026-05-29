@@ -61,6 +61,17 @@ def test_generate_global_image() -> None:
 
     result = background.generate_global_image(images, nbp_basic.use_tiles, nbp_basic, nbp_stitch, silent=False)
 
+    # import napari
+    # v = napari.Viewer()
+    # v.add_image(result, contrast_limits=(0, 10))
+    # v.add_image(images[0].transpose((2, 0, 1)), translate=nbp_stitch.tile_origin[0][[2, 0, 1]], contrast_limits=(0, 10))
+    # v.add_image(images[1].transpose((2, 0, 1)), translate=nbp_stitch.tile_origin[1][[2, 0, 1]], contrast_limits=(0, 10))
+    # v.add_image(images[2].transpose((2, 0, 1)), translate=nbp_stitch.tile_origin[2][[2, 0, 1]], contrast_limits=(0, 10))
+    # v.add_image(images[3].transpose((2, 0, 1)), translate=nbp_stitch.tile_origin[3][[2, 0, 1]], contrast_limits=(0, 10))
+    # v.add_image(images[4].transpose((2, 0, 1)), translate=nbp_stitch.tile_origin[4][[2, 0, 1]], contrast_limits=(0, 10))
+    # v.add_image(images[5].transpose((2, 0, 1)), translate=nbp_stitch.tile_origin[5][[2, 0, 1]], contrast_limits=(0, 10))
+    # napari.run()
+
     assert len(images) == n_tiles
     assert type(result) is np.ndarray
     assert result.dtype == np.float16
