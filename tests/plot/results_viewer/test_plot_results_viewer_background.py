@@ -4,31 +4,6 @@ from coppafisher.plot.results_viewer import background
 from coppafisher.setup.notebook_page import NotebookPage
 
 
-def test_Region() -> None:
-    r1 = background._Region()
-    r1.min_yxz = np.array([0, 1, 2], int)
-    r1.max_yxz = r1.min_yxz + 1
-
-    min_yxz = np.array([0, 1, 2], int)
-    max_yxz = min_yxz.copy() + 1
-    assert r1.overlaps_with(min_yxz, max_yxz)
-    min_yxz -= 10
-    assert r1.overlaps_with(min_yxz, max_yxz)
-    max_yxz += 11
-    assert r1.overlaps_with(min_yxz, max_yxz)
-    min_yxz += 9
-    max_yxz -= 12
-    assert not r1.overlaps_with(min_yxz, max_yxz)
-    min_yxz = r1.min_yxz.copy() + 1
-    max_yxz = r1.max_yxz.copy() + 1
-    assert not r1.overlaps_with(min_yxz, max_yxz)
-    min_yxz = r1.min_yxz.copy()
-    max_yxz = r1.max_yxz.copy() + 1
-    min_yxz[2] += 4
-    max_yxz[2] += 4
-    assert not r1.overlaps_with(min_yxz, max_yxz)
-
-
 def test_generate_global_image() -> None:
     # Tiles are shape 10x10x5 along y/x/z.
     # 3x2 tiles along y/x.
@@ -60,17 +35,6 @@ def test_generate_global_image() -> None:
     images = [np.ones(tile_shape_yxz, np.float16) * t for t in range(n_tiles)]
 
     result = background.generate_global_image(images, nbp_basic.use_tiles, nbp_basic, nbp_stitch, silent=False)
-
-    # import napari
-    # v = napari.Viewer()
-    # v.add_image(result, contrast_limits=(0, 10))
-    # v.add_image(images[0].transpose((2, 0, 1)), translate=nbp_stitch.tile_origin[0][[2, 0, 1]], contrast_limits=(0, 10))
-    # v.add_image(images[1].transpose((2, 0, 1)), translate=nbp_stitch.tile_origin[1][[2, 0, 1]], contrast_limits=(0, 10))
-    # v.add_image(images[2].transpose((2, 0, 1)), translate=nbp_stitch.tile_origin[2][[2, 0, 1]], contrast_limits=(0, 10))
-    # v.add_image(images[3].transpose((2, 0, 1)), translate=nbp_stitch.tile_origin[3][[2, 0, 1]], contrast_limits=(0, 10))
-    # v.add_image(images[4].transpose((2, 0, 1)), translate=nbp_stitch.tile_origin[4][[2, 0, 1]], contrast_limits=(0, 10))
-    # v.add_image(images[5].transpose((2, 0, 1)), translate=nbp_stitch.tile_origin[5][[2, 0, 1]], contrast_limits=(0, 10))
-    # napari.run()
 
     assert len(images) == n_tiles
     assert type(result) is np.ndarray
