@@ -4,6 +4,15 @@ from coppafisher.plot.results_viewer import background
 from coppafisher.setup.notebook_page import NotebookPage
 
 
+def test_Region() -> None:
+    r = background._Region()
+    rng = np.random.RandomState(0)
+    global_mask = rng.randint(2, size=(5, 6, 7)).astype(bool)
+    r.global_mask = global_mask.copy()
+    assert r.global_mask.shape == global_mask.shape
+    assert (r.global_mask == global_mask).all()
+
+
 def test_generate_global_image() -> None:
     # Tiles are shape 10x10x5 along y/x/z.
     # 3x2 tiles along y/x.

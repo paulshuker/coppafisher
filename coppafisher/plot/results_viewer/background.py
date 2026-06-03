@@ -48,15 +48,43 @@ class _LinearInterpolator:
 
 
 class _Region:
+    _smallest_mask: np.ndarray[bool]
+    _global_shape: Tuple[int, int, int]
+
     min_yxz: np.ndarray[int]
     max_yxz: np.ndarray[int]
-    # True in places where the region is on the global image.
-    global_mask: np.ndarray[bool]
+
+    def get_global_mask(self) -> np.ndarray[bool]:
+        global_mask = self._smallest_mask.copy()
+        global_mask = np.pad(global_mask, ((self.min_yxz[0], 0), (self.min_yxz[1], 0), (self.min_yxz[2], 0)))
+        pad_width = tuple([(0, self._global_shape[i] - self.max_yxz[i]) for i in range(3)])
+        global_mask = np.pad(global_mask, pad_width)
+        assert global_mask.shape == self._global_shape
+        return global_mask
+
+    def set_global_mask(self, global_mask: np.ndarray[bool]) -> None:
+        # Find lower and upper bounds of region.
+        # Has shape (3 x n_points).
+        yxzs = np.array(global_mask.nonzero(), np.int32)
+        assert yxzs.shape[0] == 3
+        self.min_yxz = yxzs.min(1)
+        self.max_yxz = yxzs.max(1) + 1
+        self._global_shape = tuple(global_mask.shape)
+        self._smallest_mask = np.zeros((self.max_yxz - self.min_yxz).tolist(), bool)
+        self._smallest_mask[global_mask[
+            self.min_yxz[0]:self.max_yxz[0],
+            self.min_yxz[1]:self.max_yxz[1],
+            self.min_yxz[2]:self.max_yxz[2],
+        ]] = True
+
+    # True in places where the region is on the global image. Not stored in memory, but created when needed.
+    global_mask: np.ndarray[bool] = property(get_global_mask, set_global_mask)
+
     # The image indices that contribute to the region.
     image_indices: List[int]
 
     def get_shape(self) -> Tuple[int, int, int]:
-        return tuple([self.max_yxz.item(i) - self.min_yxz.item(i) for i in range(3)])
+        return tuple((self.max_yxz - self.min_yxz).tolist())
 
     shape: Tuple[int, int, int] = property(get_shape)
 
@@ -188,14 +216,7 @@ def generate_global_image(
 
         new_region = _Region()
         new_region.global_mask = occupancy_grid == tile_bit_combination
-        # Find lower and upper bounds of region.
-        # Has shape (3 x n_points).
-        yxzs = np.array(new_region.global_mask.nonzero(), np.int32)
-        assert yxzs.shape[0] == 3
-        new_region.min_yxz = yxzs.min(1)
-        new_region.max_yxz = yxzs.max(1) + 1
         new_region.image_indices = [tile_ids_inv[tile_id] for tile_id in bits.get_bit_positions(tile_bit_combination)]
-        del yxzs
         if tile_bit_combination.bit_count() == 1:
             non_overlaps.append(new_region)
         else:
@@ -218,6 +239,8 @@ def generate_global_image(
         output[region.global_mask] = images[tile_index][region.get_tile_mask(tile_origins_yxz[tile_index], tile_shape)]
 
     for region in overlaps:
+        if 0 in region.shape:
+            continue
         region_images = []
         pixel_weights = []
 
