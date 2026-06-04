@@ -94,3 +94,5 @@ def test_merge_cell_masks() -> None:
     assert (merged_cell_mask[np.logical_and(tile_a == 1, tile_b != 3)] == 1).all()
     assert (merged_cell_mask[np.logical_and(tile_a != 1, tile_b == 3)] == 2).all()
     assert not (merged_cell_mask > 3).any()
+
+    temp_dir.cleanup()

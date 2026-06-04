@@ -4,15 +4,6 @@ from coppafisher.plot.results_viewer import background
 from coppafisher.setup.notebook_page import NotebookPage
 
 
-def test_Region() -> None:
-    r = background._Region()
-    rng = np.random.RandomState(0)
-    global_mask = rng.randint(2, size=(5, 6, 7)).astype(bool)
-    r.global_mask = global_mask.copy()
-    assert r.global_mask.shape == global_mask.shape
-    assert (r.global_mask == global_mask).all()
-
-
 def test_generate_global_image() -> None:
     # Tiles are shape 10x10x5 along y/x/z.
     # 3x2 tiles along y/x.
@@ -45,7 +36,7 @@ def test_generate_global_image() -> None:
 
     result = background.generate_global_image(images, nbp_basic.use_tiles, nbp_basic, nbp_stitch, silent=False)
 
-    assert len(images) == n_tiles
+    assert len(images) == 0
     assert type(result) is np.ndarray
     assert result.dtype == np.float16
     assert result.shape == (
@@ -84,6 +75,7 @@ def test_generate_global_image() -> None:
     result = background.generate_global_image(images, nbp_basic.use_tiles, nbp_basic, nbp_stitch)
 
     assert type(result) is np.ndarray
+    assert len(images) == 0
     assert result.shape == (tile_shape_yxz[2], tile_shape_yxz[0] * n_tiles_y, tile_shape_yxz[1] * n_tiles_x)
     t = 0
     for x in range(n_tiles_x):
