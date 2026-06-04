@@ -35,7 +35,7 @@ def export_pciseq_unfiltered_dapi_image(
         nbp_file.tile_unfiltered[t][nb.basic_info.anchor_round][nb.basic_info.dapi_channel]
         for t in nb.basic_info.use_tiles
     ]
-    dapi_images: list[np.np.ndarray] = []
+    dapi_images: list[np.ndarray] = []
     for dapi_path in dapi_image_paths:
         try:
             with zarr.ZipStore(dapi_path, mode="r") as dapi_store:

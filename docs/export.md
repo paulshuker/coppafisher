@@ -73,7 +73,6 @@ from coppafisher.results import merge_cell_masks
 merged_cell_mask = merge_cell_masks(
     cell_mask_file_paths=["/path/to/cell_mask_0.npy", "/path/to/cell_mask_1.npy"],
     cell_mask_origin_yxzs=[[0.0, 0.0, 0.0], [1100, 1.0, 0.0]],
-    expected_tile_overlap=0.15,
     merge_cells_method="",
 )
 ```
@@ -91,7 +90,6 @@ nb = Notebook("/path/to/notebook")
 merged_cell_mask = merge_cell_masks(
     cell_mask_file_paths=["/path/to/cell_mask_0.npy", "/path/to/cell_mask_1.npy"],
     cell_mask_origin_yxzs=nb.stitch.tile_origin,
-    expected_tile_overlap=nb.stitch.associated_config["stitch"]["expected_overlap"],
     merge_cells_method="",
 )
 ```
