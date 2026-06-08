@@ -5,6 +5,7 @@
 
 
 2026/05/25 Version 1.13 (v1.13.0):
+ * Viewer: The gene legend is now responsive to mouse movements.
  * Viewer: View spot colour region subplot colour bar fix.
  * Viewer: View spot colour region subplot check buttons added.
  * Viewer: View spot colour region subplot z slider added.
