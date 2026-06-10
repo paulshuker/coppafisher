@@ -163,11 +163,11 @@ class Legend(Subplot):
                 for category in cell_types:
                     self.categorised_genes[category] = [gene for gene in genes if gene.cell_type == category]
             case "colour":
-                self.categorised_genes[""] = [
-                    genes[ind] for ind in self._hue_argsort(np.unique([gene.colour for gene in genes], axis=0))
-                ]
+                gene_colours = np.array([gene.colour for gene in genes], np.float32)
+                self.categorised_genes[""] = [genes[ind] for ind in self._hue_argsort(gene_colours)]
             case _:
                 raise ValueError(f"Unknown order_by: {order_by}")
+
         self.categorised_genes = OrderedDict(reversed(self.categorised_genes.items()))
         self.category_count = len(self.categorised_genes)
 
@@ -185,17 +185,19 @@ class Legend(Subplot):
         else:
             self.canvas = MplCanvasHeadless() if mpl.get_backend() == "Agg" else MplCanvas()
         self._draw_entire_legend()
+        assert len(self.scatter_axes) == len(genes)
         self.canvas.ax.spines["top"].set_visible(False)
         self.canvas.ax.spines["right"].set_visible(False)
         self.canvas.ax.spines["bottom"].set_visible(False)
         self.canvas.ax.spines["left"].set_visible(False)
+        self.previous_value, self.previous_button_type = None, None
         self.current_active_genes = [True for _ in genes]
         self.update_selected_legend_genes(self.current_active_genes)
-        self.previous_value, self.previous_button_type = None, None
+        self._clear_mouse_hovers()
         self.canvas.mpl_connect("button_press_event", self._on_mouse_button_press_event)
         self.canvas.mpl_connect("motion_notify_event", self._on_mouse_moved_event)
-        self.canvas.mpl_connect("figure_leave_event", self._clear_mouse_hover_weight)
-        self.canvas.mpl_connect("axes_leave_event", self._clear_mouse_hover_weight)
+        self.canvas.mpl_connect("figure_leave_event", self._clear_mouse_hovers)
+        self.canvas.mpl_connect("axes_leave_event", self._clear_mouse_hovers)
         self.canvas.mpl_connect("resize_event", self._on_resize_event)
         self._legend_created = True
 
@@ -209,7 +211,10 @@ class Legend(Subplot):
                 given by parameter `genes` when the Legend was initialised.
         """
         if len(active_genes) != len(self.scatter_axes):
-            raise ValueError("active_genes must be the same length as the number of genes in the legend")
+            raise ValueError(
+                "active_genes must be the same length as the number of genes in the legend. ",
+                f"Got {len(active_genes)} but expected {len(self.scatter_axes)}.",
+            )
 
         for plot_index, is_active_gene in enumerate(active_genes):
             self._set_gene_text(
@@ -355,7 +360,7 @@ class Legend(Subplot):
         self.canvas.ax.set_ylim(0, max(fig_height, (row + 1) * cell_height))
         self.canvas.ax.set_xmargin(0)
         self.canvas.ax.set_ymargin(0)
-        self.canvas.draw_idle()
+        self._call_redraw()
 
     def _call_redraw(self) -> None:
         if type(self.canvas) is DefaultCanvas:
@@ -387,7 +392,7 @@ class Legend(Subplot):
             return
 
         # The mouse is over a different element (could be none).
-        self._clear_mouse_hover_weight()
+        self._clear_mouse_hovers()
         if button_type == "gene":
             self._set_gene_text(value, self._HOVERED_TEXT_WEIGHT, self._HOVERED_OPACITY)
         elif button_type == "group":
@@ -399,6 +404,7 @@ class Legend(Subplot):
 
     def _on_resize_event(self, _=None) -> None:
         self._draw_entire_legend()
+        self._clear_mouse_hovers()
         self.update_selected_legend_genes(self.current_active_genes)
 
     def _set_gene_text(self, gene_plot_index: int, weight: int | str, opacity: float) -> None:
@@ -410,7 +416,7 @@ class Legend(Subplot):
         ax = self.group_annotations[list(self.categorised_genes.keys()).index(group_name)]
         ax.set_font(FontProperties(weight=weight))
 
-    def _clear_mouse_hover_weight(self, _: Optional[Event] = None) -> None:
+    def _clear_mouse_hovers(self, _: Optional[Event] = None) -> None:
         if self.previous_value is None:
             return
 
