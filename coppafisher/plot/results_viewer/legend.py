@@ -1,13 +1,13 @@
 import colorsys
 import math as maths
 from collections import OrderedDict
-from typing import Any, Callable, List, Literal, Tuple
+from typing import Any, Callable, List, Literal, Optional, Tuple
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
-from matplotlib.backend_bases import MouseEvent
+from matplotlib.backend_bases import Event, MouseEvent
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvasHeadless
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -194,6 +194,8 @@ class Legend(Subplot):
         self.previous_value, self.previous_button_type = None, None
         self.canvas.mpl_connect("button_press_event", self._on_mouse_button_press_event)
         self.canvas.mpl_connect("motion_notify_event", self._on_mouse_moved_event)
+        self.canvas.mpl_connect("figure_leave_event", self._clear_mouse_hover_weight)
+        self.canvas.mpl_connect("axes_leave_event", self._clear_mouse_hover_weight)
         self.canvas.mpl_connect("resize_event", self._on_resize_event)
         self._legend_created = True
 
@@ -204,13 +206,12 @@ class Legend(Subplot):
 
         Args:
             active_genes (list of bool): true for active genes. The genes must be ordered the same way as they were
-                given in parameter `genes` when the Legend was initialised.
+                given by parameter `genes` when the Legend was initialised.
         """
         if len(active_genes) != len(self.scatter_axes):
             raise ValueError("active_genes must be the same length as the number of genes in the legend")
 
-        active_genes_sorted = [active_genes[i] for i in self._plot_index_to_gene_index]
-        for plot_index, is_active_gene in enumerate(active_genes_sorted):
+        for plot_index, is_active_gene in enumerate(active_genes):
             self._set_gene_text(
                 plot_index,
                 self._SELECTED_TEXT_WEIGHT if is_active_gene else self._NORMAL_TEXT_WEIGHT,
@@ -401,23 +402,24 @@ class Legend(Subplot):
         self.update_selected_legend_genes(self.current_active_genes)
 
     def _set_gene_text(self, gene_plot_index: int, weight: int | str, opacity: float) -> None:
-        self.scatter_axes[gene_plot_index][0].set_alpha(opacity)
-        self.scatter_axes[gene_plot_index][1].set_font(FontProperties(weight=weight))
+        gene_index = self._plot_index_to_gene_index.index(gene_plot_index)
+        self.scatter_axes[gene_index][0].set_alpha(opacity)
+        self.scatter_axes[gene_index][1].set_font(FontProperties(weight=weight))
 
     def _set_group_text(self, group_name: str, weight: int | str) -> None:
         ax = self.group_annotations[list(self.categorised_genes.keys()).index(group_name)]
         ax.set_font(FontProperties(weight=weight))
 
-    def _clear_mouse_hover_weight(self) -> None:
+    def _clear_mouse_hover_weight(self, _: Optional[Event] = None) -> None:
         if self.previous_value is None:
             return
 
         if self.previous_button_type == "gene":
-            for gene_index in range(len(self.current_active_genes)):
+            for gene_plot_index, is_active_gene in enumerate(self.current_active_genes):
                 self._set_gene_text(
-                    gene_index,
-                    self._SELECTED_TEXT_WEIGHT if self.current_active_genes[gene_index] else self._NORMAL_TEXT_WEIGHT,
-                    self._SELECTED_OPACITY if self.current_active_genes[gene_index] else self._NORMAL_OPACITY,
+                    gene_plot_index,
+                    self._SELECTED_TEXT_WEIGHT if is_active_gene else self._NORMAL_TEXT_WEIGHT,
+                    self._SELECTED_OPACITY if is_active_gene else self._NORMAL_OPACITY,
                 )
         elif self.previous_button_type == "group":
             for group_name in self.categorised_genes:
