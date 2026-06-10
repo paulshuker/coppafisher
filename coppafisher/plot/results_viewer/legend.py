@@ -173,6 +173,9 @@ class Legend(Subplot):
 
         self._minimum_cell_aspect_ratio = max(2, 1.85 * max(len(gene.name) for gene in genes) / 3)
 
+        # _plot_index_to_gene_index[i] is the i'th plotted gene's index as given initially through the genes parameter.
+        # This information is kept since the gene ordering inside the Legend can be different to the gene ordering kept
+        # outside of the Legend.
         self._plot_index_to_gene_index: list[int] = []
         for category in self.categorised_genes.keys():
             self._plot_index_to_gene_index += [genes.index(gene) for gene in self.categorised_genes[category]]
@@ -200,16 +203,18 @@ class Legend(Subplot):
         weight.
 
         Args:
-            active_genes (list of bool): true for active genes.
+            active_genes (list of bool): true for active genes. The genes must be ordered the same way as they were
+                given in parameter `genes` when the Legend was initialised.
         """
         if len(active_genes) != len(self.scatter_axes):
             raise ValueError("active_genes must be the same length as the number of genes in the legend")
 
         active_genes_sorted = [active_genes[i] for i in self._plot_index_to_gene_index]
-        for axes, is_active in zip(self.scatter_axes, active_genes_sorted, strict=True):
-            axes[0].set_alpha(self._SELECTED_OPACITY if is_active else self._NORMAL_OPACITY)
-            axes[1].set_font(
-                FontProperties(weight=self._SELECTED_TEXT_WEIGHT if is_active else self._normal_text_weight)
+        for plot_index, is_active_gene in enumerate(active_genes_sorted):
+            self._set_gene_text(
+                plot_index,
+                self._SELECTED_TEXT_WEIGHT if is_active_gene else self._NORMAL_TEXT_WEIGHT,
+                self._SELECTED_OPACITY if is_active_gene else self._NORMAL_OPACITY,
             )
         self.current_active_genes = active_genes.copy()
         self._call_redraw()
@@ -383,7 +388,6 @@ class Legend(Subplot):
         # The mouse is over a different element (could be none).
         self._clear_mouse_hover_weight()
         if button_type == "gene":
-            # and value not in [i for i in range(len(self.current_active_genes)) if self.current_active_genes[i]]:
             self._set_gene_text(value, self._HOVERED_TEXT_WEIGHT, self._HOVERED_OPACITY)
         elif button_type == "group":
             self._set_group_text(value, self._HOVERED_GROUP_WEIGHT)
@@ -396,10 +400,9 @@ class Legend(Subplot):
         self._draw_entire_legend()
         self.update_selected_legend_genes(self.current_active_genes)
 
-    def _set_gene_text(self, gene_index: int, weight: int | str, opacity: float) -> None:
-        axes = self.scatter_axes[gene_index]
-        axes[0].set_alpha(opacity)
-        axes[1].set_font(FontProperties(weight=weight))
+    def _set_gene_text(self, gene_plot_index: int, weight: int | str, opacity: float) -> None:
+        self.scatter_axes[gene_plot_index][0].set_alpha(opacity)
+        self.scatter_axes[gene_plot_index][1].set_font(FontProperties(weight=weight))
 
     def _set_group_text(self, group_name: str, weight: int | str) -> None:
         ax = self.group_annotations[list(self.categorised_genes.keys()).index(group_name)]
@@ -413,12 +416,12 @@ class Legend(Subplot):
             for gene_index in range(len(self.current_active_genes)):
                 self._set_gene_text(
                     gene_index,
-                    self._SELECTED_TEXT_WEIGHT if self.current_active_genes[gene_index] else self._normal_text_weight,
+                    self._SELECTED_TEXT_WEIGHT if self.current_active_genes[gene_index] else self._NORMAL_TEXT_WEIGHT,
                     self._SELECTED_OPACITY if self.current_active_genes[gene_index] else self._NORMAL_OPACITY,
                 )
         elif self.previous_button_type == "group":
             for group_name in self.categorised_genes:
-                self._set_group_text(group_name, self._normal_text_weight)
+                self._set_group_text(group_name, self._NORMAL_TEXT_WEIGHT)
         else:
             raise ValueError(f"{self.previous_button_type=}")
 
