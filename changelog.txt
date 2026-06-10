@@ -1,11 +1,11 @@
-2026/05/25 Version 1.13 Patch (v1.13.1):
+2026/MM/DD Version 1.13 Patch (v1.13.1):
+ * Viewer: The gene legend is now responsive to mouse movements.
  * Viewer: Improved positioning of tiles in dapi/anchor image backgrounds.
  * Viewer: Broken dapi/anchor image backgrounds at four tile overlap areas fix.
  * Export: Broken dapi image exports at four tile overlap areas fix.
 
 
 2026/05/25 Version 1.13 (v1.13.0):
- * Viewer: The gene legend is now responsive to mouse movements.
  * Viewer: View spot colour region subplot colour bar fix.
  * Viewer: View spot colour region subplot check buttons added.
  * Viewer: View spot colour region subplot z slider added.
