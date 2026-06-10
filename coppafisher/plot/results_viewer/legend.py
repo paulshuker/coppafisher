@@ -1,13 +1,13 @@
 import colorsys
 import math as maths
 from collections import OrderedDict
-from typing import Any, Callable, List, Literal, Tuple
+from typing import Any, Callable, List, Literal, Optional, Tuple
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.axes import Axes
-from matplotlib.backend_bases import MouseEvent
+from matplotlib.backend_bases import Event, MouseEvent
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvasHeadless
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -66,9 +66,12 @@ class Legend(Subplot):
     `update_selected_legend_genes`. The legend will automatically separate the genes across the figure's size in a grid
     pattern when the figure is resized.
 
+    Genes are also separated based on a category, see Legend.order_by_options. Category names are not displayed if there
+    is only one category and it has an empty name.
+
     Attributes:
-        legend_clicked (callable or none): if not none, then the function is called when the figure is mouse
-            single-clicked on by the left, right, or middle mouse button.
+        legend_clicked (callable or none): if not none, then the function is called when the figure clicked on by the
+            left, right, or middle-mouse button.
         canvas (MplCanvas or MplCanvasHeadless or none): the canvas for the plot. It is none until `create_gene_legend`
             is called. Default: none.
         order_by_options (tuple of str): the different ways the genes can be ordered when plotted in the legend.
@@ -88,10 +91,11 @@ class Legend(Subplot):
     # Minimum width / height for a grid cell for a single gene in the gene legend.
     # Increasing this trades a smaller grid height for a wider cell for the text.
     _minimum_cell_aspect_ratio: float
+
     # As a fraction of the cell width from the left edge.
-    _marker_padding: float = 0.1
+    _MARKER_PADDING: float = 0.1
     # As a fraction of the cell width from the right edge.
-    _marker_text_padding: float = 0.05
+    _MARKER_TEXT_PADDING: float = 0.05
 
     _order_by_options: tuple[str, ...] = ("row", "colour", "cell_type")
 
@@ -99,10 +103,16 @@ class Legend(Subplot):
         return self._order_by_options
 
     order_by_options: tuple[str, ...] = property(get_order_by_options)
-    _selected_opacity: float = 1.0
-    _unselected_opacity: float = 0.25
-    _selected_text_weight: str = "normal"
-    _unselected_text_weight: str = "light"
+
+    # Visual parameters.
+    _NORMAL_OPACITY: float = 0.25
+    _HOVERED_OPACITY: float = 1.0
+    _SELECTED_OPACITY: float = 0.7
+    _NORMAL_TEXT_WEIGHT: str = "light"
+    _HOVERED_TEXT_WEIGHT: str = "bold"
+    _HOVERED_GROUP_WEIGHT: str = "bold"
+    _SELECTED_TEXT_WEIGHT: str = "normal"
+
     _napari_to_mpl_marker: dict[str, str] = {
         "cross": "+",
         "disc": "o",
@@ -153,16 +163,19 @@ class Legend(Subplot):
                 for category in cell_types:
                     self.categorised_genes[category] = [gene for gene in genes if gene.cell_type == category]
             case "colour":
-                self.categorised_genes[""] = [
-                    genes[ind] for ind in self._hue_argsort(np.unique([gene.colour for gene in genes], axis=0))
-                ]
+                gene_colours = np.array([gene.colour for gene in genes], np.float32)
+                self.categorised_genes[""] = [genes[ind] for ind in self._hue_argsort(gene_colours)]
             case _:
                 raise ValueError(f"Unknown order_by: {order_by}")
+
         self.categorised_genes = OrderedDict(reversed(self.categorised_genes.items()))
         self.category_count = len(self.categorised_genes)
 
         self._minimum_cell_aspect_ratio = max(2, 1.85 * max(len(gene.name) for gene in genes) / 3)
 
+        # _plot_index_to_gene_index[i] is the i'th plotted gene's index as given initially through the genes parameter.
+        # This information is kept since the gene ordering inside the Legend can be different to the gene ordering kept
+        # outside of the Legend.
         self._plot_index_to_gene_index: list[int] = []
         for category in self.categorised_genes.keys():
             self._plot_index_to_gene_index += [genes.index(gene) for gene in self.categorised_genes[category]]
@@ -171,50 +184,72 @@ class Legend(Subplot):
             self.canvas = DefaultCanvas()
         else:
             self.canvas = MplCanvasHeadless() if mpl.get_backend() == "Agg" else MplCanvas()
-        self._draw()
+        self._draw_entire_legend()
+        assert len(self.scatter_axes) == len(genes)
         self.canvas.ax.spines["top"].set_visible(False)
         self.canvas.ax.spines["right"].set_visible(False)
         self.canvas.ax.spines["bottom"].set_visible(False)
         self.canvas.ax.spines["left"].set_visible(False)
+        self.previous_value, self.previous_button_type = None, None
         self.current_active_genes = [True for _ in genes]
         self.update_selected_legend_genes(self.current_active_genes)
+        self._clear_mouse_hovers()
         self.canvas.mpl_connect("button_press_event", self._on_mouse_button_press_event)
+        self.canvas.mpl_connect("motion_notify_event", self._on_mouse_moved_event)
+        self.canvas.mpl_connect("figure_leave_event", self._clear_mouse_hovers)
+        self.canvas.mpl_connect("axes_leave_event", self._clear_mouse_hovers)
         self.canvas.mpl_connect("resize_event", self._on_resize_event)
         self._legend_created = True
 
     def update_selected_legend_genes(self, active_genes: list[bool]) -> None:
         """
-        Update which genes are currently selected in the viewer. A selected gene is given a high opacity.
+        Update which genes are currently selected in the viewer. A selected gene is given a higher opacity and font
+        weight.
 
         Args:
-            active_genes (list of bool): true for active genes.
+            active_genes (list of bool): true for active genes. The genes must be ordered the same way as they were
+                given by parameter `genes` when the Legend was initialised.
         """
         if len(active_genes) != len(self.scatter_axes):
-            raise ValueError("active_genes must be the same length as the number of genes in the legend")
+            raise ValueError(
+                "active_genes must be the same length as the number of genes in the legend. ",
+                f"Got {len(active_genes)} but expected {len(self.scatter_axes)}.",
+            )
 
-        active_genes_sorted = [active_genes[i] for i in self._plot_index_to_gene_index]
-        for axes, is_active in zip(self.scatter_axes, active_genes_sorted, strict=True):
-            axes[0].set_alpha(self._selected_opacity if is_active else self._unselected_opacity)
-            axes[1].set_font(
-                FontProperties(weight=self._selected_text_weight if is_active else self._unselected_text_weight)
+        for plot_index, is_active_gene in enumerate(active_genes):
+            self._set_gene_text(
+                plot_index,
+                self._SELECTED_TEXT_WEIGHT if is_active_gene else self._NORMAL_TEXT_WEIGHT,
+                self._SELECTED_OPACITY if is_active_gene else self._NORMAL_OPACITY,
             )
         self.current_active_genes = active_genes.copy()
-        if type(self.canvas) is DefaultCanvas:
-            plt.draw()
-            try:
-                plt.pause(0.001)
-            except RuntimeError:
-                pass
-        else:
-            self.canvas.draw_idle()
+        self._call_redraw()
 
     def get_closest_toggleable_button(
-        self, x: float, y: float
+        self,
+        event: MouseEvent,
     ) -> Tuple[int, Literal["gene"]] | Tuple[str, Literal["group"]] | Tuple[None, None]:
+        """
+        Get the closest toggle button to the given coordinates.
+
+        Args:
+            event (MouseEvent): the mouse event.
+
+        Returns:
+            Tuple containing one of three options:
+                - tuple[int, "gene"]: the closest gene button index.
+                - tuple[str, "group"]: the closest grouping button index.
+                - tuple[none, none]: no close button found.
+        """
+        NO_RESULT = (None, None)
+        if event.inaxes != self.canvas.ax:
+            return NO_RESULT
+
+        x, y = event.xdata, event.ydata
         if x < 0 or x > self.canvas.ax.get_xlim()[1]:
-            return (None, None)
+            return NO_RESULT
         if y < 0 or y > self.canvas.ax.get_ylim()[1]:
-            return (None, None)
+            return NO_RESULT
 
         for gene_index, bounds in enumerate(self.gene_button_bounds):
             if x < bounds[0] or x > bounds[1]:
@@ -232,7 +267,7 @@ class Legend(Subplot):
 
             return (list(self.categorised_genes.keys())[group_index], "group")
 
-        return (None, None)
+        return NO_RESULT
 
     def get_help(self) -> tuple[str, ...]:
         """
@@ -249,7 +284,7 @@ class Legend(Subplot):
             "(Middle mouse click cell type title) toggle all other cell types on/off",
         )
 
-    def _draw(self) -> None:
+    def _draw_entire_legend(self) -> None:
         self.canvas.ax.clear()
         self.canvas.ax.set_xticks([], [])
         self.canvas.ax.set_yticks([], [])
@@ -275,6 +310,7 @@ class Legend(Subplot):
 
         # Draw the gene legend inside a rectangle of size figure width by figure height.
         self.scatter_axes = []
+        self.group_annotations = []
         # Every item is a gene. The item contains the x minimum, x maximum, y minimum, and y maximum that bounds its
         # button.
         self.gene_button_bounds: List[Tuple[float, float, float, float]] = []
@@ -293,10 +329,10 @@ class Legend(Subplot):
                 if gene.symbol_napari == "ring":
                     scatter_kwargs["facecolor"] = "none"
                     scatter_kwargs["edgecolor"] = gene.colour
-                scatter_ax = self.canvas.ax.scatter(x + self._marker_padding * cell_width, y, **scatter_kwargs)
+                scatter_ax = self.canvas.ax.scatter(x + self._MARKER_PADDING * cell_width, y, **scatter_kwargs)
                 text_ax = self.canvas.ax.annotate(
                     gene.name,
-                    (x + (1 - self._marker_text_padding) * cell_width, y),
+                    (x + (1 - self._MARKER_TEXT_PADDING) * cell_width, y),
                     ha="right",
                     va="center",
                     weight="medium",
@@ -316,14 +352,25 @@ class Legend(Subplot):
                 self.group_button_bounds.append(
                     (0, fig_width, position[1] - 0.5 * cell_height, position[1] + 0.5 * cell_height)
                 )
-                self.canvas.ax.annotate(category_name, position, ha="center", va="center")
+                annoation = self.canvas.ax.annotate(category_name, position, ha="center", va="center")
+                self.group_annotations.append(annoation)
                 row += 1
 
         self.canvas.ax.set_xlim(0, fig_width)
         self.canvas.ax.set_ylim(0, max(fig_height, (row + 1) * cell_height))
         self.canvas.ax.set_xmargin(0)
         self.canvas.ax.set_ymargin(0)
-        self.canvas.draw_idle()
+        self._call_redraw()
+
+    def _call_redraw(self) -> None:
+        if type(self.canvas) is DefaultCanvas:
+            plt.draw()
+            try:
+                plt.pause(0.001)
+            except RuntimeError:
+                pass
+        else:
+            self.canvas.draw_idle()
 
     def _on_mouse_button_press_event(self, event: MouseEvent) -> None:
         if self.legend_clicked is None:
@@ -337,9 +384,54 @@ class Legend(Subplot):
 
         self.legend_clicked(self, event)
 
+    def _on_mouse_moved_event(self, event: MouseEvent) -> None:
+        value, button_type = self.get_closest_toggleable_button(event)
+        if value is None and self.previous_value is None:
+            return
+        if value == self.previous_value and button_type == self.previous_button_type:
+            return
+
+        # The mouse is over a different element (could be none).
+        self._clear_mouse_hovers()
+        if button_type == "gene":
+            self._set_gene_text(value, self._HOVERED_TEXT_WEIGHT, self._HOVERED_OPACITY)
+        elif button_type == "group":
+            self._set_group_text(value, self._HOVERED_GROUP_WEIGHT)
+
+        self._call_redraw()
+        self.previous_value = value
+        self.previous_button_type = button_type
+
     def _on_resize_event(self, _=None) -> None:
-        self._draw()
+        self._draw_entire_legend()
+        self._clear_mouse_hovers()
         self.update_selected_legend_genes(self.current_active_genes)
+
+    def _set_gene_text(self, gene_plot_index: int, weight: int | str, opacity: float) -> None:
+        gene_index = self._plot_index_to_gene_index.index(gene_plot_index)
+        self.scatter_axes[gene_index][0].set_alpha(opacity)
+        self.scatter_axes[gene_index][1].set_font(FontProperties(weight=weight))
+
+    def _set_group_text(self, group_name: str, weight: int | str) -> None:
+        ax = self.group_annotations[list(self.categorised_genes.keys()).index(group_name)]
+        ax.set_font(FontProperties(weight=weight))
+
+    def _clear_mouse_hovers(self, _: Optional[Event] = None) -> None:
+        if self.previous_value is None:
+            return
+
+        if self.previous_button_type == "gene":
+            for gene_plot_index, is_active_gene in enumerate(self.current_active_genes):
+                self._set_gene_text(
+                    gene_plot_index,
+                    self._SELECTED_TEXT_WEIGHT if is_active_gene else self._NORMAL_TEXT_WEIGHT,
+                    self._SELECTED_OPACITY if is_active_gene else self._NORMAL_OPACITY,
+                )
+        elif self.previous_button_type == "group":
+            for group_name in self.categorised_genes:
+                self._set_group_text(group_name, self._NORMAL_TEXT_WEIGHT)
+        else:
+            raise ValueError(f"{self.previous_button_type=}")
 
     def _calculate_row_count(self, cells_per_row: int) -> int:
         row_count = self.category_count if self._include_category_names() else 0
