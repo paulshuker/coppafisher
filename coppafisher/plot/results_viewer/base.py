@@ -41,28 +41,28 @@ if TYPE_CHECKING:
 
 class Viewer:
     # Constants:
-    _required_page_names: tuple[str, ...] = ("basic_info", "filter", "register", "stitch", "ref_spots", "call_spots")
-    _method_to_string: dict[str, str] = {
+    _REQUIRED_PAGE_NAMES: tuple[str, ...] = ("basic_info", "filter", "register", "stitch", "ref_spots", "call_spots")
+    _METHOD_TO_STRING: dict[str, str] = {
         "prob_init": "Initial Probability",
         "prob": "Probability",
         "anchor": "Anchor",
         "omp": "OMP",
     }
-    _starting_score_thresholds: dict[str, tuple[float, float | None]] = {
+    _STARTING_SCORE_THRESHOLDS: dict[str, tuple[float, float | None]] = {
         "prob_init": (0.9, None),
         "prob": (0.9, None),
         "anchor": (0.5, None),
         "omp": (0.4, None),
     }
-    _starting_intensity_thresholds: dict[str, tuple[float, float | None]] = {
+    _STARTING_INTENSITY_THRESHOLDS: dict[str, tuple[float, float | None]] = {
         "prob_init": (0.20, None),
         "prob": (0.20, None),
         "anchor": (0.15, None),
         "omp": (0.15, None),
     }
-    _default_spot_size: float = 8.0
-    _bg_opts: tuple[str, ...] = ("dapi", "anchor")
-    _max_open_subplots: int = 7
+    _DEFAULT_SPOT_SIZE: float = 8.0
+    _BG_OPTIONS: tuple[str, ...] = ("dapi", "anchor")
+    _MAX_OPEN_SUBPLOTS: int = 7
 
     # Attributes:
     nb_directory: str
@@ -133,7 +133,7 @@ class Viewer:
         Open the coppafisher Viewer.
 
         Instantiate a Viewer based on the given output data. The data can be given by one notebook or all the required
-        notebook pages.
+        separate notebook pages.
 
         Args:
             nb (Notebook, optional): the notebook to visualise. Must have completed up to `call_spots` at least. If
@@ -177,11 +177,12 @@ class Viewer:
         for background_image in background_images:
             if type(background_image) is not str:
                 raise TypeError(f"Expected str inside background_images, but got type {type(background_image)}")
-            if not background_image.endswith((".npy", ".npz", ".tif")) and background_image not in self._bg_opts:
+            if not background_image.endswith((".npy", ".npz", ".tif")) and background_image not in self._BG_OPTIONS:
                 raise ValueError(
-                    f"Background image must be .npy, .npz, .tif file, or one of {self._bg_opts}, got {background_image}"
+                    "Background image must be .npy, .npz, .tif file, or one of "
+                    + f"{self._BG_OPTIONS}, got {background_image}"
                 )
-            if background_image not in self._bg_opts and not path.isfile(background_image):
+            if background_image not in self._BG_OPTIONS and not path.isfile(background_image):
                 raise FileNotFoundError(f"No background image file at {background_image}")
         if not hasattr(background_image_colours, "__iter__"):
             raise TypeError(f"background_image_colours must be an iterable, but got {type(background_images)}")
@@ -206,8 +207,8 @@ class Viewer:
         self.show = show
         self.ignore_events = True
         if nb is not None:
-            if not all([nb.has_page(name) for name in self._required_page_names]):
-                raise ValueError(f"The notebook requires pages {', '.join(self._required_page_names)}")
+            if not nb.has_pages(self._REQUIRED_PAGE_NAMES):
+                raise ValueError(f"The notebook requires pages {', '.join(self._REQUIRED_PAGE_NAMES)}")
             self.nb_directory = path.dirname(nb.directory)
             self.nbp_basic = nb.basic_info
             self.nbp_filter = nb.filter
@@ -305,7 +306,7 @@ class Viewer:
             self.spot_data[method].remove_data_at(spot_is_invisible)
 
         # + 1 for the gene legend.
-        plt.rcParams["figure.max_open_warning"] = self._max_open_subplots + 1
+        plt.rcParams["figure.max_open_warning"] = self._MAX_OPEN_SUBPLOTS + 1
         self.viewer = None
         if self.show:
             viewer_kwargs = dict(title=f"Coppafisher {utils_system.get_software_version()} Viewer", show=False)
@@ -364,7 +365,7 @@ class Viewer:
                     symbol=spot_symbols,
                     face_color=spot_colours,
                     size=self.spot_size,
-                    name=self._method_to_string[method],
+                    name=self._METHOD_TO_STRING[method],
                     shown=shown,
                     ndim=2,
                     out_of_slice_display=False,
@@ -514,7 +515,7 @@ class Viewer:
             self.viewer.window.activate()
 
         end_time = time.time()
-        print(f"Viewer built in {'{:.1f}'.format(end_time - start_time)}s")
+        print(f"Viewer built in {'{:.1f}'.format(end_time - start_time)}s\n")
 
         self.ignore_events = False
         if self.show:
@@ -545,7 +546,7 @@ class Viewer:
         self._set_status_to(message)
 
     def legend_clicked(self, legend: Legend, event: MouseEvent) -> None:
-        value, button_type = legend.get_closest_toggleable_button(event.xdata, event.ydata)
+        value, button_type = legend.get_closest_toggleable_button(event)
         if value is None:
             return
         if button_type == "group":
@@ -603,7 +604,7 @@ class Viewer:
         self.clear_spot_selections()
         # Put the user back to pan/zoom mode.
         self.viewer.camera.mouse_pan = True
-        print(f"Method: {self._method_to_string[self.selected_method]}")
+        print(f"Method: {self._METHOD_TO_STRING[self.selected_method]}")
 
     def z_thick_changed(self) -> None:
         if self.ignore_events:
@@ -1012,7 +1013,7 @@ class Viewer:
     def _load_background(self, image: str) -> None:
         assert type(image) is str
         new_image, new_image_name = None, None
-        if image is not None and image not in self._bg_opts and not path.isfile(image):
+        if image is not None and image not in self._BG_OPTIONS and not path.isfile(image):
             raise FileNotFoundError(f"Cannot find background image at given file path: {image}")
 
         if image in ("dapi", "anchor"):
@@ -1111,24 +1112,24 @@ class Viewer:
 
         # Initial UI Widget values.
         self.z_thick: float = 1.0
-        self.score_threshs = {method: self._starting_score_thresholds[method] for method in self.spot_data.keys()}
+        self.score_threshs = {method: self._STARTING_SCORE_THRESHOLDS[method] for method in self.spot_data.keys()}
         for method, score_thresh in self.score_threshs.items():
             if score_thresh[1] is None:
                 self.score_threshs[method] = (score_thresh[0], max_score)
         self.intensity_threshs = {
-            method: self._starting_intensity_thresholds[method] for method in self.spot_data.keys()
+            method: self._STARTING_INTENSITY_THRESHOLDS[method] for method in self.spot_data.keys()
         }
         for method, intensity_thresh in self.intensity_threshs.items():
             if intensity_thresh[1] is None:
                 self.intensity_threshs[method] = (intensity_thresh[0], max_intensity)
-        self.spot_size = self._default_spot_size
+        self.spot_size = self._DEFAULT_SPOT_SIZE
 
         if self.show:
             # Method selection as a dropdown box containing every gene call method available.
             self.method_combo_box = QComboBox()
             for method in self.spot_data.keys():
-                self.method_combo_box.addItem(self._method_to_string[method])
-            self.method_combo_box.setCurrentText(self._method_to_string[self.selected_method])
+                self.method_combo_box.addItem(self._METHOD_TO_STRING[method])
+            self.method_combo_box.setCurrentText(self._METHOD_TO_STRING[self.selected_method])
             self.method_combo_box.currentIndexChanged.connect(self.method_changed)
             # Z thickness slider.
             self.z_thick_slider = QDoubleSlider(Qt.Orientation.Horizontal)
@@ -1336,7 +1337,7 @@ class Viewer:
         If there are too many subplots open, then the oldest subplots are closed until there is n_free_spaces free
         spaces.
         """
-        while (len(self.open_subplots) + n_free_spaces) > self._max_open_subplots:
+        while (len(self.open_subplots) + n_free_spaces) > self._MAX_OPEN_SUBPLOTS:
             self._close_oldest_subplot()
 
     def _close_oldest_subplot(self) -> None:
