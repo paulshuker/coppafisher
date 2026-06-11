@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np
 
 from coppafisher.omp.pixel_scores import PixelScoreSolver
@@ -27,38 +29,42 @@ def test_solve() -> None:
 
     # Simple checks for consistent results and correct shapes.
     previous_result = None
-    for return_all_scores in (True, False):
-        for return_all_residuals in (True, False):
-            result = solver.solve(
-                pixel_colours,
-                bled_codes,
-                bg_codes,
-                maximum_iterations,
-                dot_product_threshold,
-                minimum_intensity,
-                alpha,
-                beta,
-                return_all_scores=return_all_scores,
-                return_all_residuals=return_all_residuals,
-            )
-            if return_all_scores:
-                assert type(result[1]) is np.ndarray
-                assert result[1].shape[0] >= 1
-                assert result[1].shape[1:] == (n_pixels, n_genes + n_channels)
-                assert result[1].dtype == dtype
-                assert (result[1] >= 0).all()
-            if return_all_residuals:
-                assert type(result[1 + int(return_all_scores)]) is np.ndarray
-                assert result[1 + int(return_all_scores)].shape == (n_pixels, n_genes, n_rounds, n_channels)
-                assert result[1 + int(return_all_scores)].dtype == dtype
-            if type(result) is tuple:
-                result = result[0]
-            assert type(result) is np.ndarray
-            assert result.shape == (n_pixels, n_genes)
-            assert result.dtype == dtype
-            if previous_result is not None:
-                assert np.allclose(result, previous_result)
-            previous_result = result
+    for return_all_scores, return_all_residuals, return_stopping_criteria in itertools.product((True, False), repeat=3):
+        result = solver.solve(
+            pixel_colours,
+            bled_codes,
+            bg_codes,
+            maximum_iterations,
+            dot_product_threshold,
+            minimum_intensity,
+            alpha,
+            beta,
+            return_all_scores=return_all_scores,
+            return_all_residuals=return_all_residuals,
+            return_stopping_criteria=return_stopping_criteria,
+        )
+        if return_all_scores:
+            assert type(result[1]) is np.ndarray
+            assert result[1].shape[0] >= 1
+            assert result[1].shape[1:] == (n_pixels, n_genes + n_channels)
+            assert result[1].dtype == dtype
+            assert (result[1] >= 0).all()
+        if return_all_residuals:
+            assert type(result[1 + int(return_all_scores)]) is np.ndarray
+            assert result[1 + int(return_all_scores)].shape == (n_pixels, n_genes, n_rounds, n_channels)
+            assert result[1 + int(return_all_scores)].dtype == dtype
+        if return_stopping_criteria:
+            assert type(result[1 + int(return_all_scores) + int(return_all_residuals)]) is np.ndarray
+            assert result[1 + int(return_all_scores) + int(return_all_residuals)].shape == (n_pixels,)
+            assert result[1 + int(return_all_scores) + int(return_all_residuals)].dtype == np.int8
+        if type(result) is tuple:
+            result = result[0]
+        assert type(result) is np.ndarray
+        assert result.shape == (n_pixels, n_genes)
+        assert result.dtype == dtype
+        if previous_result is not None:
+            assert np.allclose(result, previous_result)
+        previous_result = result
 
     # Ensure the number of assigned genes only decreases as the dot product threshold increases.
     previous_n_genes_assigned = n_pixels * n_genes + 1
@@ -173,9 +179,10 @@ def test_get_next_gene_assignments() -> None:
     assert len(best_genes) == 1
     best_genes = best_genes[0]
     kwargs["return_all_scores"] = True
+    kwargs["return_stopping_criteria"] = True
     other_result = omp_solver.get_next_gene_assignments(**kwargs)
     assert type(other_result) is tuple
-    assert len(other_result) == 2
+    assert len(other_result) == 3
     assert all([type(result) is torch.Tensor for result in other_result])
     assert type(best_genes) is torch.Tensor
     assert best_genes.shape == (n_pixels,), f"Got shape {best_genes.shape}"

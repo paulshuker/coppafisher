@@ -20,6 +20,9 @@ from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
 from ..utils import dict_io, duplicates, intensity, system
 
+DEBUG_INFO_NAME = "omp_debug_info.txt"
+STOPPING_CRITERIA_NAME = "omp_tile_{}_stopping_criteria.npz"
+
 
 def run_omp(
     config: ConfigSection,
@@ -32,7 +35,9 @@ def run_omp(
     nbp_call_spots: NotebookPage,
 ) -> NotebookPage:
     """
-    Run orthogonal matching pursuit (omp) on every pixel to determine a pixel score for each gene at each pixel.
+    Run orthogonal matching pursuit (omp).
+
+    On every pixel, determine a gene pixel score using a greedy algorithm.
 
     From these OMP pixel scores, create a spot score at every pixel position by convolving with a given mean spot.
 
@@ -51,7 +56,7 @@ def run_omp(
         nbp_call_spots (NotebookPage): `call_spots` notebook page.
 
     Returns:
-        `NotebookPage[omp]`: nbp_omp. Page containing gene assignments and info for OMP spots.
+        (NotebookPage): nbp_omp. Completed omp notebook page.
     """
     import torch
 
@@ -105,6 +110,7 @@ def run_omp(
         dot_product_threshold=config["dot_product_threshold"],
         alpha=config["alpha"],
         beta=config["beta"],
+        return_stopping_criteria=config["debug"],
         force_cpu=config["force_cpu"],
     )
     colour_norm_factor = nbp_call_spots.colour_norm_factor.astype(np.float32)
@@ -210,6 +216,9 @@ def run_omp(
         log.debug(f"OMP {n_register_chunk_size=}")
         log.debug(f"OMP {n_chunk_count=}")
 
+        if config["debug"]:
+            tile_stopping_criteria = np.full(n_tile_pixels, solver.INTENSITY_TOO_LOW, np.int8)
+
         with tqdm.tqdm(total=n_tile_pixels, desc="Computing pixel scores", unit="pixel", postfix=postfix) as pbar:
             while index_min < n_tile_pixels:
                 if n_subset_pixels is None:
@@ -231,8 +240,14 @@ def run_omp(
                 del intensities_subset
 
                 pixel_scores_subset = np.zeros((index_max - index_min, n_genes), np.float32)
-                if is_intense.sum() > 0:
-                    pixel_scores_subset[is_intense] = solver.solve(colour_subset[is_intense], **solver_kwargs)
+                if is_intense.any():
+                    solve_results = solver.solve(colour_subset[is_intense], **solver_kwargs)
+                    if config["debug"]:
+                        solve_results, stopping_criteria = solve_results
+                        stopping_criteria_subset = np.full(index_max - index_min, solver.INTENSITY_TOO_LOW, np.int8)
+                        stopping_criteria_subset[is_intense] = stopping_criteria
+                        tile_stopping_criteria[index_min:index_max] = stopping_criteria_subset
+                    pixel_scores_subset[is_intense] = solve_results
                 del colour_subset, is_intense
 
                 pixel_scores_subset = scipy.sparse.csr_matrix(pixel_scores_subset)
@@ -242,7 +257,13 @@ def run_omp(
                 index_min = index_max
                 subset_index += 1
         subset_count = subset_index
-        log.debug(f"Compute pixel scores, tile {t} complete")
+        log.debug(f"Compute pixel scores for tile {t} complete")
+
+        if config["debug"]:
+            assert (tile_stopping_criteria != solver.NO_REASON).all()
+            tile_stopping_criteria = tile_stopping_criteria.reshape(tile_shape, order="F")
+            save_filepath = os.path.join(nbp_file.output_dir, STOPPING_CRITERIA_NAME.format(t))
+            np.savez_compressed(save_filepath, tile_stopping_criteria)
 
         t_spots_local_yxz = np.zeros(shape=(0, 3), dtype=np.int16)
         t_spots_tile = np.zeros(shape=0, dtype=np.int16)

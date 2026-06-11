@@ -253,6 +253,7 @@ class Config:
             "radius_xy": ("int", "positive"),
             "radius_z": ("int", "positive"),
             "score_threshold": ("number", "not-negative"),
+            "debug": ("bool", ""),
         },
         "thresholds": {
             "intensity": ("maybe_number", ""),
