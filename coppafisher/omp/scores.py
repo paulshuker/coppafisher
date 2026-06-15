@@ -72,7 +72,7 @@ def boost_z_edge_spot_scores(spot_score_image: Any, mean_spot: Any) -> Any:
     spot_shape_kernel = mean_spot.detach().clone().to(dtype=spot_score_image_boosted.dtype)
     spot_shape_kernel /= spot_shape_kernel.sum()
 
-    # FIXME: This algorithm assumes that the mean spot is symmetrical along the middle z plane. Can be made more robust.
+    # NOTE: This algorithm assumes that the mean spot is symmetrical along the middle z plane. Can be made more robust.
     z_edge_size = min(mean_spot.shape[2] // 2, spot_score_image.shape[3])
     z_edge_weightings = torch.zeros((1, 1, 1, z_edge_size), dtype=torch.float32)
     for z_edge in range(z_edge_size):

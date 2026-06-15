@@ -22,6 +22,7 @@ from ..utils import dict_io, duplicates, intensity, system
 
 DEBUG_INFO_NAME = "omp_debug_info.txt"
 STOPPING_CRITERIA_NAME = "omp_tile_{}_stopping_criteria.npz"
+ITERATION_COUNTS_NAME = "omp_tile_{}_iteration_counts.npz"
 
 
 def run_omp(
@@ -80,6 +81,25 @@ def run_omp(
     if platform.system() != "Windows":
         # Avoids chance of memory crashing on Linux.
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+
+    if config["debug"]:
+        debug_file_path = os.path.join(nbp_file.output_dir, DEBUG_INFO_NAME)
+        file = open(debug_file_path, "w")
+        file.writelines(
+            [
+                "OMP debugging information can be found in the output directory",
+                "",
+                STOPPING_CRITERIA_NAME.format("t")
+                + ": The OMP iteration stopping criteria for every pixel on tile t."
+                + "0 means the pixel had a residual intensity lower than the threshold, 1 means the best gene score was"
+                + " too low, 2 means the best gene was background, 3 means the best gene was already assigned, "
+                + "4 means maximum iterations was reached.",
+                "",
+                ITERATION_COUNTS_NAME.format("t")
+                + ": Tile t's number of assigned genes (iteration count) on every pixel.",
+            ]
+        )
+        file.close()
 
     # Preparing useful values used during OMP.
     n_genes = nbp_call_spots.bled_codes.shape[0]
@@ -217,6 +237,7 @@ def run_omp(
         log.debug(f"OMP {n_chunk_count=}")
 
         if config["debug"]:
+            iteration_counts = np.full(n_tile_pixels, 0, np.uint8)
             tile_stopping_criteria = np.full(n_tile_pixels, solver.INTENSITY_TOO_LOW, np.int8)
 
         with tqdm.tqdm(total=n_tile_pixels, desc="Computing pixel scores", unit="pixel", postfix=postfix) as pbar:
@@ -244,9 +265,10 @@ def run_omp(
                     solve_results = solver.solve(colour_subset[is_intense], **solver_kwargs)
                     if config["debug"]:
                         solve_results, stopping_criteria = solve_results
-                        stopping_criteria_subset = np.full(index_max - index_min, solver.INTENSITY_TOO_LOW, np.int8)
-                        stopping_criteria_subset[is_intense] = stopping_criteria
-                        tile_stopping_criteria[index_min:index_max] = stopping_criteria_subset
+                        is_subset_intense = np.zeros(n_tile_pixels, bool)
+                        is_subset_intense[index_min:index_max] = is_intense
+                        iteration_counts[is_subset_intense] = (~np.isclose(solve_results, 0)).sum(1)
+                        tile_stopping_criteria[is_subset_intense] = stopping_criteria
                     pixel_scores_subset[is_intense] = solve_results
                 del colour_subset, is_intense
 
@@ -260,6 +282,12 @@ def run_omp(
         log.debug(f"Compute pixel scores for tile {t} complete")
 
         if config["debug"]:
+            assert (iteration_counts >= 0).all()
+            assert (iteration_counts <= config["max_genes"]).all()
+            iteration_counts = iteration_counts.reshape(tile_shape, order="F")
+            save_filepath = os.path.join(nbp_file.output_dir, ITERATION_COUNTS_NAME.format(t))
+            np.savez_compressed(save_filepath, iteration_counts)
+
             assert (tile_stopping_criteria != solver.NO_REASON).all()
             tile_stopping_criteria = tile_stopping_criteria.reshape(tile_shape, order="F")
             save_filepath = os.path.join(nbp_file.output_dir, STOPPING_CRITERIA_NAME.format(t))

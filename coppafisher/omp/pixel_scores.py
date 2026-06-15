@@ -92,14 +92,14 @@ class PixelScoreSolver:
                     returned if return_all_weights is true.
                 - (`(n_pixels x n_genes x n_rounds_use x n_channels_use) ndarray[float32]`): final_residuals. For every
                     gene, this is the residual colour that is scored against the gene's bled code to find the final
-                    pixel scores. In the OMP method documentation, this is denoted by epsilon ^ 2 * tilde{R} with i
+                    pixel scores. In the OMP method documentation, this is denoted by $\epsilon ^ 2 * tilde{R}$ with i
                     being the final iteration. For genes that are not assigned to a pixel, nan is placed. Only returned
                     if return_all_residuals is true.
                 - (`(n_pixels) ndarray[int8]`): stopping_criteria. The reason why each pixel stopped iterating. 0 when
-                      intensity is too low, 1 when best gene score is too low, 2 when the best gene is background, 3
-                      when best gene is already assigned, 4 when maximum iteration count is reached. Sometimes a pixel
-                      reached multiple stopping criteria at once. In these cases, the lowest integer reason takes
-                      precedence.
+                    intensity is too low, 1 when best gene score is too low, 2 when the best gene is background, 3
+                    when best gene is already assigned, 4 when maximum iteration count is reached. Sometimes a pixel
+                    reached multiple stopping criteria at once. In these cases, the lowest integer reason takes
+                    precedence. Only returned if return_stopping_criteria is true.
 
         Notes:
             - All computations are run with 32-bit float precision.
