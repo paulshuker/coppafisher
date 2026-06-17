@@ -3,7 +3,7 @@
  * Viewer: Improved positioning of tiles in dapi/anchor image backgrounds.
  * Viewer: Broken dapi/anchor image backgrounds at four tile overlap areas fix.
  * Export: Broken dapi image exports at four tile overlap areas fix.
- * OMP: New optional debug information saved to disk.
+ * OMP: New optional debug information can be saved to disk.
 
 
 2026/05/25 Version 1.13 (v1.13.0):

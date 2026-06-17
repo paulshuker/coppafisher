@@ -61,11 +61,18 @@ Tests are run via [pytest](https://github.com/pytest-dev/pytest/). Scripts are u
 
 ## Run Tests
 
-Run unit tests (~10s)
+Run unit tests (~4s)
 
 ```terminal
 pytest
 ```
+
+Run slow tests (~15s)
+
+```terminal
+pytest -m slow
+```
+
 
 Run integration tests (~90s)
 

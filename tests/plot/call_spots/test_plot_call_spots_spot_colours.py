@@ -1,9 +1,11 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import pytest
 
 from coppafisher.plot.call_spots import spot_colours
 
 
+@pytest.mark.slow
 def test_ViewSpotColourAndCode() -> None:
     rng = np.random.RandomState(0)
 

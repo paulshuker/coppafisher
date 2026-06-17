@@ -1,12 +1,14 @@
 import itertools
 
 import numpy as np
+import pytest
 
 from coppafisher.omp.pixel_scores import PixelScoreSolver
 from coppafisher.utils import base
 from coppafisher.utils import intensity as utils_intensity
 
 
+@pytest.mark.slow
 def test_solve() -> None:
     rng = np.random.RandomState(0)
 

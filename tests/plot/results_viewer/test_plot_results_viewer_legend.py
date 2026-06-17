@@ -1,10 +1,12 @@
 import matplotlib
 import numpy as np
+import pytest
 
 from coppafisher.plot.results_viewer import gene, legend
 from coppafisher.plot.results_viewer.subplot import Subplot
 
 
+@pytest.mark.slow
 def test_Legend() -> None:
     matplotlib.use("Agg")
 
