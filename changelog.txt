@@ -1,8 +1,9 @@
-2026/MM/DD Version 1.13 Patch (v1.13.1):
+2026/MM/DD Version 1.14 (v1.14.0):
  * Viewer: The gene legend is now responsive to mouse movements.
  * Viewer: Improved positioning of tiles in dapi/anchor image backgrounds.
  * Viewer: Broken dapi/anchor image backgrounds at four tile overlap areas fix.
  * Export: Broken dapi image exports at four tile overlap areas fix.
+ * OMP: Pixel scores can now be computed even after background gene detection.
  * OMP: New optional debug information can be saved to disk.
 
 
