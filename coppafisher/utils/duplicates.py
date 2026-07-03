@@ -1,7 +1,9 @@
-from typing import Any
+from typing import Any, TypeAlias
 
 import numpy as np
 import scipy
+
+Tensor: TypeAlias = Any
 
 
 def get_tile_centres(tile_sz: int, n_z_planes: int, tile_origins: np.ndarray[float]) -> Any:
@@ -40,7 +42,7 @@ def get_tile_centres(tile_sz: int, n_z_planes: int, tile_origins: np.ndarray[flo
     return tile_centres
 
 
-def is_duplicate_spot(yxz_global_positions: Any, tile_number: int, tile_centres: Any) -> Any:
+def is_duplicate_spot(yxz_global_positions: Tensor, tile_number: int, tile_centres: Tensor) -> Any:
     """
     Checks what spot positions are duplicates. A duplicate is defined as any spot that is closer to a different tile
     origin than the one it is assigned to.

@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from typing import Any
+from typing import Any, TypeAlias
 
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button, TextBox
@@ -8,11 +8,13 @@ from .subplot import Subplot
 
 
 class ExportTool2D(Subplot):
+    ShapesLayer: TypeAlias = Any
+
     DESCRIPTION: str = """Go back to the Viewer window, press P (or R or Shift + P) to start
  building a polygon shape, press Enter when finished. Build other shapes if needed. Press the
  Export button below to export the spots. Close this window when done."""
 
-    shapes_layer: Any
+    shapes_layer: ShapesLayer
     on_export_clicked: Callable[["ExportTool2D"], None] | None = None
     on_dilate_clicked: Callable[["ExportTool2D"], None] | None = None
     on_closed: Callable[["ExportTool2D"], None] | None = None
