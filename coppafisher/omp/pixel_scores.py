@@ -1,4 +1,4 @@
-from typing import Any, Tuple, TypeAlias
+from typing import Any, Dict, Tuple, TypeAlias
 
 import numpy as np
 
@@ -23,6 +23,7 @@ class PixelScoreSolver:
 
         self.DTYPE_T = torch.float32
         self.NO_REASON = torch.iinfo(torch.int8).max
+        self.bg_bled_code_cache: Dict[Tuple[int, int], np.ndarray] = {}
 
     def solve(
         self,
@@ -271,9 +272,15 @@ class PixelScoreSolver:
             (`(n_channels_use x n_rounds_use x n_channels_use) ndarray[float32]`): bg_bled_codes. bg_bled_codes[i] is
                 the i'th background bled code.
         """
+        cache_key = (n_rounds_use, n_channels_use)
+        if cache_key in self.bg_bled_code_cache:
+            return self.bg_bled_code_cache[cache_key].copy()
+
         bg_bled_codes = np.eye(n_channels_use, dtype=np.float32)[:, None, :].repeat(n_rounds_use, axis=1)
         # Normalise the codes the same way as gene bled codes.
         bg_bled_codes /= np.linalg.norm(bg_bled_codes, axis=(1, 2))
+        self.bg_bled_code_cache[cache_key] = bg_bled_codes.copy()
+
         return bg_bled_codes
 
     def get_next_gene_assignments(
