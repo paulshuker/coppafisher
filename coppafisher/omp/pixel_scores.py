@@ -408,16 +408,14 @@ class PixelScoreSolver:
         assert (
             best_gene_is_fail_gene == torch.logical_or(best_gene_is_background_gene, best_gene_is_already_assigned_gene)
         ).all()
-        best_gene_is_background_gene = torch.logical_and(best_gene_is_background_gene, ~is_background_assignment)
+        best_gene_is_background_gene = torch.logical_and(best_gene_is_background_gene, ~intensity_is_low)
         best_gene_is_background_gene = torch.logical_and(
             best_gene_is_background_gene, stopping_criteria == self.NO_REASON
         )
         best_gene_is_already_assigned_gene = torch.logical_and(
             best_gene_is_already_assigned_gene, stopping_criteria == self.NO_REASON
         )
-        best_gene_is_already_assigned_gene = torch.logical_and(
-            best_gene_is_already_assigned_gene, ~is_background_assignment
-        )
+        best_gene_is_already_assigned_gene = torch.logical_and(best_gene_is_already_assigned_gene, ~intensity_is_low)
 
         stopping_criteria[best_gene_is_background_gene] = self.BEST_GENE_IS_BACKGROUND
         stopping_criteria[best_gene_is_already_assigned_gene] = self.BEST_GENE_ALREADY_ASSIGNED
