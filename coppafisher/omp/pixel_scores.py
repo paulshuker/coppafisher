@@ -370,24 +370,27 @@ class PixelScoreSolver:
             # Has shape n_spots x n_genes.
             next_best_gene_scores, next_best_genes = torch.max(all_gene_scores, dim=1)
             next_best_genes = next_best_genes.int()
-            is_background_assignment = torch.logical_and(next_best_genes >= n_genes, ~intensity_is_low)
-            if not is_background_assignment.any():
+            is_bg_assignment = torch.logical_and(next_best_genes >= n_genes, ~intensity_is_low)
+            bg_assignment_sum = is_bg_assignment.sum()
+            if not bg_assignment_sum:
                 break
 
             # For pixels with background gene assignment, background subtract on the colour.
             # Then recompute gene assignment scores.
 
             # Has shape n_pixels_continue x n_channels_use.
-            percentiles = residual_colours[is_background_assignment].quantile(0.25, 1, interpolation="midpoint")
+            percentiles = residual_colours[is_bg_assignment].quantile(0.25, 1, interpolation="midpoint")
+            # We only want to take one channel from each pixel (for one bg gene), therefore percentiles_keep is created.
             percentiles_keep = torch.zeros_like(percentiles, dtype=bool, device=percentiles.device)
-            percentiles_keep[:, next_best_genes[is_background_assignment] - n_genes] = True
+            percentiles_keep[range(bg_assignment_sum), next_best_genes[is_bg_assignment] - n_genes] = True
+            assert (percentiles_keep.sum(1) == 1).all()
             percentiles[torch.logical_not(percentiles_keep)] = 0
             percentiles = percentiles[:, np.newaxis]
-            residual_colours[is_background_assignment] -= percentiles
+            residual_colours[is_bg_assignment] -= percentiles
             del percentiles, percentiles_keep
 
-            all_gene_scores[is_background_assignment] = dot_product.dot_product_score(
-                residual_colours[is_background_assignment][np.newaxis], all_bled_codes[np.newaxis, np.newaxis]
+            all_gene_scores[is_bg_assignment] = dot_product.dot_product_score(
+                residual_colours[is_bg_assignment][np.newaxis], all_bled_codes[np.newaxis, np.newaxis]
             )[0]
 
         next_best_gene_scores, next_best_genes = torch.max(all_gene_scores, dim=1)
