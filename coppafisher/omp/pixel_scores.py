@@ -375,12 +375,12 @@ class PixelScoreSolver:
             if not bg_assignment_sum:
                 break
 
-            # For pixels with background gene assignment, background subtract on the colour.
-            # Then recompute gene assignment scores.
+            # For pixels with background gene assignment, background subtract from the residual colour.
+            # Then gene assignment scores are recomputed.
 
             # Has shape n_pixels_continue x n_channels_use.
             percentiles = residual_colours[is_bg_assignment].quantile(0.25, 1, interpolation="midpoint")
-            # We only want to take one channel from each pixel (for one bg gene), therefore percentiles_keep is created.
+            # Only take one channel from each pixel (the assigned bg gene), therefore percentiles_keep is created.
             percentiles_keep = torch.zeros_like(percentiles, dtype=bool, device=percentiles.device)
             percentiles_keep[range(bg_assignment_sum), next_best_genes[is_bg_assignment] - n_genes] = True
             assert (percentiles_keep.sum(1) == 1).all()
