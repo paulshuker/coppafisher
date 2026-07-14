@@ -69,6 +69,7 @@ class ViewOMPPixelScoreImage(Subplot):
         beta = Config.get_default_for("omp", "beta")
         max_genes = Config.get_default_for("omp", "max_genes")
         dot_product_threshold = Config.get_default_for("omp", "dot_product_threshold")
+        bg_subtract_percentile = Config.get_default_for("omp", "background_subtract_percentile")
         mean_spot_filepath = importlib_resources.files("coppafisher.omp").joinpath("mean_spot.npy")
         mean_spot: np.ndarray = np.load(mean_spot_filepath).astype(np.float32)
         if nbp_omp is not None:
@@ -77,6 +78,7 @@ class ViewOMPPixelScoreImage(Subplot):
             beta = float(nbp_omp.associated_configs["omp"]["beta"])
             max_genes = int(nbp_omp.associated_configs["omp"]["max_genes"])
             dot_product_threshold = float(nbp_omp.associated_configs["omp"]["dot_product_threshold"])
+            bg_subtract_percentile = float(nbp_omp.associated_configs["omp"]["background_subtract_percentile"])
             mean_spot = nbp_omp.mean_spot.astype(np.float32)
         yxz_min = local_yxz.copy() + np.array([-im_size, -im_size, min(z_planes)], int)
         yxz_max = local_yxz.copy() + np.array([im_size, im_size, max(z_planes)], int) + 1
@@ -106,6 +108,7 @@ class ViewOMPPixelScoreImage(Subplot):
             max_genes,
             dot_product_threshold,
             min_intensity,
+            bg_subtract_percentile,
             alpha,
             beta,
         )

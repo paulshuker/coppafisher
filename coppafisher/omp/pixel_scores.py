@@ -33,6 +33,7 @@ class PixelScoreSolver:
         maximum_iterations: int,
         dot_product_threshold: float,
         minimum_intensity: float,
+        background_subtract_percentile: float,
         alpha: float,
         beta: float,
         return_all_scores: bool = False,
@@ -69,6 +70,9 @@ class PixelScoreSolver:
                 colour to be assigned the gene. If more than one gene is above this threshold, the top score is used.
             minimum_intensity (float): a pixel's residual intensity must be above minimum_intensity to pass gene
                 assignment.
+            background_subtract_percentile (float): when a background gene is detected, the
+                background_subtract_percentile'th percentile across rounds is removed from the residual colour in the
+                background gene's channel. Must be between 0 and 100.
             alpha (float): the alpha parameter. Used to compute the error variance after each iteration.
             beta (float): the beta parameter. Used to compute the error variance after each iteration.
             return_all_scores (bool, optional): return all gene round dot product scores on each iteration. Default:
@@ -118,6 +122,7 @@ class PixelScoreSolver:
         assert type(maximum_iterations) is int
         assert type(dot_product_threshold) is float
         assert type(minimum_intensity) is float
+        assert type(background_subtract_percentile) is float
         assert type(alpha) is float
         assert type(beta) is float
         assert type(return_all_scores) is bool
@@ -129,6 +134,8 @@ class PixelScoreSolver:
         assert maximum_iterations > 0
         assert dot_product_threshold >= 0
         assert minimum_intensity >= 0
+        assert background_subtract_percentile >= 0
+        assert background_subtract_percentile <= 100
         assert pixel_colours.ndim == 3
         assert bled_codes.ndim == 3
         assert background_codes.ndim == 3
@@ -186,6 +193,7 @@ class PixelScoreSolver:
                 fail_gene_indices,
                 dot_product_threshold,
                 minimum_intensity,
+                background_subtract_percentile,
                 return_all_scores=return_all_scores,
                 return_stopping_criteria=return_stopping_criteria,
             )
@@ -290,6 +298,7 @@ class PixelScoreSolver:
         fail_gene_indices: Tensor,
         dot_product_threshold: float,
         minimum_intensity: float,
+        bg_subtraction_percentile: float,
         return_all_scores: bool = False,
         return_stopping_criteria: bool = False,
     ) -> Tuple[Tensor] | Tuple[Tensor, Tensor] | Tuple[Tensor, Tensor, Tensor]:
@@ -321,7 +330,10 @@ class PixelScoreSolver:
             dot_product_threshold (float): a gene can only be assigned if the dot product score is above this threshold.
             minimum_intensity (float): a colour's intensity must be above minimum_intensity to pass gene assignment.
                 The intensity is defined as min_r (max_c abs(residual_colour)).
+            bg_subtraction_percentile (float): what percentile is taken across rounds on the background channel for
+                background subtraction. Must be between 0 and 100.
             return_all_scores (bool, optional): return the dot product scores for every gene. Default: false.
+            return_stopping_criteria (bool, optional): return the stopping criteria for every pixel. Default: false.
 
         Returns:
             Tuple containing:
@@ -339,6 +351,7 @@ class PixelScoreSolver:
         assert type(fail_gene_indices) is torch.Tensor
         assert type(dot_product_threshold) is float
         assert type(minimum_intensity) is float
+        assert type(bg_subtraction_percentile) is float
         assert residual_colours.ndim == 3
         assert gene_bled_codes.ndim == 3
         assert fail_gene_indices.ndim == 2
@@ -350,6 +363,8 @@ class PixelScoreSolver:
         assert (fail_gene_indices >= 0).all() and (fail_gene_indices < gene_bled_codes.shape[0]).all()
         assert dot_product_threshold >= 0
         assert minimum_intensity >= 0
+        assert bg_subtraction_percentile >= 0
+        assert bg_subtraction_percentile <= 100
 
         n_pixels, n_rounds_use, n_channels_use = residual_colours.shape
         n_genes = gene_bled_codes.shape[0]
@@ -379,7 +394,9 @@ class PixelScoreSolver:
             # Then gene assignment scores are recomputed.
 
             # Has shape n_pixels_continue x n_channels_use.
-            percentiles = residual_colours[is_bg_assignment].quantile(0.25, 1, interpolation="midpoint")
+            percentiles = residual_colours[is_bg_assignment].quantile(
+                0.01 * bg_subtraction_percentile, 1, interpolation="midpoint"
+            )
             # Only take one channel from each pixel (the assigned bg gene), therefore percentiles_keep is created.
             percentiles_keep = torch.zeros_like(percentiles, dtype=bool, device=percentiles.device)
             percentiles_keep[range(bg_assignment_sum), next_best_genes[is_bg_assignment] - n_genes] = True

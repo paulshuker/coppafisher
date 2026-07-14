@@ -248,6 +248,7 @@ class Config:
             "alpha": ("number", "not-negative"),
             "beta": ("number", "positive"),
             "dot_product_threshold": ("number", "not-negative"),
+            "background_subtract_percentile": ("number", "not-negative_lteq100"),
             "subset_pixels": ("maybe_int", "positive"),
             "force_cpu": ("bool", ""),
             "radius_xy": ("int", "positive"),

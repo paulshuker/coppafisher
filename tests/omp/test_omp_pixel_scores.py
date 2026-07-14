@@ -29,6 +29,7 @@ def test_solve() -> None:
     maximum_iterations = 4
     dot_product_threshold = 0.001
     minimum_intensity = 0.0
+    background_subtract_percentile = 0.0
     alpha = 0.0
     beta = 1.0
 
@@ -42,6 +43,7 @@ def test_solve() -> None:
             maximum_iterations,
             dot_product_threshold,
             minimum_intensity,
+            background_subtract_percentile,
             alpha,
             beta,
             return_all_scores=return_all_scores,
@@ -75,7 +77,15 @@ def test_solve() -> None:
     previous_n_genes_assigned = n_pixels * n_genes + 1
     for dp_threshold in [dot_product_threshold + 0.001 * i for i in range(1, 100)] + [10.0]:
         result = solver.solve(
-            pixel_colours, bled_codes, bg_codes, maximum_iterations, dp_threshold, minimum_intensity, alpha, beta
+            pixel_colours,
+            bled_codes,
+            bg_codes,
+            maximum_iterations,
+            dp_threshold,
+            minimum_intensity,
+            background_subtract_percentile,
+            alpha,
+            beta,
         )
         n_genes_assigned = (~np.isclose(result, 0)).sum()
         assert n_genes_assigned < n_pixels * n_genes + 1
@@ -106,7 +116,15 @@ def test_solve() -> None:
         for g in gene_assignments:
             pixel_colours[p] += (rng.rand() + 2) * bled_codes[g]
     result = solver.solve(
-        pixel_colours, bled_codes, bg_codes, maximum_iterations, dot_product_threshold, minimum_intensity, alpha, beta
+        pixel_colours,
+        bled_codes,
+        bg_codes,
+        maximum_iterations,
+        dot_product_threshold,
+        minimum_intensity,
+        background_subtract_percentile,
+        alpha,
+        beta,
     )
     for p in range(n_pixels):
         assert (~np.isclose(result[p], 0)).sum() == len(expected_gene_assignments[p])
@@ -123,7 +141,15 @@ def test_solve() -> None:
         intensity = utils_intensity.compute_intensity(pixel_colours[[p]]).item()
         assert intensity < minimum_intensity
     result = solver.solve(
-        pixel_colours, bled_codes, bg_codes, maximum_iterations, dot_product_threshold, minimum_intensity, alpha, beta
+        pixel_colours,
+        bled_codes,
+        bg_codes,
+        maximum_iterations,
+        dot_product_threshold,
+        minimum_intensity,
+        background_subtract_percentile,
+        alpha,
+        beta,
     )
     for p, dim in enumerate(dim_gene_assignments):
         if dim:
@@ -178,6 +204,7 @@ def test_get_next_gene_assignments() -> None:
         fail_gene_indices=fail_gene_indices,
         dot_product_threshold=dot_product_threshold,
         minimum_intensity=0.0,
+        bg_subtraction_percentile=25.0,
     )
     omp_solver = PixelScoreSolver()
     best_genes = omp_solver.get_next_gene_assignments(**kwargs)

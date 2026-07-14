@@ -43,6 +43,7 @@ class ViewOMPColourSum(Subplot):
         beta = Config.get_default_for("omp", "beta")
         max_genes = Config.get_default_for("omp", "max_genes")
         dot_product_threshold = Config.get_default_for("omp", "dot_product_threshold")
+        bg_subtract_percentile = Config.get_default_for("omp", "background_subtract_percentile")
         self.gene_names = nbp_call_spots.gene_names
         if nbp_omp is not None:
             min_intensity = float(nbp_omp.results[f"tile_{spot_tile}"].attrs["minimum_intensity"])
@@ -50,6 +51,7 @@ class ViewOMPColourSum(Subplot):
             beta = float(nbp_omp.associated_configs["omp"]["beta"])
             max_genes = int(nbp_omp.associated_configs["omp"]["max_genes"])
             dot_product_threshold = float(nbp_omp.associated_configs["omp"]["dot_product_threshold"])
+            bg_subtract_percentile = float(nbp_omp.associated_configs["omp"]["background_subtract_percentile"])
 
         self.colour = spot_colour.copy().astype(np.float32)
         self.colour *= nbp_call_spots.colour_norm_factor[spot_tile].astype(np.float32)
@@ -63,6 +65,7 @@ class ViewOMPColourSum(Subplot):
             maximum_iterations=max_genes,
             dot_product_threshold=dot_product_threshold,
             minimum_intensity=min_intensity,
+            background_subtract_percentile=bg_subtract_percentile,
             alpha=alpha,
             beta=beta,
             return_all_weights=True,
