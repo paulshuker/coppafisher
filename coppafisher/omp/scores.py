@@ -1,15 +1,17 @@
-from typing import Any
+from typing import Any, TypeAlias
 
 import numpy as np
 
 from ..utils import system
 
+Tensor: TypeAlias = Any
+
 
 def score_pixel_score_image(
-    pixel_score_image: Any,
-    mean_spot: Any,
+    pixel_score_image: Tensor,
+    mean_spot: Tensor,
     force_cpu: bool = True,
-) -> Any:
+) -> Tensor:
     """
     Computes the OMP spot score image from the pixel score image(s). The final spot score image is the pixel score image
     convolved with the mean spot divided by the mean spot's sum. The outside edges are considered zeros.
@@ -46,7 +48,7 @@ def score_pixel_score_image(
     return scores
 
 
-def boost_z_edge_spot_scores(spot_score_image: Any, mean_spot: Any) -> Any:
+def boost_z_edge_spot_scores(spot_score_image: Tensor, mean_spot: Tensor) -> Tensor:
     """
     Along the z axis, the kernel is cut off if a pixel is too close the edge of the z stack. So, these pixel scores are
     boosted. This boosting is not applied along the x or y axes because there are many more x and y pixels and there is

@@ -1,10 +1,12 @@
-from typing import Any, Optional, Union
+from typing import Any, Optional, TypeAlias, Union
 
 import numpy as np
 import zarr
 
+Tensor: TypeAlias = Any
 
-def convert_coords_to_torch_grid(yxz_coords: Any, image_shape: tuple[int, int, int]) -> Any:
+
+def convert_coords_to_torch_grid(yxz_coords: Tensor, image_shape: tuple[int, int, int]) -> Any:
     """
     Convert typically used y, x, z pixel coordinates into pytorch grid coordinates as defined in pytorch's grid_sample
     function (https://pytorch.org/docs/stable/generated/torch.nn.functional.grid_sample.html) with align_corners set to
@@ -51,12 +53,12 @@ def convert_coords_to_torch_grid(yxz_coords: Any, image_shape: tuple[int, int, i
 
 
 def apply_flow_new(
-    yxz: np.ndarray | Any,
+    yxz: np.ndarray | Tensor,
     flow: zarr.Array | np.ndarray,
     tile: int,
     r: int,
     flow_multiplier: float = 1.0,
-) -> np.ndarray | Any:
+) -> np.ndarray | Tensor:
     """
     Apply the pixel shifts from flow to each yxz positions given. If the yxz positions are not exact integers within
     the flow image, then bilinear interpolation is done. On out-of-bound regions, the flow shift is taken to be the
@@ -124,7 +126,7 @@ def apply_flow_new(
     return yxz_torch
 
 
-def apply_affine(yxz: Any, affine: Any) -> Any:
+def apply_affine(yxz: Tensor, affine: Tensor) -> Tensor:
     """
     Transform the coordinates yxz based on the affine transform alone. E.g. to find coordinates of spots on the same
     tile but on a different round and channel.
@@ -150,7 +152,7 @@ def apply_affine(yxz: Any, affine: Any) -> Any:
 
 
 def get_spot_colours_new_safe(
-    nbp_basic_info, yxz: Optional[Union[np.ndarray, Any]] = None, *args, **kwargs
+    nbp_basic_info, yxz: Optional[Union[np.ndarray, Tensor]] = None, *args, **kwargs
 ) -> np.ndarray:
     """
     A wrapper function for get_spot_colours_new below. See that function for the arguments/details. This function runs
@@ -196,10 +198,10 @@ def get_spot_colours_new_safe(
 
 
 def get_spot_colours_new(
-    yxz: np.ndarray | Any,
+    yxz: np.ndarray | Tensor,
     image: np.ndarray | zarr.Array,
     flow: np.ndarray | zarr.Array,
-    affine: np.ndarray | Any,
+    affine: np.ndarray | Tensor,
     tile: int,
     use_rounds: list[int],
     use_channels: list[int],

@@ -1,16 +1,19 @@
-from typing import Any
+from typing import Any, TypeAlias
 
 import numpy as np
 
+Tensor: TypeAlias = Any
+
 
 def dot_product_score(
-    spot_colours: np.ndarray | Any,
-    bled_codes: np.ndarray | Any,
-) -> np.ndarray | Any:
+    spot_colours: np.ndarray | Tensor,
+    bled_codes: np.ndarray | Tensor,
+) -> np.ndarray | Tensor:
     """
-    Score each spot to each gene. The score is a dot product of each round separately, giving each round a similar
-    contribution. The maximum score is the assigned gene for said spot. A score is reduced by 1 / n_rounds when the
-    spot colour is zero in said round. The scores range from 0 to infinity.
+    Score each spot to each gene.
+
+    First, every spot colour and bled code is L2 normalised across channels for each round separately. The score is then
+    the arithmetic average of dot products over separate rounds divided by n_rounds.
 
     Args:
         spot_colours (`(n_batches x n_spots x n_rounds_use x n_channels_use) ndarray[float] or tensor[float]`): spot
@@ -25,8 +28,8 @@ def dot_product_score(
             if spot_colours is a tensor.
 
     Notes:
-        - If n_batches is 1 for a tensor, then that tensor will be broadcasted for all batches.
-        - If n_spots is 1 for bled_codes, then the bled codes will be repeated for all spots in spot_colours.
+        - If n_batches is 1 for an argument, then the array will be broadcasted for all batches.
+        - If n_spots is 1 for bled_codes, then the bled codes will be used repeatedly for every spot in spot_colours.
     """
     import torch
 

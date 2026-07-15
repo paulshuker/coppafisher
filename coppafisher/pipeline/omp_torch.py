@@ -128,6 +128,7 @@ def run_omp(
         background_codes=bg_bled_codes,
         maximum_iterations=max_genes,
         dot_product_threshold=config["dot_product_threshold"],
+        background_subtract_percentile=config["background_subtract_percentile"],
         alpha=config["alpha"],
         beta=config["beta"],
         return_stopping_criteria=config["debug"],

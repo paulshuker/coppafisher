@@ -50,6 +50,7 @@ class ViewOMPGeneScores(Subplot):
         beta = Config.get_default_for("omp", "beta")
         max_genes = Config.get_default_for("omp", "max_genes")
         dot_product_threshold = Config.get_default_for("omp", "dot_product_threshold")
+        bg_subtract_percentile = Config.get_default_for("omp", "background_subtract_percentile")
         min_intensity = 0.0
         if nbp_omp is not None:
             omp_config = nbp_omp.associated_configs["omp"]
@@ -58,6 +59,7 @@ class ViewOMPGeneScores(Subplot):
             beta = float(omp_config["beta"])
             max_genes = int(omp_config["max_genes"])
             dot_product_threshold = float(omp_config["dot_product_threshold"])
+            bg_subtract_percentile = float(omp_config["background_subtract_percentile"])
         n_rounds_use = len(nbp_basic.use_rounds)
         n_channels_use = len(nbp_basic.use_channels)
         self.dp_thresh = dot_product_threshold
@@ -84,6 +86,7 @@ class ViewOMPGeneScores(Subplot):
             maximum_iterations=max_genes,
             dot_product_threshold=self.dp_thresh,
             minimum_intensity=min_intensity,
+            background_subtract_percentile=bg_subtract_percentile,
             alpha=alpha,
             beta=beta,
             return_all_scores=True,

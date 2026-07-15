@@ -23,9 +23,13 @@ def test_solve() -> None:
     bled_codes = rng.rand(n_genes, n_rounds, n_channels).astype(dtype)
     bled_codes /= np.linalg.norm(bled_codes, axis=(-1, -2), keepdims=True)
     bg_codes = solver.create_background_bled_codes(n_rounds, n_channels)
+    assert bg_codes.ndim == 3
+    assert bg_codes.shape == (n_channels, n_rounds, n_channels)
+    assert bg_codes.dtype == np.float32
     maximum_iterations = 4
     dot_product_threshold = 0.001
     minimum_intensity = 0.0
+    background_subtract_percentile = 0.0
     alpha = 0.0
     beta = 1.0
 
@@ -39,6 +43,7 @@ def test_solve() -> None:
             maximum_iterations,
             dot_product_threshold,
             minimum_intensity,
+            background_subtract_percentile,
             alpha,
             beta,
             return_all_scores=return_all_scores,
@@ -72,7 +77,15 @@ def test_solve() -> None:
     previous_n_genes_assigned = n_pixels * n_genes + 1
     for dp_threshold in [dot_product_threshold + 0.001 * i for i in range(1, 100)] + [10.0]:
         result = solver.solve(
-            pixel_colours, bled_codes, bg_codes, maximum_iterations, dp_threshold, minimum_intensity, alpha, beta
+            pixel_colours,
+            bled_codes,
+            bg_codes,
+            maximum_iterations,
+            dp_threshold,
+            minimum_intensity,
+            background_subtract_percentile,
+            alpha,
+            beta,
         )
         n_genes_assigned = (~np.isclose(result, 0)).sum()
         assert n_genes_assigned < n_pixels * n_genes + 1
@@ -87,6 +100,7 @@ def test_solve() -> None:
     pixel_colours = np.zeros((n_pixels, n_rounds, n_channels), dtype)
     bled_codes = np.zeros((n_genes, n_rounds, n_channels), dtype)
     bg_codes = solver.create_background_bled_codes(n_rounds, n_channels)
+    assert bg_codes.dtype == np.float32
     minimum_intensity = 0.2
     reed_bled_codes = base.reed_solomon_codes(n_genes, n_rounds, n_channels)
     for g, gene_code in enumerate(reed_bled_codes.values()):
@@ -102,7 +116,15 @@ def test_solve() -> None:
         for g in gene_assignments:
             pixel_colours[p] += (rng.rand() + 2) * bled_codes[g]
     result = solver.solve(
-        pixel_colours, bled_codes, bg_codes, maximum_iterations, dot_product_threshold, minimum_intensity, alpha, beta
+        pixel_colours,
+        bled_codes,
+        bg_codes,
+        maximum_iterations,
+        dot_product_threshold,
+        minimum_intensity,
+        background_subtract_percentile,
+        alpha,
+        beta,
     )
     for p in range(n_pixels):
         assert (~np.isclose(result[p], 0)).sum() == len(expected_gene_assignments[p])
@@ -119,7 +141,15 @@ def test_solve() -> None:
         intensity = utils_intensity.compute_intensity(pixel_colours[[p]]).item()
         assert intensity < minimum_intensity
     result = solver.solve(
-        pixel_colours, bled_codes, bg_codes, maximum_iterations, dot_product_threshold, minimum_intensity, alpha, beta
+        pixel_colours,
+        bled_codes,
+        bg_codes,
+        maximum_iterations,
+        dot_product_threshold,
+        minimum_intensity,
+        background_subtract_percentile,
+        alpha,
+        beta,
     )
     for p, dim in enumerate(dim_gene_assignments):
         if dim:
@@ -154,26 +184,27 @@ def test_get_next_gene_assignments() -> None:
     residual_colours[5, 0, 1] = 0.7
     residual_colours[5, 0, 4] = 0.6
 
-    all_bled_codes = torch.zeros((4, n_rounds, n_channels), dtype=torch.float32)
-    all_bled_codes[0, 0, 0] = 1
-    all_bled_codes[1, 0, 1] = 1
-    all_bled_codes[2, 0, 2] = 1 / torch.sqrt(torch.tensor(2))
-    all_bled_codes[2, 0, 3] = 1 / torch.sqrt(torch.tensor(2))
-    all_bled_codes[3, 0, 4] = 1
+    gene_bled_codes = torch.zeros((4, n_rounds, n_channels), dtype=torch.float32)
+    gene_bled_codes[0, 0, 0] = 1
+    gene_bled_codes[1, 0, 1] = 1
+    gene_bled_codes[2, 0, 2] = 1 / torch.sqrt(torch.tensor(2))
+    gene_bled_codes[2, 0, 3] = 1 / torch.sqrt(torch.tensor(2))
+    gene_bled_codes[3, 0, 4] = 1
 
     fail_gene_indices = torch.ones((n_pixels, 1), dtype=torch.int32)
     fail_gene_indices[:, 0] = 3
     dot_product_threshold = 0.5
 
     residual_colours_previous = residual_colours.detach().clone()
-    all_bled_codes_previous = all_bled_codes.detach().clone()
+    gene_bled_codes_previous = gene_bled_codes.detach().clone()
     fail_gene_indices_previous = fail_gene_indices.detach().clone()
     kwargs = dict(
         residual_colours=residual_colours,
-        all_bled_codes=all_bled_codes,
+        gene_bled_codes=gene_bled_codes,
         fail_gene_indices=fail_gene_indices,
         dot_product_threshold=dot_product_threshold,
         minimum_intensity=0.0,
+        bg_subtraction_percentile=25.0,
     )
     omp_solver = PixelScoreSolver()
     best_genes = omp_solver.get_next_gene_assignments(**kwargs)
@@ -196,7 +227,7 @@ def test_get_next_gene_assignments() -> None:
     assert best_genes[5] == 1
     # Since tensors are mutable, check that the parameter tensors have not changed.
     assert torch.allclose(residual_colours_previous, residual_colours)
-    assert torch.allclose(all_bled_codes_previous, all_bled_codes)
+    assert torch.allclose(gene_bled_codes_previous, gene_bled_codes)
     assert torch.allclose(fail_gene_indices_previous, fail_gene_indices)
 
 
