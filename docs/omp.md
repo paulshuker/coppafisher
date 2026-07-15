@@ -24,7 +24,7 @@ set to zero. The pixel colours, $\mathbf{S}$, are multiplied by `nb.call_spots.c
 
 ## 1: Minimum Intensity Threshold
 
-Before running on pixels, many pixels are discarded because they are background and not spots. To do this, we take the
+Before running on pixels, many pixels are discarded because they are too dim and not spots. To do this, we take the
 middle z plane colours for each tile, $D_{txyrc}$, and compute their intensities as
 
 $$
