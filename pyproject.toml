@@ -7,7 +7,7 @@ name = "coppafisher"
 version = "1.14.0"
 description = "coppaFISH software for Python"
 readme = "README.md"
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.12,<3.13"
 license = {text = "MIT"}
 authors = [
     {name = "Josh Duffield", email = "jduffield65@gmail.com"},
@@ -16,33 +16,34 @@ maintainers = [
     {name = "Paul Shuker", email = "paul.shuker@outlook.com"},
 ]
 dependencies = [
-    "dash",
-    "dask",
-    "joblib",
-    "matplotlib",
-    "mplcursors",
-    "napari[pyqt5]>=0.6.0",
-    "nd2",
+    "dash<4",
+    "dask<2025",
+    "joblib<2",
+    "matplotlib<4",
+    "mplcursors<0.6",
+    "napari[pyqt6]<0.9.0",
+    "nd2<0.11",
     "numpy<2.1",
-    "pandas",
-    "plyer",
-    "psutil",
-    "plotly",
-    "PyQt5",
-    "scikit-image",
-    "scikit-learn",
-    "scipy",
-    "tabulate",
-    "torch>=2",
-    "tqdm",
+    "pandas<3",
+    "plyer<3",
+    "psutil<7",
+    "plotly<6",
+    "PyQt6<7",
+    "qtpy<3",
+    "scikit-image<0.25",
+    "scikit-learn<2",
+    "scipy<2",
+    "superqt<0.9",
+    "tabulate<0.10",
+    "tifffile<2025",
+    "torch==2.7.1",
+    "tqdm<5",
     "zarr<3",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: only",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
     "Intended Audience :: Science/Research",
     "Topic :: Scientific/Engineering",
     "Topic :: Scientific/Engineering :: Bio-Informatics",
@@ -107,7 +108,7 @@ ignore = ["B028", "B007", "E741", "TC004", "TID252"]
 [tool.ruff.lint.flake8-tidy-imports]
 # Ban certain modules from being imported at module level, instead requiring
 # that they're imported lazily (e.g., within a function definition).
-banned-module-level-imports = ["torch", "pandas", "napari"]
+banned-module-level-imports = ["torch", "pandas", "PyQt6", "superqt", "napari"]
 
 [tool.pyright]
 exclude = [ "**/temp", "temp.py", "**/coppafisher/docs/*.py", "**/.integration_dir", "**/.notebook_test", "**/__pycache__", "**/build/lib" ]

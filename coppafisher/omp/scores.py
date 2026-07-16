@@ -2,15 +2,12 @@ from typing import Any, TypeAlias
 
 import numpy as np
 
-from ..utils import system
-
 Tensor: TypeAlias = Any
 
 
 def score_pixel_score_image(
     pixel_score_image: Tensor,
     mean_spot: Tensor,
-    force_cpu: bool = True,
 ) -> Tensor:
     """
     Computes the OMP spot score image from the pixel score image(s). The final spot score image is the pixel score image
@@ -20,7 +17,6 @@ def score_pixel_score_image(
         pixel_score_image (`(n_batches x im_y x im_x x im_z) tensor[float32]`): OMP pixel scores in a 3D volume. Any
             non-computed or out of bounds pixel scores will be zero.
         mean_spot (`(size_y x size_x x size_z) tensor[float32]`): OMP mean spot shape.
-        force_cpu (bool): use the CPU only. Default: true.
 
     Returns:
         (`(n_batches x im_y x im_x x im_z) tensor[float32]`): spot_score_image. OMP spot score for every image pixel, on
@@ -34,10 +30,8 @@ def score_pixel_score_image(
     assert pixel_score_image.shape[0] < 2_000, "More than 2,000 batches given"
     assert (mean_spot >= 0).all()
 
-    device = system.get_device(force_cpu)
-
-    score_image = pixel_score_image.detach().clone().to(device=device)
-    spot_shape_kernel = mean_spot.detach().clone().to(dtype=score_image.dtype, device=device)
+    score_image = pixel_score_image.detach().clone()
+    spot_shape_kernel = mean_spot.detach().clone().to(dtype=score_image.dtype)
     spot_shape_kernel /= spot_shape_kernel.sum()
 
     spot_shape_kernel = spot_shape_kernel[np.newaxis, np.newaxis]

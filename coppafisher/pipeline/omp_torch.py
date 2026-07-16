@@ -72,7 +72,6 @@ def run_omp(
 
     log.info("OMP started")
     log.debug(f"{torch.cuda.is_available()=}")
-    log.debug(f"{config['force_cpu']=}")
 
     omp_config = {config.name: config.to_dict()}
     nbp = NotebookPage("omp", omp_config)
@@ -119,7 +118,6 @@ def run_omp(
     bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
     assert np.isnan(bled_codes).sum() == 0, "bled codes cannot contain nan values"
     assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"
-    device = system.get_device(config["force_cpu"])
     solver = PixelScoreSolver()
     bg_bled_codes = solver.create_background_bled_codes(n_rounds_use, n_channels_use)
     max_genes = config["max_genes"]
@@ -132,7 +130,6 @@ def run_omp(
         alpha=config["alpha"],
         beta=config["beta"],
         return_stopping_criteria=config["debug"],
-        force_cpu=config["force_cpu"],
     )
     colour_norm_factor = nbp_call_spots.colour_norm_factor.astype(np.float32)
     n_chunk_max = 600_000
@@ -178,7 +175,7 @@ def run_omp(
     del results_store, results
 
     for t_index, t in enumerate(nbp_basic.use_tiles):
-        postfix = {"tile": t, "device": str(device).upper()}
+        postfix = {"tile": t}
 
         if tile_already_exists[t_index] and config_unchanged:
             log.info(f"OMP is skipping tile {t}, results already found at {nbp_file.output_dir}")
@@ -241,7 +238,7 @@ def run_omp(
             iteration_counts = np.full(n_tile_pixels, 0, np.uint8)
             tile_stopping_criteria = np.full(n_tile_pixels, solver.INTENSITY_TOO_LOW, np.int8)
 
-        with tqdm.tqdm(total=n_tile_pixels, desc="Computing pixel scores", unit="pixel", postfix=postfix) as pbar:
+        with tqdm.tqdm(total=n_tile_pixels, desc="Pixel scores", unit="p", postfix=postfix) as pbar:
             while index_min < n_tile_pixels:
                 if n_subset_pixels is None:
                     index_max += n_chunk_count * n_register_chunk_size
@@ -299,7 +296,7 @@ def run_omp(
         t_spots_gene_no = np.zeros(shape=0, dtype=np.int16)
         t_spots_score = np.zeros(shape=0, dtype=np.float16)
 
-        batch_size = int(2e6 * system.get_available_memory(device) // n_tile_pixels)
+        batch_size = int(2e6 * system.get_available_memory() // n_tile_pixels)
         batch_size = max(batch_size, 1)
         log.debug(f"Gene batch size: {batch_size}")
         gene_batches = [
@@ -315,7 +312,7 @@ def run_omp(
                         tile_shape, order="F"
                     )
                 )
-            g_score_image = scores.score_pixel_score_image(g_pixel_image, mean_spot, config["force_cpu"])
+            g_score_image = scores.score_pixel_score_image(g_pixel_image, mean_spot)
             g_score_image = scores.boost_z_edge_spot_scores(g_score_image, mean_spot)
             del g_pixel_image
             g_score_image = g_score_image.to(dtype=torch.float16)
