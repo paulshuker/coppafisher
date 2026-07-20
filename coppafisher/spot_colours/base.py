@@ -260,8 +260,6 @@ def get_spot_colours_new(
     assert all([type(c) is int for c in use_channels])
     assert all([c >= 0 and c < image.shape[2] for c in use_channels])
 
-    # TODO: GPU support.
-
     # Prepare variables.
     tile_shape = tuple(image.shape[3:])
     # Pytorch float32 tensors are used whilst computing.

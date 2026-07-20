@@ -3,7 +3,7 @@ from typing import Any, Dict, Tuple, TypeAlias
 import numpy as np
 
 from ..call_spots import dot_product
-from ..utils import intensity, system
+from ..utils import intensity
 
 
 class PixelScoreSolver:
@@ -40,7 +40,6 @@ class PixelScoreSolver:
         return_all_weights: bool = False,
         return_all_residuals: bool = False,
         return_stopping_criteria: bool = False,
-        force_cpu: bool = True,
     ) -> (
         np.ndarray[Float32]
         | Tuple[np.ndarray, np.ndarray]
@@ -83,7 +82,6 @@ class PixelScoreSolver:
                 Default: false.
             return_stopping_criteria (bool, optional): return the stopping criteria reason for every pixel. Default:
                 false.
-            force_cpu (bool, optional): only use the CPU to solve. Default: true.
 
         Returns:
             Tuple (tensor if only one tensor is returned) containing the following:
@@ -130,7 +128,6 @@ class PixelScoreSolver:
         if return_all_weights:
             assert n_pixels == 1
         assert type(return_all_residuals) is bool
-        assert type(force_cpu) is bool
         assert maximum_iterations > 0
         assert dot_product_threshold >= 0
         assert minimum_intensity >= 0
@@ -152,8 +149,6 @@ class PixelScoreSolver:
         # Bled codes and background codes must be L2 normalised.
         assert torch.isclose(torch.linalg.matrix_norm(all_bled_codes), torch.ones(1).float()).all()
 
-        device = system.get_device(force_cpu)
-
         pixel_scores = torch.zeros((n_pixels, n_genes), dtype=self.DTYPE_T)
         colours = torch.from_numpy(pixel_colours).to(dtype=self.DTYPE_T)
         # Remember the residual colour between iterations.
@@ -172,16 +167,6 @@ class PixelScoreSolver:
             all_residuals = torch.full((n_pixels, n_genes, n_rounds_use, n_channels_use), torch.nan, dtype=self.DTYPE_T)
         if return_stopping_criteria:
             all_stopping_criteria = torch.full((n_pixels,), self.NO_REASON, dtype=torch.int8)
-
-        # Move tensors to the right device.
-        pixel_scores = pixel_scores.to(device)
-        colours = colours.to(device)
-        residual_colours = residual_colours.to(device)
-        pixels_to_continue = pixels_to_continue.to(device)
-        genes_selected = genes_selected.to(device)
-        bled_codes_torch = bled_codes_torch.to(device)
-        all_bled_codes = all_bled_codes.to(device)
-        bg_gene_indices = bg_gene_indices.to(device)
 
         for iteration in range(maximum_iterations):
             # Find the next best gene for pixels that have not reached a stopping criteria yet.
@@ -373,7 +358,7 @@ class PixelScoreSolver:
         bg_bled_codes = torch.from_numpy(bg_bled_codes)
         all_bled_codes = torch.concat((gene_bled_codes, bg_bled_codes), 0)
 
-        stopping_criteria = torch.full((n_pixels,), self.NO_REASON, dtype=torch.int8, device=residual_colours.device)
+        stopping_criteria = torch.full((n_pixels,), self.NO_REASON, dtype=torch.int8)
 
         intensity_is_low = intensity.compute_intensity(residual_colours) < minimum_intensity
         stopping_criteria[intensity_is_low] = self.INTENSITY_TOO_LOW
@@ -398,7 +383,7 @@ class PixelScoreSolver:
                 0.01 * bg_subtraction_percentile, 1, interpolation="midpoint"
             )
             # Only take one channel from each pixel (the assigned bg gene), therefore percentiles_keep is created.
-            percentiles_keep = torch.zeros_like(percentiles, dtype=bool, device=percentiles.device)
+            percentiles_keep = torch.zeros_like(percentiles, dtype=bool)
             percentiles_keep[range(bg_assignment_sum), next_best_genes[is_bg_assignment] - n_genes] = True
             assert (percentiles_keep.sum(1) == 1).all()
             percentiles[torch.logical_not(percentiles_keep)] = 0

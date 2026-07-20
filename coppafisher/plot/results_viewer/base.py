@@ -14,10 +14,7 @@ import tifffile
 from matplotlib.backend_bases import MouseEvent
 from matplotlib.figure import Figure
 from matplotlib.path import Path
-from PyQt5.QtCore import QLoggingCategory
-from PyQt5.QtWidgets import QComboBox, QPushButton
 from qtpy.QtCore import Qt
-from superqt import QDoubleRangeSlider, QDoubleSlider
 
 from ...results.base import MethodData
 from ...setup.notebook import Notebook, NotebookPage
@@ -105,10 +102,10 @@ class Viewer:
     # UI variables:
     legend: Legend
     point_layers: dict[str, Any]
-    method_combo_box: QComboBox
-    z_thick_slider: QDoubleSlider
-    score_slider: QDoubleRangeSlider
-    intensity_slider: QDoubleRangeSlider
+    method_combo_box: Any
+    z_thick_slider: Any
+    score_slider: Any
+    intensity_slider: Any
 
     # TODO: Combine background_images and background_image_colours into one dictionary parameter. Each key will be a
     # given background image type/file path, each value will be the colour map it has.
@@ -244,9 +241,6 @@ class Viewer:
         del nb
 
         plt.style.use("dark_background")
-
-        # Suppress any PyQt5 warnings.
-        QLoggingCategory.setFilterRules("*.debug=false\n" + "*.warning=false\n" + "qt.qpa.*.warning=false")
 
         start_time = time.time()
 
@@ -1094,6 +1088,9 @@ class Viewer:
             self.viewer.add_image(np.zeros((self.n_z_planes, 1, 1)), name="Z", rgb=False, visible=False)
 
     def _build_UI(self) -> None:
+        from PyQt6.QtWidgets import QComboBox, QPushButton
+        from superqt import QDoubleRangeSlider, QDoubleSlider
+
         min_yxz = np.array([0, 0, 0], np.float32)
         max_yxz = np.array([self.nbp_basic.tile_sz, self.nbp_basic.tile_sz, max(self.nbp_basic.use_z) + 1], np.float32)
         max_score = 1.0

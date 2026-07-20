@@ -9,7 +9,7 @@ spots by their gene codes in 3D.
 <div class="grid cards no-format" markdown>
 
  - [:material-checkbox-multiple-blank: __Zarr__ for image compression](https://zarr.readthedocs.io/)
- - [:material-fast-forward:  __PyTorch__ for GPU/CPU acceleration](https://pytorch.org/)
+ - [:material-fast-forward:  __PyTorch__ for CPU acceleration](https://pytorch.org/)
  - [:material-eye:  __Napari__ for 3D visualisation](https://napari.org/)
  - [:material-web:  __Dash__ for web interaction](https://dash.plotly.com/)
 
@@ -29,10 +29,9 @@ vocabulary might be unfamiliar, please see the [glossary](glossary.md) for refer
 ### Prerequisites
 
 * Windows or Linux. MacOS is not tested.
-* Python 3.11 or 3.12.
+* Python 3.12.
 * [Git](https://git-scm.com/).
 * 64GB of memory for tile sizes ~`64x2048x2048` pixels (recommended).
-* Nvidia GPU with Cuda 12.4 support (optional).
 
 ### Environment
 
@@ -79,24 +78,7 @@ cd coppafisher
 python -m pip install -r requirements.txt
 ```
 
-install [PyTorch](https://pytorch.org/) with both CPU and Cuda 12.4 support by
-
-```terminal
-python -m pip install -r requirements-torch.txt
-```
-
-??? tip "Check the GPU is detected"
-
-    If you have an Nvidia GPU with working drivers, you can check that it is detected in the python terminal
-
-    ```py
-    import torch
-    torch.cuda.is_available()
-    ```
-
-    which should show true.
-
-Finally, install coppafisher by
+Then install coppafisher by
 
 ```terminal
 python -m pip install .
@@ -111,10 +93,10 @@ rm -rf coppafisher
 
 ## Updating
 
-Coppafisher will not automatically install updates. But, you will see a warning at the start of a pipeline if a new
-online version is available.
+Coppafisher will not automatically install updates. You will see a warning at the start of a pipeline if a new online
+version is available.
 
-To update version, delete the old conda environment by
+To update version, delete the old environment
 
 ```term
 conda env remove -yn coppa

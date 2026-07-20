@@ -1,4 +1,7 @@
 2026/MM/DD Version 1.14 (v1.14.0):
+ * General: Python 3.11 is no longer supported.
+ * General: Running on the GPU is no longer supported.
+ * General: Package updates.
  * Viewer: The gene legend is now responsive to mouse movements.
  * Viewer: Improved positioning of tiles in dapi/anchor image backgrounds.
  * Viewer: Broken dapi/anchor image backgrounds at four tile overlap areas fix.

@@ -250,7 +250,6 @@ class Config:
             "dot_product_threshold": ("number", "not-negative"),
             "background_subtract_percentile": ("number", "not-negative_lteq100"),
             "subset_pixels": ("maybe_int", "positive"),
-            "force_cpu": ("bool", ""),
             "radius_xy": ("int", "positive"),
             "radius_z": ("int", "positive"),
             "score_threshold": ("number", "not-negative"),
