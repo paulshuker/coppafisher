@@ -112,7 +112,6 @@ class PixelScoreSolver:
         import torch
 
         n_pixels, n_rounds_use, n_channels_use = pixel_colours.shape
-        n_rounds_channels_use = n_rounds_use * n_channels_use
         n_genes = bled_codes.shape[0]
         assert type(pixel_colours) is np.ndarray
         assert type(bled_codes) is np.ndarray
@@ -162,7 +161,7 @@ class PixelScoreSolver:
 
         if return_all_weights:
             # Remember the gene weightings given to each pixel.
-            all_weights = torch.full_like(pixel_scores, torch.nan, dtype=self.DTYPE_T)
+            all_weights = torch.full((n_pixels, n_genes, n_rounds_use), torch.nan, dtype=self.DTYPE_T)
         if return_all_residuals:
             all_residuals = torch.full((n_pixels, n_genes, n_rounds_use, n_channels_use), torch.nan, dtype=self.DTYPE_T)
         if return_stopping_criteria:
@@ -202,18 +201,18 @@ class PixelScoreSolver:
             latest_gene_selections = genes_selected[pixels_to_continue, : iteration + 1]
             # Has shape (n_pixels_continue, iteration + 1, n_rounds_use, n_channels_use).
             bled_codes_to_continue = bled_codes_torch[latest_gene_selections]
-            residual_colours = self.get_next_gene_weights(
-                colours[pixels_to_continue].reshape((-1, n_rounds_channels_use))[:, :, np.newaxis],
-                bled_codes_to_continue.reshape((-1, iteration + 1, n_rounds_channels_use)).swapaxes(1, 2),
+            residual_colours, epsilon_squared, gene_weights = self.get_next_gene_weights(
+                colours[pixels_to_continue][:, :, :, np.newaxis],
+                bled_codes_to_continue.swapaxes(1, 2).swapaxes(2, 3),
                 alpha,
                 beta,
             )
-            iteration_weights = residual_colours[2]
+            # Change weights to shape (n_pixels_continue, iteration + 1, n_rounds_use).
+            gene_weights = torch.swapaxes(gene_weights, 1, 2)
+            assert gene_weights.shape == (pixels_to_continue.sum(), iteration + 1, n_rounds_use)
             if return_all_weights:
-                all_weights[pixels_to_continue, latest_gene_selections] = iteration_weights.cpu()
-            epsilon_squared = residual_colours[1]
+                all_weights[pixels_to_continue, latest_gene_selections] = gene_weights.cpu()
             epsilon_squared = epsilon_squared.reshape((-1, n_rounds_use, n_channels_use))
-            residual_colours = residual_colours[0]
             residual_colours = residual_colours.reshape((-1, n_rounds_use, n_channels_use))
             residual_colours *= epsilon_squared
             del epsilon_squared
@@ -222,7 +221,7 @@ class PixelScoreSolver:
             pixel_score_result = self.get_gene_pixel_scores(
                 colours[pixels_to_continue],
                 bled_codes_to_continue,
-                iteration_weights,
+                gene_weights,
                 alpha,
                 beta,
                 return_all_residuals,
@@ -233,7 +232,7 @@ class PixelScoreSolver:
                 for j in range(iteration + 1):
                     all_residuals[pixels_to_continue, latest_gene_selections[:, j]] = new_residuals[:, j]
                 del new_residuals
-            del bled_codes_to_continue, iteration_weights, pixel_score_result
+            del bled_codes_to_continue, gene_weights, pixel_score_result
             for j in range(iteration + 1):
                 pixel_scores[pixels_to_continue, latest_gene_selections[:, j]] = new_pixel_scores[:, j]
             del latest_gene_selections, new_pixel_scores
@@ -366,13 +365,14 @@ class PixelScoreSolver:
         all_gene_scores = dot_product.dot_product_score(
             residual_colours[np.newaxis], all_bled_codes[np.newaxis, np.newaxis]
         )[0]
+
         for _ in range(n_channels_use):
             # Has shape n_spots x n_genes.
             next_best_gene_scores, next_best_genes = torch.max(all_gene_scores, dim=1)
             next_best_genes = next_best_genes.int()
             is_bg_assignment = torch.logical_and(next_best_genes >= n_genes, ~intensity_is_low)
             bg_assignment_sum = is_bg_assignment.sum()
-            if not bg_assignment_sum:
+            if bg_assignment_sum.item() == 0:
                 break
 
             # For pixels with background gene assignment, background subtract from the residual colour.
@@ -380,7 +380,9 @@ class PixelScoreSolver:
 
             # Has shape n_pixels_continue x n_channels_use.
             percentiles = residual_colours[is_bg_assignment].detach().clone()
-            percentiles = percentiles.quantile(0.01 * bg_subtraction_percentile, 1)
+            percentiles = percentiles.quantile(0.01 * bg_subtraction_percentile, 1, interpolation="midpoint")
+            assert not torch.isnan(percentiles).any()
+            assert not torch.isnan(residual_colours).any()
             # Only take one channel from each pixel (the assigned bg gene), therefore percentiles_keep is created.
             percentiles_keep = torch.zeros_like(percentiles, dtype=bool)
             percentiles_keep[range(bg_assignment_sum), next_best_genes[is_bg_assignment] - n_genes] = True
@@ -394,7 +396,6 @@ class PixelScoreSolver:
                 residual_colours[is_bg_assignment][np.newaxis], all_bled_codes[np.newaxis, np.newaxis]
             )[0]
         assert not torch.isnan(all_gene_scores).any()
-
         next_best_gene_scores, next_best_genes = torch.max(all_gene_scores, dim=1)
         next_best_genes = next_best_genes.int()
 
@@ -454,48 +455,51 @@ class PixelScoreSolver:
         off the pixel colour to get the minimised residual colour for each pixel.
 
         Args:
-            pixel_colours (`(n_pixels x n_rounds_channels_use x 1) tensor[float32]`): each pixel's colour.
-            bled_codes (`(n_pixels x n_rounds_channels_use x n_genes_added) tensor[float32]`): the bled code for each
-                added gene for each pixel.
+            pixel_colours (`(n_pixels x n_rounds_use x n_channels_use x 1) tensor[float32]`): each pixel's colour.
+            bled_codes (`(n_pixels x n_rounds_use x n_channels_use x n_genes_added) tensor[float32]`): the bled code for
+                each added gene for each pixel.
             alpha (float): the alpha parameter.
             beta (float): the beta parameter.
 
         Returns:
             Tuple containing:
-                - (`(n_pixels x n_rounds_channels_use) tensor[float32]`): residuals. The residual colour after
+                - (`(n_pixels x n_rounds_use x n_channels_use) tensor[float32]`): residuals. The residual colour after
                     subtracting the assigned, weighted gene bled codes.
-                - (`(n_pixels x n_rounds_channels_use) tensor[float32]`): epsilon_squared. The weighting given to every
-                    round/channel during scoring. Weightings below 1 are given when the round/channel already had been
-                    strongly assigned to by a bled code. This is due to a higher variance.
-                - (`(n_pixels x n_genes_added) tensor[float32]`): gene_weights. The weight given to every gene bled
-                    code.
+                - (`(n_pixels x n_rounds_use x n_channels_use) tensor[float32]`): epsilon_squared. The weighting given
+                    to every round/channel during scoring. Weightings below 1 are given when the round/channel already
+                    had been strongly assigned to by a bled code. This is due to a higher variance.
+                - (`(n_pixels x n_rounds_use x n_genes_added) tensor[float32]`): gene_weights. The weight given to every
+                    gene bled code.
         """
         import torch
 
         assert type(pixel_colours) is torch.Tensor
         assert type(bled_codes) is torch.Tensor
-        n_rounds_channels_use = pixel_colours.shape[1]
-        assert pixel_colours.ndim == 3
-        assert bled_codes.ndim == 3
+        _, n_rounds_use, n_channels_use, _ = pixel_colours.shape
+        assert pixel_colours.ndim == 4
+        assert bled_codes.ndim == 4
         assert pixel_colours.shape[0] == bled_codes.shape[0]
-        assert pixel_colours.shape[1] == bled_codes.shape[1] == n_rounds_channels_use
-        assert pixel_colours.shape[2] == 1
+        assert pixel_colours.shape[1] == bled_codes.shape[1] == n_rounds_use
+        assert pixel_colours.shape[2] == bled_codes.shape[2] == n_channels_use
+        assert pixel_colours.shape[3] == 1
         assert bled_codes.shape[0] > 0, "Require at least one pixel to run on"
-        assert bled_codes.shape[1] > 0, "Require at least one round and channel"
-        assert bled_codes.shape[2] > 0, "Require at least one gene assigned"
+        assert n_rounds_use > 0, "Require at least one round"
+        assert n_channels_use > 0, "Require at least one channel"
+        assert bled_codes.shape[3] > 0, "Require at least one gene assigned"
 
-        # Compute least squares for gene weights of every gene on the total spot colour.
-        # First parameter has shape (n_pixels, n_rounds_channels_use, n_genes_added).
-        # Second parameter has shape (n_pixels, n_rounds_channels_use, 1).
-        # Therefore, the result has shape (n_pixels, n_genes_added, 1).
-        weights = torch.linalg.lstsq(bled_codes, pixel_colours)[0]
-        # Squeeze weights to (n_pixels, n_genes_added).
-        weights = weights[:, :, 0]
+        # Compute least squares for every gene and round combination to match the total spot colour.
+        # First parameter has shape (n_pixels, n_rounds_use, n_channels_use, n_genes_added).
+        # Second parameter has shape (n_pixels, n_rounds_use, n_channels_use, 1).
+        # Therefore, the result has shape (n_pixels, n_rounds_use, n_genes_added, 1).
+        # NOTE: Second parameter (B) must be the total spot colour such that |AX - B| is minimised.
+        weights = torch.linalg.lstsq(bled_codes, pixel_colours).solution
+        # Squeeze weights to (n_pixels, n_rounds_use, n_genes_added).
+        weights = weights[:, :, :, 0]
 
-        epsilon_squared = self.get_uncertainty_weights(weights[np.newaxis], bled_codes[np.newaxis], alpha, beta)[0]
+        epsilon_squared = self._get_uncertainty_weights(weights[np.newaxis], bled_codes[np.newaxis], alpha, beta)[0]
 
         # From the new weights, find the residual spot colours.
-        pixel_residuals = pixel_colours[..., 0] - (weights[:, np.newaxis] * bled_codes).sum(2)
+        pixel_residuals = pixel_colours[..., 0] - (weights[:, :, np.newaxis] * bled_codes).sum(3)
 
         return (pixel_residuals, epsilon_squared, weights)
 
@@ -517,8 +521,8 @@ class PixelScoreSolver:
             pixel_colours (`(n_pixels x n_rounds_use x n_channels_use) tensor[float32]`): the pixel colours.
             bled_codes (`(n_pixels x n_genes_assigned x n_rounds_use x n_channels_use) tensor[float32]`): the bled codes
                 for every assigned gene. Their L2 norm over rounds and channels is always one.
-            weights (`(n_pixels x n_genes_assigned) tensor[float32]`): the computed weight given to each bled code to
-                best match the pixel colour.
+            weights (`(n_pixels x n_genes_assigned x n_rounds_use) tensor[float32]`): the computed weight given to each
+                bled code to best match the pixel colour.
             alpha (float): the alpha parameter.
             beta (float): the beta parameter.
             return_residuals (bool, optional): return the residuals used to compute the pixel scores for each gene.
@@ -541,7 +545,7 @@ class PixelScoreSolver:
         assert type(return_residuals) is bool
         assert pixel_colours.ndim == 3
         assert bled_codes.ndim == 4
-        assert weights.ndim == 2
+        assert weights.ndim == 3
         assert pixel_colours.shape == bled_codes.shape[:1] + bled_codes.shape[2:]
         assert weights.shape[:2] == bled_codes.shape[:2]
 
@@ -549,7 +553,7 @@ class PixelScoreSolver:
         n_genes_assigned = bled_codes.shape[1]
 
         # Has shape (n_pixels, n_genes_assigned, n_rounds_use, n_channels_use).
-        weighted_bled_codes = bled_codes * weights[:, :, np.newaxis, np.newaxis]
+        weighted_bled_codes = bled_codes * weights[:, :, :, np.newaxis]
 
         # bled_codes_sums_except_one[:, g] is the sum of weighted bled codes except gene g's weighted bled code.
         # It has shape (n_pixels, n_genes_assigned, n_rounds_use, n_channels_use).
@@ -562,13 +566,13 @@ class PixelScoreSolver:
         # colour_residuals has shape (n_genes_assigned, n_pixels, n_rounds_use, n_channels_use).
         # colour_residuals[g] is the pixel colour minus all weighted bled codes except the one for gene g.
         #
-        # Denoted as $\tilde{R}$ in the docs.
+        # Denoted as $tilde{R}$ in the docs.
         colour_residuals = pixel_colours.detach().clone()[np.newaxis] - bled_codes_sum_except_one
         del bled_codes_sum_except_one
 
         # bled_codes_except_one[g] is every bled code except the bled code for gene g.
         # It has shape (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_use, n_channels_use).
-        # This will be needed to calculate the uncertainty weighting for each gene assignment individually.
+        # This is needed to calculate the uncertainty weighting for each gene assignment individually.
         # See Step 3 in OMP method documentation for details.
         bled_codes_except_one = torch.full(
             (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_use, n_channels_use),
@@ -578,29 +582,35 @@ class PixelScoreSolver:
         )
         for g in range(n_genes_assigned):
             bled_codes_except_one[g] = torch.cat((bled_codes[:, :g], bled_codes[:, (g + 1) :]), dim=1)
-        # Flatten to shape (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_channels_use).
-        bled_codes_except_one = bled_codes_except_one.reshape(
-            (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_use * n_channels_use)
-        )
-        # Swap dimensions to shape (n_genes_assigned, n_pixels, n_rounds_channels_use, n_genes_assigned - 1).
-        bled_codes_except_one = bled_codes_except_one.swapaxes(2, 3)
+        assert not torch.isnan(bled_codes_except_one).any()
+
+        # # Flatten to shape (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_channels_use).
+        # bled_codes_except_one = bled_codes_except_one.reshape(
+        #     (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_use * n_channels_use)
+        # )
+
+        # Swap dimensions to shape (n_genes_assigned, n_pixels, n_rounds_use, n_channels_use, n_genes_assigned - 1).
+        bled_codes_except_one = bled_codes_except_one.swapaxes(2, 3).swapaxes(3, 4)
 
         # Similarly, weights_except_one[g] is every weight except the weight for gene g.
-        # It has shape (n_genes_assigned, n_pixels, n_genes_assigned - 1).
-        weights_except_one = weights.detach().clone()[np.newaxis].repeat_interleave(n_genes_assigned, 0)
-        weights_except_one = weights_except_one[:, :, :-1]
+        # It has shape (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_use).
+        weights_except_one = torch.full(
+            (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_use), torch.nan, dtype=weights.dtype
+        )
         for g in range(n_genes_assigned):
             weights_except_one[g] = torch.cat((weights[:, :g], weights[:, (g + 1) :]), dim=1)
+        assert not torch.isnan(weights_except_one).any()
+        # Change to shape (n_genes_assigned, n_pixels, n_rounds_use, n_genes_assigned - 1).
+        weights_except_one = weights_except_one.swapaxes(-1, -2)
 
-        # epsilon_squared has shape (n_genes_assigned, n_pixels, n_rounds_channels_use).
-        epsilon_squared = self.get_uncertainty_weights(weights_except_one, bled_codes_except_one, alpha, beta)
+        # epsilon_squared has shape (n_genes_assigned, n_pixels, n_rounds_use, n_channels_use).
+        epsilon_squared = self._get_uncertainty_weights(weights_except_one, bled_codes_except_one, alpha, beta)
         del bled_codes_except_one, weights_except_one
-        # Expand to shape (n_genes_assigned, n_pixels, n_rounds_use, n_channels_use).
-        epsilon_squared = epsilon_squared.reshape((n_genes_assigned, n_pixels, n_rounds_use, n_channels_use))
 
         colour_residuals *= epsilon_squared
         del epsilon_squared
 
+        # Has shape (n_genes_assigned, n_pixels).
         pixel_scores = dot_product.dot_product_score(colour_residuals, bled_codes.swapaxes(0, 1)[:, :, np.newaxis])[
             :, :, 0
         ]
@@ -609,7 +619,8 @@ class PixelScoreSolver:
         pixel_scores = pixel_scores.swapaxes(0, 1)
 
         # Set pixel scores to be negative if their gene's weight is negative.
-        pixel_scores *= torch.sign(weights)
+        weight_is_negative = (weights < 0).any(2)
+        pixel_scores[weight_is_negative] = -pixel_scores[weight_is_negative]
 
         result = (pixel_scores,)
 
@@ -619,25 +630,25 @@ class PixelScoreSolver:
 
         return result
 
-    def get_uncertainty_weights(self, gene_weights: Tensor, bled_codes: Tensor, alpha: float, beta: float) -> Tensor:
+    def _get_uncertainty_weights(self, gene_weights: Tensor, bled_codes: Tensor, alpha: float, beta: float) -> Tensor:
         """
         Compute the weights given to each round/channel pair. A round/channel pair has a lower weight if it has high
         bled code brightness in said round/channel and alpha is > 0.
 
         Args:
-            gene_weights (`(n_batches x n_pixels x n_genes_assigned) tensor[float32]`): the weight found for each bled
-                code.
-            bled_codes (`(n_batches x n_pixels x n_rounds_channels_use x n_genes_assigned) tensor[float32]`): the
-                assigned bled codes.
+            gene_weights (`(n_batches x n_pixels x n_rounds_use x n_genes_assigned) tensor[float32]`): the weight found
+                for each bled code/round/channel combination.
+            bled_codes (`(n_batches x n_pixels x n_rounds_use x n_channels_use x n_genes_assigned) tensor[float32]`):
+                the assigned bled codes.
             alpha (float): how much the error scales based on the weighted bled code brightness in the round/channel
                 pair.
             beta (float): the square root of the constant error uncertainty that is there even if the brightness is
                 zero.
 
         Returns:
-            (`(n_batches x n_pixels x n_rounds_channels_use) tensor[float32]`): epsilon_squared. The weighting given to
-                each pixel's round/channel pair. Weightings are lower for more uncertain brightnesses so the have a
-                lower contribution to further gene scores.
+            (`(n_batches x n_pixels x n_rounds_use x n_channels_use) tensor[float32]`): epsilon_squared. The weighting
+                given to each pixel's round/channel pair. Weightings are lower for more uncertain brightnesses so the
+                have a lower contribution to further gene scores.
 
         Notes:
             - If n_batches is 1 for one of the tensors, then it is repeated for the maximum batch count.
@@ -647,10 +658,10 @@ class PixelScoreSolver:
 
         assert type(gene_weights) is torch.Tensor
         assert type(bled_codes) is torch.Tensor
-        assert gene_weights.ndim == 3
-        assert bled_codes.ndim == 4
-        assert gene_weights.shape[:2] == bled_codes.shape[:2]
-        assert gene_weights.shape[2] == bled_codes.shape[3]
+        assert gene_weights.ndim == 4
+        assert bled_codes.ndim == 5
+        assert gene_weights.shape[:3] == bled_codes.shape[:3]
+        assert gene_weights.shape[3] == bled_codes.shape[4]
         assert type(alpha) is float
         assert type(beta) is float
         if alpha < 0:
@@ -658,13 +669,11 @@ class PixelScoreSolver:
         if beta <= 0:
             raise ValueError(f"beta must be > 0, got {beta}")
 
-        n_rounds_channels_use = bled_codes.shape[2]
+        _, _, n_rounds_use, n_channels_use, _ = bled_codes.shape
 
-        # Has shape (n_batches, n_pixels, n_rounds_channels_use).
-        sigma_squared = beta**2 + alpha * (torch.square(gene_weights[:, :, np.newaxis] * bled_codes)).sum(-1)
+        # Has shape (n_batches, n_pixels, n_rounds_use, n_channels_use).
+        sigma_squared = beta**2 + alpha * torch.square(gene_weights[:, :, :, np.newaxis] * bled_codes).sum(-1)
         sigma_squared = torch.reciprocal(sigma_squared)
 
-        # Computing epsilon squared like in the documentation.
-        epsilon_squared = n_rounds_channels_use * sigma_squared / sigma_squared.sum(-1, keepdim=True)
-
-        return epsilon_squared
+        # Computing epsilon squared like in the OMP method documentation.
+        return n_rounds_use * n_channels_use * sigma_squared / sigma_squared.sum((-1, -2), keepdim=True)

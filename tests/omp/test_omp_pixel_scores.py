@@ -29,13 +29,18 @@ def test_solve() -> None:
     maximum_iterations = 4
     dot_product_threshold = 0.001
     minimum_intensity = 0.0
-    background_subtract_percentile = 0.0
+    background_subtract_percentile = 10.0
     alpha = 0.0
     beta = 1.0
 
     # Simple checks for consistent results and correct shapes.
     previous_result = None
     for return_all_scores, return_all_residuals, return_stopping_criteria in itertools.product((True, False), repeat=3):
+        print(return_all_scores)
+        print(return_all_residuals)
+        print(return_stopping_criteria)
+        print("")
+
         result = solver.solve(
             pixel_colours,
             bled_codes,
@@ -55,6 +60,7 @@ def test_solve() -> None:
             assert result[1].shape[0] >= 1
             assert result[1].shape[1:] == (n_pixels, n_genes + n_channels)
             assert result[1].dtype == dtype
+            assert not np.isnan(result[1]).any()
             assert (result[1] >= 0).all()
         if return_all_residuals:
             assert type(result[1 + int(return_all_scores)]) is np.ndarray
@@ -70,7 +76,7 @@ def test_solve() -> None:
         assert result.shape == (n_pixels, n_genes)
         assert result.dtype == dtype
         if previous_result is not None:
-            assert np.allclose(result, previous_result)
+            assert np.allclose(result, previous_result), f"{np.abs(result - previous_result).max()}"
         previous_result = result
 
     # Ensure the number of assigned genes only decreases as the dot product threshold increases.
@@ -232,56 +238,57 @@ def test_get_next_gene_assignments() -> None:
     assert torch.allclose(fail_gene_indices_previous, fail_gene_indices)
 
 
-def test_get_next_residual_colours() -> None:
+def test_get_next_gene_weights() -> None:
     import torch
 
-    n_pixels = 1
+    rng = np.random.RandomState(0)
+    n_pixels = 6
     n_genes_added = 2
-    n_rounds_channels_use = 3
-    pixel_colours = torch.zeros((n_pixels, n_rounds_channels_use, 1)).float()
-    pixel_colours[0, 0, 0] = 1
-    pixel_colours[0, 1, 0] = 0.5
-    pixel_colours[0, 2, 0] = 0
-    bled_codes = torch.zeros((n_pixels, n_rounds_channels_use, n_genes_added)).float()
-    bled_codes[0, 0, 0] = 1
-    bled_codes[0, 1, 0] = 1
-    bled_codes[0, 2, 0] = 0
-    bled_codes[0, 0, 1] = 0
-    bled_codes[0, 1, 1] = 1
-    bled_codes[0, 2, 1] = 1
+    n_rounds_use = 3
+    n_channels_use = 2
+
+    pixel_colours = torch.from_numpy(rng.rand(n_pixels, n_rounds_use, n_channels_use, 1)).float()
+    bled_codes = torch.from_numpy(rng.rand(n_pixels, n_rounds_use, n_channels_use, n_genes_added)).float()
     alpha = 2.0
     beta = 1.0
     pixel_colours_copy = pixel_colours.detach().clone()
     bled_codes_copy = bled_codes.detach().clone()
+
     solver = PixelScoreSolver()
     results = solver.get_next_gene_weights(pixel_colours, bled_codes, alpha, beta)
     assert type(results) is tuple
     assert len(results) == 3
-    assert all([type(r) is torch.Tensor for r in results])
+    assert all(type(r) is torch.Tensor for r in results)
     residuals, epsilon_squared, weights = results
-    assert residuals.ndim == 2
-    assert residuals.shape == (n_pixels, n_rounds_channels_use)
-    assert epsilon_squared.ndim == 2
-    assert epsilon_squared.shape == (n_pixels, n_rounds_channels_use)
-    assert weights.ndim == 2
-    assert weights.shape == (n_pixels, n_genes_added)
+    assert residuals.ndim == 3
+    assert residuals.shape == (n_pixels, n_rounds_use, n_channels_use)
+    assert epsilon_squared.ndim == 3
+    assert epsilon_squared.shape == (n_pixels, n_rounds_use, n_channels_use)
+    assert (epsilon_squared >= 0).all()
+    assert weights.ndim == 3
+    assert weights.shape == (n_pixels, n_rounds_use, n_genes_added)
     # Check that the input tensors are left unchanged.
     assert torch.allclose(pixel_colours, pixel_colours_copy)
     assert torch.allclose(bled_codes, bled_codes_copy)
-    # Check against calculations done by hand.
-    expected_residuals = torch.ones(3).float()
-    expected_residuals[1] = -1
-    expected_residuals /= 6
-    assert torch.allclose(residuals[0], expected_residuals)
-    expected_weights = torch.ones(2).float()
-    expected_weights[0] = 5 / 6
-    expected_weights[1] = -1 / 6
-    assert torch.allclose(weights, expected_weights)
-    expected_epsilon_squared = torch.ones(3).float()
-    expected_epsilon_squared[0] = 0.707475
-    expected_epsilon_squared[1] = 0.691396
-    expected_epsilon_squared[2] = 1.601128
-    assert torch.allclose(epsilon_squared[0], expected_epsilon_squared)
+
+    # Check residuals and weights.
+    for p in range(n_pixels):
+        for r in range(n_rounds_use):
+            # Has shape n_channels_use x 1.
+            pixel_colour_r = pixel_colours[p, r]
+            assert pixel_colour_r.ndim == 2
+            # Has shape n_channels_use x n_genes_added.
+            bled_codes_r = bled_codes[p, r]
+            assert bled_codes_r.ndim == 2
+            # Has shape n_genes_added.
+            expected_weight_r = torch.linalg.lstsq(bled_codes_r, pixel_colour_r).solution[:, 0]
+            assert expected_weight_r.shape == (n_genes_added,)
+            assert weights[p, r].shape == expected_weight_r.shape
+            assert torch.allclose(weights[p, r], expected_weight_r, atol=1e-4)
+
+            expected_residual_r = pixel_colour_r[:, 0] - (expected_weight_r[np.newaxis] * bled_codes_r).sum(1)
+            assert expected_residual_r.shape == (n_channels_use,)
+            assert torch.allclose(residuals[p, r], expected_residual_r, atol=1e-4)
 
 
 def test_get_gene_pixel_scores() -> None:
@@ -314,11 +321,11 @@ def test_get_gene_pixel_scores() -> None:
     weighted_bled_codes[1, 1, 1] = [0, 1, 0, 0.5]
     weighted_bled_codes[1, 1, 2] = [0, 0, 1, 1]
 
-    weights = np.zeros((n_pixels, n_genes_assigned), np.float32)
-    weights = np.linalg.norm(weighted_bled_codes, axis=(-1, -2))
+    weights = np.zeros((n_pixels, n_genes_assigned, n_rounds_use), np.float32)
+    weights = np.linalg.norm(weighted_bled_codes, axis=-1)
 
     bled_codes = np.zeros_like(weighted_bled_codes, np.float32)
-    bled_codes = weighted_bled_codes.copy() / weights[:, :, np.newaxis, np.newaxis]
+    bled_codes = weighted_bled_codes.copy() / weights[:, :, :, np.newaxis]
 
     pixel_colours = torch.from_numpy(pixel_colours)
     weights = torch.from_numpy(weights)
@@ -351,13 +358,14 @@ def test_get_uncertainty_weights() -> None:
     n_batches = 2
     n_pixels = 3
     n_genes_assigned = 4
-    n_rounds_channels_use = 5
+    n_rounds_use = 5
+    n_channels_use = 5
 
     rng = np.random.RandomState(0)
 
-    gene_weights = rng.rand(n_batches, n_pixels, n_genes_assigned).astype(np.float32)
+    gene_weights = rng.rand(n_batches, n_pixels, n_rounds_use, n_genes_assigned).astype(np.float32)
     gene_weights = torch.from_numpy(gene_weights)
-    bled_codes = rng.rand(n_batches, n_pixels, n_rounds_channels_use, n_genes_assigned).astype(np.float32)
+    bled_codes = rng.rand(n_batches, n_pixels, n_rounds_use, n_channels_use, n_genes_assigned).astype(np.float32)
     bled_codes = torch.from_numpy(bled_codes)
     alpha = 1.1
     beta = 2.3
@@ -366,23 +374,25 @@ def test_get_uncertainty_weights() -> None:
     bled_codes_copy = bled_codes.detach().clone()
 
     solver = PixelScoreSolver()
-    epsilon_squared = solver.get_uncertainty_weights(gene_weights, bled_codes, alpha, beta)
+    epsilon_squared = solver._get_uncertainty_weights(gene_weights, bled_codes, alpha, beta)
     assert type(epsilon_squared) is torch.Tensor
-    assert epsilon_squared.shape == (n_batches, n_pixels, n_rounds_channels_use)
+    assert epsilon_squared.shape == (n_batches, n_pixels, n_rounds_use, n_channels_use)
     assert torch.allclose(gene_weights, gene_weights_copy)
     assert torch.allclose(bled_codes, bled_codes_copy)
 
     for b in range(n_batches):
         for p in range(n_pixels):
             # We require sigma squared for every round/channel pair for each epsilon squared computation.
-            sigma_squared_values = []
-            for rc in range(n_rounds_channels_use):
-                sigma_squared = beta**2 + alpha * torch.square(gene_weights[b, p] * bled_codes[b, p, rc]).sum()
-                sigma_squared_values.append(sigma_squared)
-            sigma_squared_values = torch.tensor(sigma_squared_values)
+            sigma_squared_values = torch.full((n_rounds_use, n_channels_use), torch.nan, dtype=torch.float32)
+            for r in range(n_rounds_use):
+                for c in range(n_channels_use):
+                    sigma_squared = beta**2 + alpha * torch.square(gene_weights[b, p, r] * bled_codes[b, p, r, c]).sum()
+                    sigma_squared_values[r, c] = sigma_squared
             sigma_squared_values = torch.reciprocal(sigma_squared_values)
 
             # Now compute epsilon squared for each round/channel pair and check the function's values are correct.
-            for rc in range(n_rounds_channels_use):
-                epsilon_squared_expected = n_rounds_channels_use * sigma_squared_values[rc] / sigma_squared_values.sum()
-                assert torch.isclose(epsilon_squared[b, p, rc], epsilon_squared_expected)
+            for r in range(n_rounds_use):
+                for c in range(n_channels_use):
+                    epsilon_squared_expected = n_rounds_use * n_channels_use * sigma_squared_values[r, c]
+                    epsilon_squared_expected /= sigma_squared_values.sum()
+                    assert torch.isclose(epsilon_squared[b, p, r, c], epsilon_squared_expected)
