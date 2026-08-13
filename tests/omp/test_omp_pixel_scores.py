@@ -216,7 +216,8 @@ def test_get_next_gene_assignments() -> None:
     other_result = omp_solver.get_next_gene_assignments(**kwargs)
     assert type(other_result) is tuple
     assert len(other_result) == 3
-    assert all([type(result) is torch.Tensor for result in other_result])
+    assert all(type(result) is torch.Tensor for result in other_result)
+    assert not any(torch.isnan(result).any() for result in other_result)
     assert type(best_genes) is torch.Tensor
     assert best_genes.shape == (n_pixels,), f"Got shape {best_genes.shape}"
     assert best_genes[0] == 0, f"Got {best_genes[0]}"

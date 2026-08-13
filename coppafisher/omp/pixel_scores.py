@@ -394,6 +394,7 @@ class PixelScoreSolver:
             all_gene_scores[is_bg_assignment] = dot_product.dot_product_score(
                 residual_colours[is_bg_assignment][np.newaxis], all_bled_codes[np.newaxis, np.newaxis]
             )[0]
+        assert not torch.isnan(all_gene_scores).any()
 
         next_best_gene_scores, next_best_genes = torch.max(all_gene_scores, dim=1)
         next_best_genes = next_best_genes.int()
