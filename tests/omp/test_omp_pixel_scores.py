@@ -231,6 +231,32 @@ def test_get_next_gene_assignments() -> None:
     assert torch.allclose(gene_bled_codes_previous, gene_bled_codes)
     assert torch.allclose(fail_gene_indices_previous, fail_gene_indices)
 
+    # Background subtraction check.
+    n_pixels = 1
+    n_rounds = 2
+    n_channels = 3
+    residual_colours = torch.zeros((n_pixels, n_rounds, n_channels), dtype=torch.float32)
+    residual_colours[0, :, 2] = 1
+    gene_bled_codes = torch.zeros((1, n_rounds, n_channels), dtype=torch.float32)
+    gene_bled_codes[0, 0, 1] = 1
+    gene_bled_codes[0, 1, 0] = 1
+    fail_gene_indices = torch.ones((n_pixels, 0), dtype=torch.int32)
+    kwargs = dict(
+        residual_colours=residual_colours,
+        gene_bled_codes=gene_bled_codes,
+        fail_gene_indices=fail_gene_indices,
+        dot_product_threshold=dot_product_threshold,
+        minimum_intensity=0.0,
+        bg_subtraction_percentile=25.0,
+    )
+    residual_colours_previous = residual_colours.detach().clone()
+    gene_bled_codes_previous = gene_bled_codes.detach().clone()
+    fail_gene_indices_previous = fail_gene_indices.detach().clone()
+    best_genes = omp_solver.get_next_gene_assignments(**kwargs)
+    assert torch.allclose(residual_colours_previous, residual_colours)
+    assert torch.allclose(gene_bled_codes_previous, gene_bled_codes)
+    assert torch.allclose(fail_gene_indices_previous, fail_gene_indices)
+
 
 def test_get_next_residual_colours() -> None:
     import torch

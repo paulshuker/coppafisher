@@ -354,19 +354,21 @@ class PixelScoreSolver:
         n_pixels, n_rounds_use, n_channels_use = residual_colours.shape
         n_genes = gene_bled_codes.shape[0]
 
+        residual_colours_bg_subtracted = residual_colours.detach().clone()
+
         bg_bled_codes = self.create_background_bled_codes(n_rounds_use, n_channels_use)
         bg_bled_codes = torch.from_numpy(bg_bled_codes)
         all_bled_codes = torch.concat((gene_bled_codes, bg_bled_codes), 0)
 
         stopping_criteria = torch.full((n_pixels,), self.NO_REASON, dtype=torch.int8)
 
-        intensity_is_low = intensity.compute_intensity(residual_colours) < minimum_intensity
-        stopping_criteria[intensity_is_low] = self.INTENSITY_TOO_LOW
-
         all_gene_scores = dot_product.dot_product_score(
-            residual_colours[np.newaxis], all_bled_codes[np.newaxis, np.newaxis]
+            residual_colours_bg_subtracted[np.newaxis], all_bled_codes[np.newaxis, np.newaxis]
         )[0]
         for _ in range(n_channels_use):
+            intensity_is_low = intensity.compute_intensity(residual_colours_bg_subtracted) < minimum_intensity
+            stopping_criteria[intensity_is_low] = self.INTENSITY_TOO_LOW
+
             # Has shape n_spots x n_genes.
             next_best_gene_scores, next_best_genes = torch.max(all_gene_scores, dim=1)
             next_best_genes = next_best_genes.int()
@@ -379,20 +381,19 @@ class PixelScoreSolver:
             # Then gene assignment scores are recomputed.
 
             # Has shape n_pixels_continue x n_channels_use.
-            percentiles = residual_colours[is_bg_assignment].quantile(
-                0.01 * bg_subtraction_percentile, 1, interpolation="midpoint"
-            )
+            percentiles = residual_colours_bg_subtracted[is_bg_assignment].detach().clone()
+            percentiles = percentiles.quantile(0.01 * bg_subtraction_percentile, 1)
             # Only take one channel from each pixel (the assigned bg gene), therefore percentiles_keep is created.
             percentiles_keep = torch.zeros_like(percentiles, dtype=bool)
             percentiles_keep[range(bg_assignment_sum), next_best_genes[is_bg_assignment] - n_genes] = True
             assert (percentiles_keep.sum(1) == 1).all()
             percentiles[torch.logical_not(percentiles_keep)] = 0
             percentiles = percentiles[:, np.newaxis]
-            residual_colours[is_bg_assignment] -= percentiles
+            residual_colours_bg_subtracted[is_bg_assignment] -= percentiles
             del percentiles, percentiles_keep
 
             all_gene_scores[is_bg_assignment] = dot_product.dot_product_score(
-                residual_colours[is_bg_assignment][np.newaxis], all_bled_codes[np.newaxis, np.newaxis]
+                residual_colours_bg_subtracted[is_bg_assignment][np.newaxis], all_bled_codes[np.newaxis, np.newaxis]
             )[0]
         assert not torch.isnan(all_gene_scores).any()
 
