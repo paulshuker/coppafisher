@@ -379,9 +379,8 @@ class PixelScoreSolver:
             # Then gene assignment scores are recomputed.
 
             # Has shape n_pixels_continue x n_channels_use.
-            percentiles = residual_colours[is_bg_assignment].quantile(
-                0.01 * bg_subtraction_percentile, 1, interpolation="midpoint"
-            )
+            percentiles = residual_colours[is_bg_assignment].detach().clone()
+            percentiles = percentiles.quantile(0.01 * bg_subtraction_percentile, 1)
             # Only take one channel from each pixel (the assigned bg gene), therefore percentiles_keep is created.
             percentiles_keep = torch.zeros_like(percentiles, dtype=bool)
             percentiles_keep[range(bg_assignment_sum), next_best_genes[is_bg_assignment] - n_genes] = True
