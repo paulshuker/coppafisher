@@ -570,8 +570,12 @@ class PixelScoreSolver:
         # It has shape (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_use, n_channels_use).
         # This will be needed to calculate the uncertainty weighting for each gene assignment individually.
         # See Step 3 in OMP method documentation for details.
-        bled_codes_except_one = bled_codes.detach().clone()[np.newaxis].repeat_interleave(n_genes_assigned, 0)
-        bled_codes_except_one = bled_codes_except_one[:, :, :-1]
+        bled_codes_except_one = torch.full(
+            (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_use, n_channels_use),
+            torch.nan,
+            dtype=self.DTYPE_T,
+            device=bled_codes.device,
+        )
         for g in range(n_genes_assigned):
             bled_codes_except_one[g] = torch.cat((bled_codes[:, :g], bled_codes[:, (g + 1) :]), dim=1)
         # Flatten to shape (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_channels_use).
