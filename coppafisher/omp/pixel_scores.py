@@ -91,9 +91,9 @@ class PixelScoreSolver:
                     score for every gene on each iteration. This even includes the iteration that did not assign any new
                     genes so you can see what the final gene scores were before stopping. Only returned if
                     return_dp_scores is true.
-                - (`(n_pixels x n_genes) ndarray[float32]`): gene_weights. The gene weights given to each gene on all
-                    pixels on their final iteration. For genes that were not assigned on a pixel, nan is placed. Only
-                    returned if return_all_weights is true.
+                - (`(n_pixels x n_genes x n_rounds_use) ndarray[float32]`): gene_weights. The gene weights given to each
+                    gene on all pixels on their final iteration. For genes that were not assigned on a pixel, nan is
+                    placed. Only returned if return_all_weights is true.
                 - (`(n_pixels x n_genes x n_rounds_use x n_channels_use) ndarray[float32]`): final_residuals. For every
                     gene, this is the residual colour that is scored against the gene's bled code to find the final
                     pixel scores. In the OMP method documentation, this is denoted by epsilon ^ 2 * tilde{R} with i
@@ -618,9 +618,8 @@ class PixelScoreSolver:
         # Change pixel_scores shape to (n_pixels x n_genes_assigned).
         pixel_scores = pixel_scores.swapaxes(0, 1)
 
-        # Set pixel scores to be negative if their gene's weight is negative.
-        weight_is_negative = (weights < 0).any(2)
-        pixel_scores[weight_is_negative] = -pixel_scores[weight_is_negative]
+        # Set pixel scores to be negative if a gene has any negative round weights.
+        pixel_scores[(weights < 0).any(2)] *= -1
 
         result = (pixel_scores,)
 

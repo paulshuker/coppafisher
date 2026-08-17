@@ -14,7 +14,6 @@ class ViewOMPColourSum(Subplot):
         nbp_basic: NotebookPage,
         nbp_call_spots: NotebookPage,
         nbp_omp: NotebookPage | None,
-        method: str,
         local_yxz: np.ndarray[int],
         spot_tile: int,
         spot_colour: np.ndarray[float],
@@ -73,7 +72,7 @@ class ViewOMPColourSum(Subplot):
         )
         self.pixel_score = pixel_scores[0]
         self.gene_weight = gene_weights[0]
-        self.assigned_genes: np.ndarray[int] = (~np.isnan(self.gene_weight)).nonzero()[0]
+        self.assigned_genes: np.ndarray[int] = (~np.isnan(self.gene_weight)).any(1).nonzero()[0]
         self.gene_weight = self.gene_weight[self.assigned_genes]
         # Has shape (n_genes_assigned, n_rounds_use, n_channels_use).
         self.gene_residuals = gene_residuals[0][self.assigned_genes]
@@ -92,7 +91,7 @@ class ViewOMPColourSum(Subplot):
         )
         self.assigned_bled_codes: np.ndarray = nbp_call_spots.bled_codes[self.assigned_genes].astype(np.float32)
         # Weight the bled codes.
-        self.assigned_bled_codes *= self.gene_weight[:, np.newaxis, np.newaxis]
+        self.assigned_bled_codes *= self.gene_weight[:, :, np.newaxis]
 
         abs_max = np.abs(self.assigned_bled_codes).max()
         abs_max = np.max([abs_max, np.abs(self.colour).max()])
@@ -104,7 +103,7 @@ class ViewOMPColourSum(Subplot):
             mpl.cm.ScalarMappable(cmap=self.cmap, norm=self.norm), cax=None, ax=(self.axes[0, -1], self.axes[1, -1])
         )
         self.draw_data()
-        self.fig.suptitle(f"{method.capitalize()} spot at {tuple(local_yxz.tolist())} OMP key colours")
+        self.fig.suptitle(f"OMP results at pixel {tuple(local_yxz.tolist())}")
         if show:
             self.fig.show()
 
@@ -117,9 +116,10 @@ class ViewOMPColourSum(Subplot):
                 spine.set_visible(False)
 
         for i, g in enumerate(self.assigned_genes):
-            w_str = "{:.3f}".format(self.gene_weight[i])
+            print(f"{self.gene_weight.shape=}")
+            w_str = ",".join("{:.3f}".format(w) for w in self.gene_weight[i])
             c_str = "{:.3f}".format(self.pixel_score[i])
-            self.axes[0, i].set_title(f"{g}: {self.gene_names[g]}\nweight: {w_str}\npixel score: {c_str}")
+            self.axes[0, i].set_title(f"{g}: {self.gene_names[g]}\nweights: {w_str}\npixel score: {c_str}")
             self.axes[0, i].imshow(self.assigned_bled_codes[i].T, cmap=self.cmap, norm=self.norm)
 
         for i in range(self.axes.shape[1] - 1):
@@ -131,11 +131,11 @@ class ViewOMPColourSum(Subplot):
         # Plot residual colours for each gene.
         for i, g in enumerate(self.assigned_genes):
             self.axes[1, i].set_title(
-                r"(Spot colour - bled codes)$\times\epsilon^2$" + f"\nexcept {self.gene_names[g]}"
+                r"(Pixel colour - bled codes)$\times\epsilon^2$" + f"\nexcept {self.gene_names[g]}"
             )
             self.axes[1, i].imshow(self.gene_residuals[i].T, cmap=self.cmap, norm=self.norm)
 
-        self.axes[1, -2].set_title("Spot colour")
+        self.axes[1, -2].set_title("Pixel colour")
         self.axes[1, -2].imshow(self.colour.T, cmap=self.cmap, norm=self.norm)
 
         self.fig.canvas.draw_idle()

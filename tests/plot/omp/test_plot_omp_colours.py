@@ -54,7 +54,6 @@ def test_ViewOMPColourSum() -> None:
         nbp_basic,
         nbp_call_spots,
         nbp_omp,
-        "omp",
         np.zeros(3, int),
         1,
         rng.rand(n_rounds_use, n_channels_use),
