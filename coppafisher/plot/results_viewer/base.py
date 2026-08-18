@@ -246,7 +246,7 @@ class Viewer:
 
         # Gather all spot data and keep in self.
         print("Gathering spot data")
-        self.spot_data: dict[str, Viewer.MethodData] = {}
+        self.spot_data = {}
         self.spot_data["prob_init"] = MethodData(
             "prob_init",
             self.nbp_basic,
@@ -503,17 +503,15 @@ class Viewer:
                 continue
             self.viewer.bind_key(hotkey.key_press)(hotkey.invoke)
 
-        # Give the Viewer a larger window.
-        if self.show:
-            self.viewer.window.resize(1400, 900)
-            self.viewer.window.activate()
-
         end_time = time.time()
         print(f"Viewer built in {'{:.1f}'.format(end_time - start_time)}s\n")
 
         self.ignore_events = False
         if self.show:
+            self.viewer.window.resize(1400, 900)
+            self.viewer.window.activate()
             self.viewer.show()
+            self.viewer.fit_to_view()
             try:
                 napari.run()
             except KeyboardInterrupt:
