@@ -816,7 +816,6 @@ class Viewer:
             spot_data.tile[self.selected_spot],
             spot_data.indices[self.selected_spot],
             spot_data.gene_no[self.selected_spot],
-            spot_data.colours[self.selected_spot],
             self.selected_method,
             show=self.show,
         )

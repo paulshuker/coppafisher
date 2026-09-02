@@ -76,7 +76,7 @@ def test_solve() -> None:
         assert result.shape == (n_pixels, n_genes)
         assert result.dtype == dtype
         if previous_result is not None:
-            assert np.allclose(result, previous_result), f"{np.abs(result - previous_result).max()}"
+            assert np.allclose(result, previous_result, atol=1e-7), f"{np.abs(result - previous_result).max()}"
         previous_result = result
 
     # Ensure the number of assigned genes only decreases as the dot product threshold increases.

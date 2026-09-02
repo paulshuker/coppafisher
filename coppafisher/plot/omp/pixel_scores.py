@@ -33,7 +33,6 @@ class ViewOMPPixelScoreImage(Subplot):
         spot_tile: int,
         spot_no: int,
         spot_gene_no: int,
-        spot_colour: np.ndarray,
         method: str,
         im_size: int = 8,
         z_planes: Tuple[int] = (-2, -1, 0, 1, 2),
@@ -53,7 +52,6 @@ class ViewOMPPixelScoreImage(Subplot):
             spot_no (int-like or none): spot index to be plotted.
             spot_gene_no (int-like or none): spot's gene index. The index will be a selectable option on the slider if
                 given. None if not given.
-            spot_colour (`(n_rounds_use x n_channels_use) ndarray[float]`): the spot's colour.
             method (str): gene calling method.
             im_size (int, optional): number of pixels out from the central pixel to plot in x and y to create the
                 square images. Default: 8.
@@ -136,8 +134,7 @@ class ViewOMPPixelScoreImage(Subplot):
         scores = omp_scores.boost_z_edge_spot_scores(scores[:, np.newaxis, np.newaxis], torch.from_numpy(mean_spot))[
             :, 0, 0, local_yxz[2]
         ]
-
-        self.scores = scores.numpy()
+        self.scores = scores.numpy(force=True)
 
         self.fig, self.axes = plt.subplots(2, len(z_planes) + 1, height_ratios=(6, 1))
         self.fig.set_figwidth(14)

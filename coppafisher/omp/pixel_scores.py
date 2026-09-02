@@ -237,16 +237,16 @@ class PixelScoreSolver:
                 pixel_scores[pixels_to_continue, latest_gene_selections[:, j]] = new_pixel_scores[:, j]
             del latest_gene_selections, new_pixel_scores
 
-        result = (pixel_scores.cpu().numpy(),)
+        result = (pixel_scores.cpu().numpy(force=True),)
         if return_all_scores:
-            result += (np.array([score.cpu().numpy() for score in dp_scores]),)
+            result += (np.array([score.cpu().numpy(force=True) for score in dp_scores]),)
         if return_all_weights:
-            result += (all_weights.cpu().numpy(),)
+            result += (all_weights.cpu().numpy(force=True),)
         if return_all_residuals:
-            result += (all_residuals.cpu().numpy(),)
+            result += (all_residuals.cpu().numpy(force=True),)
         if return_stopping_criteria:
             all_stopping_criteria[pixels_to_continue] = self.MAX_ITERATIONS_REACHED
-            result += (all_stopping_criteria.cpu().numpy(),)
+            result += (all_stopping_criteria.cpu().numpy(force=True),)
         if len(result) == 1:
             result = result[0]
 
