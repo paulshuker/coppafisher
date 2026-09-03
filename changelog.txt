@@ -3,6 +3,7 @@
  * General: Running on the GPU is no longer supported.
  * General: Package updates.
  * Viewer: The gene legend is now responsive to mouse movements.
+ * Viewer: OMP colour subplot now plots the final colour residual.
  * Viewer: Improved positioning of tiles in dapi/anchor image backgrounds.
  * Viewer: Broken dapi/anchor image backgrounds at four tile overlap areas fix.
  * Export: Broken dapi image exports at four tile overlap areas fix.

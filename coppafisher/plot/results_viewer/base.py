@@ -844,7 +844,6 @@ class Viewer:
             self.nbp_basic,
             self.nbp_call_spots,
             self.nbp_omp,
-            self.selected_method,
             spot_data.local_yxz[self.selected_spot],
             spot_data.tile[self.selected_spot],
             spot_data.colours[self.selected_spot],
