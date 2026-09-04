@@ -2,6 +2,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
+from ...omp import preprocessing
 from ...omp.pixel_scores import PixelScoreSolver
 from ...setup.config import Config
 from ...setup.notebook_page import NotebookPage
@@ -55,7 +56,7 @@ class ViewOMPColourSum(Subplot):
         self.colour *= nbp_call_spots.colour_norm_factor[spot_tile].astype(np.float32)
         omp_solver = PixelScoreSolver()
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
-        bg_bled_codes = omp_solver.create_background_bled_codes(n_rounds_use, n_channels_use)
+        bg_bled_codes = preprocessing.create_background_bled_codes(n_rounds_use, n_channels_use)
         pixel_scores, gene_weights, gene_residuals = omp_solver.solve(
             pixel_colours=self.colour[np.newaxis],
             bled_codes=bled_codes,

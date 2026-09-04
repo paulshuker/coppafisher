@@ -13,7 +13,7 @@ import zarr
 
 from .. import log
 from ..find_spots import detect as find_spots_detect
-from ..omp import scores
+from ..omp import preprocessing, scores
 from ..omp.pixel_scores import PixelScoreSolver
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
@@ -119,7 +119,7 @@ def run_omp(
     assert np.isnan(bled_codes).sum() == 0, "bled codes cannot contain nan values"
     assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"
     solver = PixelScoreSolver()
-    bg_bled_codes = solver.create_background_bled_codes(n_rounds_use, n_channels_use)
+    bg_bled_codes = preprocessing.create_background_bled_codes(n_rounds_use, n_channels_use)
     max_genes = config["max_genes"]
     solver_kwargs = dict(
         bled_codes=bled_codes,

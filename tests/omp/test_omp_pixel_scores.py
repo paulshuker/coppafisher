@@ -3,6 +3,7 @@ import itertools
 import numpy as np
 import pytest
 
+from coppafisher.omp import preprocessing
 from coppafisher.omp.pixel_scores import PixelScoreSolver
 from coppafisher.utils import base
 from coppafisher.utils import intensity as utils_intensity
@@ -22,7 +23,7 @@ def test_solve() -> None:
     pixel_colours = rng.rand(n_pixels, n_rounds, n_channels).astype(dtype)
     bled_codes = rng.rand(n_genes, n_rounds, n_channels).astype(dtype)
     bled_codes /= np.linalg.norm(bled_codes, axis=(-1, -2), keepdims=True)
-    bg_codes = solver.create_background_bled_codes(n_rounds, n_channels)
+    bg_codes = preprocessing.create_background_bled_codes(n_rounds, n_channels)
     assert bg_codes.ndim == 3
     assert bg_codes.shape == (n_channels, n_rounds, n_channels)
     assert bg_codes.dtype == np.float32
@@ -99,7 +100,7 @@ def test_solve() -> None:
     n_pixels = 8
     pixel_colours = np.zeros((n_pixels, n_rounds, n_channels), dtype)
     bled_codes = np.zeros((n_genes, n_rounds, n_channels), dtype)
-    bg_codes = solver.create_background_bled_codes(n_rounds, n_channels)
+    bg_codes = preprocessing.create_background_bled_codes(n_rounds, n_channels)
     assert bg_codes.dtype == np.float32
     minimum_intensity = 0.2
     reed_bled_codes = base.reed_solomon_codes(n_genes, n_rounds, n_channels)

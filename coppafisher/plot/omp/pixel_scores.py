@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.widgets import Button, Slider
 
+from coppafisher.omp import preprocessing
 from coppafisher.omp import scores as omp_scores
 from coppafisher.omp.pixel_scores import PixelScoreSolver
 from coppafisher.plot.results_viewer.subplot import Subplot
@@ -104,7 +105,7 @@ class ViewOMPPixelScoreImage(Subplot):
         pixel_scores = solver.solve(
             colours,
             bled_codes,
-            solver.create_background_bled_codes(n_rounds_use, n_channels_use),
+            preprocessing.create_background_bled_codes(n_rounds_use, n_channels_use),
             max_genes,
             dot_product_threshold,
             min_intensity,

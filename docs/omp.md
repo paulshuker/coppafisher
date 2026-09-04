@@ -16,11 +16,15 @@ reads are found in [step 5](#5-spot-scoring-and-spot-detection).
 - $w_{pgi}$ is the OMP gene weight given to gene $g$ for image pixel $p$ on the $i$'th iteration. This is computed by
 least squares in [step 3](#3-gene-weights). $i$ takes values $1, 2, 3, ...$
 - $||A||_{...}$ represents an L2 norm of $A$ (or Frobenius norm for a matrix) over all indices replaced by a dot ($.$).
+- A background gene contains ones in every round for a single channel. This could be caused by autofluorescence for
+example.
 
 ## 0: Pre-processing
 
 All pixel colours are gathered using the results from register. Any out of bounds round/channel colour intensities are
 set to zero. The pixel colours, $\mathbf{S}$, are multiplied by `nb.call_spots.colour_norm_factor` for the each tile.
+
+The colours are then scored against background genes.
 
 ## 1: Minimum Intensity Threshold
 

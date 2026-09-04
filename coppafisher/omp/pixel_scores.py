@@ -3,6 +3,7 @@ from typing import Any, Dict, Tuple, TypeAlias
 import numpy as np
 
 from ..call_spots import dot_product
+from ..omp import preprocessing
 from ..utils import intensity
 
 
@@ -253,29 +254,6 @@ class PixelScoreSolver:
 
         return result
 
-    def create_background_bled_codes(self, n_rounds_use: int, n_channels_use: int) -> np.ndarray:
-        """
-        Create the background bled codes that are used during OMP pixel score computing.
-
-        Args:
-            n_rounds_use (int): the number of sequencing rounds.
-            n_channels_use (int): the number of sequencing channels.
-
-        Returns:
-            (`(n_channels_use x n_rounds_use x n_channels_use) ndarray[float32]`): bg_bled_codes. bg_bled_codes[i] is
-                the i'th background bled code.
-        """
-        cache_key = (n_rounds_use, n_channels_use)
-        if cache_key in self.bg_bled_code_cache:
-            return self.bg_bled_code_cache[cache_key].copy()
-
-        bg_bled_codes = np.eye(n_channels_use, dtype=np.float32)[:, None, :].repeat(n_rounds_use, axis=1)
-        # Normalise the codes the same way as gene bled codes.
-        bg_bled_codes /= np.linalg.norm(bg_bled_codes, axis=(1, 2))
-        self.bg_bled_code_cache[cache_key] = bg_bled_codes.copy()
-
-        return bg_bled_codes
-
     def get_next_gene_assignments(
         self,
         residual_colours: Tensor,
@@ -356,7 +334,7 @@ class PixelScoreSolver:
 
         residual_colours_bg_subtracted = residual_colours.detach().clone()
 
-        bg_bled_codes = self.create_background_bled_codes(n_rounds_use, n_channels_use)
+        bg_bled_codes = preprocessing.create_background_bled_codes(n_rounds_use, n_channels_use)
         bg_bled_codes = torch.from_numpy(bg_bled_codes)
         all_bled_codes = torch.concat((gene_bled_codes, bg_bled_codes), 0)
 

@@ -5,11 +5,11 @@ import mplcursors
 import numpy as np
 from matplotlib.widgets import Slider
 
-from coppafisher.omp import pixel_scores
-from coppafisher.plot.results_viewer.subplot import Subplot
-from coppafisher.setup.config import Config
-from coppafisher.setup.notebook import NotebookPage
-from coppafisher.spot_colours import base as spot_colours_base
+from ...omp import pixel_scores, preprocessing
+from ...plot.results_viewer.subplot import Subplot
+from ...setup.config import Config
+from ...setup.notebook import NotebookPage
+from ...spot_colours import base as spot_colours_base
 
 
 class ViewOMPGeneScores(Subplot):
@@ -78,7 +78,7 @@ class ViewOMPGeneScores(Subplot):
         image_colours *= nbp_call_spots.colour_norm_factor[[spot_tile]]
         omp_solver = pixel_scores.PixelScoreSolver()
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
-        bg_bled_codes = omp_solver.create_background_bled_codes(n_rounds_use, n_channels_use)
+        bg_bled_codes = preprocessing.create_background_bled_codes(n_rounds_use, n_channels_use)
         _, self.dp_scores = omp_solver.solve(
             pixel_colours=image_colours,
             bled_codes=bled_codes,
