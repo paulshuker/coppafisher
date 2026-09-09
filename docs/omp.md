@@ -110,7 +110,6 @@ Gene $\tilde{g}$ is successfully assigned to pixel $p$ when all conditions are m
 - $(\text{gene scores})_{p\tilde{g}i}$ is the highest scoring gene.
 - $(\text{gene scores})_{p\tilde{g}i} >$ `dot_product_threshold` (typically 0.72).
 - $\tilde g$ is not already assigned to the pixel.
-- $\tilde g$ is not a background gene.
 - The residual intensity $\min_r(\max_c(|\hat{R}_{prci}|)) > \text{minimum\_intensity}_t$. See [diagnostic](diagnostics.md#intensity-images).
 - Iteration $i \leq$ `max_genes`.
 
@@ -119,8 +118,7 @@ The reasons for each of these conditions is to:
 - pick the best gene
 - remove unconfident gene reads
 - not double assign genes
-- avoid over-fitting on high-background pixel colour
-- remove dim colours (background noise)
+- remove empty colours
 - avoid assigning too many genes
 
 respectively. If a pixel fails to meet one or more of these conditions, then no more genes are assigned to the pixel and
