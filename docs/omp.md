@@ -16,26 +16,30 @@ reads are found in [step 5](#5-spot-scoring-and-spot-detection).
 - $w_{pgi}$ is the OMP gene weight given to gene $g$ for image pixel $p$ on the $i$'th iteration. This is computed by
 least squares in [step 3](#3-gene-weights). $i$ takes values $1, 2, 3, ...$
 - $||A||_{...}$ represents an L2 norm of $A$ (or Frobenius norm for a matrix) over all indices replaced by a dot ($.$).
-- A background gene contains ones in every round for a single channel. This could be caused by autofluorescence for
-example.
+- There are $N_c$ background genes that each contain ones in every round for a single channel.
 
 ## 0: Pre-processing
 
 All pixel colours are gathered using the results from register. Any out of bounds round/channel colour intensities are
 set to zero. The pixel colours, $\mathbf{S}$, are multiplied by `nb.call_spots.colour_norm_factor` for the each tile.
 
-The colours are then scored against background genes.
+Then the colours are "round dot product scored" against all background genes (the same scoring algorithm used in
+[call spots](call_spots.md#6-and-7-application-of-scales-computation-of-final-scores-and-bleed-matrix) and
+[step 2](#2-next-gene-assignment)). If the highest scoring background gene has a score at least
+`background_dot_product_threshold` (typically 0.72), then the `background_subtract_percentile`'th percentile (typically
+25) is subtracted from said channel in all rounds. This is repeated $N_c$ times until up to all background
+genes have been subtracted from each colour. A background gene cannot be subtracted twice from the same colour.
 
 ## 1: Minimum Intensity Threshold
 
-Before running on pixels, many pixels are discarded because they are too dim and not spots. To do this, we take the
+Before running on pixels, many pixels are discarded because they are too dim to contain RCPs. To do this, we take the
 middle z plane colours for each tile, $D_{txyrc}$, and compute their intensities as
 
 $$
 I_{txy} = \min_r(\max_c(|D_{txyrc}|))
 $$
 
-The intensity thresholds for each tile are then
+The intensity thresholds for each tile is then
 
 $$
 \text{minimum\_intensity}_t = a\times\text{nth percentile}_{xy}(I_{txy})
@@ -54,8 +58,8 @@ $$
 R_{prci} = S_{prc} - \sum_g(w_{pg(i - 1)}B_{grc})
 $$
 
-For the first iteration, $R_{prc(i=1)} = S_{prc}$. Using this residual, a "semi dot product score" is computed for every
-gene and background gene $g$ similar to
+For the first iteration, $R_{prc(i=1)} = S_{prc}$. Using this residual, a "round dot product score" is computed for every
+gene $g$ similar to
 [call spots](call_spots.md#6-and-7-application-of-scales-computation-of-final-scores-and-bleed-matrix)
 
 $$

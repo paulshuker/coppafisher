@@ -25,6 +25,6 @@ def compute_intensity(colours: np.ndarray[np.floating] | Any) -> Any:
     if type(colours) is np.ndarray:
         intensities = torch.from_numpy(colours)
     elif type(colours) is torch.Tensor:
-        intensities = colours.clone()
+        intensities = colours.detach().clone()
 
     return intensities.abs().max(2).values.min(1).values

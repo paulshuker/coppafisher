@@ -20,7 +20,8 @@ def preprocess_colours(
     have been subtracted from each colour. A background gene cannot be subtracted twice from the same colour.
 
     Args:
-        colours (`(n_colours x n_rounds_use x n_channels_use) ndarray[float32]`): the colours to pre-process.
+        colours (`(n_colours x n_rounds_use x n_channels_use) ndarray[float32]`): the colours to pre-process. All
+            colours must come from the same tile.
         colour_norm_factor (`(n_rounds_use x n_channels_use) ndarray[float32]`): the colour normalisation factors.
         background_dot_product_threshold (float): the background gene round-dot product threshold.
         background_subtract_percentile (float): the background gene subtraction percentile.
@@ -49,7 +50,7 @@ def preprocess_colours(
     # colours_background_gene_is_subtracted[i, c] is true for background gene channel index c has been subtracted from
     # colour index i. This is to avoid double subtracting a background's channel.
     colours_background_gene_is_subtracted = np.zeros((n_colours, n_channels_use), bool)
-    colours_to_continue_subtraction = np.ones(n_colours, bool)
+    colours_to_continue = np.ones(n_colours, bool)
 
     for _ in range(n_channels_use):
         bg_scores = dot_product.dot_product_score(preprocessed_colours[np.newaxis], bg_genes[np.newaxis, np.newaxis])
@@ -59,33 +60,27 @@ def preprocess_colours(
         highest_scoring_bg_genes = np.argmax(bg_scores, 1)
         highest_scoring_scores = bg_scores[range(n_colours), highest_scoring_bg_genes]
         # Continue with high scoring background genes that have not already been subtracted.
-        colours_to_continue_subtraction[colours_to_continue_subtraction] = np.logical_and(
-            highest_scoring_scores[colours_to_continue_subtraction] >= background_dot_product_threshold,
+        colours_to_continue[colours_to_continue] = np.logical_and(
+            highest_scoring_scores[colours_to_continue] >= background_dot_product_threshold,
             ~(
                 colours_background_gene_is_subtracted[
-                    colours_to_continue_subtraction, highest_scoring_bg_genes[colours_to_continue_subtraction]
+                    colours_to_continue, highest_scoring_bg_genes[colours_to_continue]
                 ]
             ),
         )
-        if not colours_to_continue_subtraction.any():
+        if not colours_to_continue.any():
             break
 
         # Has shape (n_colours_continue, 1).
         percentiles = np.percentile(
-            preprocessed_colours[
-                colours_to_continue_subtraction,
-                :,
-                highest_scoring_bg_genes[colours_to_continue_subtraction],
-            ],
+            preprocessed_colours[colours_to_continue, :, highest_scoring_bg_genes[colours_to_continue]],
             background_subtract_percentile,
             1,
             keepdims=True,
         )
-        assert percentiles.shape == (colours_to_continue_subtraction.sum(), 1)
-        preprocessed_colours[
-            colours_to_continue_subtraction, :, highest_scoring_bg_genes[colours_to_continue_subtraction]
-        ] -= percentiles
-        colours_background_gene_is_subtracted[colours_to_continue_subtraction, highest_scoring_bg_genes] = True
+        assert percentiles.shape == (colours_to_continue.sum(), 1)
+        preprocessed_colours[colours_to_continue, :, highest_scoring_bg_genes[colours_to_continue]] -= percentiles
+        colours_background_gene_is_subtracted[colours_to_continue, highest_scoring_bg_genes[colours_to_continue]] = True
 
     return preprocessed_colours
 

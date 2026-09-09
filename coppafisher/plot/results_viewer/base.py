@@ -841,7 +841,6 @@ class Viewer:
         self._free_subplot_spaces()
         spot_data = self.spot_data[self.selected_method]
         return ViewOMPColourSum(
-            self.nbp_basic,
             self.nbp_call_spots,
             self.nbp_omp,
             spot_data.local_yxz[self.selected_spot],

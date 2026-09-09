@@ -84,19 +84,21 @@ def run_omp(
     if config["debug"]:
         debug_file_path = os.path.join(nbp_file.output_dir, DEBUG_INFO_NAME)
         file = open(debug_file_path, "w")
-        file.writelines(
-            [
-                "OMP debugging information can be found in the output directory",
-                "",
-                STOPPING_CRITERIA_NAME.format("t")
-                + ": The OMP iteration stopping criteria for every pixel on tile t."
-                + "0 means the pixel had a residual intensity lower than the threshold, 1 means the best gene score was"
-                + " too low, 2 means the best gene was background, 3 means the best gene was already assigned, "
-                + "4 means maximum iterations was reached.",
-                "",
-                ITERATION_COUNTS_NAME.format("t")
-                + ": Tile t's number of assigned genes (iteration count) on every pixel.",
-            ]
+        file.write(
+            "\n".join(
+                [
+                    "OMP debugging information can be found in the output directory",
+                    "",
+                    STOPPING_CRITERIA_NAME.format("t")
+                    + ": The OMP iteration stopping criteria for every pixel on tile t."
+                    + "0 means the pixel had a residual intensity lower than the threshold, 1 means the best gene "
+                    + "score was too low, 3 means the best gene was already assigned, 4 means maximum iterations was "
+                    + "reached.",
+                    "",
+                    ITERATION_COUNTS_NAME.format("t")
+                    + ": Tile t's number of assigned genes (iteration count) on every pixel.",
+                ]
+            )
         )
         file.close()
 
@@ -119,14 +121,11 @@ def run_omp(
     assert np.isnan(bled_codes).sum() == 0, "bled codes cannot contain nan values"
     assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"
     solver = PixelScoreSolver()
-    bg_bled_codes = preprocessing.create_background_bled_codes(n_rounds_use, n_channels_use)
     max_genes = config["max_genes"]
     solver_kwargs = dict(
         bled_codes=bled_codes,
-        background_codes=bg_bled_codes,
         maximum_iterations=max_genes,
         dot_product_threshold=config["dot_product_threshold"],
-        background_subtract_percentile=config["background_subtract_percentile"],
         alpha=config["alpha"],
         beta=config["beta"],
         return_stopping_criteria=config["debug"],
@@ -211,7 +210,12 @@ def run_omp(
         yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
         yxz[:, 2] = nbp_basic.use_z[len(nbp_basic.use_z) // 2]
         mid_z_colours = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz, **spot_colour_kwargs)
-        mid_z_colours *= colour_norm_factor[[t]]
+        mid_z_colours = preprocessing.preprocess_colours(
+            mid_z_colours,
+            colour_norm_factor[t],
+            config["background_dot_product_threshold"],
+            config["background_subtract_percentile"],
+        )
         intensities = intensity.compute_intensity(mid_z_colours)
         solver_kwargs["minimum_intensity"] = (
             intensities.quantile(config["minimum_intensity_percentile"] / 100).item()
@@ -253,7 +257,12 @@ def run_omp(
 
                 yxz_subset = yxz_all[index_min:index_max]
                 colour_subset = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)
-                colour_subset *= colour_norm_factor[[t]]
+                colour_subset = preprocessing.preprocess_colours(
+                    colour_subset,
+                    colour_norm_factor[t],
+                    config["background_dot_product_threshold"],
+                    config["background_subtract_percentile"],
+                )
                 intensities_subset = intensity.compute_intensity(colour_subset)
                 is_intense = (intensities_subset >= solver_kwargs["minimum_intensity"]).numpy()
                 del intensities_subset
