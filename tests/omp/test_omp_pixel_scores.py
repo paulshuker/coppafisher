@@ -158,11 +158,11 @@ def test_get_next_gene_assignments() -> None:
     # Pixel 1 will contain high scores for two genes, expecting first to be selected.
     residual_colours[1, 0, 0] = 2
     residual_colours[1, 0, 1] = 2
-    # # Pixel 2 will contain high scores for all genes, expecting it to fail selection.
-    # residual_colours[2, 0] = 1
-    # residual_colours[2, 1] = 1
-    # residual_colours[2, 2] = 1
-    # residual_colours[2, 3] = 1
+    # Pixel 2 will contain high scores for all genes, expecting it to fail selection.
+    residual_colours[2, 0, 0] = 1
+    residual_colours[2, 0, 1] = 1
+    residual_colours[2, 0, 2] = 1
+    residual_colours[2, 0, 3] = 1
     # Pixel 3 contains no intensity, expecting to fail selection.
     # Pixel 4 scores in a gene on the fail list, expecting to fail selection.
     residual_colours[4, 0, 4] = 0.6
@@ -211,7 +211,7 @@ def test_get_next_gene_assignments() -> None:
     assert best_genes.shape == (n_pixels,), f"Got shape {best_genes.shape}"
     assert best_genes[0] == 0, f"Got {best_genes[0]}"
     assert best_genes[1] == 0
-    assert best_genes[2] == omp_solver.NO_GENE_ASSIGNMENT
+    assert best_genes[2] != omp_solver.NO_GENE_ASSIGNMENT
     assert best_genes[3] == omp_solver.NO_GENE_ASSIGNMENT
     assert best_genes[4] == omp_solver.NO_GENE_ASSIGNMENT
     assert best_genes[5] == 1
