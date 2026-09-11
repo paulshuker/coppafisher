@@ -115,7 +115,7 @@ class ViewOMPGeneScores(Subplot):
         cursor.connect("add", lambda sel: sel.annotation.set_text(f"Value: {self.gene_names[sel.index]}"))
         cursor.connect("remove", lambda sel: sel.annotation.set_text(""))
         self.plot_ax.set_xlim(0, n_genes)
-        self.plot_ax.set_title(f"Pixel {tuple(spot_local_yxz)}, Tile {spot_tile} Gene Dot Product Scores")
+        self.plot_ax.set_title(f"Pixel {tuple(spot_local_yxz.tolist())}, Tile {spot_tile} Gene Dot Product Scores")
         self.plot_ax.set_ylabel("Gene Score")
         max_score = max(1, self.dp_scores.max().item())
         self.plot_ax.set_ylim(0, max_score)
