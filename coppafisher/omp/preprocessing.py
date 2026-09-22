@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import numpy as np
 
 from ..call_spots import dot_product
@@ -8,7 +10,8 @@ def preprocess_colours(
     colour_norm_factor: np.ndarray,
     background_dot_product_threshold: float,
     background_subtract_percentile: float,
-) -> np.ndarray:
+    return_background_is_subtracted: bool = False,
+) -> np.ndarray | Tuple[np.ndarray, np.ndarray]:
     """
     Given colours are pre-processed as described in OMP method documentation (Step 0).
 
@@ -25,10 +28,13 @@ def preprocess_colours(
         colour_norm_factor (`(n_rounds_use x n_channels_use) ndarray[float32]`): the colour normalisation factors.
         background_dot_product_threshold (float): the background gene round-dot product threshold.
         background_subtract_percentile (float): the background gene subtraction percentile.
+        return_background_is_subtracted (bool, optional): return background_is_subtracted. Default: false.
 
-    Returns:
-        (`(n_colours x n_rounds_use x n_channels_use) ndarray[float32]`): preprocessed_colours. The pre-processed
+    Returns tuple or ndarray:
+        - (`(n_colours x n_rounds_use x n_channels_use) ndarray[float32]`): preprocessed_colours. The pre-processed
             colours.
+        - (`(n_colours x n_channels_use) ndarray[bool]`): background_is_subtracted. background_is_subtracted[c, b] is
+            true if the b'th background channel is subtracted from the c'th colour.
     """
     assert type(colours) is np.ndarray
     assert colours.ndim == 3
@@ -82,7 +88,10 @@ def preprocess_colours(
         preprocessed_colours[colours_to_continue, :, highest_scoring_bg_genes[colours_to_continue]] -= percentiles
         colours_background_gene_is_subtracted[colours_to_continue, highest_scoring_bg_genes[colours_to_continue]] = True
 
-    return preprocessed_colours
+    if return_background_is_subtracted:
+        return preprocessed_colours, colours_background_gene_is_subtracted
+    else:
+        return preprocessed_colours
 
 
 def create_background_bled_codes(n_rounds_use: int, n_channels_use: int) -> np.ndarray:
