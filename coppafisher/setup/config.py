@@ -3,12 +3,12 @@ import importlib.resources as importlib_resources
 import re
 from collections.abc import Callable
 from os import path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, TypeAlias
 
 from .. import log
 from .config_section import ConfigSection
 
-FORMATTED_PARAM_TYPE = (
+FORMATTED_PARAM_TYPE: TypeAlias = (
     int | float | str | bool | None | Tuple[int, ...] | Tuple[float, ...] | Tuple[str, ...] | Tuple[bool, ...]
 )
 
@@ -242,13 +242,14 @@ class Config:
             "concentration_parameter_perpendicular": ("number", ""),
         },
         "omp": {
-            "max_genes": ("int", "positive"),
             "minimum_intensity_percentile": ("number", "not-negative_lteq100"),
             "minimum_intensity_multiplier": ("number", "not-negative"),
+            "max_genes": ("int", "positive"),
+            "background_dot_product_threshold": ("number", "not-negative_lteq1"),
+            "background_subtract_percentile": ("number", "not-negative_lteq100"),
             "alpha": ("number", "not-negative"),
             "beta": ("number", "positive"),
             "dot_product_threshold": ("number", "not-negative"),
-            "background_subtract_percentile": ("number", "not-negative_lteq100"),
             "subset_pixels": ("maybe_int", "positive"),
             "radius_xy": ("int", "positive"),
             "radius_z": ("int", "positive"),

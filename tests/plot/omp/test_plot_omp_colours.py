@@ -15,7 +15,6 @@ def test_ViewOMPColourSum() -> None:
     n_genes = 5
 
     nbp_basic = NotebookPage("basic_info")
-
     nbp_basic.use_rounds = (0, 1, 2)
     n_rounds_use = len(nbp_basic.use_rounds)
     nbp_basic.use_channels = (0, 1, 2, 3)
@@ -39,6 +38,7 @@ def test_ViewOMPColourSum() -> None:
                 "beta": 3.0,
                 "max_genes": 3,
                 "dot_product_threshold": 0.1,
+                "background_dot_product_threshold": 0.1,
                 "background_subtract_percentile": 1.0,
             }
         },
@@ -51,7 +51,6 @@ def test_ViewOMPColourSum() -> None:
     nbp_omp.results = omp_results
 
     plot = colours.ViewOMPColourSum(
-        nbp_basic,
         nbp_call_spots,
         nbp_omp,
         np.zeros(3, int),

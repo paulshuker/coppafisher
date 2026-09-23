@@ -22,14 +22,9 @@ def test_solve() -> None:
     pixel_colours = rng.rand(n_pixels, n_rounds, n_channels).astype(dtype)
     bled_codes = rng.rand(n_genes, n_rounds, n_channels).astype(dtype)
     bled_codes /= np.linalg.norm(bled_codes, axis=(-1, -2), keepdims=True)
-    bg_codes = solver.create_background_bled_codes(n_rounds, n_channels)
-    assert bg_codes.ndim == 3
-    assert bg_codes.shape == (n_channels, n_rounds, n_channels)
-    assert bg_codes.dtype == np.float32
     maximum_iterations = 4
     dot_product_threshold = 0.001
     minimum_intensity = 0.0
-    background_subtract_percentile = 0.0
     alpha = 0.0
     beta = 1.0
 
@@ -39,11 +34,9 @@ def test_solve() -> None:
         result = solver.solve(
             pixel_colours,
             bled_codes,
-            bg_codes,
             maximum_iterations,
             dot_product_threshold,
             minimum_intensity,
-            background_subtract_percentile,
             alpha,
             beta,
             return_all_scores=return_all_scores,
@@ -53,7 +46,7 @@ def test_solve() -> None:
         if return_all_scores:
             assert type(result[1]) is np.ndarray
             assert result[1].shape[0] >= 1
-            assert result[1].shape[1:] == (n_pixels, n_genes + n_channels)
+            assert result[1].shape[1:] == (n_pixels, n_genes)
             assert result[1].dtype == dtype
             assert (result[1] >= 0).all()
         if return_all_residuals:
@@ -79,11 +72,9 @@ def test_solve() -> None:
         result = solver.solve(
             pixel_colours,
             bled_codes,
-            bg_codes,
             maximum_iterations,
             dp_threshold,
             minimum_intensity,
-            background_subtract_percentile,
             alpha,
             beta,
         )
@@ -99,8 +90,6 @@ def test_solve() -> None:
     n_pixels = 8
     pixel_colours = np.zeros((n_pixels, n_rounds, n_channels), dtype)
     bled_codes = np.zeros((n_genes, n_rounds, n_channels), dtype)
-    bg_codes = solver.create_background_bled_codes(n_rounds, n_channels)
-    assert bg_codes.dtype == np.float32
     minimum_intensity = 0.2
     reed_bled_codes = base.reed_solomon_codes(n_genes, n_rounds, n_channels)
     for g, gene_code in enumerate(reed_bled_codes.values()):
@@ -118,11 +107,9 @@ def test_solve() -> None:
     result = solver.solve(
         pixel_colours,
         bled_codes,
-        bg_codes,
         maximum_iterations,
         dot_product_threshold,
         minimum_intensity,
-        background_subtract_percentile,
         alpha,
         beta,
     )
@@ -143,11 +130,9 @@ def test_solve() -> None:
     result = solver.solve(
         pixel_colours,
         bled_codes,
-        bg_codes,
         maximum_iterations,
         dot_product_threshold,
         minimum_intensity,
-        background_subtract_percentile,
         alpha,
         beta,
     )
@@ -164,6 +149,7 @@ def test_get_next_gene_assignments() -> None:
     import torch
 
     n_pixels = 6
+    n_genes = 4
     n_rounds = 1
     n_channels = 5
     residual_colours = torch.zeros((n_pixels, n_rounds, n_channels), dtype=torch.float32)
@@ -172,11 +158,11 @@ def test_get_next_gene_assignments() -> None:
     # Pixel 1 will contain high scores for two genes, expecting first to be selected.
     residual_colours[1, 0, 0] = 2
     residual_colours[1, 0, 1] = 2
-    # # Pixel 2 will contain high scores for all genes, expecting it to fail selection.
-    # residual_colours[2, 0] = 1
-    # residual_colours[2, 1] = 1
-    # residual_colours[2, 2] = 1
-    # residual_colours[2, 3] = 1
+    # Pixel 2 will contain high scores for all genes, expecting it to fail selection.
+    residual_colours[2, 0, 0] = 1
+    residual_colours[2, 0, 1] = 1
+    residual_colours[2, 0, 2] = 1
+    residual_colours[2, 0, 3] = 1
     # Pixel 3 contains no intensity, expecting to fail selection.
     # Pixel 4 scores in a gene on the fail list, expecting to fail selection.
     residual_colours[4, 0, 4] = 0.6
@@ -184,7 +170,7 @@ def test_get_next_gene_assignments() -> None:
     residual_colours[5, 0, 1] = 0.7
     residual_colours[5, 0, 4] = 0.6
 
-    gene_bled_codes = torch.zeros((4, n_rounds, n_channels), dtype=torch.float32)
+    gene_bled_codes = torch.zeros((n_genes, n_rounds, n_channels), dtype=torch.float32)
     gene_bled_codes[0, 0, 0] = 1
     gene_bled_codes[1, 0, 1] = 1
     gene_bled_codes[2, 0, 2] = 1 / torch.sqrt(torch.tensor(2))
@@ -204,7 +190,6 @@ def test_get_next_gene_assignments() -> None:
         fail_gene_indices=fail_gene_indices,
         dot_product_threshold=dot_product_threshold,
         minimum_intensity=0.0,
-        bg_subtraction_percentile=25.0,
     )
     omp_solver = PixelScoreSolver()
     best_genes = omp_solver.get_next_gene_assignments(**kwargs)
@@ -218,11 +203,15 @@ def test_get_next_gene_assignments() -> None:
     assert len(other_result) == 3
     assert all(type(result) is torch.Tensor for result in other_result)
     assert not any(torch.isnan(result).any() for result in other_result)
+    assert other_result[1].shape == (n_pixels, n_genes)
+    assert other_result[1].dtype == torch.float32
+    assert other_result[2].shape == (n_pixels,)
+    assert other_result[2].dtype == torch.int8
     assert type(best_genes) is torch.Tensor
     assert best_genes.shape == (n_pixels,), f"Got shape {best_genes.shape}"
     assert best_genes[0] == 0, f"Got {best_genes[0]}"
     assert best_genes[1] == 0
-    assert best_genes[2] == omp_solver.NO_GENE_ASSIGNMENT
+    assert best_genes[2] != omp_solver.NO_GENE_ASSIGNMENT
     assert best_genes[3] == omp_solver.NO_GENE_ASSIGNMENT
     assert best_genes[4] == omp_solver.NO_GENE_ASSIGNMENT
     assert best_genes[5] == 1
@@ -247,7 +236,6 @@ def test_get_next_gene_assignments() -> None:
         fail_gene_indices=fail_gene_indices,
         dot_product_threshold=dot_product_threshold,
         minimum_intensity=0.0,
-        bg_subtraction_percentile=25.0,
     )
     residual_colours_previous = residual_colours.detach().clone()
     gene_bled_codes_previous = gene_bled_codes.detach().clone()

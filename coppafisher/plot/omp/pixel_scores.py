@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.widgets import Button, Slider
 
+from coppafisher.omp import preprocessing
 from coppafisher.omp import scores as omp_scores
 from coppafisher.omp.pixel_scores import PixelScoreSolver
 from coppafisher.plot.results_viewer.subplot import Subplot
@@ -63,12 +64,12 @@ class ViewOMPPixelScoreImage(Subplot):
         import torch
 
         assert len(z_planes) > 3
-        n_rounds_use, n_channels_use = len(nbp_basic.use_rounds), len(nbp_basic.use_channels)
         min_intensity = 0.0
         alpha = Config.get_default_for("omp", "alpha")
         beta = Config.get_default_for("omp", "beta")
         max_genes = Config.get_default_for("omp", "max_genes")
         dot_product_threshold = Config.get_default_for("omp", "dot_product_threshold")
+        bg_dot_product_threshold = Config.get_default_for("omp", "background_dot_product_threshold")
         bg_subtract_percentile = Config.get_default_for("omp", "background_subtract_percentile")
         mean_spot_filepath = importlib_resources.files("coppafisher.omp").joinpath("mean_spot.npy")
         mean_spot: np.ndarray = np.load(mean_spot_filepath).astype(np.float32)
@@ -78,8 +79,9 @@ class ViewOMPPixelScoreImage(Subplot):
             beta = float(nbp_omp.associated_configs["omp"]["beta"])
             max_genes = int(nbp_omp.associated_configs["omp"]["max_genes"])
             dot_product_threshold = float(nbp_omp.associated_configs["omp"]["dot_product_threshold"])
-            bg_subtract_percentile = float(nbp_omp.associated_configs["omp"]["background_subtract_percentile"])
             mean_spot = nbp_omp.mean_spot.astype(np.float32)
+            bg_dot_product_threshold = float(nbp_omp.associated_configs["omp"]["background_dot_product_threshold"])
+            bg_subtract_percentile = float(nbp_omp.associated_configs["omp"]["background_subtract_percentile"])
         yxz_min = local_yxz.copy() + np.array([-im_size, -im_size, min(z_planes)], int)
         yxz_max = local_yxz.copy() + np.array([im_size, im_size, max(z_planes)], int) + 1
         image_shape = tuple((yxz_max - yxz_min).tolist())
@@ -98,17 +100,17 @@ class ViewOMPPixelScoreImage(Subplot):
             nbp_basic.use_channels,
             out_of_bounds_value=0,
         )
-        colours *= nbp_call_spots.colour_norm_factor[[spot_tile]].astype(np.float32)
+        colours = preprocessing.preprocess_colours(
+            colours, nbp_call_spots.colour_norm_factor[spot_tile], bg_dot_product_threshold, bg_subtract_percentile
+        )
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
         solver = PixelScoreSolver()
         pixel_scores = solver.solve(
             colours,
             bled_codes,
-            solver.create_background_bled_codes(n_rounds_use, n_channels_use),
             max_genes,
             dot_product_threshold,
             min_intensity,
-            bg_subtract_percentile,
             alpha,
             beta,
         )

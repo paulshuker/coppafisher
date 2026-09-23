@@ -142,8 +142,10 @@ class Viewer:
                 is sorted by hue and each gene name in each colour group is sorted alphabetically. Default: "cell_type".
             background_images (iterable[str], optional): what to use as the background image(s), each background image
                 can be "dapi", "anchor", or a file path to a .npy, .npz, or .tif file. The array at a file path must be
-                a numpy array of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the background image
-                must be located at key 'arr_0'. Set to `[]` for no background images. Default: ("dapi",).
+                a numpy array of shape `(im_y x im_x)`, `(im_z x im_y x im_x)`, `(im_z x im_y x im_x x 3)`, or
+                `(im_z x im_y x im_x x 4)`. If 3 or 4 is the end dimension, it represents RGB/RGBA images. If given a
+                .npz file, the background image must be located at key 'arr_0'. Set to `[]` for no background images.
+                Default: ("dapi",).
             background_image_colours (iterable[str], optional): the napari colour mapping(s) used for the background
                 image(s). Set to `[]` when using no background images. Default: ("gray",).
             show_tiles (list of int, optional): list of tile indices to display. Default: all tiles in the notebook.
@@ -841,7 +843,6 @@ class Viewer:
         self._free_subplot_spaces()
         spot_data = self.spot_data[self.selected_method]
         return ViewOMPColourSum(
-            self.nbp_basic,
             self.nbp_call_spots,
             self.nbp_omp,
             spot_data.local_yxz[self.selected_spot],
@@ -1073,7 +1074,7 @@ class Viewer:
                 name=name,
                 axis_labels=("Z", "Y", "X"),
                 translate=translate,
-                rgb=False,
+                rgb=background_image.shape[-1] in (3, 4) and background_image.ndim == 4,
                 multiscale=False,
                 colormap=colour_map,
                 contrast_limits=contrast_limits,

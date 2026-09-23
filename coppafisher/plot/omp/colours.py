@@ -2,6 +2,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
+from ...omp import preprocessing
 from ...omp.pixel_scores import PixelScoreSolver
 from ...setup.config import Config
 from ...setup.notebook_page import NotebookPage
@@ -11,7 +12,6 @@ from ..results_viewer.subplot import Subplot
 class ViewOMPColourSum(Subplot):
     def __init__(
         self,
-        nbp_basic: NotebookPage,
         nbp_call_spots: NotebookPage,
         nbp_omp: NotebookPage | None,
         local_yxz: np.ndarray[int],
@@ -34,13 +34,12 @@ class ViewOMPColourSum(Subplot):
             spot_colour (`(n_rounds_use x n_channels_use) ndarray[float]`): the spot's colour.
             show (bool, optional): display the plot once built. False is useful when unit testing. Default: true.
         """
-        n_rounds_use = len(nbp_basic.use_rounds)
-        n_channels_use = len(nbp_basic.use_channels)
         min_intensity = 0.0
         alpha = Config.get_default_for("omp", "alpha")
         beta = Config.get_default_for("omp", "beta")
         max_genes = Config.get_default_for("omp", "max_genes")
         dot_product_threshold = Config.get_default_for("omp", "dot_product_threshold")
+        bg_dot_product_threshold = Config.get_default_for("omp", "background_dot_product_threshold")
         bg_subtract_percentile = Config.get_default_for("omp", "background_subtract_percentile")
         self.gene_names = nbp_call_spots.gene_names
         if nbp_omp is not None:
@@ -49,21 +48,24 @@ class ViewOMPColourSum(Subplot):
             beta = float(nbp_omp.associated_configs["omp"]["beta"])
             max_genes = int(nbp_omp.associated_configs["omp"]["max_genes"])
             dot_product_threshold = float(nbp_omp.associated_configs["omp"]["dot_product_threshold"])
+            bg_dot_product_threshold = float(nbp_omp.associated_configs["omp"]["background_dot_product_threshold"])
             bg_subtract_percentile = float(nbp_omp.associated_configs["omp"]["background_subtract_percentile"])
 
         self.colour = spot_colour.copy().astype(np.float32)
-        self.colour *= nbp_call_spots.colour_norm_factor[spot_tile].astype(np.float32)
+        self.colour = preprocessing.preprocess_colours(
+            self.colour[np.newaxis],
+            nbp_call_spots.colour_norm_factor[spot_tile],
+            bg_dot_product_threshold,
+            bg_subtract_percentile,
+        )[0]
         omp_solver = PixelScoreSolver()
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
-        bg_bled_codes = omp_solver.create_background_bled_codes(n_rounds_use, n_channels_use)
         pixel_scores, gene_weights, gene_residuals = omp_solver.solve(
             pixel_colours=self.colour[np.newaxis],
             bled_codes=bled_codes,
-            background_codes=bg_bled_codes,
             maximum_iterations=max_genes,
             dot_product_threshold=dot_product_threshold,
             minimum_intensity=min_intensity,
-            background_subtract_percentile=bg_subtract_percentile,
             alpha=alpha,
             beta=beta,
             return_all_weights=True,
