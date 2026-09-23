@@ -27,47 +27,68 @@ see [here](https://github.com/paulshuker/coppafisher/raw/HEAD/coppafisher/plot/r
 default gene marker file. The gene marker file supports all napari symbols that are shown under the `symbol` parameter
 in their [documentation](https://napari.org/stable/api/napari.layers.Points.html).
 
-The default background image is a dapi image in greyscale. You can specify custom images and their colour mappings in
-python, e.g.
+The default background image is a dapi image in greyscale.
 
-```py
-from coppafisher import Notebook, Viewer
+??? info "Background image customisation"
 
-nb = Notebook("/path/to/notebook")
-Viewer(nb, background_images=["/path/to/custom/background_image.npy", "dapi"], background_image_colours=["Reds", "gray"])
-```
+    You can specify custom images and their colour mappings in
+    python, e.g.
 
-You can specify the background_images to be `#!python ["dapi"]` or `#!python ["anchor"]` for 16-bit precision background
-images.
+    ```py
+    from coppafisher import Notebook, Viewer
 
-The colourmaps can be any [vispy](https://vispy.org/api/vispy.color.colormap.html#vispy.color.colormap.get_colormaps)
-or [matplotlib](https://matplotlib.org/stable/users/explain/colors/colormaps.html) colourmap.
+    nb = Notebook("/path/to/notebook")
+    Viewer(nb, background_images=[("/path/to/custom/background_image.npy", "Reds")])
+    ```
 
-If the background image(s) are custom files, they must be of shape `(im_y x im_x)` or `(im_z x im_y x im_x)`. They can
-be a .npy file, a compressed .npz file with image at key `"arr_0"`, or a .tif file (based on the
-[tifffile](https://github.com/cgohlke/tifffile) package). For further customisation, see the Viewer
-[docstring](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/plot/results_viewer/base.py).
+    By default, the background image is `#!python [("dapi", "gray")]`.
 
-??? info "No Background Image"
+    The background image can be `#!python "dapi"`, `#!python "anchor"`, or a path to an image file.
 
-    Specify no background images by setting `#!python background_images=[]` and `#!python background_image_colours=[]`.
+    The colourmaps can be any [vispy](https://vispy.org/api/vispy.color.colormap.html#vispy.color.colormap.get_colormaps)
+    or [matplotlib](https://matplotlib.org/stable/users/explain/colors/colormaps.html) colourmap.
 
-??? info "When Using Multiple Background Images"
+    If the background image is a custom file, it must be of shape `(im_y x im_x)` or `(im_z x im_y x im_x)`. They can be a
+    .npy file, a compressed .npz file with image at key `"arr_0"`, or a .tif file. For more details, see the Viewer
+    [docstring](https://github.com/paulshuker/coppafisher/blob/HEAD/coppafisher/plot/results_viewer/base.py).
+
+??? info "Using Multiple Background Images"
+
+    Here is an example of opening the Viewer with both the dapi and the anchor background image:
+
+    ```py
+    from coppafisher import Notebook, Viewer
+
+    nb = Notebook("/path/to/notebook")
+    Viewer(nb, background_images=[("dapi", "Reds"), ("anchor", "Greens")])
+    ```
 
     With multiple background images, you will not see a background contrast slider anymore. This is intentional. To
-    change the settings of each background image, click on Window -> Layer List and Window -> Layer Controls. From these
-    windows, you have full control over the background images by selecting one. You can change their blending modes and
-    opacities individually.
+    change the settings of each background image, click on Window -> Layer List and Window -> Layer Controls from the
+    top bar. From these windows, you have full control over the background images by selecting one. You can change their
+    blending modes and opacities individually.
 
 ??? info "Open a Subset of Tiles"
 
-    You can open a subset of tiles from the notebook. For example, to open only tiles 0 and 1
+    You can open a subset of tiles from the notebook. This can be useful for quickly diagnosing a large dataset. For
+    example, to open only tiles 0 and 1
 
     ```python
     from coppafisher import Notebook, Viewer
 
     nb = Notebook("/path/to/notebook")
     Viewer(nb, show_tiles=[0, 1])
+    ```
+
+??? info "Setting no background image"
+
+    Specify no background images by running
+
+    ```python
+    from coppafisher import Notebook, Viewer
+
+    nb = Notebook("/path/to/notebook")
+    Viewer(nb, background_images=[])
     ```
 
 Close the Viewer and all subplots by pressing Ctrl + C in the terminal.
