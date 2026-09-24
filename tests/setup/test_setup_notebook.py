@@ -285,6 +285,8 @@ def test_Notebook() -> None:
     nb_temp_dir.cleanup()
     temp_zarr.cleanup()
     temp_zgroup.cleanup()
+    temp_ziparray_dir.cleanup()
+    temp_zipstore_dir.cleanup()
 
 
 def test_Notebook_zipstores() -> None:

@@ -615,6 +615,7 @@ class Robominnie:
 
         [omp]
         subset_pixels = {maths.floor(self.tile_sz * self.tile_sz * self.n_planes * 0.4)}
+        debug = true
         """
         # Remove large spaces in the config contents
         config_file_contents = config_file_contents.replace("  ", "")

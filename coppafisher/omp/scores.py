@@ -1,15 +1,14 @@
-from typing import Any
+from typing import Any, TypeAlias
 
 import numpy as np
 
-from ..utils import system
+Tensor: TypeAlias = Any
 
 
 def score_pixel_score_image(
-    pixel_score_image: Any,
-    mean_spot: Any,
-    force_cpu: bool = True,
-) -> Any:
+    pixel_score_image: Tensor,
+    mean_spot: Tensor,
+) -> Tensor:
     """
     Computes the OMP spot score image from the pixel score image(s). The final spot score image is the pixel score image
     convolved with the mean spot divided by the mean spot's sum. The outside edges are considered zeros.
@@ -18,7 +17,6 @@ def score_pixel_score_image(
         pixel_score_image (`(n_batches x im_y x im_x x im_z) tensor[float32]`): OMP pixel scores in a 3D volume. Any
             non-computed or out of bounds pixel scores will be zero.
         mean_spot (`(size_y x size_x x size_z) tensor[float32]`): OMP mean spot shape.
-        force_cpu (bool): use the CPU only. Default: true.
 
     Returns:
         (`(n_batches x im_y x im_x x im_z) tensor[float32]`): spot_score_image. OMP spot score for every image pixel, on
@@ -32,10 +30,8 @@ def score_pixel_score_image(
     assert pixel_score_image.shape[0] < 2_000, "More than 2,000 batches given"
     assert (mean_spot >= 0).all()
 
-    device = system.get_device(force_cpu)
-
-    score_image = pixel_score_image.detach().clone().to(device=device)
-    spot_shape_kernel = mean_spot.detach().clone().to(dtype=score_image.dtype, device=device)
+    score_image = pixel_score_image.detach().clone()
+    spot_shape_kernel = mean_spot.detach().clone().to(dtype=score_image.dtype)
     spot_shape_kernel /= spot_shape_kernel.sum()
 
     spot_shape_kernel = spot_shape_kernel[np.newaxis, np.newaxis]
@@ -46,7 +42,7 @@ def score_pixel_score_image(
     return scores
 
 
-def boost_z_edge_spot_scores(spot_score_image: Any, mean_spot: Any) -> Any:
+def boost_z_edge_spot_scores(spot_score_image: Tensor, mean_spot: Tensor) -> Tensor:
     """
     Along the z axis, the kernel is cut off if a pixel is too close the edge of the z stack. So, these pixel scores are
     boosted. This boosting is not applied along the x or y axes because there are many more x and y pixels and there is
@@ -72,7 +68,7 @@ def boost_z_edge_spot_scores(spot_score_image: Any, mean_spot: Any) -> Any:
     spot_shape_kernel = mean_spot.detach().clone().to(dtype=spot_score_image_boosted.dtype)
     spot_shape_kernel /= spot_shape_kernel.sum()
 
-    # FIXME: This algorithm assumes that the mean spot is symmetrical along the middle z plane. Can be made more robust.
+    # NOTE: This algorithm assumes that the mean spot is symmetrical along the middle z plane. Can be made more robust.
     z_edge_size = min(mean_spot.shape[2] // 2, spot_score_image.shape[3])
     z_edge_weightings = torch.zeros((1, 1, 1, z_edge_size), dtype=torch.float32)
     for z_edge in range(z_edge_size):

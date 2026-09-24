@@ -1,22 +1,22 @@
 import warnings
-from typing import Optional
+from typing import Any, Optional, TypeAlias
 
 import matplotlib.pyplot as plt
 import nd2
 import numpy as np
 import skimage
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-from PyQt5.QtWidgets import QLabel, QLineEdit, QMainWindow, QPushButton, QSlider
 from qtpy.QtCore import Qt
 from scipy.ndimage import affine_transform
 from scipy.spatial import KDTree
-from superqt import QRangeSlider
 from tqdm import tqdm
 
 from coppafisher.setup import file_names
 from coppafisher.setup.notebook import Notebook
 from coppafisher.spot_colours import base as spot_colours_base
 from coppafisher.spot_colours.base import apply_affine, apply_flow_new
+
+QMainWindow: TypeAlias = Any
 
 
 class RegistrationViewer:
@@ -171,6 +171,8 @@ class RegistrationViewer:
 
     # Functions to add buttons and sliders to the viewer
     def add_contrast_lim_sliders(self):
+        from superqt import QRangeSlider
+
         # add contrast limits sliders
         contrast_limit_sliders = [QRangeSlider(Qt.Horizontal) for _ in range(2)]
         labels = ["imaging", "anchor"]
@@ -316,6 +318,8 @@ class ButtonCreator(QMainWindow):
             position: array of n_buttons positions (x, y) for the buttons
             size: (width, height) of the buttons
         """
+        from PyQt6.QtWidgets import QPushButton
+
         super().__init__()
         assert len(names) == len(position), "Number of names and positions should be the same."
         self.buttons = []
@@ -334,6 +338,8 @@ class TextButtonCreator(QMainWindow):
             position: array of n_buttons positions (x, y) for the buttons
             size: (width, height) of the buttons
         """
+        from PyQt6.QtWidgets import QLabel, QLineEdit, QPushButton
+
         super().__init__()
         assert len(names) == len(position) - 1, "Number of names should be one less than the number of positions."
         self.text_box = []
@@ -490,6 +496,8 @@ class ICPPointCloudViewer:
         self.score = skimage.filters.gaussian(score, sigma=2, truncate=3)
 
     def add_z_thickness_slider(self):
+        from PyQt6.QtWidgets import QSlider
+
         # add slider to adjust z thickness
         if self.r is None:
             self.z_thick_slider = QSlider(Qt.Orientation.Horizontal)
@@ -500,6 +508,8 @@ class ICPPointCloudViewer:
             self.viewer.window.add_dock_widget(self.z_thick_slider, area="left", name="z thickness")
 
     def add_toggle_base_button(self):
+        from PyQt6.QtWidgets import QPushButton
+
         # add button to toggle between base and base_1
         button = QPushButton("Toggle Base", self.viewer.window.qt_viewer)
         button.setGeometry(20, 5, 60, 28)
@@ -685,7 +695,7 @@ def view_optical_flow(nb: Notebook, t: int, r: int):
 
     # plot the average shifts for each z-plane
     mean_flow = [np.mean(f, axis=(1, 2)) for f in flows]
-    fig, ax = plt.subplots(1, 2, figsize=(15, 5))
+    _, ax = plt.subplots(1, 2, figsize=(15, 5))
     for i in range(2):
         ax[i].plot(mean_flow[i].T)
         ax[i].set_title(names[i])
@@ -772,7 +782,7 @@ def view_icp_iters(nb: Notebook, t: int):
         frac_matches[1][i] = n_matches[1][i] / total_spots
     # create plots
     n_cols = max(n_rounds, n_channels)
-    fig, ax = plt.subplots(4, n_cols, figsize=(4 * n_cols, 10))
+    _, ax = plt.subplots(4, n_cols, figsize=(4 * n_cols, 10))
 
     data = mse + frac_matches
     labels = ["MSE Round", "MSE Channel", "Frac Match Round", "Frac Match Channel"]
@@ -842,9 +852,7 @@ def view_camera_correction(nb: Notebook, config_path: Optional[str] = None):
     for i in range(4):
         edges = skimage.feature.canny(fluorescent_beads[i], sigma=3, low_threshold=10, high_threshold=50)
         hough_res = skimage.transform.hough_circle(edges, bead_radii)
-        accums, cx, cy, radii = skimage.transform.hough_circle_peaks(
-            hough_res, bead_radii, min_xdistance=10, min_ydistance=10
-        )
+        _, cx, cy, _ = skimage.transform.hough_circle_peaks(hough_res, bead_radii, min_xdistance=10, min_ydistance=10)
         cy, cx = cy.astype(int), cx.astype(int)
         values = fluorescent_beads[i][cy, cx]
         cy_rand, cx_rand = (

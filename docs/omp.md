@@ -16,22 +16,30 @@ reads are found in [step 5](#5-spot-scoring-and-spot-detection).
 - $w_{pgi}$ is the OMP gene weight given to gene $g$ for image pixel $p$ on the $i$'th iteration. This is computed by
 least squares in [step 3](#3-gene-weights). $i$ takes values $1, 2, 3, ...$
 - $||A||_{...}$ represents an L2 norm of $A$ (or Frobenius norm for a matrix) over all indices replaced by a dot ($.$).
+- There are $N_c$ background genes that each contain ones in every round for a single channel.
 
 ## 0: Pre-processing
 
 All pixel colours are gathered using the results from register. Any out of bounds round/channel colour intensities are
 set to zero. The pixel colours, $\mathbf{S}$, are multiplied by `nb.call_spots.colour_norm_factor` for the each tile.
 
+Then the colours are "round dot product scored" against all background genes (the same scoring algorithm used in
+[call spots](call_spots.md#6-and-7-application-of-scales-computation-of-final-scores-and-bleed-matrix) and
+[step 2](#2-next-gene-assignment)). If the highest scoring background gene has a score at least
+`background_dot_product_threshold` (typically 0.72), then the `background_subtract_percentile`'th percentile (typically
+25) is subtracted from said channel in all rounds. This is repeated $N_c$ times until up to all background
+genes have been subtracted from each colour. A background gene cannot be subtracted twice from the same colour.
+
 ## 1: Minimum Intensity Threshold
 
-Before running on pixels, many pixels are discarded because they are background and not spots. To do this, we take the
+Before running on pixels, many pixels are discarded because they are too dim to contain RCPs. To do this, we take the
 middle z plane colours for each tile, $D_{txyrc}$, and compute their intensities as
 
 $$
 I_{txy} = \min_r(\max_c(|D_{txyrc}|))
 $$
 
-The intensity thresholds for each tile are then
+The intensity thresholds for each tile is then
 
 $$
 \text{minimum\_intensity}_t = a\times\text{nth percentile}_{xy}(I_{txy})
@@ -50,8 +58,8 @@ $$
 R_{prci} = S_{prc} - \sum_g(w_{pg(i - 1)}B_{grc})
 $$
 
-For the first iteration, $R_{prc(i=1)} = S_{prc}$. Using this residual, a "semi dot product score" is
-computed for every gene and background gene $g$ similar to
+For the first iteration, $R_{prc(i=1)} = S_{prc}$. Using this residual, a "round dot product score" is computed for every
+gene $g$ similar to
 [call spots](call_spots.md#6-and-7-application-of-scales-computation-of-final-scores-and-bleed-matrix)
 
 $$
@@ -76,6 +84,10 @@ $$
 $\alpha$ is given by `alpha` (typically 120) and boosts the uncertainty on round-channel pairs already strongly
 weighted. $\beta$ is given by `beta` (typically 1) and gives every round-channel pair a constant uncertainty.
 
+While the best gene score is a background gene, the background gene's channel is background subtracted from the residual
+and the gene scores are then recomputed. Background subtraction subtracts the `background_subtract_percentile`'th
+percentile (typically 25) across rounds in the background channel. This can happen at most `n_channels_use` times.
+
 ??? question "Why do we need an uncertainty weighting ($\mathbf{\epsilon}^2$) for each round-channel pair?"
 
     On real datasets, subtracting the assigned, weighted bled code is not perfect for every round (shown below).
@@ -95,10 +107,9 @@ weighted. $\beta$ is given by `beta` (typically 1) and gives every round-channel
 
 Gene $\tilde{g}$ is successfully assigned to pixel $p$ when all conditions are met:
 
-- $(\text{gene scores})_{p\tilde{g}i}$ is the largest scoring gene.
+- $(\text{gene scores})_{p\tilde{g}i}$ is the highest scoring gene.
 - $(\text{gene scores})_{p\tilde{g}i} >$ `dot_product_threshold` (typically 0.72).
 - $\tilde g$ is not already assigned to the pixel.
-- $\tilde g$ is not a background gene.
 - The residual intensity $\min_r(\max_c(|\hat{R}_{prci}|)) > \text{minimum\_intensity}_t$. See [diagnostic](diagnostics.md#intensity-images).
 - Iteration $i \leq$ `max_genes`.
 
@@ -107,17 +118,16 @@ The reasons for each of these conditions is to:
 - pick the best gene
 - remove unconfident gene reads
 - not double assign genes
-- avoid over-fitting on high-background pixel colour
-- remove dim colours (background noise)
+- remove empty colours
 - avoid assigning too many genes
 
-respectively. If a pixel fails to meet one or more of these conditions, then no more genes are assigned to it and the
-pixel scores will be final.
+respectively. If a pixel fails to meet one or more of these conditions, then no more genes are assigned to the pixel and
+the pixel scores will be final. Pixels can have no genes assigned.
 
-If pixel $p$ meets all conditions, then gene $\tilde g$ is taken as the next gene assigned.
+If pixel $p$ meets all conditions, then gene $\tilde g$ is taken as the next gene assignment.
 
-If all remaining pixels fail the conditions, then the iterations stop and the current pixel scores $\mathbf{c}$ are kept
-as final for [step 5](#5-spot-scoring-and-spot-detection).
+If all remaining pixels fail the conditions, then the iterations stop and the current pixel scores $\mathbf{c}$ are
+final for [step 5](#5-spot-scoring-and-spot-detection).
 
 ## 3: Gene Weights
 

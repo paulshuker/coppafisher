@@ -2,6 +2,7 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
+from ...omp import preprocessing
 from ...omp.pixel_scores import PixelScoreSolver
 from ...setup.config import Config
 from ...setup.notebook_page import NotebookPage
@@ -11,10 +12,8 @@ from ..results_viewer.subplot import Subplot
 class ViewOMPColourSum(Subplot):
     def __init__(
         self,
-        nbp_basic: NotebookPage,
         nbp_call_spots: NotebookPage,
         nbp_omp: NotebookPage | None,
-        method: str,
         local_yxz: np.ndarray[int],
         spot_tile: int,
         spot_colour: np.ndarray[float],
@@ -30,19 +29,18 @@ class ViewOMPColourSum(Subplot):
             nbp_register (NotebookPage): `register` notebook page.
             nbp_call_spots (NotebookPage): `call_spots` notebook page.
             nbp_omp (NotebookPage or none): `omp` notebook page or none.
-            method (str): gene calling method.
             local_yxz (`(3) ndarray[int]`): the pixel position relative to its tile's bottom-left corner.
             spot_tile (int-like): tile index the pixel is on.
             spot_colour (`(n_rounds_use x n_channels_use) ndarray[float]`): the spot's colour.
             show (bool, optional): display the plot once built. False is useful when unit testing. Default: true.
         """
-        n_rounds_use = len(nbp_basic.use_rounds)
-        n_channels_use = len(nbp_basic.use_channels)
         min_intensity = 0.0
         alpha = Config.get_default_for("omp", "alpha")
         beta = Config.get_default_for("omp", "beta")
         max_genes = Config.get_default_for("omp", "max_genes")
         dot_product_threshold = Config.get_default_for("omp", "dot_product_threshold")
+        bg_dot_product_threshold = Config.get_default_for("omp", "background_dot_product_threshold")
+        bg_subtract_percentile = Config.get_default_for("omp", "background_subtract_percentile")
         self.gene_names = nbp_call_spots.gene_names
         if nbp_omp is not None:
             min_intensity = float(nbp_omp.results[f"tile_{spot_tile}"].attrs["minimum_intensity"])
@@ -50,16 +48,21 @@ class ViewOMPColourSum(Subplot):
             beta = float(nbp_omp.associated_configs["omp"]["beta"])
             max_genes = int(nbp_omp.associated_configs["omp"]["max_genes"])
             dot_product_threshold = float(nbp_omp.associated_configs["omp"]["dot_product_threshold"])
+            bg_dot_product_threshold = float(nbp_omp.associated_configs["omp"]["background_dot_product_threshold"])
+            bg_subtract_percentile = float(nbp_omp.associated_configs["omp"]["background_subtract_percentile"])
 
         self.colour = spot_colour.copy().astype(np.float32)
-        self.colour *= nbp_call_spots.colour_norm_factor[spot_tile].astype(np.float32)
+        self.colour = preprocessing.preprocess_colours(
+            self.colour[np.newaxis],
+            nbp_call_spots.colour_norm_factor[spot_tile],
+            bg_dot_product_threshold,
+            bg_subtract_percentile,
+        )[0]
         omp_solver = PixelScoreSolver()
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
-        bg_bled_codes = omp_solver.create_background_bled_codes(n_rounds_use, n_channels_use)
         pixel_scores, gene_weights, gene_residuals = omp_solver.solve(
             pixel_colours=self.colour[np.newaxis],
             bled_codes=bled_codes,
-            background_codes=bg_bled_codes,
             maximum_iterations=max_genes,
             dot_product_threshold=dot_product_threshold,
             minimum_intensity=min_intensity,
@@ -69,9 +72,9 @@ class ViewOMPColourSum(Subplot):
             return_all_residuals=True,
         )
         self.pixel_score = pixel_scores[0]
-        self.gene_weight = gene_weights[0]
-        self.assigned_genes: np.ndarray[int] = (~np.isnan(self.gene_weight)).nonzero()[0]
-        self.gene_weight = self.gene_weight[self.assigned_genes]
+        self.gene_weights = gene_weights[0]
+        self.assigned_genes: np.ndarray[int] = (~np.isnan(self.gene_weights)).nonzero()[0]
+        self.gene_weights = self.gene_weights[self.assigned_genes]
         # Has shape (n_genes_assigned, n_rounds_use, n_channels_use).
         self.gene_residuals = gene_residuals[0][self.assigned_genes]
         self.pixel_score = self.pixel_score[self.assigned_genes]
@@ -79,29 +82,32 @@ class ViewOMPColourSum(Subplot):
         if n_iterations == 0:
             return
 
-        column_count = max(2, n_iterations + 2)
+        column_count = max(3, n_iterations + 2)
         self.fig, self.axes = plt.subplots(
             2,
             column_count,
             figsize=(column_count * 2.8, 5.8),
-            width_ratios=[3 for _ in range(column_count - 1)] + [1],
+            width_ratios=[3 for _ in range(column_count - 1)] + [0.8],
             layout="constrained",
         )
         self.assigned_bled_codes: np.ndarray = nbp_call_spots.bled_codes[self.assigned_genes].astype(np.float32)
         # Weight the bled codes.
-        self.assigned_bled_codes *= self.gene_weight[:, np.newaxis, np.newaxis]
+        self.assigned_bled_codes *= self.gene_weights[:, np.newaxis, np.newaxis]
+
+        self.final_residual = self.colour - self.assigned_bled_codes.sum(0)
 
         abs_max = np.abs(self.assigned_bled_codes).max()
         abs_max = np.max([abs_max, np.abs(self.colour).max()])
-        abs_max = np.max([abs_max, np.abs(self.gene_residuals).max()]).item()
+        abs_max = np.max([abs_max, np.abs(self.gene_residuals).max()])
+        abs_max = np.max([abs_max, np.abs(self.final_residual).max()]).item()
 
         self.cmap = mpl.cm.seismic
         self.norm = mpl.colors.Normalize(vmin=-abs_max, vmax=abs_max)
         self.fig.colorbar(
-            mpl.cm.ScalarMappable(cmap=self.cmap, norm=self.norm), cax=None, ax=(self.axes[0, -1], self.axes[1, -1])
+            mpl.cm.ScalarMappable(cmap=self.cmap, norm=self.norm), ax=(self.axes[0, -1], self.axes[1, -1]), fraction=0.9
         )
+        self.fig.suptitle(f"Pixel {tuple(local_yxz.tolist())} OMP results")
         self.draw_data()
-        self.fig.suptitle(f"{method.capitalize()} spot at {tuple(local_yxz.tolist())} OMP key colours")
         if show:
             self.fig.show()
 
@@ -113,11 +119,14 @@ class ViewOMPColourSum(Subplot):
             for spine in ax.spines.values():
                 spine.set_visible(False)
 
+        # Weighted gene bled codes and final residual colour on the top row.
         for i, g in enumerate(self.assigned_genes):
-            w_str = "{:.3f}".format(self.gene_weight[i])
+            w_str = "{:.3f}".format(self.gene_weights[i])
             c_str = "{:.3f}".format(self.pixel_score[i])
             self.axes[0, i].set_title(f"{g}: {self.gene_names[g]}\nweight: {w_str}\npixel score: {c_str}")
             self.axes[0, i].imshow(self.assigned_bled_codes[i].T, cmap=self.cmap, norm=self.norm)
+        self.axes[0, -2].set_title("Final residual colour")
+        self.axes[0, -2].imshow(self.final_residual.T, cmap=self.cmap, norm=self.norm)
 
         for i in range(self.axes.shape[1] - 1):
             self.axes[1, i].set_xlabel("Round")
@@ -125,10 +134,10 @@ class ViewOMPColourSum(Subplot):
         self.axes[0, 0].set_ylabel("Channel")
         self.axes[1, 0].set_ylabel("Channel")
 
-        # Plot residual colours for each gene.
+        # Residual colours for each gene on bottom row.
         for i, g in enumerate(self.assigned_genes):
             self.axes[1, i].set_title(
-                r"(Spot colour - bled codes)$\times\epsilon^2$" + f"\nexcept {self.gene_names[g]}"
+                r"(Spot colour - bled codes)$\times\epsilon^2$" + f"\nexcept {self.gene_names[g]} bled code"
             )
             self.axes[1, i].imshow(self.gene_residuals[i].T, cmap=self.cmap, norm=self.norm)
 

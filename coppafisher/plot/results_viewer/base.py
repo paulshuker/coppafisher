@@ -5,7 +5,7 @@ import time
 import warnings
 from collections.abc import Iterable
 from os import path
-from typing import TYPE_CHECKING, Any, List, Literal, Optional
+from typing import TYPE_CHECKING, Any, List, Literal, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,10 +14,7 @@ import tifffile
 from matplotlib.backend_bases import MouseEvent
 from matplotlib.figure import Figure
 from matplotlib.path import Path
-from PyQt5.QtCore import QLoggingCategory
-from PyQt5.QtWidgets import QComboBox, QPushButton
 from qtpy.QtCore import Qt
-from superqt import QDoubleRangeSlider, QDoubleSlider
 
 from ...results.base import MethodData
 from ...setup.notebook import Notebook, NotebookPage
@@ -41,28 +38,28 @@ if TYPE_CHECKING:
 
 class Viewer:
     # Constants:
-    _required_page_names: tuple[str, ...] = ("basic_info", "filter", "register", "stitch", "ref_spots", "call_spots")
-    _method_to_string: dict[str, str] = {
+    _REQUIRED_PAGE_NAMES: tuple[str, ...] = ("basic_info", "filter", "register", "stitch", "ref_spots", "call_spots")
+    _METHOD_TO_STRING: dict[str, str] = {
         "prob_init": "Initial Probability",
         "prob": "Probability",
         "anchor": "Anchor",
         "omp": "OMP",
     }
-    _starting_score_thresholds: dict[str, tuple[float, float | None]] = {
+    _STARTING_SCORE_THRESHOLDS: dict[str, tuple[float, float | None]] = {
         "prob_init": (0.9, None),
         "prob": (0.9, None),
         "anchor": (0.5, None),
         "omp": (0.4, None),
     }
-    _starting_intensity_thresholds: dict[str, tuple[float, float | None]] = {
+    _STARTING_INTENSITY_THRESHOLDS: dict[str, tuple[float, float | None]] = {
         "prob_init": (0.20, None),
         "prob": (0.20, None),
         "anchor": (0.15, None),
         "omp": (0.15, None),
     }
-    _default_spot_size: float = 8.0
-    _bg_opts: tuple[str, ...] = ("dapi", "anchor")
-    _max_open_subplots: int = 7
+    _DEFAULT_SPOT_SIZE: float = 8.0
+    _BG_OPTIONS: tuple[str, ...] = ("dapi", "anchor")
+    _MAX_OPEN_SUBPLOTS: int = 7
 
     # Attributes:
     nb_directory: str
@@ -105,20 +102,17 @@ class Viewer:
     # UI variables:
     legend: Legend
     point_layers: dict[str, Any]
-    method_combo_box: QComboBox
-    z_thick_slider: QDoubleSlider
-    score_slider: QDoubleRangeSlider
-    intensity_slider: QDoubleRangeSlider
+    method_combo_box: Any
+    z_thick_slider: Any
+    score_slider: Any
+    intensity_slider: Any
 
-    # TODO: Combine background_images and background_image_colours into one dictionary parameter. Each key will be a
-    # given background image type/file path, each value will be the colour map it has.
     def __init__(
         self,
         nb: Optional[Notebook] = None,
         gene_marker_filepath: Optional[str] = None,
         gene_legend_order_by: Literal["row"] | Literal["colour"] | Literal["cell_type"] = "cell_type",
-        background_images: Iterable[str] = ("dapi",),
-        background_image_colours: Iterable[str] = ("gray",),
+        background_images: Iterable[Tuple[str, str]] = (("dapi", "gray"),),
         show_tiles: Optional[List[int]] = None,
         nbp_basic: Optional[NotebookPage] = None,
         nbp_filter: Optional[NotebookPage] = None,
@@ -133,7 +127,7 @@ class Viewer:
         Open the coppafisher Viewer.
 
         Instantiate a Viewer based on the given output data. The data can be given by one notebook or all the required
-        notebook pages.
+        separate notebook pages.
 
         Args:
             nb (Notebook, optional): the notebook to visualise. Must have completed up to `call_spots` at least. If
@@ -143,10 +137,13 @@ class Viewer:
             gene_legend_order_by (str, optional): how to order the genes in the legend. Use "row" to order genes by each
                 row in the gene marker file. Use "colour" to group genes based on their colour RGB's. Each colour group
                 is sorted by hue and each gene name in each colour group is sorted alphabetically. Default: "cell_type".
-            background_images (iterable[str], optional): what to use as the background image(s), each background image
-                can be "dapi", "anchor", or a file path to a .npy, .npz, or .tif file. The array at a file path must be
-                a numpy array of shape `(im_y x im_x)` or `(im_z x im_y x im_x)` If a .npz file, the background image
-                must be located at key 'arr_0'. Set to `[]` for no background images. Default: ("dapi",).
+            background_images (iterable[tuple[str, str]], optional): what background image(s) to display, each
+                background image can be "dapi", "anchor", or a file path to a .npy, .npz, or .tif file. The second
+                string in the tuple is the image's colour mapping (any valid napari colour mapping). The array at a file
+                path must be a numpy array of shape `(im_y x im_x)`, `(im_z x im_y x im_x)`, `(im_z x im_y x im_x x 3)`,
+                or `(im_z x im_y x im_x x 4)`. If 3 or 4 is the end dimension, it represents RGB/RGBA images. If given a
+                .npz file, the background image must be located at key 'arr_0'. Set to `[]` for no background image.
+                Default: (("dapi", "gray"),).
             background_image_colours (iterable[str], optional): the napari colour mapping(s) used for the background
                 image(s). Set to `[]` when using no background images. Default: ("gray",).
             show_tiles (list of int, optional): list of tile indices to display. Default: all tiles in the notebook.
@@ -172,25 +169,21 @@ class Viewer:
             raise TypeError("background_images must be an iterable, not a string")
         if not hasattr(background_images, "__iter__"):
             raise TypeError(f"background_images must be an iterable, but got type {type(background_images)}")
-        if len(background_images) != len(set(background_images)):
-            raise ValueError("background_images contains repeated images")
         for background_image in background_images:
-            if type(background_image) is not str:
-                raise TypeError(f"Expected str inside background_images, but got type {type(background_image)}")
-            if not background_image.endswith((".npy", ".npz", ".tif")) and background_image not in self._bg_opts:
+            if type(background_image) is not tuple:
+                raise TypeError(f"Expected tuple inside background_images, but got type {type(background_image)}")
+            if (
+                not background_image[0].endswith((".npy", ".npz", ".tif"))
+                and background_image[0] not in self._BG_OPTIONS
+            ):
                 raise ValueError(
-                    f"Background image must be .npy, .npz, .tif file, or one of {self._bg_opts}, got {background_image}"
+                    "Background image must be .npy, .npz, .tif file, or one of "
+                    + f"{self._BG_OPTIONS}, got {background_image[0]}"
                 )
-            if background_image not in self._bg_opts and not path.isfile(background_image):
-                raise FileNotFoundError(f"No background image file at {background_image}")
-        if not hasattr(background_image_colours, "__iter__"):
-            raise TypeError(f"background_image_colours must be an iterable, but got {type(background_images)}")
-        if not all(type(colour) is str for colour in background_image_colours):
-            raise TypeError("background_image_colours can only contain strings")
-        if len(background_images) != len(background_image_colours):
-            raise ValueError(
-                f"Got {len(background_images)} background images but {len(background_image_colours)} colour maps"
-            )
+            if background_image[0] not in self._BG_OPTIONS and not path.isfile(background_image[0]):
+                raise FileNotFoundError(f"No background image file at {background_image[0]}")
+            if not all(type(val) is str for val in background_image):
+                raise TypeError("background_images can only contain strings")
         if show_tiles is not None and type(show_tiles) is not list:
             raise TypeError(f"show_tiles must be a list, got {type(show_tiles)} instead")
 
@@ -206,8 +199,8 @@ class Viewer:
         self.show = show
         self.ignore_events = True
         if nb is not None:
-            if not all([nb.has_page(name) for name in self._required_page_names]):
-                raise ValueError(f"The notebook requires pages {', '.join(self._required_page_names)}")
+            if not nb.has_pages(self._REQUIRED_PAGE_NAMES):
+                raise ValueError(f"The notebook requires pages {', '.join(self._REQUIRED_PAGE_NAMES)}")
             self.nb_directory = path.dirname(nb.directory)
             self.nbp_basic = nb.basic_info
             self.nbp_filter = nb.filter
@@ -244,14 +237,11 @@ class Viewer:
 
         plt.style.use("dark_background")
 
-        # Suppress any PyQt5 warnings.
-        QLoggingCategory.setFilterRules("*.debug=false\n" + "*.warning=false\n" + "qt.qpa.*.warning=false")
-
         start_time = time.time()
 
         # Gather all spot data and keep in self.
         print("Gathering spot data")
-        self.spot_data: dict[str, Viewer.MethodData] = {}
+        self.spot_data = {}
         self.spot_data["prob_init"] = MethodData(
             "prob_init",
             self.nbp_basic,
@@ -305,7 +295,7 @@ class Viewer:
             self.spot_data[method].remove_data_at(spot_is_invisible)
 
         # + 1 for the gene legend.
-        plt.rcParams["figure.max_open_warning"] = self._max_open_subplots + 1
+        plt.rcParams["figure.max_open_warning"] = self._MAX_OPEN_SUBPLOTS + 1
         self.viewer = None
         if self.show:
             viewer_kwargs = dict(title=f"Coppafisher {utils_system.get_software_version()} Viewer", show=False)
@@ -323,7 +313,7 @@ class Viewer:
             self.viewer.window.add_dock_widget(self.legend.canvas, name="Gene Legend", area="left")
         self._update_gene_legends()
 
-        print("Loading background image")
+        print("Loading background image(s)")
         tile_z_positions = self.nbp_stitch.tile_origin[self.nbp_basic.use_tiles, 2]
         tile_z_range = np.ceil(tile_z_positions.max()) - np.floor(tile_z_positions.min()) + len(self.nbp_basic.use_z)
         self.n_z_planes = tile_z_range.astype(int).item()
@@ -333,13 +323,13 @@ class Viewer:
         self.background_image_layers = []
         self.max_intensity_project = False
         for background_image in background_images:
-            self._load_background(background_image)
+            self._load_background(background_image[0])
 
         print("Building UI")
         self._build_UI()
 
         print("Placing background image")
-        self._place_backgrounds(background_image_colours)
+        self._place_backgrounds(val[1] for val in background_images)
 
         print("Placing spots")
         self.point_layers = {}
@@ -364,7 +354,7 @@ class Viewer:
                     symbol=spot_symbols,
                     face_color=spot_colours,
                     size=self.spot_size,
-                    name=self._method_to_string[method],
+                    name=self._METHOD_TO_STRING[method],
                     shown=shown,
                     ndim=2,
                     out_of_slice_display=False,
@@ -508,17 +498,15 @@ class Viewer:
                 continue
             self.viewer.bind_key(hotkey.key_press)(hotkey.invoke)
 
-        # Give the Viewer a larger window.
-        if self.show:
-            self.viewer.window.resize(1400, 900)
-            self.viewer.window.activate()
-
         end_time = time.time()
-        print(f"Viewer built in {'{:.1f}'.format(end_time - start_time)}s")
+        print(f"Viewer built in {'{:.1f}'.format(end_time - start_time)}s\n")
 
         self.ignore_events = False
         if self.show:
+            self.viewer.window.resize(1400, 900)
+            self.viewer.window.activate()
             self.viewer.show()
+            self.viewer.fit_to_view()
             try:
                 napari.run()
             except KeyboardInterrupt:
@@ -545,7 +533,7 @@ class Viewer:
         self._set_status_to(message)
 
     def legend_clicked(self, legend: Legend, event: MouseEvent) -> None:
-        value, button_type = legend.get_closest_toggleable_button(event.xdata, event.ydata)
+        value, button_type = legend.get_closest_toggleable_button(event)
         if value is None:
             return
         if button_type == "group":
@@ -603,7 +591,7 @@ class Viewer:
         self.clear_spot_selections()
         # Put the user back to pan/zoom mode.
         self.viewer.camera.mouse_pan = True
-        print(f"Method: {self._method_to_string[self.selected_method]}")
+        print(f"Method: {self._METHOD_TO_STRING[self.selected_method]}")
 
     def z_thick_changed(self) -> None:
         if self.ignore_events:
@@ -848,10 +836,8 @@ class Viewer:
         self._free_subplot_spaces()
         spot_data = self.spot_data[self.selected_method]
         return ViewOMPColourSum(
-            self.nbp_basic,
             self.nbp_call_spots,
             self.nbp_omp,
-            self.selected_method,
             spot_data.local_yxz[self.selected_spot],
             spot_data.tile[self.selected_spot],
             spot_data.colours[self.selected_spot],
@@ -1012,7 +998,7 @@ class Viewer:
     def _load_background(self, image: str) -> None:
         assert type(image) is str
         new_image, new_image_name = None, None
-        if image is not None and image not in self._bg_opts and not path.isfile(image):
+        if image is not None and image not in self._BG_OPTIONS and not path.isfile(image):
             raise FileNotFoundError(f"Cannot find background image at given file path: {image}")
 
         if image in ("dapi", "anchor"):
@@ -1081,7 +1067,7 @@ class Viewer:
                 name=name,
                 axis_labels=("Z", "Y", "X"),
                 translate=translate,
-                rgb=False,
+                rgb=background_image.shape[-1] in (3, 4) and background_image.ndim == 4,
                 multiscale=False,
                 colormap=colour_map,
                 contrast_limits=contrast_limits,
@@ -1093,6 +1079,9 @@ class Viewer:
             self.viewer.add_image(np.zeros((self.n_z_planes, 1, 1)), name="Z", rgb=False, visible=False)
 
     def _build_UI(self) -> None:
+        from PyQt6.QtWidgets import QComboBox, QPushButton
+        from superqt import QDoubleRangeSlider, QDoubleSlider
+
         min_yxz = np.array([0, 0, 0], np.float32)
         max_yxz = np.array([self.nbp_basic.tile_sz, self.nbp_basic.tile_sz, max(self.nbp_basic.use_z) + 1], np.float32)
         max_score = 1.0
@@ -1111,24 +1100,24 @@ class Viewer:
 
         # Initial UI Widget values.
         self.z_thick: float = 1.0
-        self.score_threshs = {method: self._starting_score_thresholds[method] for method in self.spot_data.keys()}
+        self.score_threshs = {method: self._STARTING_SCORE_THRESHOLDS[method] for method in self.spot_data.keys()}
         for method, score_thresh in self.score_threshs.items():
             if score_thresh[1] is None:
                 self.score_threshs[method] = (score_thresh[0], max_score)
         self.intensity_threshs = {
-            method: self._starting_intensity_thresholds[method] for method in self.spot_data.keys()
+            method: self._STARTING_INTENSITY_THRESHOLDS[method] for method in self.spot_data.keys()
         }
         for method, intensity_thresh in self.intensity_threshs.items():
             if intensity_thresh[1] is None:
                 self.intensity_threshs[method] = (intensity_thresh[0], max_intensity)
-        self.spot_size = self._default_spot_size
+        self.spot_size = self._DEFAULT_SPOT_SIZE
 
         if self.show:
             # Method selection as a dropdown box containing every gene call method available.
             self.method_combo_box = QComboBox()
             for method in self.spot_data.keys():
-                self.method_combo_box.addItem(self._method_to_string[method])
-            self.method_combo_box.setCurrentText(self._method_to_string[self.selected_method])
+                self.method_combo_box.addItem(self._METHOD_TO_STRING[method])
+            self.method_combo_box.setCurrentText(self._METHOD_TO_STRING[self.selected_method])
             self.method_combo_box.currentIndexChanged.connect(self.method_changed)
             # Z thickness slider.
             self.z_thick_slider = QDoubleSlider(Qt.Orientation.Horizontal)
@@ -1171,7 +1160,7 @@ class Viewer:
                 self.viewer.window.add_dock_widget(self.contrast_slider, area="left", name="Background Contrast")
         if self.show:
             # View hotkeys button.
-            self.view_hotkeys_button = QPushButton(text="Hotkeys")
+            self.view_hotkeys_button = QPushButton(text="Hotkey Help")
             self.view_hotkeys_button.clicked.connect(self.view_help)
             self.viewer.window.add_dock_widget(self.view_hotkeys_button, area="left", name="Help")
             # Hide the layer list and layer controls.
@@ -1270,7 +1259,7 @@ class Viewer:
                 continue
             colour = gene_legend_info[gene_legend_info["GeneNames"] == g][["ColorR", "ColorG", "ColorB"]].values[0]
             symbol_napari = gene_legend_info[gene_legend_info["GeneNames"] == g]["napari_symbol"].values[0]
-            cell_type = (
+            cell_type = str(
                 gene_legend_info[gene_legend_info["GeneNames"] == g]["cell_type"].values[0]
                 if "cell_type" in gene_legend_info.columns
                 else ""
@@ -1336,7 +1325,7 @@ class Viewer:
         If there are too many subplots open, then the oldest subplots are closed until there is n_free_spaces free
         spaces.
         """
-        while (len(self.open_subplots) + n_free_spaces) > self._max_open_subplots:
+        while (len(self.open_subplots) + n_free_spaces) > self._MAX_OPEN_SUBPLOTS:
             self._close_oldest_subplot()
 
     def _close_oldest_subplot(self) -> None:

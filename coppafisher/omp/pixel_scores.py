@@ -1,29 +1,33 @@
-from typing import Tuple
+from typing import Any, Tuple, TypeAlias
 
 import numpy as np
 
 from ..call_spots import dot_product
-from ..utils import intensity, system
+from ..utils import intensity
 
 
 class PixelScoreSolver:
-    import torch
+    Tensor: TypeAlias = Any
+    Float32: TypeAlias = np.float32
 
-    DTYPE = np.float32
-    DTYPE_T = torch.float32
     NO_GENE_ASSIGNMENT: int = -32_768
 
+    INTENSITY_TOO_LOW: int = 0
+    GENE_SCORE_TOO_LOW: int = 1
+    BEST_GENE_IS_BACKGROUND: int = 2
+    BEST_GENE_ALREADY_ASSIGNED: int = 3
+    MAX_ITERATIONS_REACHED: int = 4
+
     def __init__(self) -> None:
-        """
-        Initialise the PixelScoreSolver class. Used to compute OMP pixel scores.
-        """
-        pass
+        import torch
+
+        self.DTYPE_T = torch.float32
+        self.NO_REASON = torch.iinfo(torch.int8).max
 
     def solve(
         self,
-        pixel_colours: np.ndarray[DTYPE],
-        bled_codes: np.ndarray[DTYPE],
-        background_codes: np.ndarray[DTYPE],
+        pixel_colours: np.ndarray[Float32],
+        bled_codes: np.ndarray[Float32],
         maximum_iterations: int,
         dot_product_threshold: float,
         minimum_intensity: float,
@@ -32,29 +36,28 @@ class PixelScoreSolver:
         return_all_scores: bool = False,
         return_all_weights: bool = False,
         return_all_residuals: bool = False,
-        force_cpu: bool = True,
+        return_stopping_criteria: bool = False,
     ) -> (
-        np.ndarray[DTYPE]
-        | Tuple[np.ndarray[DTYPE], np.ndarray[DTYPE]]
-        | Tuple[np.ndarray[DTYPE], np.ndarray[DTYPE], np.ndarray[DTYPE]]
-        | Tuple[np.ndarray[DTYPE], np.ndarray[DTYPE], np.ndarray[DTYPE], np.ndarray[DTYPE]]
+        np.ndarray[Float32]
+        | Tuple[np.ndarray, np.ndarray]
+        | Tuple[np.ndarray, np.ndarray, np.ndarray]
+        | Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]
+        | Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray]
     ):
         """
-        Compute OMP pixel scores on all pixel colours from the same tile. At each iteration of OMP, the next best gene
-        assignment is found from the residual spot colours. A pixel is stopped iterating on if gene assignment fails.
-        See function `get_next_gene_assignments` below for details on the stopping criteria and gene scoring. Pixels
-        that do not fail are weighted and a new pixel score is added to the final pixel scores. Pixels that are gene
-        assigned are then fitted with the additional gene to find updated pixel scores. See function
-        `get_gene_pixel_scores` for details on the pixel score computation.
+        Compute OMP pixel scores on all pixel colours from the same tile.
+
+        At each iteration of OMP, the next best gene assignment is found from the residual spot colours. A pixel is
+        stopped iterating on if gene assignment fails. See function `get_next_gene_assignments` below for details on the
+        stopping criteria and gene scoring. Pixels that do not fail are weighted and a new pixel score is added to the
+        final pixel scores. Pixels that are gene assigned are then fitted with the additional gene to find updated pixel
+        scores. See function `get_gene_pixel_scores` for details on the pixel score computation.
 
         Args:
             pixel_colours (`(n_pixels x n_rounds_use x n_channels_use) ndarray[float]`): pixel intensity in each
                 sequencing round and channel.
             bled_codes (`(n_genes x n_rounds_use x n_channels_use) ndarray[float32]`): every gene bled code. Each gene
                 must be L2 normalised over all rounds and channels.
-            background_codes (`(n_channels_use x n_rounds_use x n_channels_use) tensor[float]`): the background bled
-                codes. These are simply uniform brightness in one channel for all rounds. background_codes[0] is the
-                first code, background_codes[1] is the second code, etc.
             maximum_iterations (int): the maximum number of gene assignments allowed for one pixel.
             dot_product_threshold (float): a gene must have a dot product score above this value on the residual spot
                 colour to be assigned the gene. If more than one gene is above this threshold, the top score is used.
@@ -68,16 +71,17 @@ class PixelScoreSolver:
                 This only works for when n_pixels is 1. Default: false.
             return_all_residuals (bool, optional): return all residual colours used to compute the final pixel scores.
                 Default: false.
-            force_cpu (bool, optional): only use the CPU to solve. Default: true.
+            return_stopping_criteria (bool, optional): return the stopping criteria reason for every pixel. Default:
+                false.
 
         Returns:
             Tuple (tensor if only one tensor is returned) containing the following:
                 - (`(n_pixels x n_genes) ndarray[float32]`): pixel_scores. Each gene's final pixel score for every
                     pixel.
-                - (`((n_iterations + 1) x n_pixels x n_genes_all) ndarray[float32]`): dp_scores. The dot product
-                    score for every gene on each iteration. This even includes the iteration that did not assign any new
-                    genes so you can see what the final gene scores were before stopping. Only returned if
-                    return_dp_scores is true.
+                - (`((n_iterations + 1) x n_pixels x n_genes) ndarray[float32]`): dp_scores. The dot product score for
+                    every gene on each iteration. This even includes the iteration that did not assign any new genes so
+                    you can see what the final gene scores were before stopping. Only returned if return_dp_scores is
+                    true.
                 - (`(n_pixels x n_genes) ndarray[float32]`): gene_weights. The gene weights given to each gene on all
                     pixels on their final iteration. For genes that were not assigned on a pixel, nan is placed. Only
                     returned if return_all_weights is true.
@@ -86,11 +90,15 @@ class PixelScoreSolver:
                     pixel scores. In the OMP method documentation, this is denoted by epsilon ^ 2 * tilde{R} with i
                     being the final iteration. For genes that are not assigned to a pixel, nan is placed. Only returned
                     if return_all_residuals is true.
+                - (`(n_pixels) ndarray[int8]`): stopping_criteria. The reason why each pixel stopped iterating. 0 when
+                    intensity is too low, 1 when best gene score is too low, 3 when best gene is already assigned, 4
+                    when maximum iteration count is reached. Sometimes a pixel reached multiple stopping criteria at
+                    once. In these cases, the lowest integer reason takes precedence. Only returned if
+                    return_stopping_criteria is true.
 
         Notes:
             - All computations are run with 32-bit float precision.
-            - The boolean flags are only used in OMP subplots to gather additional insight, they do not affect the final
-                  pixel score results.
+            - The boolean flags are only used for OMP debugging, they do not affect the final pixel score results.
         """
         import torch
 
@@ -99,7 +107,6 @@ class PixelScoreSolver:
         n_genes = bled_codes.shape[0]
         assert type(pixel_colours) is np.ndarray
         assert type(bled_codes) is np.ndarray
-        assert type(background_codes) is np.ndarray
         assert type(maximum_iterations) is int
         assert type(dot_product_threshold) is float
         assert type(minimum_intensity) is float
@@ -110,73 +117,58 @@ class PixelScoreSolver:
         if return_all_weights:
             assert n_pixels == 1
         assert type(return_all_residuals) is bool
-        assert type(force_cpu) is bool
         assert maximum_iterations > 0
         assert dot_product_threshold >= 0
         assert minimum_intensity >= 0
         assert pixel_colours.ndim == 3
         assert bled_codes.ndim == 3
-        assert background_codes.ndim == 3
         assert pixel_colours.size > 0, "pixel_colours cannot be empty"
         assert bled_codes.size > 0, "bled_codes cannot be empty"
-        assert background_codes.size > 0, "background_codes cannot be empty"
         assert bled_codes.shape == (n_genes, n_rounds_use, n_channels_use)
-        assert background_codes.shape == (n_channels_use, n_rounds_use, n_channels_use)
 
         dp_scores = []
         bled_codes_torch = torch.tensor(bled_codes, dtype=self.DTYPE_T)
-        background_codes_torch = torch.tensor(background_codes, dtype=self.DTYPE_T)
-        all_bled_codes = torch.concat((bled_codes_torch, background_codes_torch), dim=0)
-        # Bled codes and background codes must be L2 normalised.
-        assert torch.isclose(torch.linalg.matrix_norm(all_bled_codes), torch.ones(1).float()).all()
-
-        device = system.get_device(force_cpu)
+        # Bled codes must be L2 normalised.
+        assert torch.isclose(torch.linalg.matrix_norm(bled_codes_torch), torch.ones(1).float()).all()
 
         pixel_scores = torch.zeros((n_pixels, n_genes), dtype=self.DTYPE_T)
         colours = torch.from_numpy(pixel_colours).to(dtype=self.DTYPE_T)
         # Remember the residual colour between iterations.
         residual_colours = colours.detach().clone()
-        # Remember what pixels still need iterating on.
+        # Remember what pixels are still iterating.
         pixels_to_continue = torch.ones(n_pixels, dtype=bool)
         # Remember the gene selections made for each pixel. NO_GENE_ASSIGNMENT for no gene selection made.
         genes_selected = torch.full((n_pixels, maximum_iterations), self.NO_GENE_ASSIGNMENT, dtype=torch.int32)
-        bg_gene_indices = torch.linspace(n_genes, n_genes + n_channels_use - 1, n_channels_use, dtype=torch.int32)
-        bg_gene_indices = bg_gene_indices[np.newaxis].repeat_interleave(n_pixels, dim=0)
 
         if return_all_weights:
             # Remember the gene weightings given to each pixel.
             all_weights = torch.full_like(pixel_scores, torch.nan, dtype=self.DTYPE_T)
         if return_all_residuals:
             all_residuals = torch.full((n_pixels, n_genes, n_rounds_use, n_channels_use), torch.nan, dtype=self.DTYPE_T)
-
-        # Move tensors to the right device.
-        pixel_scores = pixel_scores.to(device)
-        colours = colours.to(device)
-        residual_colours = residual_colours.to(device)
-        pixels_to_continue = pixels_to_continue.to(device)
-        genes_selected = genes_selected.to(device)
-        bled_codes_torch = bled_codes_torch.to(device)
-        all_bled_codes = all_bled_codes.to(device)
-        bg_gene_indices = bg_gene_indices.to(device)
+        if return_stopping_criteria:
+            all_stopping_criteria = torch.full((n_pixels,), self.NO_REASON, dtype=torch.int8)
 
         for iteration in range(maximum_iterations):
             # Find the next best gene for pixels that have not reached a stopping criteria yet.
-            fail_gene_indices = torch.cat((genes_selected[:, :iteration], bg_gene_indices), 1)
+            fail_gene_indices = genes_selected[:, :iteration].detach().clone()
             fail_gene_indices = fail_gene_indices[pixels_to_continue]
             gene_assigment_results = self.get_next_gene_assignments(
                 residual_colours,
-                all_bled_codes,
+                bled_codes_torch,
                 fail_gene_indices,
                 dot_product_threshold,
                 minimum_intensity,
                 return_all_scores=return_all_scores,
+                return_stopping_criteria=return_stopping_criteria,
             )
             del fail_gene_indices
             genes_selected[pixels_to_continue, iteration] = gene_assigment_results[0]
             if return_all_scores:
-                dp_score = torch.zeros((n_pixels, n_genes + n_channels_use), dtype=self.DTYPE_T)
+                dp_score = torch.zeros((n_pixels, n_genes), dtype=self.DTYPE_T)
                 dp_score[pixels_to_continue] = gene_assigment_results[1].cpu()
                 dp_scores.append(dp_score)
+            if return_stopping_criteria:
+                all_stopping_criteria[pixels_to_continue] = gene_assigment_results[-1].cpu()
 
             # Update what pixels to continue iterating on.
             pixels_to_continue = genes_selected[:, iteration] != self.NO_GENE_ASSIGNMENT
@@ -232,37 +224,29 @@ class PixelScoreSolver:
             result += (all_weights.cpu().numpy(),)
         if return_all_residuals:
             result += (all_residuals.cpu().numpy(),)
+        if return_stopping_criteria:
+            all_stopping_criteria[pixels_to_continue] = self.MAX_ITERATIONS_REACHED
+            result += (all_stopping_criteria.cpu().numpy(),)
         if len(result) == 1:
             result = result[0]
 
         return result
 
-    def create_background_bled_codes(self, n_rounds_use: int, n_channels_use: int) -> np.ndarray:
-        """
-        Create the background bled codes that are used during OMP pixel score computing.
-
-        Args:
-            n_rounds_use (int): the number of sequencing rounds.
-            n_channels_use (int): the number of sequencing channels.
-        """
-        bg_bled_codes = np.eye(n_channels_use)[:, None, :].repeat(n_rounds_use, axis=1)
-        # Normalise the codes the same way as gene bled codes.
-        bg_bled_codes /= np.linalg.norm(bg_bled_codes, axis=(1, 2))
-        return bg_bled_codes
-
     def get_next_gene_assignments(
         self,
-        residual_colours: torch.Tensor,
-        all_bled_codes: torch.Tensor,
-        fail_gene_indices: torch.Tensor,
+        residual_colours: Tensor,
+        gene_bled_codes: Tensor,
+        fail_gene_indices: Tensor,
         dot_product_threshold: float,
         minimum_intensity: float,
         return_all_scores: bool = False,
-    ) -> Tuple[torch.Tensor] | Tuple[torch.Tensor, torch.Tensor]:
+        return_stopping_criteria: bool = False,
+    ) -> Tuple[Tensor] | Tuple[Tensor, Tensor] | Tuple[Tensor, Tensor, Tensor]:
         """
-        Get the next best gene assignment for each residual colour. Each gene is scored to each pixel using a dot
-        product scoring where each round has an equal contribution. A pixel fails gene assignment if one or more of the
-        conditions is met:
+        Get the next best gene assignment for each residual colour.
+
+        Each gene is scored to each pixel using a modified dot product scoring (see `call_spots/dot_product.py`). A
+        pixel fails gene assignment if one or more of the conditions is met:
 
         - The top gene dot product score is below the dot_product_threshold.
         - The next best gene is in the fail_gene_indices list.
@@ -270,9 +254,9 @@ class PixelScoreSolver:
 
         The reason for each of these conditions is:
 
-        - to cut out unconfident gene reads.
-        - to not doubly assign a gene and avoid assigning background genes.
-        - to cut out dim colour.
+        - to avoid low scores.
+        - to not assign a gene twice.
+        - to cut out empty pixels.
 
         respectively.
 
@@ -280,77 +264,89 @@ class PixelScoreSolver:
             residual_colours (`(n_pixels x n_rounds_use x n_channels_use) tensor[float32]`): residual pixel colour. Each
                 round/channel pair has been multiplied by a weighting (denoted by epsilon in documentation) such that
                 highly uncertain round/channel pairs have a very low contribution to the next scores.
-            all_bled_codes (`(n_genes_all x n_rounds_use x n_channels_use) tensor[float32]`): gene bled codes and
-                background genes appended.
-            fail_gene_indices (`(n_pixels x n_genes_fail) tensor[int32]`): if the next gene assignment for a pixel is
-                included on the list of fail gene indices, consider gene assignment a fail.
+            gene_bled_codes (`(n_genes x n_rounds_use x n_channels_use) tensor[float32]`): gene bled codes.
+            fail_gene_indices (`(n_pixels x n_genes_fail) tensor[int32]`): indices of fail genes. If the next best gene
+                assignment for a pixel is included on the list of fail gene indices, then gene assignment fails.
             dot_product_threshold (float): a gene can only be assigned if the dot product score is above this threshold.
             minimum_intensity (float): a colour's intensity must be above minimum_intensity to pass gene assignment.
                 The intensity is defined as min_r (max_c abs(residual_colour)).
             return_all_scores (bool, optional): return the dot product scores for every gene. Default: false.
+            return_stopping_criteria (bool, optional): return the stopping criteria for every pixel. Default: false.
 
         Returns:
             Tuple containing:
                 - `(n_pixels) tensor[int32]`: next_best_genes. The next best gene assignment for each pixel. A value of
                     -32_768 is placed for pixels that failed to find a next best gene.
-                - `(n_pixels x n_genes_all) tensor[float32]`: all_gene_scores. Every genes' round dot product score.
-                    This includes genes that are in fail_gene_indices. Only returned if return_scores is set to true.
+                - `(n_pixels x n_genes) tensor[float32]`: gene_scores. Every genes' round dot product score. This
+                    includes genes that are in fail_gene_indices. Only returned if return_scores is true.
+                - `(n_pixels) tensor[int8]`: stopping_criteria. Only returned if return_stopping_criteria is true. A
+                    value of 127 is placed if a pixel does not stop.
         """
         import torch
 
         assert type(residual_colours) is torch.Tensor
-        assert type(all_bled_codes) is torch.Tensor
+        assert type(gene_bled_codes) is torch.Tensor
         assert type(fail_gene_indices) is torch.Tensor
         assert type(dot_product_threshold) is float
         assert type(minimum_intensity) is float
         assert residual_colours.ndim == 3
-        assert all_bled_codes.ndim == 3
+        assert gene_bled_codes.ndim == 3
         assert fail_gene_indices.ndim == 2
         assert residual_colours.shape[0] > 0, "Require at least one pixel"
         assert residual_colours.shape[1] > 0, "Require at least one round/channel"
-        assert residual_colours.shape[1:] == all_bled_codes.shape[1:]
-        assert all_bled_codes.shape[0] > 0, "Require at least one bled code"
+        assert residual_colours.shape[1:] == gene_bled_codes.shape[1:]
+        assert gene_bled_codes.shape[0] > 0, "Require at least one bled code"
         assert fail_gene_indices.shape[0] == residual_colours.shape[0]
-        assert (fail_gene_indices >= 0).all() and (fail_gene_indices < all_bled_codes.shape[0]).all()
+        assert (fail_gene_indices >= 0).all() and (fail_gene_indices < gene_bled_codes.shape[0]).all()
         assert dot_product_threshold >= 0
         assert minimum_intensity >= 0
 
+        gene_scores = dot_product.dot_product_score(
+            residual_colours[np.newaxis], gene_bled_codes[np.newaxis, np.newaxis]
+        )[0]
+        assert not torch.isnan(gene_scores).any()
+
         intensity_is_low = intensity.compute_intensity(residual_colours) < minimum_intensity
 
-        all_gene_scores = dot_product.dot_product_score(
-            residual_colours[np.newaxis], all_bled_codes[np.newaxis, np.newaxis]
-        )[0]
-
-        next_best_gene_scores, next_best_genes = torch.max(all_gene_scores, dim=1)
+        next_best_gene_scores, next_best_genes = torch.max(gene_scores, dim=1)
         next_best_genes = next_best_genes.int()
 
         # A pixel only passes if the highest scoring gene is above the dot product threshold.
-        pixels_passed = (all_gene_scores > dot_product_threshold).any(1)
+        score_passes = (gene_scores > dot_product_threshold).any(1)
 
         # A best gene in the fail_gene_indices means assignment failed.
-        in_fail_gene_indices = (fail_gene_indices == next_best_genes[:, np.newaxis]).any(1)
-        pixels_passed = pixels_passed & (~in_fail_gene_indices)
+        best_gene_is_fail_gene = (fail_gene_indices == next_best_genes[:, np.newaxis]).any(1)
+
+        n_pixels = residual_colours.shape[0]
+        stopping_criteria = torch.full((n_pixels,), self.NO_REASON, dtype=torch.int8)
+        stopping_criteria[intensity_is_low] = self.INTENSITY_TOO_LOW
+        stopping_criteria[(~score_passes) & (~intensity_is_low)] = self.GENE_SCORE_TOO_LOW
+        stopping_criteria[best_gene_is_fail_gene & score_passes & (~intensity_is_low)] = self.BEST_GENE_ALREADY_ASSIGNED
+
+        score_passes = score_passes & (~best_gene_is_fail_gene)
 
         # An intensity below the minimum_intensity means assignment failed.
-        pixels_passed = pixels_passed & (~intensity_is_low)
+        score_passes = score_passes & (~intensity_is_low)
 
-        next_best_genes[~pixels_passed] = self.NO_GENE_ASSIGNMENT
-        next_best_gene_scores[~pixels_passed] = torch.nan
+        next_best_genes[~score_passes] = self.NO_GENE_ASSIGNMENT
+        next_best_gene_scores[~score_passes] = torch.nan
 
         output = (next_best_genes,)
 
         if return_all_scores:
-            output += (all_gene_scores,)
+            output += (gene_scores,)
+        if return_stopping_criteria:
+            output += (stopping_criteria,)
 
         return output
 
     def get_next_gene_weights(
         self,
-        pixel_colours: torch.Tensor,
-        bled_codes: torch.Tensor,
+        pixel_colours: Tensor,
+        bled_codes: Tensor,
         alpha: float,
         beta: float,
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    ) -> Tuple[Tensor, Tensor, Tensor]:
         """
         For each pixel, compute a weight for every gene by least squares. These weighted bled codes are then subtracted
         off the pixel colour to get the minimised residual colour for each pixel.
@@ -403,13 +399,13 @@ class PixelScoreSolver:
 
     def get_gene_pixel_scores(
         self,
-        pixel_colours: torch.Tensor,
-        bled_codes: torch.Tensor,
-        weights: torch.Tensor,
+        pixel_colours: Tensor,
+        bled_codes: Tensor,
+        weights: Tensor,
         alpha: float,
         beta: float,
         return_residuals: bool = False,
-    ) -> Tuple[torch.Tensor] | Tuple[torch.Tensor, torch.Tensor]:
+    ) -> Tuple[Tensor] | Tuple[Tensor, Tensor]:
         """
         For each gene assignment in a pixel, compute its pixel score. For each gene, a residual colour is computed by
         subtracting all other assigned genes. Then, the pixel score for said gene is the dot product with this residual
@@ -472,8 +468,12 @@ class PixelScoreSolver:
         # It has shape (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_use, n_channels_use).
         # This will be needed to calculate the uncertainty weighting for each gene assignment individually.
         # See Step 3 in OMP method documentation for details.
-        bled_codes_except_one = bled_codes.detach().clone()[np.newaxis].repeat_interleave(n_genes_assigned, 0)
-        bled_codes_except_one = bled_codes_except_one[:, :, :-1]
+        bled_codes_except_one = torch.full(
+            (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_use, n_channels_use),
+            torch.nan,
+            dtype=self.DTYPE_T,
+            device=bled_codes.device,
+        )
         for g in range(n_genes_assigned):
             bled_codes_except_one[g] = torch.cat((bled_codes[:, :g], bled_codes[:, (g + 1) :]), dim=1)
         # Flatten to shape (n_genes_assigned, n_pixels, n_genes_assigned - 1, n_rounds_channels_use).
@@ -517,9 +517,7 @@ class PixelScoreSolver:
 
         return result
 
-    def get_uncertainty_weights(
-        self, gene_weights: torch.Tensor, bled_codes: torch.Tensor, alpha: float, beta: float
-    ) -> torch.Tensor:
+    def get_uncertainty_weights(self, gene_weights: Tensor, bled_codes: Tensor, alpha: float, beta: float) -> Tensor:
         """
         Compute the weights given to each round/channel pair. A round/channel pair has a lower weight if it has high
         bled code brightness in said round/channel and alpha is > 0.

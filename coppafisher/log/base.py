@@ -122,11 +122,13 @@ def log(msg: Union[str, Exception], severity: int, force_email: bool = False, no
         severity (int): severity of message.
         force_email (bool): force send an email to the recipient, no matter the severity.
     """
+    if "_log_file" not in globals():
+        set_log_config()
+
     message = datetime_string()
     message += f":{severity_to_name[severity]}: "
     message += str(msg)
     if _log_file is not None:
-        # Append message to log file
         append_to_log_file(message)
     if severity >= _minimum_print_severity:
         logging.getLogger("coppafisher").log(severity, message)
@@ -154,9 +156,9 @@ def log(msg: Union[str, Exception], severity: int, force_email: bool = False, no
     if notify and _allow_notifications or (severity >= CRASH_ON and _notify_crash and _allow_notifications):
         notification.notify(title="Coppafisher", message=message, app_name="coppafisher")
     if severity >= CRASH_ON:
-        # Crash on high severity
+        # Crash on high severity.
         if isinstance(msg, Exception):
-            # Add the traceback to the log file for debugging purposes
+            # Add the traceback to the log file for debugging purposes.
             append_to_log_file(traceback.format_exc())
             raise msg
         raise LogError(message)
@@ -240,6 +242,3 @@ def send_email(subject: str, body: str, sender: str, recipient: str, password: s
 class LogError(Exception):
     def __init__(self, msg: str = "") -> None:
         super().__init__(msg)
-
-
-set_log_config()

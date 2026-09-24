@@ -5,11 +5,11 @@ import mplcursors
 import numpy as np
 from matplotlib.widgets import Slider
 
-from coppafisher.omp import pixel_scores
-from coppafisher.plot.results_viewer.subplot import Subplot
-from coppafisher.setup.config import Config
-from coppafisher.setup.notebook import NotebookPage
-from coppafisher.spot_colours import base as spot_colours_base
+from ...omp import pixel_scores, preprocessing
+from ...plot.results_viewer.subplot import Subplot
+from ...setup.config import Config
+from ...setup.notebook import NotebookPage
+from ...spot_colours import base as spot_colours_base
 
 
 class ViewOMPGeneScores(Subplot):
@@ -50,6 +50,8 @@ class ViewOMPGeneScores(Subplot):
         beta = Config.get_default_for("omp", "beta")
         max_genes = Config.get_default_for("omp", "max_genes")
         dot_product_threshold = Config.get_default_for("omp", "dot_product_threshold")
+        bg_dot_product_threshold = Config.get_default_for("omp", "background_dot_product_threshold")
+        bg_subtract_percentile = Config.get_default_for("omp", "background_subtract_percentile")
         min_intensity = 0.0
         if nbp_omp is not None:
             omp_config = nbp_omp.associated_configs["omp"]
@@ -58,8 +60,8 @@ class ViewOMPGeneScores(Subplot):
             beta = float(omp_config["beta"])
             max_genes = int(omp_config["max_genes"])
             dot_product_threshold = float(omp_config["dot_product_threshold"])
-        n_rounds_use = len(nbp_basic.use_rounds)
-        n_channels_use = len(nbp_basic.use_channels)
+            bg_dot_product_threshold = float(omp_config["background_dot_product_threshold"])
+            bg_subtract_percentile = float(omp_config["background_subtract_percentile"])
         self.dp_thresh = dot_product_threshold
 
         # image_colours has shape (1, n_rounds_use, n_channels_use).
@@ -73,14 +75,17 @@ class ViewOMPGeneScores(Subplot):
             use_channels=nbp_basic.use_channels,
             out_of_bounds_value=0,
         )
-        image_colours *= nbp_call_spots.colour_norm_factor[[spot_tile]]
+        image_colours = preprocessing.preprocess_colours(
+            image_colours,
+            nbp_call_spots.colour_norm_factor[spot_tile],
+            bg_dot_product_threshold,
+            bg_subtract_percentile,
+        )
         omp_solver = pixel_scores.PixelScoreSolver()
         bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
-        bg_bled_codes = omp_solver.create_background_bled_codes(n_rounds_use, n_channels_use)
         _, self.dp_scores = omp_solver.solve(
             pixel_colours=image_colours,
             bled_codes=bled_codes,
-            background_codes=bg_bled_codes,
             maximum_iterations=max_genes,
             dot_product_threshold=self.dp_thresh,
             minimum_intensity=min_intensity,
@@ -91,32 +96,26 @@ class ViewOMPGeneScores(Subplot):
         n_iterations = self.dp_scores.shape[0]
         assert n_iterations > 0
         self.iteration = 1
-        n_genes_all = self.dp_scores.shape[2]
-        self.gene_names_all: list[str] = nbp_call_spots.gene_names.tolist()
-        for i in range(n_genes_all - len(self.gene_names_all)):
-            self.gene_names_all.append(f"bg_{i}")
+        n_genes = self.dp_scores.shape[2]
+        self.gene_names: list[str] = nbp_call_spots.gene_names.tolist()
 
         self.fig, axes = plt.subplots(2, 1, gridspec_kw={"height_ratios": [6, 1]}, figsize=(15, 7))
         self.plot_ax: plt.Axes = axes[0]
-        self.plot_ax.hlines(self.dp_thresh, 0, n_genes_all, colors="red", linestyles="dashed")
+        self.plot_ax.hlines(self.dp_thresh, 0, n_genes, colors="red", linestyles="dashed")
         self.bar_colour = "blue"
         self.bars = self.plot_ax.bar(
-            [i + 0.5 for i in range(n_genes_all)],
-            [1] * n_genes_all,
+            [i + 0.5 for i in range(n_genes)],
+            [1] * n_genes,
             color=self.bar_colour,
             align="center",
             width=0.9,
         )
         # Show the gene's name when hovering over its bar.
         cursor = mplcursors.cursor(self.bars, hover=True)
-        cursor.connect("add", lambda sel: sel.annotation.set_text(f"Value: {self.gene_names_all[sel.index]}"))
+        cursor.connect("add", lambda sel: sel.annotation.set_text(f"Value: {self.gene_names[sel.index]}"))
         cursor.connect("remove", lambda sel: sel.annotation.set_text(""))
-        self.plot_ax.set_xlim(0, n_genes_all)
-        self.plot_ax.set_title(
-            f"Pixel {tuple(spot_local_yxz)}, Tile {spot_tile} Gene Dot Product Scores\n(0, "
-            + f"{n_genes_all - n_channels_use}) are gene indices, ({n_genes_all - n_channels_use}, {n_genes_all}) are "
-            + "background genes"
-        )
+        self.plot_ax.set_xlim(0, n_genes)
+        self.plot_ax.set_title(f"Pixel {tuple(spot_local_yxz.tolist())}, Tile {spot_tile} Gene Dot Product Scores")
         self.plot_ax.set_ylabel("Gene Score")
         max_score = max(1, self.dp_scores.max().item())
         self.plot_ax.set_ylim(0, max_score)

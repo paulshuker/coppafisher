@@ -13,12 +13,17 @@ import zarr
 
 from .. import log
 from ..find_spots import detect as find_spots_detect
-from ..omp import scores
+from ..omp import preprocessing, scores
 from ..omp.pixel_scores import PixelScoreSolver
 from ..setup.config_section import ConfigSection
 from ..setup.notebook_page import NotebookPage
 from ..spot_colours import base as spot_colours_base
 from ..utils import dict_io, duplicates, intensity, system
+
+DEBUG_INFO_NAME = "omp_debug_info.txt"
+STOPPING_CRITERIA_NAME = "omp_tile_{}_stopping_criteria.npz"
+ITERATION_COUNTS_NAME = "omp_tile_{}_iteration_counts.npz"
+BACKGROUND_IS_SUBTRACTED_NAME = "omp_tile_{}_background_is_subtracted.npz"
 
 
 def run_omp(
@@ -32,7 +37,9 @@ def run_omp(
     nbp_call_spots: NotebookPage,
 ) -> NotebookPage:
     """
-    Run orthogonal matching pursuit (omp) on every pixel to determine a pixel score for each gene at each pixel.
+    Run orthogonal matching pursuit (omp).
+
+    On every pixel, determine a gene pixel score using a greedy algorithm.
 
     From these OMP pixel scores, create a spot score at every pixel position by convolving with a given mean spot.
 
@@ -51,7 +58,7 @@ def run_omp(
         nbp_call_spots (NotebookPage): `call_spots` notebook page.
 
     Returns:
-        `NotebookPage[omp]`: nbp_omp. Page containing gene assignments and info for OMP spots.
+        (NotebookPage): nbp_omp. Completed omp notebook page.
     """
     import torch
 
@@ -66,7 +73,6 @@ def run_omp(
 
     log.info("OMP started")
     log.debug(f"{torch.cuda.is_available()=}")
-    log.debug(f"{config['force_cpu']=}")
 
     omp_config = {config.name: config.to_dict()}
     nbp = NotebookPage("omp", omp_config)
@@ -76,11 +82,38 @@ def run_omp(
         # Avoids chance of memory crashing on Linux.
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
+    if config["debug"]:
+        debug_file_path = os.path.join(nbp_file.output_dir, DEBUG_INFO_NAME)
+        file = open(debug_file_path, "w")
+        file.write(
+            "\n".join(
+                [
+                    "OMP debugging information can be found in the output directory",
+                    "",
+                    STOPPING_CRITERIA_NAME.format("t")
+                    + "(`(im_y x im_x x im_z) ndarray[int8]`) The OMP iteration stopping criteria for every pixel on "
+                    + "tile t. 0 means the pixel had a residual intensity lower than the threshold, 1 means the best "
+                    + "gene score was too low, 3 means the best gene was already assigned, 4 means maximum iterations "
+                    + "was reached.",
+                    "",
+                    ITERATION_COUNTS_NAME.format("t")
+                    + "(`(im_y x im_x x im_z) ndarray[int8]`) Tile t's number of assigned genes (iteration count) on "
+                    + "every pixel.",
+                    "",
+                    BACKGROUND_IS_SUBTRACTED_NAME.format("t")
+                    + "(`(im_y x im_x x im_z x n_channels_use) ndarray[bool]`): For tile t, "
+                    + "background_is_subtracted[c, b] is true if channel index b was subtracted from colour c during "
+                    + "step 0 of OMP (pre-processing).",
+                ]
+            )
+        )
+        file.close()
+
     # Preparing useful values used during OMP.
     n_genes = nbp_call_spots.bled_codes.shape[0]
     n_rounds_use = len(nbp_basic.use_rounds)
     n_channels_use = len(nbp_basic.use_channels)
-    tile_shape: Tuple[int] = nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z)
+    tile_shape: Tuple[int, int, int] = nbp_basic.tile_sz, nbp_basic.tile_sz, len(nbp_basic.use_z)
     n_tile_pixels = np.prod(tile_shape).item()
     tile_origins = nbp_stitch.tile_origin.astype(np.float32)
     tile_centres = duplicates.get_tile_centres(nbp_basic.tile_sz, len(nbp_basic.use_z), tile_origins)
@@ -94,18 +127,15 @@ def run_omp(
     bled_codes = nbp_call_spots.bled_codes.astype(np.float32)
     assert np.isnan(bled_codes).sum() == 0, "bled codes cannot contain nan values"
     assert np.allclose(np.linalg.norm(bled_codes, axis=(1, 2)), 1), "bled codes must be L2 normalised"
-    device = system.get_device(config["force_cpu"])
     solver = PixelScoreSolver()
-    bg_bled_codes = solver.create_background_bled_codes(n_rounds_use, n_channels_use)
     max_genes = config["max_genes"]
     solver_kwargs = dict(
         bled_codes=bled_codes,
-        background_codes=bg_bled_codes,
         maximum_iterations=max_genes,
         dot_product_threshold=config["dot_product_threshold"],
         alpha=config["alpha"],
         beta=config["beta"],
-        force_cpu=config["force_cpu"],
+        return_stopping_criteria=config["debug"],
     )
     colour_norm_factor = nbp_call_spots.colour_norm_factor.astype(np.float32)
     n_chunk_max = 600_000
@@ -151,7 +181,7 @@ def run_omp(
     del results_store, results
 
     for t_index, t in enumerate(nbp_basic.use_tiles):
-        postfix = {"tile": t, "device": str(device).upper()}
+        postfix = {"tile": t}
 
         if tile_already_exists[t_index] and config_unchanged:
             log.info(f"OMP is skipping tile {t}, results already found at {nbp_file.output_dir}")
@@ -187,7 +217,12 @@ def run_omp(
         yxz = np.array(np.meshgrid(*yxz, indexing="ij")).astype(np.int16).reshape((3, -1), order="F").T
         yxz[:, 2] = nbp_basic.use_z[len(nbp_basic.use_z) // 2]
         mid_z_colours = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz, **spot_colour_kwargs)
-        mid_z_colours *= colour_norm_factor[[t]]
+        mid_z_colours = preprocessing.preprocess_colours(
+            mid_z_colours,
+            colour_norm_factor[t],
+            config["background_dot_product_threshold"],
+            config["background_subtract_percentile"],
+        )
         intensities = intensity.compute_intensity(mid_z_colours)
         solver_kwargs["minimum_intensity"] = (
             intensities.quantile(config["minimum_intensity_percentile"] / 100).item()
@@ -210,7 +245,12 @@ def run_omp(
         log.debug(f"OMP {n_register_chunk_size=}")
         log.debug(f"OMP {n_chunk_count=}")
 
-        with tqdm.tqdm(total=n_tile_pixels, desc="Computing pixel scores", unit="pixel", postfix=postfix) as pbar:
+        if config["debug"]:
+            iteration_counts = np.full(n_tile_pixels, 0, np.uint8)
+            tile_stopping_criteria = np.full(n_tile_pixels, solver.INTENSITY_TOO_LOW, np.int8)
+            background_is_subtracted = np.zeros((n_tile_pixels, n_channels_use), bool)
+
+        with tqdm.tqdm(total=n_tile_pixels, desc="Pixel scoring", unit="p", postfix=postfix) as pbar:
             while index_min < n_tile_pixels:
                 if n_subset_pixels is None:
                     index_max += n_chunk_count * n_register_chunk_size
@@ -225,14 +265,30 @@ def run_omp(
 
                 yxz_subset = yxz_all[index_min:index_max]
                 colour_subset = spot_colours_base.get_spot_colours_new_safe(nbp_basic, yxz_subset, **spot_colour_kwargs)
-                colour_subset *= colour_norm_factor[[t]]
+                colour_subset = preprocessing.preprocess_colours(
+                    colour_subset,
+                    colour_norm_factor[t],
+                    config["background_dot_product_threshold"],
+                    config["background_subtract_percentile"],
+                    return_background_is_subtracted=config["debug"],
+                )
+                if config["debug"]:
+                    background_is_subtracted[index_min:index_max] = colour_subset[1]
+                    colour_subset = colour_subset[0]
                 intensities_subset = intensity.compute_intensity(colour_subset)
                 is_intense = (intensities_subset >= solver_kwargs["minimum_intensity"]).numpy()
                 del intensities_subset
 
                 pixel_scores_subset = np.zeros((index_max - index_min, n_genes), np.float32)
-                if is_intense.sum() > 0:
-                    pixel_scores_subset[is_intense] = solver.solve(colour_subset[is_intense], **solver_kwargs)
+                if is_intense.any():
+                    solve_results = solver.solve(colour_subset[is_intense], **solver_kwargs)
+                    if config["debug"]:
+                        solve_results, stopping_criteria = solve_results
+                        is_subset_intense = np.zeros(n_tile_pixels, bool)
+                        is_subset_intense[index_min:index_max] = is_intense
+                        iteration_counts[is_subset_intense] = (~np.isclose(solve_results, 0)).sum(1)
+                        tile_stopping_criteria[is_subset_intense] = stopping_criteria
+                    pixel_scores_subset[is_intense] = solve_results
                 del colour_subset, is_intense
 
                 pixel_scores_subset = scipy.sparse.csr_matrix(pixel_scores_subset)
@@ -242,14 +298,30 @@ def run_omp(
                 index_min = index_max
                 subset_index += 1
         subset_count = subset_index
-        log.debug(f"Compute pixel scores, tile {t} complete")
+        log.debug(f"Pixel scores for tile {t} complete")
+
+        if config["debug"]:
+            assert (iteration_counts >= 0).all()
+            assert (iteration_counts <= config["max_genes"]).all()
+            iteration_counts = iteration_counts.reshape(tile_shape, order="F")
+            save_filepath = os.path.join(nbp_file.output_dir, ITERATION_COUNTS_NAME.format(t))
+            np.savez_compressed(save_filepath, iteration_counts)
+
+            assert (tile_stopping_criteria != solver.NO_REASON).all()
+            tile_stopping_criteria = tile_stopping_criteria.reshape(tile_shape, order="F")
+            save_filepath = os.path.join(nbp_file.output_dir, STOPPING_CRITERIA_NAME.format(t))
+            np.savez_compressed(save_filepath, tile_stopping_criteria)
+
+            background_is_subtracted = background_is_subtracted.reshape(tile_shape + (n_channels_use,), order="F")
+            save_filepath = os.path.join(nbp_file.output_dir, BACKGROUND_IS_SUBTRACTED_NAME.format(t))
+            np.savez_compressed(save_filepath, background_is_subtracted)
 
         t_spots_local_yxz = np.zeros(shape=(0, 3), dtype=np.int16)
         t_spots_tile = np.zeros(shape=0, dtype=np.int16)
         t_spots_gene_no = np.zeros(shape=0, dtype=np.int16)
         t_spots_score = np.zeros(shape=0, dtype=np.float16)
 
-        batch_size = int(2e6 * system.get_available_memory(device) // n_tile_pixels)
+        batch_size = int(2e6 * system.get_available_memory() // n_tile_pixels)
         batch_size = max(batch_size, 1)
         log.debug(f"Gene batch size: {batch_size}")
         gene_batches = [
@@ -265,7 +337,7 @@ def run_omp(
                         tile_shape, order="F"
                     )
                 )
-            g_score_image = scores.score_pixel_score_image(g_pixel_image, mean_spot, config["force_cpu"])
+            g_score_image = scores.score_pixel_score_image(g_pixel_image, mean_spot)
             g_score_image = scores.boost_z_edge_spot_scores(g_score_image, mean_spot)
             del g_pixel_image
             g_score_image = g_score_image.to(dtype=torch.float16)

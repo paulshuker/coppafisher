@@ -1,5 +1,7 @@
+import os
+
 import numpy as np
-from skimage import data
+import pytest
 from skimage.filters import gaussian
 
 from coppafisher.register import base as reg_base
@@ -65,20 +67,21 @@ def test_flow_correlation():
     assert np.allclose(flow_corr[3:5, 4:6, 2], 1)
 
 
+@pytest.mark.slow
 def test_optical_flow_single():
-    # set up data
-    base = data.cells3d()[20:40, 1]
-    base = np.swapaxes(base, 0, 2)
-    base = gaussian(base, sigma=1, preserve_range=True)
+    # Set up data.
+    data_filepath = os.path.join(os.path.dirname(__file__), "cells3d_data.npz")
+    base = np.load(data_filepath)["arr_0"]
     base = base.astype(np.float32)
+    base = gaussian(base, sigma=1, preserve_range=True)
     target = reg_pre.custom_shift(base, np.array([3, 2, 0]))
-    # calculate the flow
+    # Calculate the flow.
     flow = reg_base.optical_flow_single(base, target, upsample_factor_yx=1, tile=0, round=0)
-    # check that the shape is correct
+    # Check that the shape is correct.
     ny, nx, nz = base.shape
     assert flow.shape == (3, ny, nx, nz)
 
-    # check that the values are correct
+    # Check that the values are correct.
     flow = np.round(flow)
     correct_y = flow[0] == 3
     correct_x = flow[1] == 2

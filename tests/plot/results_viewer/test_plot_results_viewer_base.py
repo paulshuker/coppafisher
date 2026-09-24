@@ -98,6 +98,18 @@ def test_Viewer() -> None:
     background_array = rng.randint(0, 100, size=(8, 25, 31), dtype=np.int8)
     tifffile.imwrite(tiff_filepath, background_array)
 
+    Viewer(
+        nbp_basic=nbp_basic,
+        nbp_filter=nbp_filter,
+        nbp_register=nbp_register,
+        nbp_stitch=nbp_stitch,
+        nbp_ref_spots=nbp_ref_spots,
+        nbp_call_spots=nbp_call_spots,
+        nbp_omp=nbp_omp,
+        show_tiles=list(use_tiles),
+        show=False,
+    )
+
     # Try different background image valid parameters.
     background_images = []
     background_image_colours = []
@@ -115,8 +127,7 @@ def test_Viewer() -> None:
         show_tiles = list(use_tiles)
         show_tiles.pop(rng.randint(len(show_tiles)))
         viewer = Viewer(
-            background_images=background_image,
-            background_image_colours=colour_maps,
+            background_images=zip(background_image, colour_maps, strict=True),
             gene_legend_order_by="row",
             nbp_basic=nbp_basic,
             nbp_filter=nbp_filter,
@@ -145,8 +156,7 @@ def test_Viewer() -> None:
         for i, gene_name in enumerate(nbp_call_spots.gene_names):
             writer.writerow((i, gene_name, rng.rand(), rng.rand(), rng.rand(), random.choice(("cross", "disc"))))
     viewer = Viewer(
-        background_images=("dapi", "anchor"),
-        background_image_colours=("Reds", "Greens"),
+        background_images=(("dapi", "Reds"), ("anchor", "Greens")),
         gene_marker_filepath=gene_marker_filepath,
         gene_legend_order_by="colour",
         nbp_basic=nbp_basic,
@@ -175,6 +185,8 @@ def test_Viewer() -> None:
             "minimum_intensity_multiplier": 0.001,
             "max_genes": 2,
             "dot_product_threshold": 0.01,
+            "background_dot_product_threshold": 0.01,
+            "background_subtract_percentile": 20,
             "alpha": 0.0,
             "beta": 1.0,
         }
@@ -206,7 +218,7 @@ def test_Viewer() -> None:
         subgroup.colours[:] = rng.rand(*subgroup.colours.shape).astype(np.float16)
     nbp_omp.results = group
     viewer = Viewer(
-        background_images=("dapi",),
+        background_images=[("dapi", "gray")],
         nbp_basic=nbp_basic,
         nbp_filter=nbp_filter,
         nbp_register=nbp_register,
