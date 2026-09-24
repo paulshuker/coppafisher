@@ -1259,7 +1259,7 @@ class Viewer:
                 continue
             colour = gene_legend_info[gene_legend_info["GeneNames"] == g][["ColorR", "ColorG", "ColorB"]].values[0]
             symbol_napari = gene_legend_info[gene_legend_info["GeneNames"] == g]["napari_symbol"].values[0]
-            cell_type = (
+            cell_type = str(
                 gene_legend_info[gene_legend_info["GeneNames"] == g]["cell_type"].values[0]
                 if "cell_type" in gene_legend_info.columns
                 else ""

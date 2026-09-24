@@ -105,13 +105,14 @@ class Legend(Subplot):
     order_by_options: tuple[str, ...] = property(get_order_by_options)
 
     # Visual parameters.
-    _NORMAL_OPACITY: float = 0.25
+    _NORMAL_OPACITY: float = 0.7
     _HOVERED_OPACITY: float = 1.0
     _SELECTED_OPACITY: float = 0.7
     _NORMAL_TEXT_WEIGHT: str = "light"
     _HOVERED_TEXT_WEIGHT: str = "bold"
-    _HOVERED_GROUP_WEIGHT: str = "bold"
     _SELECTED_TEXT_WEIGHT: str = "normal"
+    _NORMAL_GROUP_TEXT_WEIGHT: str = "normal"
+    _HOVERED_GROUP_TEXT_WEIGHT: str = "bold"
 
     _napari_to_mpl_marker: dict[str, str] = {
         "cross": "+",
@@ -123,7 +124,8 @@ class Legend(Subplot):
         "vbar": "|",
         "star": "*",
         "arrow": ">",
-        "ring": "o",  # A ring is the same as disc but the face colour is set to None with only an edge colour.
+        # A ring is the same as disc but the face colour is set to None.
+        "ring": "o",
         "clobber": r"$\clubsuit$",
         "x": "x",
         "diamond": "d",
@@ -139,7 +141,7 @@ class Legend(Subplot):
         genes: tuple[Gene, ...],
         order_by: Literal["row"] | Literal["colour"] | Literal["cell_type"],
         is_standalone_plot: bool = False,
-    ):
+    ) -> None:
         """
         Build the gene legend.
 
@@ -335,7 +337,7 @@ class Legend(Subplot):
                     (x + (1 - self._MARKER_TEXT_PADDING) * cell_width, y),
                     ha="right",
                     va="center",
-                    weight="medium",
+                    weight=self._NORMAL_TEXT_WEIGHT,
                 )
                 self.scatter_axes.append((scatter_ax, text_ax))
                 self.gene_button_bounds.append((x, x + cell_width, y - 0.5 * cell_height, y + 0.5 * cell_height))
@@ -352,8 +354,10 @@ class Legend(Subplot):
                 self.group_button_bounds.append(
                     (0, fig_width, position[1] - 0.5 * cell_height, position[1] + 0.5 * cell_height)
                 )
-                annoation = self.canvas.ax.annotate(category_name, position, ha="center", va="center")
-                self.group_annotations.append(annoation)
+                annotation = self.canvas.ax.annotate(
+                    category_name, position, ha="center", va="center", weight=self._NORMAL_GROUP_TEXT_WEIGHT
+                )
+                self.group_annotations.append(annotation)
                 row += 1
 
         self.canvas.ax.set_xlim(0, fig_width)
@@ -388,21 +392,19 @@ class Legend(Subplot):
         if not self.mouse_is_over_legend:
             return
 
-        value, button_type = self.get_closest_toggleable_button(event)
-        if value is None and self.previous_value is None:
-            return
-        if value == self.previous_value and button_type == self.previous_button_type:
+        button_value, button_type = self.get_closest_toggleable_button(event)
+        if button_value == self.previous_value and button_type == self.previous_button_type:
             return
 
         # The mouse is possibly over a different element.
         self._clear_mouse_hovers(do_redraw=False)
         if button_type == "gene":
-            self._set_gene_text(value, self._HOVERED_TEXT_WEIGHT, self._HOVERED_OPACITY)
+            self._set_gene_text(button_value, self._HOVERED_TEXT_WEIGHT, self._HOVERED_OPACITY)
         elif button_type == "group":
-            self._set_group_text(value, self._HOVERED_GROUP_WEIGHT)
+            self._set_group_text(button_value, self._HOVERED_GROUP_TEXT_WEIGHT)
 
         self._call_redraw()
-        self.previous_value = value
+        self.previous_value = button_value
         self.previous_button_type = button_type
 
     def _on_resize_event(self, _=None) -> None:
@@ -439,7 +441,7 @@ class Legend(Subplot):
                 )
         elif self.previous_button_type == "group":
             for group_name in self.categorised_genes:
-                self._set_group_text(group_name, self._NORMAL_TEXT_WEIGHT)
+                self._set_group_text(group_name, self._NORMAL_GROUP_TEXT_WEIGHT)
         else:
             raise ValueError(f"{self.previous_button_type=}")
 

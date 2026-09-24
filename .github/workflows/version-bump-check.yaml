@@ -15,6 +15,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install PyQt6 dependency
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            sudo apt-get install -y libegl1
+          fi
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

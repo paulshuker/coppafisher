@@ -1,13 +1,14 @@
-2026/MM/DD Version 1.14 (v1.14.0):
+2026/09/24 Version 1.14 (v1.14.0):
  * General: Python 3.11 is no longer supported.
  * General: Running on the GPU is no longer supported.
  * General: Package updates.
  * Viewer: The gene legend is now responsive to mouse movements.
- * Viewer: OMP colour subplot now plots the final colour residual.
+ * Viewer: The OMP colour subplot now plots the final colour residual.
  * Viewer: Improved positioning of tiles in dapi/anchor image backgrounds.
  * Viewer: Broken dapi/anchor image backgrounds at four tile overlap areas fix.
+ * Viewer: Error when gene cell types are integers fix.
  * Export: Broken dapi image exports at four tile overlap areas fix.
- * OMP: Pixel scores can now be computed after background gene detection.
+ * OMP: Pixel scores are now computed after background gene subtraction.
  * OMP: New optional debug information can be saved to disk.
 
 
