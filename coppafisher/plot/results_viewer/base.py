@@ -1160,7 +1160,7 @@ class Viewer:
                 self.viewer.window.add_dock_widget(self.contrast_slider, area="left", name="Background Contrast")
         if self.show:
             # View hotkeys button.
-            self.view_hotkeys_button = QPushButton(text="Hotkeys")
+            self.view_hotkeys_button = QPushButton(text="Hotkey Help")
             self.view_hotkeys_button.clicked.connect(self.view_help)
             self.viewer.window.add_dock_widget(self.view_hotkeys_button, area="left", name="Help")
             # Hide the layer list and layer controls.
