@@ -5,7 +5,7 @@ import time
 import warnings
 from collections.abc import Iterable
 from os import path
-from typing import TYPE_CHECKING, Any, List, Literal, Optional
+from typing import TYPE_CHECKING, Any, List, Literal, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -107,15 +107,12 @@ class Viewer:
     score_slider: Any
     intensity_slider: Any
 
-    # TODO: Combine background_images and background_image_colours into one dictionary parameter. Each key will be a
-    # given background image type/file path, each value will be the colour map it has.
     def __init__(
         self,
         nb: Optional[Notebook] = None,
         gene_marker_filepath: Optional[str] = None,
         gene_legend_order_by: Literal["row"] | Literal["colour"] | Literal["cell_type"] = "cell_type",
-        background_images: Iterable[str] = ("dapi",),
-        background_image_colours: Iterable[str] = ("gray",),
+        background_images: Iterable[Tuple[str, str]] = (("dapi", "gray"),),
         show_tiles: Optional[List[int]] = None,
         nbp_basic: Optional[NotebookPage] = None,
         nbp_filter: Optional[NotebookPage] = None,
@@ -140,12 +137,13 @@ class Viewer:
             gene_legend_order_by (str, optional): how to order the genes in the legend. Use "row" to order genes by each
                 row in the gene marker file. Use "colour" to group genes based on their colour RGB's. Each colour group
                 is sorted by hue and each gene name in each colour group is sorted alphabetically. Default: "cell_type".
-            background_images (iterable[str], optional): what to use as the background image(s), each background image
-                can be "dapi", "anchor", or a file path to a .npy, .npz, or .tif file. The array at a file path must be
-                a numpy array of shape `(im_y x im_x)`, `(im_z x im_y x im_x)`, `(im_z x im_y x im_x x 3)`, or
-                `(im_z x im_y x im_x x 4)`. If 3 or 4 is the end dimension, it represents RGB/RGBA images. If given a
-                .npz file, the background image must be located at key 'arr_0'. Set to `[]` for no background images.
-                Default: ("dapi",).
+            background_images (iterable[tuple[str, str]], optional): what background image(s) to display, each
+                background image can be "dapi", "anchor", or a file path to a .npy, .npz, or .tif file. The second
+                string in the tuple is the image's colour mapping (any valid napari colour mapping). The array at a file
+                path must be a numpy array of shape `(im_y x im_x)`, `(im_z x im_y x im_x)`, `(im_z x im_y x im_x x 3)`,
+                or `(im_z x im_y x im_x x 4)`. If 3 or 4 is the end dimension, it represents RGB/RGBA images. If given a
+                .npz file, the background image must be located at key 'arr_0'. Set to `[]` for no background image.
+                Default: (("dapi", "gray"),).
             background_image_colours (iterable[str], optional): the napari colour mapping(s) used for the background
                 image(s). Set to `[]` when using no background images. Default: ("gray",).
             show_tiles (list of int, optional): list of tile indices to display. Default: all tiles in the notebook.
@@ -171,26 +169,21 @@ class Viewer:
             raise TypeError("background_images must be an iterable, not a string")
         if not hasattr(background_images, "__iter__"):
             raise TypeError(f"background_images must be an iterable, but got type {type(background_images)}")
-        if len(background_images) != len(set(background_images)):
-            raise ValueError("background_images contains repeated images")
         for background_image in background_images:
-            if type(background_image) is not str:
-                raise TypeError(f"Expected str inside background_images, but got type {type(background_image)}")
-            if not background_image.endswith((".npy", ".npz", ".tif")) and background_image not in self._BG_OPTIONS:
+            if type(background_image) is not tuple:
+                raise TypeError(f"Expected tuple inside background_images, but got type {type(background_image)}")
+            if (
+                not background_image[0].endswith((".npy", ".npz", ".tif"))
+                and background_image[0] not in self._BG_OPTIONS
+            ):
                 raise ValueError(
                     "Background image must be .npy, .npz, .tif file, or one of "
-                    + f"{self._BG_OPTIONS}, got {background_image}"
+                    + f"{self._BG_OPTIONS}, got {background_image[0]}"
                 )
-            if background_image not in self._BG_OPTIONS and not path.isfile(background_image):
-                raise FileNotFoundError(f"No background image file at {background_image}")
-        if not hasattr(background_image_colours, "__iter__"):
-            raise TypeError(f"background_image_colours must be an iterable, but got {type(background_images)}")
-        if not all(type(colour) is str for colour in background_image_colours):
-            raise TypeError("background_image_colours can only contain strings")
-        if len(background_images) != len(background_image_colours):
-            raise ValueError(
-                f"Got {len(background_images)} background images but {len(background_image_colours)} colour maps"
-            )
+            if background_image[0] not in self._BG_OPTIONS and not path.isfile(background_image[0]):
+                raise FileNotFoundError(f"No background image file at {background_image[0]}")
+            if not all(type(val) is str for val in background_image):
+                raise TypeError("background_images can only contain strings")
         if show_tiles is not None and type(show_tiles) is not list:
             raise TypeError(f"show_tiles must be a list, got {type(show_tiles)} instead")
 
@@ -320,7 +313,7 @@ class Viewer:
             self.viewer.window.add_dock_widget(self.legend.canvas, name="Gene Legend", area="left")
         self._update_gene_legends()
 
-        print("Loading background image")
+        print("Loading background image(s)")
         tile_z_positions = self.nbp_stitch.tile_origin[self.nbp_basic.use_tiles, 2]
         tile_z_range = np.ceil(tile_z_positions.max()) - np.floor(tile_z_positions.min()) + len(self.nbp_basic.use_z)
         self.n_z_planes = tile_z_range.astype(int).item()
@@ -330,13 +323,13 @@ class Viewer:
         self.background_image_layers = []
         self.max_intensity_project = False
         for background_image in background_images:
-            self._load_background(background_image)
+            self._load_background(background_image[0])
 
         print("Building UI")
         self._build_UI()
 
         print("Placing background image")
-        self._place_backgrounds(background_image_colours)
+        self._place_backgrounds(val[1] for val in background_images)
 
         print("Placing spots")
         self.point_layers = {}
@@ -1167,7 +1160,7 @@ class Viewer:
                 self.viewer.window.add_dock_widget(self.contrast_slider, area="left", name="Background Contrast")
         if self.show:
             # View hotkeys button.
-            self.view_hotkeys_button = QPushButton(text="Hotkeys")
+            self.view_hotkeys_button = QPushButton(text="Hotkey Help")
             self.view_hotkeys_button.clicked.connect(self.view_help)
             self.viewer.window.add_dock_widget(self.view_hotkeys_button, area="left", name="Help")
             # Hide the layer list and layer controls.
