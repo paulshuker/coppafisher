@@ -74,7 +74,7 @@ class ViewOMPColourSum(Subplot):
         self.pixel_score = pixel_scores[0]
         # Has shape (n_genes_assigned, n_rounds_use).
         self.gene_weights = gene_weights[0]
-        self.assigned_genes: np.ndarray[int] = (~np.isnan(self.gene_weights)).nonzero()[0]
+        self.assigned_genes: np.ndarray[int] = (~np.isnan(self.gene_weights).any(1)).nonzero()[0]
         self.gene_weights = self.gene_weights[self.assigned_genes]
         # Has shape (n_genes_assigned, n_rounds_use, n_channels_use).
         self.gene_residuals = gene_residuals[0][self.assigned_genes]
