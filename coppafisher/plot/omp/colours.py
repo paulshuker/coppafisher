@@ -50,6 +50,7 @@ class ViewOMPColourSum(Subplot):
             dot_product_threshold = float(nbp_omp.associated_configs["omp"]["dot_product_threshold"])
             bg_dot_product_threshold = float(nbp_omp.associated_configs["omp"]["background_dot_product_threshold"])
             bg_subtract_percentile = float(nbp_omp.associated_configs["omp"]["background_subtract_percentile"])
+        alpha = 0.01
 
         self.colour = spot_colour.copy().astype(np.float32)
         self.colour = preprocessing.preprocess_colours(
@@ -122,7 +123,7 @@ class ViewOMPColourSum(Subplot):
 
         # Weighted gene bled codes and final residual colour on the top row.
         for i, g in enumerate(self.assigned_genes):
-            w_str = ["{:.2f}".format(s) for s in self.gene_weights[i]]
+            w_str = ",".join(["{:.2f}".format(s) for s in self.gene_weights[i]])
             c_str = "{:.3f}".format(self.pixel_score[i])
             self.axes[0, i].set_title(f"{g}: {self.gene_names[g]}\nweight: {w_str}\npixel score: {c_str}")
             self.axes[0, i].imshow(self.assigned_bled_codes[i].T, cmap=self.cmap, norm=self.norm)

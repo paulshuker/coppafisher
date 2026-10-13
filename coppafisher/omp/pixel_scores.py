@@ -385,7 +385,7 @@ class PixelScoreSolver:
         # First parameter has shape (n_pixels, n_rounds_use, n_channels_use, n_genes_added).
         # Second parameter has shape (n_pixels, n_rounds_use, n_channels_use, 1).
         # Therefore, the result has shape (n_pixels, n_rounds_use, n_genes_added, 1).
-        weights = torch.linalg.lstsq(bled_codes, pixel_colours, driver="gelsd").solution
+        weights = torch.linalg.lstsq(bled_codes, pixel_colours).solution
         assert not torch.isnan(weights).any()
         # Reshape weights to (n_pixels, n_rounds_use, n_genes_added).
         weights = weights[:, :, :, 0]
@@ -395,8 +395,8 @@ class PixelScoreSolver:
         )[0]
 
         # From the new weights, find the residual spot colours.
-        pixel_residuals = pixel_colours[..., 0] - (weights[:, :, np.newaxis] * bled_codes).sum(3)
-        pixel_residuals = pixel_residuals.reshape((-1, n_rounds_use * n_channels_use))
+        pixel_residuals = pixel_colours[..., 0] - (weights[:, :, np.newaxis, :] * bled_codes).sum(3)
+        pixel_residuals = pixel_residuals.reshape((n_pixels, n_rounds_use * n_channels_use))
 
         # Reshape weights to (n_pixels, n_genes_added, n_rounds_use).
         weights = weights.swapaxes(1, 2)
@@ -464,7 +464,7 @@ class PixelScoreSolver:
         del weighted_bled_codes
 
         # colour_residuals has shape (n_genes_assigned, n_pixels, n_rounds_use, n_channels_use).
-        # colour_residuals[g] is the pixel colour minus all weighted bled codes except the one for gene g.
+        # colour_residuals[g] is the pixel colour minus all weighted bled codes except gene g.
         #
         # Denoted as $\tilde{R}$ in the docs.
         colour_residuals = pixel_colours.detach().clone()[np.newaxis] - bled_codes_sum_except_one
@@ -511,8 +511,8 @@ class PixelScoreSolver:
         pixel_scores = pixel_scores.swapaxes(0, 1)
 
         # Set pixel scores to be negative if the gene's weight is negative in all rounds.
-        weights_are_majority_negative = torch.sign(weights).sum(2, dtype=torch.int16)
-        weights_are_majority_negative = weights_are_majority_negative > 0
+        weights_are_majority_negative = (weights < 0).to(torch.int32).sum(2, dtype=torch.int16)
+        weights_are_majority_negative = weights_are_majority_negative > (0.5 * n_rounds_use)
         pixel_scores[weights_are_majority_negative] *= -1
         del weights_are_majority_negative
 
@@ -573,7 +573,7 @@ class PixelScoreSolver:
 
         # Compute epsilon squared as described in the OMP method documentation.
         epsilon_squared = (
-            n_rounds_use * n_channels_use * sigma_squared / sigma_squared.sum(-1, keepdim=True).sum(-1, keepdim=True)
+            n_channels_use * n_rounds_use * sigma_squared / sigma_squared.sum(-1, keepdim=True).sum(-2, keepdim=True)
         )
         epsilon_squared = epsilon_squared.reshape((n_batches, n_pixels, n_rounds_use * n_channels_use))
 
