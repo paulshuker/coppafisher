@@ -39,31 +39,37 @@ where `n_...` variables represent counts (integers), `seq_image_tiles` is a nump
 `(n_seq_rounds, n_tiles, n_total_channels, n_y, n_x, n_z)`, while `anchor_image` is a numpy array of shape
 `(n_tiles, n_total_channels, n_y, n_x, n_z)`. Note that `n_y` must equal `n_x`.
 
-
 ### Tif
 
-Every round (anchor included) must be a .tif file located inside of the `input_dir`. They must have the shape
+Every round (including the anchor) must be a .tif file located inside of the `input_dir`. They must have the shape
 `(n_tiles * n_total_channels * n_z, n_y, n_x)`. The first axis is flattened such that the first n_total_channels are
 tile 0 and z plane 0 on each channel, then the next n_total_channels are tile 0 and z plane 1 on each channel. Then
 after n_z z planes the next n_total_channels are tile 1 and z plane 0 on each channel etc...
 
 ### Metadata
 
-The metadata file required for [numpy](#numpy) and [tif](#tif) input formats. It must be saved in the same location as
-the raw input files. This can be done using Python:
+A separate `metadata.json` file is required for [numpy](#numpy) and [tif](#tif) input formats. It must be saved in the
+same location as the raw input files. This can be made using Python:
 
 ```python
 --8<-- "create_metadata.py"
 ```
 
-`n_tiles` must be the total number of tiles inside of the raw inputted files (even if you only plan on selecting a
-subset of them). Similarly, `n_total_channels` must be the total number of channels in the inputted raw files.
+where you must change the values of the variables to fit the raw data you have provided. The variables are:
 
-`pixel_size_xy` is the size of a pixel along the y/x axes in microns. `pixel_size_z` is the size of a pixel along the z
-axis in microns. `n_y` is the number of pixels along y/x for a single tile. `n_z` is the number of pixels along z for a
-single tile. `tile_origins_yx` is a list of lists which tells coppafisher where each tile is relative to one another.
-For example, a 2x2 of tiles going around clockwise starting from the top-left would be
-`#!python tile_origins_yx = [[0, 0], [0, 1], [1, 1], [1, 0]]`.
+- `output_dir` is where the metadata file is saved. This should be where the input raw files are.
+- `n_tiles` must be the total number of tiles inside of the raw files (even if you only plan on selecting a subset of
+them).
+- Similarly, `n_total_channels` must be the total number of channels in the raw files.
+- `n_rounds` is the total number of sequence rounds (not including the anchor round).
+- `pixel_size_xy` is the size of a pixel along the y/x axes in microns.
+- `pixel_size_z` is the size of a pixel along the z axis in microns.
+- `n_y` is the number of pixels along y/x for a single tile.
+- `n_z` is the number of pixels along z for a single tile.
+- `tilepos_yx` is a list of lists which tells coppafisher where each tile is relative to one another. For example, a 2x2
+of tiles going around clockwise starting from the top-left would be
+`#!python tilepos_yx = [[0, 0], [0, 1], [1, 1], [1, 0]]`. Note that y comes first for each tile and that increasing y in
+tilepos_yx is going downwards, while increasing x in tilepos_yx goes rightwards.
 
 ### Code book
 

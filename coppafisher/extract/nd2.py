@@ -13,13 +13,12 @@ def get_metadata(file_path: str, config: dict) -> dict:
     tiles/channels/z-planes.
 
     Args:
-        file_path: path to desired nd2 file
-        config: config dictionary
+        file_path (str): path to desired nd2 file.
+        config (dict): config dictionary.
 
     Returns:
-        Dictionary containing - n_tiles, n_channels, tile_sz, pixel_size_xy, pixel_size_z, tile_centre, xy_pos, nz,
-        tilepos_yx_nd2, tilepos_yx, channel_laser, channel_camera, n_rounds
-
+        (dict) metadata. Dictionary containing keys n_tiles, n_channels, tile_sz, pixel_size_xy, pixel_size_z,
+            tile_centre, xy_pos, nz, tilepos_yx_nd2, tilepos_yx, channel_laser, channel_camera, n_rounds.
     """
 
     if not os.path.isfile(file_path):
@@ -34,12 +33,9 @@ def get_metadata(file_path: str, config: dict) -> dict:
             "pixel_size_z": images.metadata.channels[0].volume.axesCalibration[2],
         }
         # Check if data is 3d
-        if "Z" in images.sizes:
-            # subtract 1 as we always ignore first z plane
-            nz = images.sizes["Z"]
-            metadata["tile_centre"] = np.array([metadata["tile_sz"], metadata["tile_sz"], nz]) / 2
-        else:
-            metadata["tile_centre"] = np.array([metadata["tile_sz"], metadata["tile_sz"]]) / 2
+        # NOTE: We used to subtract 1 to ignore the first z plane. This was changed in March 2023.
+        nz = float(images.sizes["Z"]) if "Z" in images.sizes else 0.0
+        metadata["tile_centre"] = np.array([metadata["tile_sz"], metadata["tile_sz"], nz]) / 2
 
         xy_pos = np.array(
             [images.experiment[0].parameters.points[i].stagePositionUm[:2] for i in range(images.sizes["P"])]
@@ -76,16 +72,16 @@ def get_metadata(file_path: str, config: dict) -> dict:
 def get_jobs_metadata(files: list, input_dir: str, config: dict) -> dict:
     """
     Gets metadata containing information from nd2 data about pixel sizes, position of tiles and numbers of
-    tiles/channels/z-planes. This has to be as separate function from above due to the fact that input here is a list
-    of directories as rounds are not entirely contained in a single file for jobs data.
+    tiles/channels/z-planes. This has to be as separate function from above due to the fact that input here is a list of
+    directories as rounds are not entirely contained in a single file for jobs data.
 
     Args:
         files: list of paths to desired nd2 file
         input_dir: Directory to location of files
         config: config dictionary
+
     Returns:
         Dictionary containing -
-
         - `xy_pos` - `List [n_tiles x 2]`. xy position of tiles in pixels.
         - `pixel_microns` - `float`. xy pixel size in microns.
         - `pixel_microns_z` - `float`. z pixel size in microns.
@@ -160,7 +156,7 @@ def get_jobs_metadata(files: list, input_dir: str, config: dict) -> dict:
     n_lasers = len(set(laser))
 
     metadata["n_rounds"] = n_files // (n_lasers * metadata["n_tiles"])
-    # TODO find a better solution to fix the number of rounds
+    # TODO: find a better solution to fix the number of rounds
     metadata["n_rounds"] -= 1
     metadata["nz"] = nz
 
